@@ -287,6 +287,9 @@ public class CoreService {
         }
         Test test = tests.findById(testId).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
         List<Question> imported = new ArrayList<>();
+        List<String> speakingPart3Items = new ArrayList<>();
+        Question speakingPart3Question = null;
+        int speakingPart3Total = 0;
         try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
             Iterable<CSVRecord> records = CSVFormat.DEFAULT.builder()
                     .setHeader()
@@ -311,6 +314,16 @@ public class CoreService {
                     q.setExplanation(csv(record, "explanation", ""));
                     q.setPoints(parseInteger(record, "points", 1));
                     q.setSortOrder(parseInteger(record, "sort_order", imported.size() + 1));
+                    if (rawType.equals("SPEAKING_PART3") && hasSpeakingPart3Columns(record)) {
+                        if (speakingPart3Question == null) {
+                            speakingPart3Question = q;
+                        }
+                        if (speakingPart3Total == 0) {
+                            speakingPart3Total = parseInteger(record, "total", 0);
+                        }
+                        speakingPart3Items.add(buildSpeakingPart3QuestionItem(record, speakingPart3Items.size()));
+                        continue;
+                    }
                     if (listeningPart2) {
                         String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
                         q.setScriptText(paragraph);
@@ -351,6 +364,13 @@ public class CoreService {
                     throw new IllegalArgumentException("CSV row " + record.getRecordNumber() + " error: " + ex.getMessage());
                 }
             }
+        }
+        if (!speakingPart3Items.isEmpty()) {
+            speakingPart3Question.setContent(buildSpeakingPart3Template(
+                    speakingPart3Total > 0 ? speakingPart3Total : speakingPart3Items.size(),
+                    speakingPart3Items
+            ));
+            imported.add(questions.save(speakingPart3Question));
         }
         if (imported.isEmpty()) {
             throw new IllegalArgumentException("CSV does not contain any question rows");
@@ -395,6 +415,75 @@ public class CoreService {
                 || rawType.equals("SPEAKING_PART2")
                 || rawType.equals("SPEAKING_PART3")
                 || rawType.equals("SPEAKING_PART4");
+    }
+
+    private boolean hasSpeakingPart3Columns(CSVRecord record) {
+        return !firstNonBlank(csv(record, "urlpic1", ""), firstNonBlank(csv(record, "urlPic1", ""), csv(record, "image1", ""))).isBlank()
+                || !firstNonBlank(csv(record, "urlpic2", ""), firstNonBlank(csv(record, "urlPic2", ""), csv(record, "image2", ""))).isBlank()
+                || !firstNonBlank(csv(record, "question1", ""), firstNonBlank(csv(record, "q1", ""), csv(record, "prompt1", ""))).isBlank();
+    }
+
+    private String buildSpeakingPart3QuestionItem(CSVRecord record, int index) {
+        String number = String.format("%02d", index + 1);
+        String urlpic1 = firstNonBlank(csv(record, "urlpic1", ""),
+                firstNonBlank(csv(record, "urlPic1", ""),
+                        firstNonBlank(csv(record, "image1", ""),
+                                firstNonBlank(csv(record, "image1Url", ""), csv(record, "picture1", "")))));
+        String urlpic2 = firstNonBlank(csv(record, "urlpic2", ""),
+                firstNonBlank(csv(record, "urlPic2", ""),
+                        firstNonBlank(csv(record, "image2", ""),
+                                firstNonBlank(csv(record, "image2Url", ""), csv(record, "picture2", "")))));
+        if (urlpic1.isBlank()) {
+            urlpic1 = "/images/speaking/part3/de" + number + "_1.png";
+        }
+        if (urlpic2.isBlank()) {
+            urlpic2 = "/images/speaking/part3/de" + number + "_2.png";
+        }
+
+        String question1 = firstNonBlank(csv(record, "question1", ""),
+                firstNonBlank(csv(record, "q1", ""), csv(record, "prompt1", "")));
+        String question2 = firstNonBlank(csv(record, "question2", ""),
+                firstNonBlank(csv(record, "q2", ""), csv(record, "prompt2", "")));
+        String question3 = firstNonBlank(csv(record, "question3", ""),
+                firstNonBlank(csv(record, "q3", ""), csv(record, "prompt3", "")));
+        String answer1 = firstNonBlank(csv(record, "question1_answer", ""),
+                firstNonBlank(csv(record, "q1_answer", ""),
+                        firstNonBlank(csv(record, "answer1", ""), csv(record, "sampleAnswer1", ""))));
+        String answer2 = firstNonBlank(csv(record, "question2_answer", ""),
+                firstNonBlank(csv(record, "q2_answer", ""),
+                        firstNonBlank(csv(record, "answer2", ""), csv(record, "sampleAnswer2", ""))));
+        String answer3 = firstNonBlank(csv(record, "question3_answer", ""),
+                firstNonBlank(csv(record, "q3_answer", ""),
+                        firstNonBlank(csv(record, "answer3", ""), csv(record, "sampleAnswer3", ""))));
+
+        if (question1.isBlank()) {
+            question1 = "Describe the picture?";
+        }
+        if (question2.isBlank()) {
+            question2 = "Answer the related question.";
+        }
+        if (question3.isBlank()) {
+            question3 = "Give your opinion.";
+        }
+
+        return "{"
+                + "\"urlpic1\":" + json(urlpic1) + ","
+                + "\"urlpic2\":" + json(urlpic2) + ","
+                + "\"question1\":" + json(question1) + ","
+                + "\"question1_answer\":" + json(answer1) + ","
+                + "\"question2\":" + json(question2) + ","
+                + "\"question2_answer\":" + json(answer2) + ","
+                + "\"question3\":" + json(question3) + ","
+                + "\"question3_answer\":" + json(answer3)
+                + "}";
+    }
+
+    private String buildSpeakingPart3Template(int total, List<String> items) {
+        return "{\n"
+                + "  \"template\": \"SPEAKING_PART3\",\n"
+                + "  \"total\": " + total + ",\n"
+                + "  \"questions\": [" + String.join(",", items) + "]\n"
+                + "}";
     }
 
     private boolean isGrammarTemplateType(String rawType) {

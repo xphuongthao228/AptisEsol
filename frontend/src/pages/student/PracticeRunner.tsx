@@ -17,6 +17,48 @@ const examLinks = [
   { to: '/app/settings', label: 'Cài đặt', icon: Settings, active: false }
 ];
 
+function localSpeakingImage(part: 'part2' | 'part3', fileName: string) {
+  return `/images/speaking/${part}/${fileName}`;
+}
+
+function localSpeakingPart3Image(questionIndex: number, side: 1 | 2) {
+  return localSpeakingImage('part3', `de${String(questionIndex + 1).padStart(2, '0')}_${side}.png`);
+}
+
+function normalizeLocalSpeakingPath(path: string) {
+  const part3Numbered = path.match(/^speaking\/part3\/(\d+)_(1|2)\.png$/i);
+  if (part3Numbered) {
+    return `speaking/part3/de${part3Numbered[1].padStart(2, '0')}_${part3Numbered[2]}.png`;
+  }
+  return path;
+}
+
+function resolveLocalSpeakingImage(rawValue: unknown, fallbackPath: string) {
+  const raw = typeof rawValue === 'string' ? rawValue.trim() : '';
+  if (!raw) return fallbackPath;
+
+  const speakingPath = raw.match(/(?:^|\/)(speaking\/part[23]\/[^?#]+)/i)?.[1];
+  if (speakingPath) return `/images/${normalizeLocalSpeakingPath(speakingPath)}`;
+
+  const localSpeakingPath = raw.match(/(?:^|\/)images\/(speaking\/part[23]\/[^?#]+)/i)?.[1];
+  if (localSpeakingPath) return `/images/${normalizeLocalSpeakingPath(localSpeakingPath)}`;
+
+  if (/^https?:\/\//i.test(raw)) return fallbackPath;
+
+  return raw;
+}
+
+function pickTextValue(source: Record<string, unknown>, keys: string[], fallback = '') {
+  for (const key of keys) {
+    const value = source?.[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value.trim();
+    }
+  }
+
+  return fallback;
+}
+
 export function PracticeRunner() {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
@@ -2515,9 +2557,11 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
     { label: 'Q3 - Ý kiến', icon: HelpCircle }
   ];
 
+  const imageUrl = resolveLocalSpeakingImage(current.urlpic1, localSpeakingImage('part2', `${index + 1}.png`));
+
   useEffect(() => {
     setImageFailed(false);
-  }, [index, current.urlpic1]);
+  }, [index, imageUrl]);
 
   function openPractice(nextIndex = 0) {
     patchAnswers({
@@ -2589,16 +2633,16 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
         </div>
         <div className="p-7">
           <div className="rounded-xl border border-slate-200 bg-white p-3">
-            {!imageFailed && current.urlpic1 ? (
+            {!imageFailed && imageUrl ? (
               <img
                 className="mx-auto h-[300px] w-full max-w-[520px] object-cover"
-                src={current.urlpic1}
+                src={imageUrl}
                 alt="Speaking Part 2 prompt"
                 onError={() => setImageFailed(true)}
               />
             ) : (
               <div className="flex h-[300px] items-center justify-center rounded-lg bg-slate-100 text-center text-sm font-semibold text-slate-500">
-                Chưa có ảnh. Đặt file ảnh vào đúng đường dẫn: {current.urlpic1 || '/images/speaking/part2/...'}
+                Chưa tải được ảnh. Kiểm tra file trong public/images/speaking/part2.
               </div>
             )}
           </div>
@@ -2660,8 +2704,28 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
   const tab = Math.min(Math.max(Number(saved.speakingPart3Tab ?? 0), 0), 2);
   const current = questions[index] ?? {};
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
-  const prompt = current[`question${tab + 1}`] ?? (tab === 0 ? 'Compare the two pictures.' : tab === 1 ? 'How are the pictures related?' : 'What is your opinion?');
-  const sample = current[`question${tab + 1}_answer`] ?? '';
+  const prompt = pickTextValue(
+    current,
+    [
+      `question${tab + 1}`,
+      `question_${tab + 1}`,
+      `q${tab + 1}`,
+      `prompt${tab + 1}`,
+      `prompt_${tab + 1}`,
+      tab === 0 ? 'compareQuestion' : tab === 1 ? 'relatedQuestion' : 'opinionQuestion'
+    ],
+    tab === 0 ? 'Describe the picture?' : tab === 1 ? 'Answer the related question.' : 'Give your opinion.'
+  );
+  const sample = pickTextValue(current, [
+    `question${tab + 1}_answer`,
+    `question_${tab + 1}_answer`,
+    `q${tab + 1}_answer`,
+    `answer${tab + 1}`,
+    `answer_${tab + 1}`,
+    `sample${tab + 1}`,
+    `sampleAnswer${tab + 1}`,
+    tab === 0 ? 'compareAnswer' : tab === 1 ? 'relatedAnswer' : 'opinionAnswer'
+  ]);
   const showSample = saved.speakingPart3ShowSample === 'true';
   const progress = questions.length ? Math.max(4, Math.round(((index + 1) / questions.length) * 100)) : 0;
   const image1Url = getSpeakingImageUrl(current, 1, index);
@@ -2678,13 +2742,13 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
 
   function getSpeakingImageUrl(question: Record<string, unknown>, side: 1 | 2, questionIndex: number) {
     const keys = side === 1
-      ? ['urlpic1', 'image1', 'image1Url', 'image_1', 'picture1', 'picture1Url', 'photo1', 'photo1Url']
-      : ['urlpic2', 'image2', 'image2Url', 'image_2', 'picture2', 'picture2Url', 'photo2', 'photo2Url'];
+      ? ['urlpic1', 'urlPic1', 'url_pic1', 'url_pic_1', 'image1', 'image1Url', 'image_1', 'picture1', 'picture1Url', 'pic1', 'photo1', 'photo1Url']
+      : ['urlpic2', 'urlPic2', 'url_pic2', 'url_pic_2', 'image2', 'image2Url', 'image_2', 'picture2', 'picture2Url', 'pic2', 'photo2', 'photo2Url'];
     const value = keys
       .map((key) => question?.[key])
       .find((item) => typeof item === 'string' && item.trim().length > 0);
 
-    return typeof value === 'string' ? value.trim() : `/images/speaking/part3/${questionIndex + 1}_${side}.png`;
+    return resolveLocalSpeakingImage(value, localSpeakingPart3Image(questionIndex, side));
   }
 
   function openPractice(nextIndex = 0) {
@@ -2705,7 +2769,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
       return (
         <div className="relative flex h-[198px] items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500">
           <span className="absolute left-2 top-2 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-white">{label}</span>
-          Chưa có ảnh. Kiểm tra đường dẫn {src || `/images/speaking/part3/...`}
+          Chưa tải được ảnh. Kiểm tra file trong public/images/speaking/part3.
         </div>
       );
     }
