@@ -39,13 +39,20 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authenticationProvider(provider)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(
+                                "/auth/**",
+                                "/api/auth/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**")
+                        .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/sepay/webhook").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
                         .anyRequest().authenticated())
                 .headers(headers -> headers
-                        .contentSecurityPolicy(policy -> policy.policyDirectives("default-src 'self'; frame-ancestors 'self'"))
+                        .contentSecurityPolicy(
+                                policy -> policy.policyDirectives("default-src 'self'; frame-ancestors 'self'"))
                         .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).preload(true))
                         .frameOptions(frame -> frame.sameOrigin()))
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)

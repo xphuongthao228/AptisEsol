@@ -1,0 +1,8 @@
+skill,title,summary,content,status
+LISTENING,Meo Listening Part 1,Bat keyword nhanh,"Dat file audio trong frontend/public/audio. Khi can chen link, dung duong dan dang /audio/listening/part1/q1.mp3.",PUBLISHED
+LISTENING,Meo Listening Part 2,Chon dap an theo nguoi noi,"Doc ky nhan vat Person 1-4, nghe keyword va loai dap an thua. Co the them tai lieu PDF local bang /documents/listening-part2.pdf.",PUBLISHED
+READING,Meo Reading Part 1,Dien tu vao cho trong,"Nhin loai tu truoc va sau cho trong, sau do chon dap an hop ngu phap va nghia.",PUBLISHED
+READING,Meo Reading Part 5,Noi tieu de voi doan van,"Doc cau dau, cau cuoi va keyword rieng cua tung doan. Co the chen file: /documents/reading-part5.pdf.",PUBLISHED
+SPEAKING,Meo Speaking Part 2,Mo ta anh,"Noi theo thu tu: tong quan, nguoi/vat, hanh dong, cam nhan. Moi cau noi toi da 45 giay.",PUBLISHED
+WRITING,Meo Writing Email,Form viet thu,"Tai lieu local vi du: /documents/aptis-writing-tips.pdf. Dat file PDF trong frontend/public/documents.",PUBLISHED
+GRAMMAR,Meo Grammar,Cac diem ngu phap hay gap,"On thi, cau dieu kien, gioi tu, collocation va tu vung theo chu de.",PUBLISHED

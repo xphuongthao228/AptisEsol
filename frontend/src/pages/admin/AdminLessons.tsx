@@ -1,4 +1,4 @@
-import { BookOpen, Pencil, Plus, RotateCcw, Save, Search, Trash2 } from 'lucide-react';
+import { BookOpen, Pencil, Plus, RotateCcw, Save, Search, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
@@ -141,6 +141,21 @@ export function AdminLessons() {
     }
   }
 
+  async function importLessonsCsv(file: File | undefined) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const imported = await unwrap<AdminLesson[]>(api.post('/lessons/import-csv', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }));
+      setLessons((current) => [...imported, ...current]);
+      toast.success(`Da import ${imported.length} bai hoc/tai lieu`);
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Khong import duoc bai hoc/tai lieu tu CSV'));
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section>
@@ -239,15 +254,30 @@ export function AdminLessons() {
                 <h2 className="text-xl font-extrabold">Danh sach bai hoc</h2>
                 <p className="text-sm text-slate-500">{lessons.length} bai hoc</p>
               </div>
-              <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-slate-400 lg:max-w-[320px]">
-                <Search size={18} />
-                <input
-                  className="w-full bg-transparent text-sm text-slate-700 outline-none"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder="Tim bai hoc..."
-                />
-              </label>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="btn-primary h-11 cursor-pointer justify-center px-4">
+                  <UploadCloud size={18} />
+                  Upload CSV
+                  <input
+                    type="file"
+                    accept=".csv,text/csv"
+                    className="hidden"
+                    onChange={(event) => {
+                      importLessonsCsv(event.target.files?.[0]);
+                      event.target.value = '';
+                    }}
+                  />
+                </label>
+                <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-slate-400 lg:w-[320px]">
+                  <Search size={18} />
+                  <input
+                    className="w-full bg-transparent text-sm text-slate-700 outline-none"
+                    value={query}
+                    onChange={(event) => setQuery(event.target.value)}
+                    placeholder="Tim bai hoc..."
+                  />
+                </label>
+              </div>
             </div>
           </div>
 

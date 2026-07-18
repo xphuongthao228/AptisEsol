@@ -216,6 +216,21 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
     toast.success('Đã xóa bài luyện');
   }
 
+  async function importTestsCsv(file: File | undefined) {
+    if (!file) return;
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const imported = await unwrap<Test[]>(api.post('/tests/import-csv', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      }));
+      setTests([...imported, ...tests]);
+      toast.success(`Đã import ${imported.length} bài luyện/bộ đề`);
+    } catch (error: any) {
+      toast.error(apiErrorMessage(error, 'Không import được bài luyện/bộ đề từ CSV'));
+    }
+  }
+
   return (
     <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
       <section className="card p-5">
@@ -242,6 +257,25 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
       </section>
 
       <section className="space-y-3">
+        <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="font-extrabold">Import bài luyện / bộ đề</h3>
+            <p className="text-sm text-slate-500">Dùng file CSV để tạo nhanh các bộ đề, bài luyện theo kỹ năng.</p>
+          </div>
+          <label className="btn-primary cursor-pointer justify-center">
+            <UploadCloud size={18} />
+            Upload CSV
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(event) => {
+                importTestsCsv(event.target.files?.[0]);
+                event.target.value = '';
+              }}
+            />
+          </label>
+        </div>
         {tests.map((test) => (
           <div className="card p-4" key={test.id}>
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">

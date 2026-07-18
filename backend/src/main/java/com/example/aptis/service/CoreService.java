@@ -5,6 +5,9 @@ import com.example.aptis.dto.CoreDtos;
 import com.example.aptis.entity.*;
 import com.example.aptis.enums.MediaType;
 import com.example.aptis.enums.QuestionType;
+import com.example.aptis.enums.SkillType;
+import com.example.aptis.enums.TestMode;
+import com.example.aptis.enums.TestStatus;
 import com.example.aptis.exception.ResourceNotFoundException;
 import com.example.aptis.mapper.DtoMapper;
 import com.example.aptis.repository.*;
@@ -158,6 +161,39 @@ public class CoreService {
         if (request.mode() != null) test.setMode(request.mode());
     }
 
+    @Transactional
+    public List<CoreDtos.TestResponse> importTests(MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("CSV file is empty");
+        }
+        List<CoreDtos.TestResponse> imported = new ArrayList<>();
+        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.builder()
+                    .setHeader()
+                    .setSkipHeaderRecord(true)
+                    .setTrim(true)
+                    .build()
+                    .parse(reader);
+            for (CSVRecord record : records) {
+                try {
+                    Skill skill = skillForType(parseSkillType(requiredCsv(record, "skill")));
+                    Test test = new Test();
+                    test.setSkill(skill);
+                    test.setTitle(requiredCsv(record, "title"));
+                    test.setDescription(csv(record, "description", ""));
+                    test.setDurationMinutes(parseInteger(record, "duration_minutes", 30));
+                    test.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
+                    test.setMode(parseTestMode(csv(record, "mode", "PRACTICE")));
+                    Test saved = tests.save(test);
+                    imported.add(mapper.test(saved, 0));
+                } catch (RuntimeException ex) {
+                    throw new IllegalArgumentException("CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
+                }
+            }
+        }
+        return imported;
+    }
+
     public List<CoreDtos.LessonResponse> lessons(com.example.aptis.enums.SkillType skill) {
         List<Lesson> list = skill == null
                 ? lessons.findByDeletedAtIsNullOrderByUpdatedAtDesc()
@@ -196,6 +232,36 @@ public class CoreService {
         lesson.setSummary(request.summary());
         lesson.setContent(request.content());
         lesson.setStatus(request.status() == null ? com.example.aptis.enums.TestStatus.PUBLISHED : request.status());
+    }
+
+    @Transactional
+    public List<CoreDtos.LessonResponse> importLessons(MultipartFile file) throws Exception {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("CSV file is empty");
+        }
+        List<CoreDtos.LessonResponse> imported = new ArrayList<>();
+        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
+            Iterable<CSVRecord> records = CSVFormat.DEFAULT.builder()
+                    .setHeader()
+                    .setSkipHeaderRecord(true)
+                    .setTrim(true)
+                    .build()
+                    .parse(reader);
+            for (CSVRecord record : records) {
+                try {
+                    Lesson lesson = new Lesson();
+                    lesson.setSkill(parseSkillType(requiredCsv(record, "skill")));
+                    lesson.setTitle(requiredCsv(record, "title"));
+                    lesson.setSummary(csv(record, "summary", ""));
+                    lesson.setContent(requiredCsv(record, "content"));
+                    lesson.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
+                    imported.add(mapper.lesson(lessons.save(lesson)));
+                } catch (RuntimeException ex) {
+                    throw new IllegalArgumentException("CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
+                }
+            }
+        }
+        return imported;
     }
 
     public List<CoreDtos.PredictionResponse> predictions(com.example.aptis.enums.SkillType skill, boolean publishedOnly) {
@@ -691,6 +757,53 @@ public class CoreService {
                 .replace("\r", "\\r")
                 .replace("\n", "\\n")
                 .replace("\t", "\\t") + "\"";
+    }
+
+    private SkillType parseSkillType(String value) {
+        String normalized = value == null ? "" : value.trim().toUpperCase();
+        try {
+            return SkillType.valueOf(normalized);
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("unknown skill: " + value);
+        }
+    }
+
+    private TestStatus parseTestStatus(String value) {
+        String normalized = value == null || value.isBlank() ? "PUBLISHED" : value.trim().toUpperCase();
+        try {
+            return TestStatus.valueOf(normalized);
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("unknown status: " + value);
+        }
+    }
+
+    private TestMode parseTestMode(String value) {
+        String normalized = value == null || value.isBlank() ? "PRACTICE" : value.trim().toUpperCase();
+        try {
+            return TestMode.valueOf(normalized);
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("unknown test mode: " + value);
+        }
+    }
+
+    private Skill skillForType(SkillType type) {
+        return skills.findByType(type).orElseGet(() -> {
+            Skill skill = new Skill();
+            skill.setType(type);
+            skill.setName(skillName(type));
+            skill.setDescription("");
+            return skills.save(skill);
+        });
+    }
+
+    private String skillName(SkillType type) {
+        return switch (type) {
+            case LISTENING -> "Listening";
+            case SPEAKING -> "Speaking";
+            case READING -> "Reading";
+            case WRITING -> "Writing";
+            case GRAMMAR -> "Grammar";
+        };
     }
 
     private QuestionType parseQuestionType(String value) {

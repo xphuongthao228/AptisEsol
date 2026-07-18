@@ -1,0 +1,9 @@
+skill,title,description,duration_minutes,status,mode
+LISTENING,De 1 Listening,Bo de luyen thi Listening,50,PUBLISHED,EXAM
+READING,De 1 Reading,Bo de luyen thi Reading,35,PUBLISHED,EXAM
+SPEAKING,Speaking Part 1,Luyen noi thong tin ca nhan,12,PUBLISHED,PRACTICE
+SPEAKING,Speaking Part 2,Luyen noi mo ta anh,12,PUBLISHED,PRACTICE
+SPEAKING,Speaking Part 3,Luyen noi so sanh hai anh,12,PUBLISHED,PRACTICE
+SPEAKING,Speaking Part 4,Luyen noi thao luan chu de,12,PUBLISHED,PRACTICE
+WRITING,Writing Practice,Luyen viet theo chu de,30,PUBLISHED,PRACTICE
+GRAMMAR,Grammar Set 1,Luyen ngu phap Aptis,25,PUBLISHED,EXAM
