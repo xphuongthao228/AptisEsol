@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aptis Elite - Speaking Practice</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary": "#515f74",
+                        "surface-container-high": "#e1e8fd",
+                        "primary-fixed": "#dbe1ff",
+                        "primary-container": "#2563eb",
+                        "surface-variant": "#dce2f7",
+                        "on-secondary-container": "#57657a",
+                        "outline-variant": "#c3c6d7",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f9f9ff",
+                        "secondary-fixed": "#d5e3fc",
+                        "tertiary-fixed": "#7ffc97",
+                        "inverse-primary": "#b4c5ff",
+                        "surface-tint": "#0053db",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed": "#002109",
+                        "on-surface": "#141b2b",
+                        "on-tertiary-container": "#c7ffca",
+                        "secondary-container": "#d5e3fc",
+                        "tertiary": "#006329",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-primary-container": "#eeefff",
+                        "on-tertiary-fixed-variant": "#005320",
+                        "on-secondary": "#ffffff",
+                        "surface-container-highest": "#dce2f7",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#0d1c2e",
+                        "surface-dim": "#d3daef",
+                        "surface-bright": "#f9f9ff",
+                        "on-surface-variant": "#434655",
+                        "surface": "#f9f9ff",
+                        "tertiary-fixed-dim": "#62df7d",
+                        "tertiary-container": "#007f36",
+                        "inverse-on-surface": "#edf0ff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "secondary-fixed-dim": "#b9c7df",
+                        "on-background": "#141b2b",
+                        "outline": "#737686",
+                        "inverse-surface": "#293040",
+                        "on-error-container": "#93000a",
+                        "on-secondary-fixed-variant": "#3a485b",
+                        "on-error": "#ffffff",
+                        "primary": "#004ac6",
+                        "error": "#ba1a1a",
+                        "on-primary-fixed": "#00174b",
+                        "surface-container-low": "#f1f3ff",
+                        "surface-container": "#e9edff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "10px",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "xl": "32px",
+                        "gutter": "24px",
+                        "sm": "8px",
+                        "margin-desktop": "32px",
+                        "lg": "24px",
+                        "md": "16px"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "title-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "title-md": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            font-size: 20px;
+            display: inline-block;
+            line-height: 1;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f9f9ff;
+        }
+        .recording-pulse {
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.05); opacity: 0.8; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .bento-card {
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+        .bento-card:hover {
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- SideNavBar (Dark Slate background, pure white text/icons) -->
+<aside class="h-screen w-64 fixed left-0 top-0 bg-inverse-surface shadow-md flex flex-col py-md z-50">
+<div class="px-lg mb-xl">
+<h1 class="font-headline-md text-headline-md font-bold text-surface-container-lowest">Aptis Elite</h1>
+<p class="font-body-md text-body-md text-surface-variant opacity-80">Exam Preparation</p>
+</div>
+<nav class="flex-1 px-sm space-y-unit">
+<a class="flex items-center gap-lg px-md py-sm rounded-lg text-surface-variant hover:text-surface-container-lowest hover:bg-on-secondary-fixed-variant transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-lg px-md py-sm rounded-lg text-primary-fixed font-bold border-l-4 border-primary-fixed bg-on-secondary-fixed-variant transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">quiz</span>
+<span class="font-body-md text-body-md">Practice Tests</span>
+</a>
+<a class="flex items-center gap-lg px-md py-sm rounded-lg text-surface-variant hover:text-surface-container-lowest hover:bg-on-secondary-fixed-variant transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-body-md text-body-md">Study Materials</span>
+</a>
+<a class="flex items-center gap-lg px-md py-sm rounded-lg text-surface-variant hover:text-surface-container-lowest hover:bg-on-secondary-fixed-variant transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-body-md">Performance</span>
+</a>
+<a class="flex items-center gap-lg px-md py-sm rounded-lg text-surface-variant hover:text-surface-container-lowest hover:bg-on-secondary-fixed-variant transition-all cursor-pointer" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="px-md mt-auto pt-md space-y-sm">
+<button class="w-full py-md px-lg bg-primary-container text-on-primary-container rounded-lg font-title-md text-title-md hover:bg-primary transition-colors">
+                Upgrade to Pro
+            </button>
+<a class="flex items-center gap-lg px-md py-sm rounded-lg text-surface-variant hover:text-surface-container-lowest transition-all" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Help Center</span>
+</a>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 w-[calc(100%-16rem)] h-16 bg-surface shadow-sm flex justify-between items-center px-lg z-40">
+<div class="flex items-center gap-md">
+<span class="font-title-md text-title-md text-on-surface">Speaking Part 2</span>
+<span class="text-outline-variant">/</span>
+<span class="text-on-surface-variant font-body-md">Describe a Picture</span>
+</div>
+<div class="flex items-center gap-lg">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="h-10 w-64 pl-10 pr-md bg-surface border border-outline-variant rounded-lg text-body-md focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all" placeholder="Search exercises..." type="text"/>
+</div>
+<div class="flex items-center gap-md">
+<button class="p-sm rounded-full hover:bg-surface-container-low transition-transform scale-95 active:scale-90 text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-sm rounded-full hover:bg-surface-container-low transition-transform scale-95 active:scale-90 text-on-surface-variant">
+<span class="material-symbols-outlined">dark_mode</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-fixed flex items-center justify-center overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="A professional close-up headshot of a diverse young adult student wearing casual academic attire, looking friendly and engaged. The lighting is soft and natural, suggesting a bright campus environment. The background is slightly blurred with soft bokeh of library books, fitting a clean, corporate-modern educational interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0wJ4DBp0EwC5LSF58BDQZ9LtScf0SGs8aodmfrlxoqECI9Uo-zz1bUVewpmpYtQDmUO6K_fdD5CXZKj5tEQicd64NBSOFBJ7BVGVQJ8V6PINxQpZAvH87pbSHlVm-wFjiLpKkGMP0zKvCICiEUNxzBYn8Sn4wJ45SfV82uBuvjNPX5kujsETBEAuyi9EIAthjPgsVlfgKXe_hDdCmBrZbv72LaNpDNv_JvvcRzFy4iWGOHqGgfbTNFqy21GPEKHibUsxjrBqzRs4"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="ml-64 pt-16 min-h-screen">
+<div class="p-xl max-w-7xl mx-auto">
+<!-- Instruction & Timer Row -->
+<div class="flex justify-between items-end mb-lg">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-xs">Describe the picture</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Speak clearly and try to use descriptive vocabulary for 45 seconds.</p>
+</div>
+<div class="flex flex-col items-end">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider mb-xs">Time Remaining</span>
+<div class="flex items-center gap-sm bg-surface-container-high px-lg py-sm rounded-full border border-primary/10">
+<span class="material-symbols-outlined text-primary">timer</span>
+<span class="font-display-lg text-title-lg text-primary font-bold tabular-nums" id="timer">00:45</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Large Reference Image Card -->
+<div class="col-span-12 lg:col-span-7 bento-card overflow-hidden h-[500px] flex flex-col">
+<div class="relative flex-1 bg-surface-container-lowest">
+<img class="w-full h-full object-cover" data-alt="A high-quality, vibrant photograph of a group of diverse international travelers laughing and looking at a large physical map spread across a rustic wooden table in a sunlit, modern cafe. The scene is filled with authentic travel details like cameras, coffee mugs, and backpacks. The lighting is warm and golden, creating an inviting and energetic atmosphere suitable for an advanced English speaking exam." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA8Clq8Z1aO2u-eZ6iDEjdjjmFrQp4sdROSmMsTaplKGZw9L5XI6an-4TmP4b-zq6V9LeCJKEodpZjDsmC23sZZAR4_SK4mKd6AhYNDbvtVXrqDjD7V5UFnz1hEqzuzt6KWJxa9KH7-uxkNNq6GcERH_Uu-aQHCTmoAmyEdacUDkxcuLhMQyjheUlPnnFPxSdkPERSbfwM_ktUsYn8wiXtozZXsGkiJTi6UttU2HcHj33L0S_kwsFORZkfA9xNvij7MKeweiuN82hE"/>
+<div class="absolute bottom-md left-md">
+<span class="bg-black/60 backdrop-blur-md text-white px-md py-xs rounded-full font-label-md text-label-md flex items-center gap-xs">
+<span class="material-symbols-outlined text-sm">fullscreen</span>
+                                Click to enlarge
+                            </span>
+</div>
+</div>
+<div class="p-lg bg-surface border-t border-outline-variant/30">
+<div class="flex items-center gap-md">
+<div class="p-sm bg-primary-fixed rounded-lg">
+<span class="material-symbols-outlined text-primary">lightbulb</span>
+</div>
+<div>
+<p class="font-label-lg text-label-lg text-on-surface">Quick Tip</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Start by describing the general scene, then move to specific details and people's actions.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Control & Recording Section -->
+<div class="col-span-12 lg:col-span-5 flex flex-col gap-gutter">
+<!-- Recording Interface Card -->
+<div class="bento-card p-xl flex flex-col items-center justify-center text-center bg-surface-container-lowest border-2 border-dashed border-outline-variant/50 flex-1">
+<div class="relative mb-lg" id="record-container">
+<button class="h-20 w-20 bg-error rounded-full flex items-center justify-center text-white shadow-lg hover:bg-error/90 transition-all active:scale-95 group" id="record-btn">
+<span class="material-symbols-outlined text-3xl">mic</span>
+</button>
+<!-- Animated Pulse (Hidden by default) -->
+<div class="hidden absolute inset-0 bg-error rounded-full recording-pulse opacity-20 -z-10" id="recording-indicator"></div>
+</div>
+<h3 class="font-title-lg text-title-lg text-on-surface mb-sm" id="record-status">Ready to Record</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-xl max-w-xs">Click the button when you're ready to start your response.</p>
+<div class="w-full bg-surface-container rounded-xl p-lg border border-outline-variant/20 text-left min-h-[120px]">
+<p class="font-body-md text-body-md italic text-outline" id="speech-preview">Your speech will appear here as you talk...</p>
+</div>
+</div>
+<!-- Help & Resources Card -->
+<div class="bento-card p-lg">
+<h4 class="font-label-lg text-label-lg text-on-surface mb-md flex items-center gap-sm">
+<span class="material-symbols-outlined text-primary text-sm">auto_awesome</span>
+                            Preparation Resources
+                        </h4>
+<div class="grid grid-cols-2 gap-md">
+<button class="flex flex-col items-center gap-sm p-md rounded-lg bg-surface-container-low hover:bg-primary-fixed transition-colors text-on-surface-variant group">
+<span class="material-symbols-outlined group-hover:text-primary">menu_book</span>
+<span class="font-label-md text-label-md">Sample Answer</span>
+</button>
+<button class="flex flex-col items-center gap-sm p-md rounded-lg bg-surface-container-low hover:bg-primary-fixed transition-colors text-on-surface-variant group">
+<span class="material-symbols-outlined group-hover:text-primary">tips_and_updates</span>
+<span class="font-label-md text-label-md">Speaking Tips</span>
+</button>
+</div>
+</div>
+<!-- Actions -->
+<div class="flex gap-md">
+<button class="flex-1 py-md bg-secondary-container text-on-secondary-fixed font-title-md text-title-md rounded-lg hover:bg-secondary-fixed transition-colors">
+                            Save Draft
+                        </button>
+<button class="flex-1 py-md bg-primary-container text-on-primary-container font-title-md text-title-md rounded-lg hover:bg-primary transition-colors flex items-center justify-center gap-sm">
+                            Submit Response
+                            <span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Vocabulary Suggestions (Bento Bottom) -->
+<div class="mt-gutter bento-card p-lg">
+<div class="flex items-center gap-sm mb-md">
+<span class="material-symbols-outlined text-tertiary">translate</span>
+<h4 class="font-title-md text-title-md">Useful Vocabulary for this Picture</h4>
+</div>
+<div class="flex flex-wrap gap-sm">
+<span class="px-md py-xs bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-md text-label-md border border-tertiary/10 hover:scale-105 transition-transform cursor-default">Collaboration</span>
+<span class="px-md py-xs bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-md text-label-md border border-tertiary/10 hover:scale-105 transition-transform cursor-default">Navigation</span>
+<span class="px-md py-xs bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-md text-label-md border border-tertiary/10 hover:scale-105 transition-transform cursor-default">Inquisitive</span>
+<span class="px-md py-xs bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-md text-label-md border border-tertiary/10 hover:scale-105 transition-transform cursor-default">Wanderlust</span>
+<span class="px-md py-xs bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-md text-label-md border border-tertiary/10 hover:scale-105 transition-transform cursor-default">Engagement</span>
+<span class="px-md py-xs bg-tertiary-fixed text-on-tertiary-fixed rounded-full font-label-md text-label-md border border-tertiary/10 hover:scale-105 transition-transform cursor-default">Spontaneous</span>
+</div>
+</div>
+</div>
+</main>
+<script>
+        const recordBtn = document.getElementById('record-btn');
+        const recordStatus = document.getElementById('record-status');
+        const recordingIndicator = document.getElementById('recording-indicator');
+        const speechPreview = document.getElementById('speech-preview');
+        const timerDisplay = document.getElementById('timer');
+        
+        let isRecording = false;
+        let timeLeft = 45;
+        let timerInterval;
+
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        function startRecording() {
+            isRecording = true;
+            recordBtn.classList.replace('bg-error', 'bg-on-error-container');
+            recordStatus.innerText = 'Recording...';
+            recordStatus.classList.add('text-error');
+            recordingIndicator.classList.remove('hidden');
+            speechPreview.innerText = 'Listening to your voice...';
+            speechPreview.classList.remove('text-outline', 'italic');
+            speechPreview.classList.add('text-on-surface');
+            
+            // Mock timer
+            timerInterval = setInterval(() => {
+                if (timeLeft > 0) {
+                    timeLeft--;
+                    const mins = Math.floor(timeLeft / 60);
+                    const secs = timeLeft % 60;
+                    timerDisplay.innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    
+                    if (timeLeft <= 5) {
+                        timerDisplay.classList.add('text-error');
+                    }
+                } else {
+                    stopRecording();
+                }
+            }, 1000);
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            clearInterval(timerInterval);
+            recordBtn.classList.replace('bg-on-error-container', 'bg-error');
+            recordStatus.innerText = 'Recording Finished';
+            recordStatus.classList.remove('text-error');
+            recordingIndicator.classList.add('hidden');
+            speechPreview.innerText = "In this picture, I can see a group of four young adults who appear to be traveling together. They are sitting around a table in what looks like a cozy cafe, with a map spread out before them. They seem to be planning their next destination, as they are all looking at the map with enthusiastic and curious expressions...";
+        }
+    </script>
+</body></html>

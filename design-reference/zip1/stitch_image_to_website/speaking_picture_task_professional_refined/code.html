@@ -1,0 +1,437 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Aptis Keys - Speaking Test</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#e9edff",
+                        "tertiary": "#006329",
+                        "inverse-surface": "#293040",
+                        "on-tertiary-fixed-variant": "#005320",
+                        "tertiary-fixed-dim": "#62df7d",
+                        "on-surface-variant": "#434655",
+                        "surface-container-highest": "#dce2f7",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary-fixed": "#002109",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#dce2f7",
+                        "surface-bright": "#f9f9ff",
+                        "primary": "#004ac6",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-container": "#007f36",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#2563eb",
+                        "inverse-primary": "#b4c5ff",
+                        "secondary-fixed-dim": "#b9c7df",
+                        "outline": "#737686",
+                        "surface-dim": "#d3daef",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "surface-container-low": "#f1f3ff",
+                        "on-error-container": "#93000a",
+                        "on-background": "#141b2b",
+                        "on-tertiary-container": "#c7ffca",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#0053db",
+                        "secondary": "#515f74",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "outline-variant": "#c3c6d7",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-primary-fixed": "#00174b",
+                        "primary-fixed": "#dbe1ff",
+                        "on-secondary-fixed-variant": "#3a485b",
+                        "on-secondary-fixed": "#0d1c2e",
+                        "inverse-on-surface": "#edf0ff",
+                        "tertiary-fixed": "#7ffc97",
+                        "secondary-fixed": "#d5e3fc",
+                        "on-primary-container": "#eeefff",
+                        "on-surface": "#141b2b",
+                        "on-secondary-container": "#57657a",
+                        "surface": "#f9f9ff",
+                        "secondary-container": "#d5e3fc",
+                        "surface-container-high": "#e1e8fd",
+                        "background": "#f9f9ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter": "24px",
+                        "xl": "32px",
+                        "unit": "4px",
+                        "xs": "4px",
+                        "sm": "8px",
+                        "margin-mobile": "16px",
+                        "md": "16px",
+                        "margin-desktop": "32px",
+                        "lg": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Inter"],
+                        "label-md": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "body-md": ["Inter"],
+                        "title-md": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "display-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "title-md": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        
+        .record-pulse {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(186, 26, 26, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0); }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md">
+<!-- Sidebar Navigation -->
+<aside class="bg-inverse-surface w-[240px] h-screen fixed left-0 top-0 flex flex-col py-6 z-50">
+<div class="px-6 mb-10">
+<h1 class="font-display-lg text-2xl font-bold text-white leading-tight">Aptis Keys</h1>
+<p class="text-surface-variant/50 text-[10px] tracking-[0.2em] uppercase font-bold">Education System</p>
+</div>
+<nav class="flex-1">
+<ul class="space-y-1">
+<li class="">
+<a class="hover:text-white px-6 py-3.5 flex items-center gap-3 hover:bg-white/5 transition-all group text-white" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">home</span>
+<span class="font-label-lg">Trang chủ</span>
+</a>
+</li>
+<li class="">
+<a class="hover:text-white px-6 py-3.5 flex items-center gap-3 hover:bg-white/5 transition-all group text-white" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">book</span>
+<span class="font-label-lg">Học Reading</span>
+</a>
+</li>
+<li class="">
+<a class="hover:text-white px-6 py-3.5 flex items-center gap-3 hover:bg-white/5 transition-all group text-white" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">headphones</span>
+<span class="font-label-lg">Học Listening</span>
+</a>
+</li>
+<li class="">
+<a class="hover:text-white px-6 py-3.5 flex items-center gap-3 hover:bg-white/5 transition-all group text-white" href="#">
+<span class="material-symbols-outlined group-hover:scale-110 transition-transform">edit</span>
+<span class="font-label-lg">Học Writing</span>
+</a>
+</li>
+<li class="">
+<a class="bg-primary text-white px-6 py-3.5 flex items-center gap-3 shadow-lg relative overflow-hidden rounded-lg mx-3" href="#">
+
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span class="font-label-lg font-bold">Học Speaking</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="mt-auto px-4">
+<div class="space-y-1 border-t border-white/10 pt-6">
+<a class="text-surface-variant/60 hover:text-white px-4 py-2.5 flex items-center gap-3 text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">favorite</span>
+<span class="">Ủng hộ dự án</span>
+</a>
+<a class="text-surface-variant/60 hover:text-white px-4 py-2.5 flex items-center gap-3 text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+<span class="">Liên hệ hỗ trợ</span>
+</a>
+<a class="text-surface-variant/60 hover:text-white px-4 py-2.5 flex items-center gap-3 text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">person</span>
+<span class="">Tài khoản</span>
+</a>
+<a class="text-surface-variant/60 hover:text-white px-4 py-2.5 flex items-center gap-3 text-xs transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px]">help</span>
+<span class="">Hướng dẫn học</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[240px] min-h-screen flex flex-col">
+<!-- Header -->
+<header class="bg-primary text-white flex justify-between items-center h-14 px-8 w-full sticky top-0 z-40 shadow-md">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined animate-pulse" style="font-variation-settings: 'FILL' 1;">timer</span>
+<span class="font-title-lg text-lg tabular-nums">49:26</span>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2">
+<span class="font-label-lg text-sm tracking-wide opacity-90">Chế độ luyện tập - Speaking Part 2</span>
+</div>
+<div class="flex items-center gap-6">
+<span class="font-label-md text-xs bg-white/20 px-3 py-1 rounded-full border border-white/10">Bộ đề #001</span>
+<button class="hover:bg-white/10 p-1.5 rounded-full transition-colors flex">
+<span class="material-symbols-outlined text-xl">fullscreen</span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="flex-1 w-full max-w-[1200px] mx-auto px-gutter py-xl">
+<div class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+<div>
+<h2 class="font-headline-lg text-3xl text-primary mb-1">Câu hỏi 1 / 25</h2>
+<p class="text-on-surface-variant font-body-lg">Phần 2: So sánh hai bức tranh và trả lời ba câu hỏi liên quan.</p>
+</div>
+<div class="bg-surface-container-highest border border-outline-variant px-5 py-2.5 rounded-xl flex items-center gap-3 shadow-sm">
+<span class="material-symbols-outlined text-primary">schedule</span>
+<div class="flex flex-col">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-wider">Thời gian</span>
+<span class="font-label-md text-xs font-bold text-primary">CHUẨN BỊ: 45S | NÓI: 45S</span>
+</div>
+</div>
+</div>
+<!-- Main Workspace Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter items-start">
+<!-- Left Column: Visuals & Questions -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Images Card -->
+<div class="bg-white p-5 rounded-xl border border-outline-variant shadow-sm grid grid-cols-2 gap-5">
+<div class="group relative aspect-[4/3] rounded-lg overflow-hidden bg-surface-container-high border border-outline-variant/30 transition-transform hover:scale-[1.01]">
+<img alt="Bustling outdoor market" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm403Pfk_1PcB7kYODXV9jIFYIwbUZRYO-clxma6GSMvZmSr-C4DdbM9JqDXtHF9X5pshFAzSklGSUHtWSoVxocjFswGAypvBDQ2cQU7Pp_83fWzh5f5fP7rzjxYy8N-NmdWmkbRqfM3mUsm3g0yzw-yhpgS-jMiXP0oDc5s09hXRs_zKaLDH6O_mIoSNyPid4vg_Hb_Npvn1fLF5svm2Kbp_EWMzwMVV1-THiauHyPIfTM9oDVtBeZh_7Vi6w8Pdq6yCUlpW8P0U">
+<div class="absolute top-4 left-4 bg-primary/90 text-white px-3 py-1 rounded-md text-[11px] font-bold shadow-lg uppercase tracking-widest backdrop-blur-sm">Tranh A</div>
+</div>
+<div class="group relative aspect-[4/3] rounded-lg overflow-hidden bg-surface-container-high border border-outline-variant/30 transition-transform hover:scale-[1.01]">
+<img alt="Modern supermarket" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgba1jpo-0wbGwGGeG4BczpWTBvdUy7Q1XAgTY69iKGKdUcc6ZLKQVQShPvWrC9B9-gEXJ1mhIRROqCfolzK22ijfSUiL3M9kHb8YdgfBuWDs6CoY1XA6J7mqaDew5_HdTJ4-ZhPtUeSrNXe76BdF9DldMn80kwxs1IDWjdAQc-BYWkMRI73pUo6npATvQZYSc2_PCiApmQ0me_i5410PGvillHyoU9ShKJH1Oc82ncsuHwQo4oumjgZfjetRs6WC3jNZbwy1noG0">
+<div class="absolute top-4 left-4 bg-primary/90 text-white px-3 py-1 rounded-md text-[11px] font-bold shadow-lg uppercase tracking-widest backdrop-blur-sm">Tranh B</div>
+</div>
+</div>
+<!-- Questions Tabs Container -->
+<div class="bg-white rounded-xl border border-outline-variant overflow-hidden shadow-sm flex flex-col">
+<div class="flex border-b border-outline-variant bg-surface-container-low">
+<button class="flex-1 py-4 px-6 text-primary font-bold bg-white border-b-2 border-primary relative" id="tab-btn-1" onclick="switchTab(1)">
+                            Q1 - So sánh
+                        </button>
+<button class="flex-1 py-4 px-6 text-on-surface-variant font-semibold hover:bg-white/50 transition-colors" id="tab-btn-2" onclick="switchTab(2)">
+                            Q2 - Liên hệ
+                        </button>
+<button class="flex-1 py-4 px-6 text-on-surface-variant font-semibold hover:bg-white/50 transition-colors" id="tab-btn-3" onclick="switchTab(3)">
+                            Q3 - Ý kiến
+                        </button>
+</div>
+<div class="p-8 min-h-[220px]">
+<div class="block animate-in fade-in slide-in-from-bottom-2 duration-300" id="tab-content-1">
+<h3 class="font-headline-md text-xl mb-6 text-on-surface leading-snug">Compare these two ways of shopping. What are the main differences?</h3>
+<div class="flex gap-4 items-start p-5 bg-primary/5 rounded-xl border border-primary/10">
+<span class="material-symbols-outlined text-primary text-2xl mt-0.5" style="font-variation-settings: 'FILL' 1;">tips_and_updates</span>
+<div>
+<span class="block text-primary font-bold text-xs uppercase mb-1">Gợi ý trả lời:</span>
+<p class="text-on-surface-variant font-body-md italic text-sm leading-relaxed">Tập trung vào không khí (atmosphere), sự tiện lợi (convenience) và loại sản phẩm (type of products).</p>
+</div>
+</div>
+</div>
+<div class="hidden animate-in fade-in slide-in-from-bottom-2 duration-300" id="tab-content-2">
+<h3 class="font-headline-md text-xl mb-6 text-on-surface leading-snug">Which of these places would you prefer to go shopping? Why?</h3>
+<div class="flex gap-4 items-start p-5 bg-primary/5 rounded-xl border border-primary/10">
+<span class="material-symbols-outlined text-primary text-2xl mt-0.5" style="font-variation-settings: 'FILL' 1;">tips_and_updates</span>
+<div>
+<span class="block text-primary font-bold text-xs uppercase mb-1">Gợi ý trả lời:</span>
+<p class="text-on-surface-variant font-body-md italic text-sm leading-relaxed">Đưa ra lựa chọn cá nhân và giải thích ít nhất 2 lý do cụ thể.</p>
+</div>
+</div>
+</div>
+<div class="hidden animate-in fade-in slide-in-from-bottom-2 duration-300" id="tab-content-3">
+<h3 class="font-headline-md text-xl mb-6 text-on-surface leading-snug">In your opinion, will traditional markets disappear in the future?</h3>
+<div class="flex gap-4 items-start p-5 bg-primary/5 rounded-xl border border-primary/10">
+<span class="material-symbols-outlined text-primary text-2xl mt-0.5" style="font-variation-settings: 'FILL' 1;">tips_and_updates</span>
+<div>
+<span class="block text-primary font-bold text-xs uppercase mb-1">Gợi ý trả lời:</span>
+<p class="text-on-surface-variant font-body-md italic text-sm leading-relaxed">Trình bày quan điểm cá nhân về xu hướng phát triển trong tương lai.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Recorder & Controls -->
+<div class="lg:col-span-4 flex flex-col gap-6">
+<!-- Recording Unit -->
+<div class="bg-white rounded-xl border border-outline-variant p-8 shadow-sm flex flex-col items-center">
+<span class="block font-label-md text-on-surface-variant uppercase tracking-[0.2em] text-[10px] mb-4 font-bold">Trạng thái ghi âm</span>
+<div class="font-display-lg text-6xl font-bold text-on-surface tracking-tighter mb-8 tabular-nums" id="timer-display">00:45</div>
+<div class="relative mb-8">
+<button class="w-24 h-24 rounded-full bg-error text-white flex items-center justify-center transition-all hover:scale-105 active:scale-95 group relative z-10 shadow-xl shadow-error/20" id="record-btn">
+<span class="material-symbols-outlined text-4xl" id="mic-icon" style="font-variation-settings: 'FILL' 1;">mic</span>
+</button>
+<div class="absolute inset-0 rounded-full border-4 border-error/20 scale-125 opacity-0 transition-opacity" id="recording-ring"></div>
+</div>
+<div class="w-full space-y-4">
+<div class="h-2 bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-0 transition-all duration-100 ease-linear shadow-[0_0_8px_rgba(37,99,235,0.4)]" id="progress-bar"></div>
+</div>
+<p class="text-center font-label-lg text-sm text-on-surface-variant font-semibold" id="status-text">Nhấn để bắt đầu ghi âm</p>
+</div>
+</div>
+<!-- Transcription -->
+<div class="bg-white rounded-xl border border-outline-variant p-6 flex flex-col shadow-sm min-h-[300px]">
+<div class="flex justify-between items-center mb-4">
+<span class="font-title-md text-sm text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-lg">notes</span>
+                            Văn bản ghi âm
+                        </span>
+<button class="text-on-surface-variant hover:text-error font-bold text-xs transition-colors uppercase tracking-wider">Xóa</button>
+</div>
+<div class="relative flex-1 group">
+<textarea class="custom-scrollbar w-full h-full bg-surface-container-low/30 border border-outline-variant rounded-xl p-5 font-body-md text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none resize-none placeholder:text-outline-variant/60 leading-relaxed transition-all" placeholder="Lời nói của bạn sẽ được chuyển thành văn bản tại đây..."></textarea>
+<div class="absolute bottom-4 right-4">
+<span class="text-white font-label-md text-[10px] font-bold bg-primary/90 px-3 py-1 rounded-full shadow-sm">SỐ TỪ: 0</span>
+</div>
+</div>
+</div>
+<!-- Model Answer -->
+<button class="w-full bg-inverse-surface text-white py-4 rounded-xl font-bold flex items-center justify-center gap-3 hover:bg-on-surface transition-all shadow-lg group">
+<span class="material-symbols-outlined text-xl group-hover:rotate-12 transition-transform">lightbulb</span>
+<span class="">Xem câu trả lời mẫu</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Sticky Footer Navigation -->
+<footer class="bg-white border-t border-outline-variant h-20 w-full mt-auto sticky bottom-0 z-30 px-margin-desktop flex items-center justify-between">
+<button class="flex items-center gap-2 px-8 py-2.5 rounded-xl font-bold bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest transition-all">
+<span class="material-symbols-outlined text-xl">arrow_back</span>
+            Trở lại
+        </button>
+<div class="hidden md:flex gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-primary shadow-sm shadow-primary/40"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-surface-variant"></div>
+</div>
+<button class="flex items-center gap-2 px-10 py-3 rounded-xl font-bold bg-primary text-white hover:brightness-110 shadow-xl shadow-primary/20 transition-all hover:-translate-y-0.5">
+            Tiếp theo
+            <span class="material-symbols-outlined text-xl">arrow_forward</span>
+</button>
+</footer>
+</main>
+<script>
+    function switchTab(tabIndex) {
+        const tabs = ['tab-content-1', 'tab-content-2', 'tab-content-3'];
+        tabs.forEach((tab, index) => {
+            const element = document.getElementById(tab);
+            const btn = document.getElementById(`tab-btn-${index + 1}`);
+            if (index + 1 === tabIndex) {
+                element.classList.remove('hidden');
+                btn.classList.add('text-primary', 'font-bold', 'bg-white', 'border-b-2', 'border-primary');
+                btn.classList.remove('text-on-surface-variant', 'font-semibold');
+            } else {
+                element.classList.add('hidden');
+                btn.classList.remove('text-primary', 'font-bold', 'bg-white', 'border-b-2', 'border-primary');
+                btn.classList.add('text-on-surface-variant', 'font-semibold');
+            }
+        });
+    }
+
+    const recordBtn = document.getElementById('record-btn');
+    const recordingRing = document.getElementById('recording-ring');
+    const micIcon = document.getElementById('mic-icon');
+    const statusText = document.getElementById('status-text');
+    const progressBar = document.getElementById('progress-bar');
+    const timerDisplay = document.getElementById('timer-display');
+    
+    let isRecording = false;
+    let timeLeft = 45;
+    let timerInterval;
+
+    recordBtn.addEventListener('click', () => {
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+    });
+
+    function startRecording() {
+        isRecording = true;
+        recordBtn.classList.add('record-pulse');
+        recordingRing.classList.remove('opacity-0');
+        micIcon.textContent = 'stop';
+        statusText.textContent = 'ĐANG GHI ÂM... HÃY NÓI';
+        statusText.classList.add('text-error', 'animate-pulse');
+        
+        timeLeft = 45;
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            timerDisplay.textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
+            
+            const progress = ((45 - timeLeft) / 45) * 100;
+            progressBar.style.width = `${progress}%`;
+
+            if (timeLeft <= 0) {
+                stopRecording();
+            }
+        }, 1000);
+    }
+
+    function stopRecording() {
+        isRecording = false;
+        clearInterval(timerInterval);
+        recordBtn.classList.remove('record-pulse');
+        recordingRing.classList.add('opacity-0');
+        micIcon.textContent = 'mic';
+        statusText.textContent = 'Ghi âm đã được lưu';
+        statusText.classList.remove('text-error', 'animate-pulse');
+        statusText.classList.add('text-primary');
+    }
+</script>
+
+
+</body></html>

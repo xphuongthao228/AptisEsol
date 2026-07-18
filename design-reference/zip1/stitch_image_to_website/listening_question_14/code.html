@@ -1,0 +1,340 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>LingoMaster - Listening Practice</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary": "#ffffff",
+                    "on-tertiary-fixed": "#002204",
+                    "tertiary-container": "#358438",
+                    "on-primary-fixed": "#001c38",
+                    "primary-fixed-dim": "#a2c9ff",
+                    "outline": "#707783",
+                    "on-secondary-fixed-variant": "#394951",
+                    "on-secondary": "#ffffff",
+                    "background": "#f8f9fa",
+                    "on-error": "#ffffff",
+                    "on-secondary-fixed": "#0d1e25",
+                    "on-primary-container": "#fdfcff",
+                    "inverse-surface": "#2e3132",
+                    "on-tertiary-fixed-variant": "#005312",
+                    "secondary": "#506169",
+                    "tertiary": "#186a22",
+                    "surface-tint": "#0060a8",
+                    "on-primary-fixed-variant": "#004881",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface-variant": "#404752",
+                    "on-tertiary-container": "#f7fff1",
+                    "surface": "#f8f9fa",
+                    "surface-container-high": "#e7e8e9",
+                    "secondary-container": "#d1e2ec",
+                    "surface-container-highest": "#e1e3e4",
+                    "primary-container": "#0077ce",
+                    "secondary-fixed-dim": "#b8c9d3",
+                    "error": "#ba1a1a",
+                    "outline-variant": "#c0c7d4",
+                    "on-surface": "#191c1d",
+                    "inverse-primary": "#a2c9ff",
+                    "surface-container-low": "#f3f4f5",
+                    "on-error-container": "#93000a",
+                    "surface-dim": "#d9dadb",
+                    "tertiary-fixed": "#a3f69c",
+                    "on-background": "#191c1d",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#88d982",
+                    "primary": "#005ea4"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container_max_width": "1200px",
+                    "stack_lg": "2rem",
+                    "stack_md": "1rem",
+                    "gutter": "1.5rem",
+                    "sidebar_width": "240px",
+                    "stack_sm": "0.5rem"
+            },
+            "fontFamily": {
+                    "title-lg": ["Work Sans"],
+                    "label-sm": ["Work Sans"],
+                    "headline-md": ["Work Sans"],
+                    "body-lg": ["Work Sans"],
+                    "body-md": ["Work Sans"]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-indicator {
+            box-shadow: inset 4px 0 0 0 #005ea4;
+        }
+        /* Custom Audio Track Styling */
+        .audio-progress::-webkit-slider-runnable-track {
+            background: rgba(255, 255, 255, 0.3);
+            height: 4px;
+            border-radius: 2px;
+        }
+        .audio-progress::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: white;
+            margin-top: -4px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen">
+<!-- Side Navigation Shell -->
+<aside class="fixed left-0 top-0 h-full w-[240px] bg-inverse-surface dark:bg-on-surface flex flex-col p-stack_md z-50">
+<div class="mb-stack_lg">
+<h1 class="font-title-lg text-title-lg text-on-primary-container px-2">English Prep</h1>
+<p class="font-label-sm text-label-sm text-primary-fixed-dim px-2">Exam Mode Active</p>
+</div>
+<nav class="flex-1 space-y-2">
+<a class="flex items-center gap-3 p-3 duration-200 ease-in-out hover:text-on-surface-variant hover:bg-surface-variant/10 transition-colors text-outline-variant" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 p-3 duration-200 ease-in-out text-on-primary-fixed bg-primary-container rounded-lg border-l-4 border-primary" href="#"><span class="material-symbols-outlined text-white" data-icon="menu_book">menu_book</span>
+<span class="font-body-md text-body-md text-white">Practice</span></a>
+<a class="flex items-center gap-3 p-3 duration-200 ease-in-out hover:text-on-surface-variant hover:bg-surface-variant/10 transition-colors text-outline-variant" href="#">
+<span class="material-symbols-outlined" data-icon="assignment">assignment</span>
+<span class="font-body-md text-body-md">Exams</span>
+</a>
+<a class="flex items-center gap-3 p-3 duration-200 ease-in-out hover:text-on-surface-variant hover:bg-surface-variant/10 transition-colors text-outline-variant" href="#">
+<span class="material-symbols-outlined" data-icon="trending_up">trending_up</span>
+<span class="font-body-md text-body-md">Progress</span>
+</a>
+<a class="flex items-center gap-3 p-3 duration-200 ease-in-out hover:text-on-surface-variant hover:bg-surface-variant/10 transition-colors text-outline-variant" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline/20 pt-4 space-y-2">
+<button class="w-full bg-primary-container text-on-primary-fixed font-label-sm text-label-sm py-3 rounded-xl mb-4 hover:brightness-110 transition-all">
+                Upgrade to Pro
+            </button>
+<a class="flex items-center gap-3 p-3 hover:text-on-surface-variant text-outline-variant" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-body-md text-body-md">Help</span>
+</a>
+<a class="flex items-center gap-3 p-3 hover:text-on-surface-variant text-outline-variant" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-body-md text-body-md">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Top Navigation Bar -->
+<header class="fixed top-0 right-0 w-[calc(100%-240px)] z-40 bg-surface dark:bg-surface-dim border-b border-outline-variant flex justify-between items-center h-16 px-gutter ml-[240px]">
+<div class="flex items-center gap-4">
+<span class="font-title-lg text-title-lg font-bold text-primary">LingoMaster</span>
+<div class="h-6 w-px bg-outline-variant"></div>
+<span class="font-body-md text-body-md text-on-surface-variant">Listening Section: Question 14</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-2 bg-error text-on-error px-4 py-1.5 rounded-full animate-pulse">
+<span class="material-symbols-outlined text-[20px]" data-icon="timer">timer</span>
+<span class="font-label-sm text-label-sm font-bold">14:52</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+<span class="font-label-sm text-label-sm font-bold">Alex Hunter</span>
+</button>
+</div>
+</div>
+</header>
+<!-- Main Content Stage -->
+<main class="ml-[240px] mt-16 pb-24 min-h-[calc(100vh-64px)] overflow-y-auto">
+<!-- Red Audio Bar - Task Specific -->
+<div class="sticky top-0 z-30 bg-error px-gutter py-3 flex items-center gap-6 text-on-error shadow-lg">
+<button class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-all active:scale-90" id="playBtn">
+<span class="material-symbols-outlined" data-icon="play_arrow" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between text-[10px] font-bold uppercase tracking-wider opacity-80">
+<span class="">Environmental Science Lecture</span>
+<span class="">01:42 / 03:50</span>
+</div>
+<input class="audio-progress w-full accent-white bg-transparent appearance-none cursor-pointer" max="100" type="range" value="42">
+</div>
+<div class="flex items-center gap-3 px-4 border-l border-white/20">
+<span class="material-symbols-outlined opacity-80" data-icon="volume_up">volume_up</span>
+<input class="w-24 h-1 bg-white/30 rounded-full appearance-none cursor-pointer accent-white" type="range" value="70">
+</div>
+</div>
+<div class="max-w-container_max_width mx-auto p-gutter animate-fade-in">
+<!-- Section Header -->
+<div class="mb-stack_lg">
+<div class="flex items-center gap-2 text-primary mb-2">
+<span class="material-symbols-outlined" data-icon="eco">eco</span>
+<span class="font-label-sm text-label-sm font-bold uppercase tracking-widest">Topic: Environment</span>
+</div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">Section 3: Discussion on Environmental Protection</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl">
+                    You will hear three people, <b>Dr. Smith</b>, <b>Anna</b>, and <b>Mark</b>, discussing different ways to protect the local ecosystem. Match each person to the specific proposal they support.
+                </p>
+</div>
+<!-- Matching Question Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Person Cards Left Column -->
+<div class="md:col-span-4 space-y-4">
+<div class="bg-surface-container-lowest p-stack_md rounded-xl border border-outline-variant shadow-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high shrink-0">
+<img class="w-full h-full object-cover" data-alt="A professional portrait of an academic male in his 50s, Dr. Smith, wearing glasses and a formal sweater, set against a blurred library background with soft, cool lighting. High-end modern corporate photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqmSrtqfdKRB20kWv5ehKNRAstnTJygxrennG9jHW9KntEcaj8hGdrUSYk7ZG3UbsuWC3Im7djBW9NoWKDhVC8SBMmb74p-nv3iVaLEygv1WXlPINe0a6NOxtjnZLnOY3VEwjN-sWkX5Y03QG1Zh_SZQT_VZv0qkE-csBBziS6XgszCMv-LHxQYDTw2dkiWGXy8ZY47DcEbclWIieNX3sUM6vdHkDWPXZU_kuEGw18uVIPJHjTy4Jbh4BmvB3efDv5r6Sh-Heozhc">
+</div>
+<div>
+<p class="font-title-lg text-title-lg text-on-surface">Dr. Smith</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Senior Ecologist</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-stack_md rounded-xl border border-outline-variant shadow-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high shrink-0">
+<img class="w-full h-full object-cover" data-alt="A portrait of Anna, a young female student in her early 20s with a motivated expression, wearing a casual denim jacket, outdoors with greenery in the background, bright natural morning light. Clean, modern educational UI style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBniWr7B8m-Qmy8ncu51OqHdjLAKlvLtZbj_6w-179kGCLYDX4OtVQuQqL29BKQLgig3odFAuMt8hdLMM-WilYh_1szGJkQyYfKSFmsDkuAA3ZHn-EpMF4cR57KixOM65R1lxxACNey1Wp3IRiyWg_wiysXv2HDjMdAGf7ZbW4NZ19HLAErtium-tIe-hqdKZ60NL3PQzrtFMDZKEnBpRHAbNPB26GFJMMyp3xZNhv39UiDYBztUJmTngx2fYTdkXCGE0CLgSr7RfI">
+</div>
+<div>
+<p class="font-title-lg text-title-lg text-on-surface">Anna</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Student Volunteer</p>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-stack_md rounded-xl border border-outline-variant shadow-sm flex items-center gap-4">
+<div class="w-12 h-12 rounded-full overflow-hidden bg-surface-container-high shrink-0">
+<img class="w-full h-full object-cover" data-alt="A portrait of Mark, a middle-aged male city official in a business casual shirt, looking thoughtful, office setting with clean architectural lines, professional soft light-mode lighting. Sharp, clear digital photography." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbURHJMiMZPw6qOrBNednrB_JOVgMwVudCC5XWeUGuOHnLMfP20aNsEeLoEegg8VsN9u5746cIMPO_CAbwivtqTFQPPPwsT_0CTZ2kMvFLuzyBBYeatYY94kIJnuPiR8MDaegy1nraJMqp3IbSmwNLafSpQRfnItFbavddV814HYcIHI2zAGaZ217K-xnH1QwqVjQA_VjwYdJect75g0VolNoVyxXPMno3GwTyeJYfHEkB59PZp6oqKWWZIRBfkVb4u1_uNMtNxgg">
+</div>
+<div>
+<p class="font-title-lg text-title-lg text-on-surface">Mark</p>
+<p class="font-label-sm text-label-sm text-on-surface-variant">City Council Member</p>
+</div>
+</div>
+</div>
+<!-- Questions Right Column -->
+<div class="md:col-span-8 space-y-4">
+<!-- Practice Block 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:border-primary transition-colors group">
+<div class="flex items-center justify-between gap-6">
+<div class="flex-1">
+<span class="font-label-sm text-label-sm text-primary mb-1 block">Question 14</span>
+<p class="font-body-lg text-body-lg text-on-surface">Who suggests implementing a strict plastic-free policy in the city park cafes?</p>
+</div>
+<div class="w-48">
+<select class="w-full bg-surface-container-low border-outline-variant rounded-lg p-2.5 font-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all cursor-pointer">
+<option disabled="" selected="" value="">Select Person</option>
+<option value="smith">Dr. Smith</option>
+<option value="anna">Anna</option>
+<option value="mark">Mark</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Practice Block 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:border-primary transition-colors group">
+<div class="flex items-center justify-between gap-6">
+<div class="flex-1">
+<span class="font-label-sm text-label-sm text-primary mb-1 block">Question 15</span>
+<p class="font-body-lg text-body-lg text-on-surface">Who believes that public awareness campaigns are more effective than new legislation?</p>
+</div>
+<div class="w-48">
+<select class="w-full bg-surface-container-low border-outline-variant rounded-lg p-2.5 font-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all cursor-pointer">
+<option disabled="" selected="" value="">Select Person</option>
+<option value="smith">Dr. Smith</option>
+<option value="anna">Anna</option>
+<option value="mark">Mark</option>
+</select>
+</div>
+</div>
+</div>
+<!-- Practice Block 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:border-primary transition-colors group">
+<div class="flex items-center justify-between gap-6">
+<div class="flex-1">
+<span class="font-label-sm text-label-sm text-primary mb-1 block">Question 16</span>
+<p class="font-body-lg text-body-lg text-on-surface">Who proposes a government-funded reforestation project in the northern suburbs?</p>
+</div>
+<div class="w-48">
+<select class="w-full bg-surface-container-low border-outline-variant rounded-lg p-2.5 font-body-md text-on-surface focus:ring-2 focus:ring-primary focus:border-primary outline-none transition-all cursor-pointer">
+<option disabled="" selected="" value="">Select Person</option>
+<option value="smith">Dr. Smith</option>
+<option value="anna">Anna</option>
+<option value="mark">Mark</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Visual Context Card -->
+<div class="mt-stack_lg rounded-2xl overflow-hidden relative h-64 shadow-xl border border-outline-variant">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+<img class="w-full h-full object-cover" data-alt="A lush, green urban park with a sustainable modern visitor center featuring solar panels and vertical gardens. The scene is bright and optimistic, showcasing a harmonious blend of nature and modern eco-friendly architecture. Light-mode aesthetic, vibrant greens and soft blues." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDQnSUQJNepfAx9dDvI40GawR7USS-52uyFfbHgAIDaelN-arWIHIxcSJaeZJzLcPhcybcmCSpFL1xeSu0lmrC2MrSYinikffXngpl2vjsUzKFQjJ4ba8oYuH8KmBAlcxw2zKfHdvssyvY9pVn3AafRTx_pFn1WrHiUmHbE9c8JdhBVl9bAYFLN8SBlDEQmhRttl5_GNB37xPT6T0ISSyfOKQ0u_hZWzt_amqWW8CKXPVrTEsdaurOI5KlFDyg78sRJmJzJm1bwTYU">
+<div class="absolute bottom-6 left-6 z-20 text-white">
+<p class="font-headline-md text-headline-md">Protect the local ecosystem</p>
+<p class="font-body-md opacity-90">Current Study Module: Sustainability &amp; Policy</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Bottom Action Bar Shell -->
+<footer class="fixed bottom-0 right-0 w-[calc(100%-240px)] z-50 bg-surface-container-highest dark:bg-surface-container-low border-t border-outline-variant shadow-md flex justify-between items-center px-gutter py-stack_md ml-[240px]">
+<button class="text-secondary hover:text-primary px-4 py-2 flex items-center gap-2 hover:brightness-110 transition-all active:scale-98 transform">
+<span class="material-symbols-outlined" data-icon="arrow_back">arrow_back</span>
+<span class="font-label-sm text-label-sm">Back</span>
+</button>
+<button class="bg-primary-container text-on-primary-container rounded-xl px-8 py-3 flex items-center gap-2 hover:brightness-110 transition-all active:scale-98 transform shadow-sm">
+<span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+<span class="font-label-sm text-label-sm font-bold">Check Result</span>
+</button>
+<button class="text-secondary hover:text-primary px-4 py-2 flex items-center gap-2 hover:brightness-110 transition-all active:scale-98 transform">
+<span class="font-label-sm text-label-sm">Next</span>
+<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</footer>
+<script>
+        // Micro-interaction for the play button
+        const playBtn = document.getElementById('playBtn');
+        let isPlaying = false;
+        
+        playBtn.addEventListener('click', () => {
+            isPlaying = !isPlaying;
+            const icon = playBtn.querySelector('.material-symbols-outlined');
+            icon.textContent = isPlaying ? 'pause' : 'play_arrow';
+            
+            if(isPlaying) {
+                playBtn.classList.add('bg-white/40');
+            } else {
+                playBtn.classList.remove('bg-white/40');
+            }
+        });
+
+        // Dropdown selection highlight
+        const selects = document.querySelectorAll('select');
+        selects.forEach(select => {
+            select.addEventListener('change', (e) => {
+                if(e.target.value) {
+                    select.parentElement.parentElement.parentElement.classList.add('bg-primary/5', 'border-primary');
+                }
+            });
+        });
+    </script>
+
+
+</body></html>

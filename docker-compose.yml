@@ -1,0 +1,17 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: aptis-esol-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: demo123
+      MYSQL_DATABASE: aptis_esol
+    ports:
+      - "3306:3306"
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    volumes:
+      - aptis_esol_mysqldata:/var/lib/mysql
+      - ./backend/sql/02_schema_and_seed.sql:/docker-entrypoint-initdb.d/02_schema_and_seed.sql:ro
+
+volumes:
+  aptis_esol_mysqldata:

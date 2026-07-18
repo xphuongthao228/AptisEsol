@@ -1,0 +1,390 @@
+<!DOCTYPE html><html class="light" lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Dự đoán bộ đề - Aptis Keys</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#005320",
+                        "on-secondary-fixed": "#0d1c2e",
+                        "on-primary-container": "#eeefff",
+                        "surface-dim": "#d3daef",
+                        "surface-container-highest": "#dce2f7",
+                        "on-tertiary-fixed": "#002109",
+                        "on-tertiary-container": "#c7ffca",
+                        "surface-tint": "#0053db",
+                        "surface-container-low": "#f1f3ff",
+                        "outline": "#737686",
+                        "on-surface": "#141b2b",
+                        "on-error": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "tertiary-fixed": "#7ffc97",
+                        "primary": "#004ac6",
+                        "primary-fixed": "#dbe1ff",
+                        "background": "#f9f9ff",
+                        "secondary": "#515f74",
+                        "on-secondary-fixed-variant": "#3a485b",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container": "#e9edff",
+                        "on-primary-fixed": "#00174b",
+                        "tertiary-fixed-dim": "#62df7d",
+                        "on-background": "#141b2b",
+                        "secondary-fixed-dim": "#b9c7df",
+                        "inverse-surface": "#293040",
+                        "inverse-on-surface": "#edf0ff",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "secondary-container": "#d5e3fc",
+                        "tertiary-container": "#007f36",
+                        "on-secondary-container": "#57657a",
+                        "on-error-container": "#93000a",
+                        "surface": "#f9f9ff",
+                        "primary-container": "#2563eb",
+                        "outline-variant": "#c3c6d7",
+                        "on-surface-variant": "#434655",
+                        "tertiary": "#006329"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "32px",
+                        "xs": "4px",
+                        "unit": "4px",
+                        "gutter": "24px",
+                        "sm": "8px",
+                        "lg": "24px",
+                        "xl": "32px",
+                        "md": "16px",
+                        "margin-mobile": "16px"
+                    },
+                    "fontFamily": {
+                        "title-md": ["Inter"],
+                        "label-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-lg": ["Inter"],
+                        "headline-lg-mobile": ["Inter"],
+                        "title-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "title-md": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "title-lg": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+        .card-hover-effect { transition: transform 0.2s ease, box-shadow 0.2s ease; }
+        .card-hover-effect:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- SideNavBar -->
+<aside class="bg-inverse-surface w-[240px] h-screen fixed left-0 top-0 flex flex-col py-4 z-50">
+<div class="px-6 mb-8">
+<h1 class="font-display-lg text-display-lg font-bold text-white leading-none">Aptis Keys</h1>
+<p class="font-label-md text-label-md mt-1 text-white">Education System</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-white" style="opacity: 0;">home</span>
+<span class="font-body-md text-body-md text-white">Trang chủ</span>
+</a>
+<!-- Active State: Predictions -->
+<a class="bg-primary text-white px-6 py-3 mx-2 rounded-lg flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined">analytics</span>
+<span class="font-body-md text-white font-semibold">Dự đoán bộ đề</span>
+</a>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-white" style="opacity: 0;">home</span>
+<span class="font-body-md text-body-md text-white">Luyện đề thi</span>
+</a>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-white" style="opacity: 0;">home</span>
+<span class="font-body-md text-body-md text-white">Tài liệu học tập</span>
+</a>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-white" style="opacity: 0;">home</span>
+<span class="font-body-md text-body-md text-white">Kết quả học tập</span>
+</a>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined text-white" style="opacity: 0;">home</span>
+<span class="font-body-md text-body-md text-white">Luyện thi Aptis</span>
+</a>
+</nav>
+<div class="mt-auto px-2 space-y-1">
+<a class="text-white hover:bg-white/10 px-4 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-white">workspace_premium</span>
+<span class="text-white">Nâng cấp tài khoản</span>
+</a>
+<a class="text-white hover:bg-white/10 px-4 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-white">help</span>
+<span class="text-white">Trung tâm hỗ trợ</span>
+</a>
+<a class="text-white hover:bg-white/10 px-4 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[20px] text-white">settings</span>
+<span class="text-white">Cài đặt</span>
+</a>
+</div>
+</aside>
+<!-- TopAppBar (Small Type) -->
+<header class="bg-surface dark:bg-surface-dim border-b border-outline-variant shadow-sm flex justify-between items-center h-16 px-6 ml-[240px] w-[calc(100%-240px)] sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<h2 class="font-title-lg text-title-lg text-primary">Dự đoán bộ đề</h2>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative hidden lg:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[20px]">search</span>
+<input class="h-10 pl-10 pr-4 bg-white border border-outline-variant rounded-lg w-64 focus:outline-none focus:ring-2 focus:ring-primary/20 text-sm" placeholder="Tìm kiếm bộ đề..." type="text">
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-variant transition-colors opacity-80 active:opacity-100">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-cover bg-center border border-outline-variant" data-alt="A professional headshot of a student in a bright educational setting, looking confident and ready for learning. The background is a blurred modern campus hallway with soft blue and white tones, matching the corporate minimalism of the platform." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDm8_9jByqmRnGnKazD76ZYUs0wfGftRngMsmmGeRR5XOx-5NNJ_uKFMOAoC7LrPXOT1u7xmI2k6R4rIMnRi0sR9XVO3rN70q4R8ZZ_DshEMLuGXx902X1euoLknLfVtGmr1G5o8FuqRqndos4elw2HOfLmtAtvDSqN6D6UnwgFn-niWS_IcOWskVXwlyv9JhlYUUKylKGSK_B3JZ_0pkCeAbX8jUgPy3ngDYKy0zuyMGS0alq8tDfvF7-fFxGNG-umyVymeodcLKM')"></div>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-[240px] p-8 min-h-screen">
+<div class="max-w-7xl mx-auto">
+<!-- Hero Header Section -->
+<section class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<h2 class="font-headline-lg text-headline-lg text-on-surface mb-2">Dự đoán bộ đề Aptis</h2>
+<p class="text-on-surface-variant font-body-lg text-body-lg max-w-2xl">Cập nhật xu hướng đề thi mới nhất dựa trên dữ liệu thi thực tế từ các hội đồng thi lớn trong tháng này.</p>
+</div>
+<div class="flex items-center gap-3">
+<div class="bg-white px-4 py-2 rounded-lg shadow-sm border border-outline-variant flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+<span class="font-label-md text-label-md text-error uppercase tracking-wider">Live Updates</span>
+</div>
+</div>
+</section>
+<!-- Filters & Layout Grid -->
+<div class="flex flex-col lg:flex-row gap-8">
+<!-- Main Grid Column -->
+<div class="flex-1">
+<!-- Filter Tabs -->
+<div class="flex items-center gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+<button class="px-6 py-2 rounded-full bg-primary text-white font-title-md text-title-md shadow-sm transition-all hover:bg-primary/90">Tất cả</button>
+<button class="px-6 py-2 rounded-full bg-white border border-outline-variant text-secondary font-title-md text-title-md hover:bg-surface-variant transition-all">Reading</button>
+<button class="px-6 py-2 rounded-full bg-white border border-outline-variant text-secondary font-title-md text-title-md hover:bg-surface-variant transition-all">Listening</button>
+<button class="px-6 py-2 rounded-full bg-white border border-outline-variant text-secondary font-title-md text-title-md hover:bg-surface-variant transition-all">Writing</button>
+<button class="px-6 py-2 rounded-full bg-white border border-outline-variant text-secondary font-title-md text-title-md hover:bg-surface-variant transition-all">Speaking</button>
+</div>
+<!-- Cards Bento Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Card 1 (High Priority) -->
+<div class="bg-white rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col card-hover-effect relative overflow-hidden">
+<div class="absolute top-0 right-0">
+<div class="bg-error text-white font-label-md text-label-md px-4 py-1 rounded-bl-xl uppercase font-bold">Hot</div>
+</div>
+<div class="mb-4">
+<span class="text-primary font-title-md text-title-md">Bộ đề #001</span>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">trending_up</span>
+<span class="font-bold text-tertiary font-title-md">Xác suất: 92%</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm mb-6">Tập trung mạnh vào chủ đề "Global Warming" và "Remote Work" trong phần Writing và Speaking.</p>
+<div class="flex flex-wrap gap-3 mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg" title="Reading">
+<span class="material-symbols-outlined text-secondary text-[18px]">book</span>
+<span class="text-xs font-medium text-secondary">Reading</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg" title="Listening">
+<span class="material-symbols-outlined text-secondary text-[18px]">headphones</span>
+<span class="text-xs font-medium text-secondary">Listening</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg" title="Writing">
+<span class="material-symbols-outlined text-secondary text-[18px]">edit</span>
+<span class="text-xs font-medium text-secondary">Writing</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg" title="Speaking">
+<span class="material-symbols-outlined text-secondary text-[18px]">mic</span>
+<span class="text-xs font-medium text-secondary">Speaking</span>
+</div>
+</div>
+<button class="mt-auto w-full py-3 bg-primary text-white rounded-lg font-title-md hover:bg-primary/90 transition-all flex items-center justify-center gap-2">
+                                Ôn tập ngay
+                                <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+<!-- Card 2 -->
+<div class="bg-white rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col card-hover-effect relative overflow-hidden">
+<div class="absolute top-0 right-0">
+<div class="bg-primary text-white font-label-md text-label-md px-4 py-1 rounded-bl-xl uppercase font-bold">New</div>
+</div>
+<div class="mb-4">
+<span class="text-primary font-title-md text-title-md">Bộ đề #002</span>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-tertiary text-[20px]">trending_up</span>
+<span class="font-bold text-tertiary font-title-md">Xác suất: 85%</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm mb-6">Cập nhật các dạng bài Matching Headings mới nhất trong Reading Part 4.</p>
+<div class="flex flex-wrap gap-3 mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg">
+<span class="material-symbols-outlined text-secondary text-[18px]">book</span>
+<span class="text-xs font-medium text-secondary">Reading</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg">
+<span class="material-symbols-outlined text-secondary text-[18px]">headphones</span>
+<span class="text-xs font-medium text-secondary">Listening</span>
+</div>
+</div>
+<button class="mt-auto w-full py-3 border border-primary text-primary bg-white rounded-lg font-title-md hover:bg-primary/5 transition-all flex items-center justify-center gap-2">
+                                Ôn tập ngay
+                                <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+<!-- Card 3 -->
+<div class="bg-white rounded-xl shadow-sm border border-outline-variant p-6 flex flex-col card-hover-effect">
+<div class="mb-4">
+<span class="text-primary font-title-md text-title-md">Bộ đề #003</span>
+<div class="flex items-center gap-2 mt-2">
+<span class="material-symbols-outlined text-on-surface-variant text-[20px]">trending_up</span>
+<span class="font-bold text-secondary font-title-md">Xác suất: 78%</span>
+</div>
+</div>
+<p class="text-on-surface-variant text-sm mb-6">Bộ đề chuyên sâu Speaking Part 3 với các tình huống thảo luận nhóm về giáo dục.</p>
+<div class="flex flex-wrap gap-3 mb-6">
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg">
+<span class="material-symbols-outlined text-secondary text-[18px]">mic</span>
+<span class="text-xs font-medium text-secondary">Speaking</span>
+</div>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container rounded-lg">
+<span class="material-symbols-outlined text-secondary text-[18px]">headphones</span>
+<span class="text-xs font-medium text-secondary">Listening</span>
+</div>
+</div>
+<button class="mt-auto w-full py-3 border border-primary text-primary bg-white rounded-lg font-title-md hover:bg-primary/5 transition-all flex items-center justify-center gap-2">
+                                Ôn tập ngay
+                                <span class="material-symbols-outlined text-[20px]">arrow_forward</span>
+</button>
+</div>
+<!-- Card 4 (Recent Trending Topics) -->
+<div class="bg-primary-container text-on-primary-container rounded-xl shadow-sm p-6 flex flex-col relative overflow-hidden group">
+<div class="absolute -right-12 -bottom-12 w-48 h-48 bg-white/10 rounded-full transition-transform group-hover:scale-150 duration-700"></div>
+<h3 class="font-headline-md text-headline-md mb-4 relative z-10">Bạn đã sẵn sàng?</h3>
+<p class="text-primary-fixed-dim font-body-md text-body-md mb-8 relative z-10">Luyện tập đầy đủ 4 kỹ năng với môi trường thi mô phỏng 1:1 như thực tế.</p>
+<button class="mt-auto px-6 py-3 bg-white text-primary rounded-lg font-bold shadow-lg hover:bg-on-primary-container transition-all relative z-10">
+                                Bắt đầu thi thử (MOCK TEST)
+                            </button>
+</div>
+</div>
+</div>
+<!-- Sidebar Trends Column -->
+<aside class="bg-inverse-surface w-[240px] h-screen fixed left-0 top-0 flex flex-col py-4 z-50">
+<!-- Trending Topics Card -->
+<div class="bg-white rounded-xl shadow-sm border border-outline-variant p-6">
+<div class="flex items-center gap-2 mb-6 border-b border-outline-variant pb-4">
+<span class="material-symbols-outlined text-primary">analytics</span>
+<h3 class="font-title-md text-title-md text-on-surface">Xu hướng gần đây</h3>
+</div>
+<div class="space-y-5">
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">edit</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-on-surface">Writing Task 2: Artificial Intelligence</h4>
+<p class="text-xs text-on-surface-variant mt-1">Xuất hiện 4 lần trong 7 ngày qua.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">mic</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-on-surface">Speaking Part 2: A Famous Person</h4>
+<p class="text-xs text-on-surface-variant mt-1">Chủ đề phổ biến tại IDP/BC khu vực phía Bắc.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">book</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-on-surface">Reading: Sustainable Architecture</h4>
+<p class="text-xs text-on-surface-variant mt-1">Dạng bài Multiple Choice mới xuất hiện.</p>
+</div>
+</div>
+<div class="flex items-start gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-primary text-[18px]">headphones</span>
+</div>
+<div>
+<h4 class="text-sm font-semibold text-on-surface">Listening: Hotel Booking Dialogue</h4>
+<p class="text-xs text-on-surface-variant mt-1">Tần suất xuất hiện cực cao ở Part 1.</p>
+</div>
+</div>
+</div>
+<button class="w-full mt-6 py-2 text-primary font-label-lg text-label-lg border border-primary/20 rounded-lg hover:bg-primary/5 transition-colors">
+                            Xem tất cả xu hướng
+                        </button>
+</div>
+<!-- Statistics Card -->
+<div class="bg-white rounded-xl shadow-sm border border-outline-variant p-6">
+<h3 class="font-title-md text-title-md text-on-surface mb-4">Hiệu quả ôn tập</h3>
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 rounded-full border-4 border-primary border-t-transparent animate-spin-slow"></div>
+<div>
+<div class="text-2xl font-bold text-on-surface">82%</div>
+<div class="text-xs text-on-surface-variant">Học viên đạt target 
+                                    <br>khi học theo bộ đề dự đoán.</div>
+</div>
+</div>
+<div class="h-2 w-full bg-surface-container rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[82%]"></div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</main>
+<script>
+        // Simple logic for tab active state
+        const tabs = document.querySelectorAll('.flex.overflow-x-auto button');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(t => {
+                    t.classList.remove('bg-primary', 'text-white');
+                    t.classList.add('bg-white', 'border', 'border-outline-variant', 'text-secondary');
+                });
+                tab.classList.add('bg-primary', 'text-white');
+                tab.classList.remove('bg-white', 'border', 'border-outline-variant', 'text-secondary');
+            });
+        });
+    </script>
+
+
+
+
+</body></html>

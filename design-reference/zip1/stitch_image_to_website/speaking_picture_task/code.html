@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aptis Keys - Speaking Test</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#edeeef",
+                        "primary": "#005ea4",
+                        "secondary": "#506169",
+                        "tertiary-fixed-dim": "#88d982",
+                        "on-secondary-container": "#55656d",
+                        "on-error-container": "#93000a",
+                        "surface-container-high": "#e7e8e9",
+                        "outline-variant": "#c0c7d4",
+                        "on-primary-container": "#fdfcff",
+                        "on-tertiary-fixed-variant": "#005312",
+                        "secondary-fixed-dim": "#b8c9d3",
+                        "background": "#f8f9fa",
+                        "on-secondary": "#ffffff",
+                        "surface": "#f8f9fa",
+                        "secondary-container": "#d1e2ec",
+                        "on-tertiary-container": "#f7fff1",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-dim": "#d9dadb",
+                        "surface-container-low": "#f3f4f5",
+                        "on-primary-fixed": "#001c38",
+                        "surface-tint": "#0060a8",
+                        "surface-container-highest": "#e1e3e4",
+                        "inverse-on-surface": "#f0f1f2",
+                        "outline": "#707783",
+                        "on-surface-variant": "#404752",
+                        "tertiary-container": "#358438",
+                        "on-tertiary-fixed": "#002204",
+                        "surface-variant": "#e1e3e4",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#186a22",
+                        "primary-fixed-dim": "#a2c9ff",
+                        "error": "#ba1a1a",
+                        "on-background": "#191c1d",
+                        "primary-container": "#0077ce",
+                        "inverse-primary": "#a2c9ff",
+                        "tertiary-fixed": "#a3f69c",
+                        "error-container": "#ffdad6",
+                        "on-primary": "#ffffff",
+                        "inverse-surface": "#2e3132",
+                        "primary-fixed": "#d3e4ff",
+                        "surface-bright": "#f8f9fa",
+                        "on-primary-fixed-variant": "#004881",
+                        "on-secondary-fixed-variant": "#394951",
+                        "secondary-fixed": "#d4e5ef",
+                        "on-secondary-fixed": "#0d1e25",
+                        "on-surface": "#191c1d",
+                        "on-error": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container_max_width": "1200px",
+                        "stack_sm": "0.5rem",
+                        "gutter": "1.5rem",
+                        "stack_md": "1rem",
+                        "stack_lg": "2rem",
+                        "sidebar_width": "240px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "body-lg": ["Work Sans"],
+                        "label-sm": ["Work Sans"],
+                        "title-lg": ["Work Sans"],
+                        "body-md": ["Work Sans"],
+                        "headline-md-mobile": ["Work Sans"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "title-lg": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-md-mobile": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        
+        .active-tab-indicator::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--primary);
+        }
+
+        .split-canvas-grid {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            min-height: 100vh;
+        }
+
+        .record-pulse {
+            animation: pulse-red 2s infinite;
+        }
+
+        @keyframes pulse-red {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(186, 26, 26, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(186, 26, 26, 0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md">
+<!-- Sidebar Navigation (Anchor) -->
+<aside class="bg-inverse-surface dark:bg-surface-container-lowest w-[240px] h-screen fixed left-0 top-0 flex flex-col h-full py-4 z-50">
+<div class="px-6 mb-8">
+<h1 class="font-display-lg text-display-lg font-bold text-white leading-tight">Aptis Keys</h1>
+<p class="text-surface-variant/70 text-xs tracking-wider uppercase">Education System</p>
+</div>
+<nav class="flex-1">
+<ul class="space-y-1">
+<li>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-body-md text-body-md">Trang chủ</span>
+</a>
+</li>
+<li>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined">book</span>
+<span class="font-body-md text-body-md">Học Reading</span>
+</a>
+</li>
+<li>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined">headphones</span>
+<span class="font-body-md text-body-md">Học Listening</span>
+</a>
+</li>
+<li>
+<a class="text-surface-variant hover:text-white px-6 py-3 flex items-center gap-3 hover:bg-on-surface-variant/10 transition-colors" href="#">
+<span class="material-symbols-outlined">edit</span>
+<span class="font-body-md text-body-md">Học Writing</span>
+</a>
+</li>
+<li>
+<a class="bg-secondary-container text-on-secondary-container border-l-4 border-primary px-6 py-3 flex items-center gap-3 transition-colors" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">mic</span>
+<span class="font-body-md text-body-md">Học Speaking</span>
+</a>
+</li>
+</ul>
+</nav>
+<div class="mt-auto px-2">
+<div class="space-y-1 border-t border-surface-variant/20 pt-4">
+<a class="text-surface-variant hover:text-white px-4 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">favorite</span>
+<span>Donate</span>
+</a>
+<a class="text-surface-variant hover:text-white px-4 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">support_agent</span>
+<span>Liên hệ Admin</span>
+</a>
+<a class="text-surface-variant hover:text-white px-4 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">person</span>
+<span>Profile</span>
+</a>
+<a class="text-surface-variant hover:text-white px-4 py-2 flex items-center gap-3 text-sm transition-colors" href="#">
+<span class="material-symbols-outlined text-[18px]">help</span>
+<span>Hướng dẫn</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="ml-[240px] min-h-screen flex flex-col">
+<!-- Testing Mode Header (Material Command) -->
+<header class="bg-primary dark:bg-primary-container text-on-primary dark:text-on-primary-container flex justify-between items-center h-14 px-8 w-full sticky top-0 z-40 shadow-md">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">timer</span>
+<span class="font-headline-md text-headline-md font-bold">49:26</span>
+</div>
+<div class="absolute left-1/2 -translate-x-1/2">
+<span class="font-headline-md text-headline-md font-medium tracking-tight">Testing Mode - Speaking Part 2</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-title-lg text-title-lg">Bộ đề #001</span>
+<button class="bg-on-primary/10 hover:bg-on-primary/20 p-2 rounded-full transition-colors">
+<span class="material-symbols-outlined">fullscreen</span>
+</button>
+</div>
+</header>
+<!-- Content Canvas -->
+<div class="flex-1 w-full max-w-container_max_width mx-auto px-gutter py-stack_lg">
+<div class="mb-gutter flex justify-between items-end">
+<div>
+<h2 class="font-display-lg text-display-lg text-primary mb-1">Question 1 of 25</h2>
+<p class="text-on-surface-variant font-body-lg">Part 2: Compare two pictures and answer three questions.</p>
+</div>
+<div class="bg-secondary-container text-on-secondary-container px-4 py-2 rounded-xl flex items-center gap-2">
+<span class="material-symbols-outlined">info</span>
+<span class="font-label-sm uppercase">Preparation: 45s | Speaking: 45s</span>
+</div>
+</div>
+<!-- Bento Layout for Question -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<!-- Image Comparison Section (LHS) -->
+<div class="lg:col-span-8 space-y-gutter">
+<div class="grid grid-cols-2 gap-4">
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden bg-surface-container-high border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
+<img class="w-full h-full object-cover" data-alt="A professional, clear photograph of a bustling traditional outdoor market in a sunny Mediterranean town. Vendors are selling colorful fresh fruits and vegetables under striped awnings. The lighting is bright and natural, casting soft shadows on the cobblestone street. The aesthetic is warm, vibrant, and filled with authentic cultural detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAm403Pfk_1PcB7kYODXV9jIFYIwbUZRYO-clxma6GSMvZmSr-C4DdbM9JqDXtHF9X5pshFAzSklGSUHtWSoVxocjFswGAypvBDQ2cQU7Pp_83fWzh5f5fP7rzjxYy8N-NmdWmkbRqfM3mUsm3g0yzw-yhpgS-jMiXP0oDc5s09hXRs_zKaLDH6O_mIoSNyPid4vg_Hb_Npvn1fLF5svm2Kbp_EWMzwMVV1-THiauHyPIfTM9oDVtBeZh_7Vi6w8Pdq6yCUlpW8P0U"/>
+<div class="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-primary">PICTURE A</div>
+</div>
+<div class="group relative aspect-[4/3] rounded-xl overflow-hidden bg-surface-container-high border border-outline-variant shadow-sm hover:shadow-md transition-shadow">
+<img class="w-full h-full object-cover" data-alt="A modern, high-end supermarket interior with sleek, minimalist shelving and bright, cool white LED lighting. Polished concrete floors reflect the clean lines of the space. Customers in contemporary attire are browsing neatly packaged organic products. The mood is calm, efficient, and technologically advanced, following a clean light-mode aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgba1jpo-0wbGwGGeG4BczpWTBvdUy7Q1XAgTY69iKGKdUcc6ZLKQVQShPvWrC9B9-gEXJ1mhIRROqCfolzK22ijfSUiL3M9kHb8YdgfBuWDs6CoY1XA6J7mqaDew5_HdTJ4-ZhPtUeSrNXe76BdF9DldMn80kwxs1IDWjdAQc-BYWkMRI73pUo6npATvQZYSc2_PCiApmQ0me_i5410PGvillHyoU9ShKJH1Oc82ncsuHwQo4oumjgZfjetRs6WC3jNZbwy1noG0"/>
+<div class="absolute top-2 left-2 bg-white/90 backdrop-blur px-2 py-1 rounded text-xs font-bold text-primary">PICTURE B</div>
+</div>
+</div>
+<!-- Question Tabs -->
+<div class="bg-surface rounded-xl border border-outline-variant overflow-hidden">
+<div class="flex border-b border-outline-variant bg-surface-container-low">
+<button class="flex-1 py-4 px-6 text-primary font-bold bg-white relative after:absolute after:bottom-0 after:left-0 after:right-0 after:h-1 after:bg-primary" id="tab-btn-1" onclick="switchTab(1)">
+                                Q1 - So sánh
+                            </button>
+<button class="flex-1 py-4 px-6 text-on-surface-variant font-medium hover:bg-on-surface-variant/5 transition-colors" id="tab-btn-2" onclick="switchTab(2)">
+                                Q2 - Liên quan
+                            </button>
+<button class="flex-1 py-4 px-6 text-on-surface-variant font-medium hover:bg-on-surface-variant/5 transition-colors" id="tab-btn-3" onclick="switchTab(3)">
+                                Q3 - Ý kiến
+                            </button>
+</div>
+<div class="p-8 min-h-[160px]">
+<div class="block animate-in fade-in slide-in-from-bottom-2 duration-300" id="tab-content-1">
+<h3 class="font-title-lg text-title-lg mb-3">Compare these two ways of shopping. What are the main differences?</h3>
+<p class="text-on-surface-variant font-body-lg italic">Gợi ý: Hãy tập trung vào không khí (atmosphere), sự tiện lợi (convenience) và loại sản phẩm (type of products).</p>
+</div>
+<div class="hidden animate-in fade-in slide-in-from-bottom-2 duration-300" id="tab-content-2">
+<h3 class="font-title-lg text-title-lg mb-3">Which of these places would you prefer to go shopping? Why?</h3>
+<p class="text-on-surface-variant font-body-lg italic">Gợi ý: Đưa ra lựa chọn cá nhân và giải thích ít nhất 2 lý do.</p>
+</div>
+<div class="hidden animate-in fade-in slide-in-from-bottom-2 duration-300" id="tab-content-3">
+<h3 class="font-title-lg text-title-lg mb-3">In your opinion, will traditional markets disappear in the future?</h3>
+<p class="text-on-surface-variant font-body-lg italic">Gợi ý: Trình bày quan điểm cá nhân về xu hướng tương lai.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Interaction Section (RHS) -->
+<div class="lg:col-span-4 flex flex-col gap-gutter">
+<!-- Recorder Card -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 shadow-sm flex flex-col items-center gap-6">
+<div class="text-center">
+<span class="block font-label-sm text-on-surface-variant uppercase mb-2">Recording Status</span>
+<div class="font-display-lg text-display-lg text-on-surface" id="timer-display">00:45</div>
+</div>
+<!-- Record Button -->
+<button class="w-24 h-24 rounded-full bg-error text-white flex items-center justify-center transition-all active:scale-95 group relative" id="record-btn">
+<span class="material-symbols-outlined text-4xl" id="mic-icon" style="font-variation-settings: 'FILL' 1;">mic</span>
+<div class="absolute inset-0 rounded-full border-4 border-error/30 scale-125 opacity-0" id="recording-ring"></div>
+</button>
+<div class="w-full space-y-4">
+<div class="flex items-center gap-2">
+<div class="h-1 bg-outline-variant flex-1 rounded-full overflow-hidden">
+<div class="h-full bg-primary w-0 transition-all duration-100" id="progress-bar"></div>
+</div>
+</div>
+<p class="text-center font-label-sm text-on-surface-variant" id="status-text">Click to start recording</p>
+</div>
+</div>
+<!-- Transcript/Live Notes -->
+<div class="bg-surface-container-low rounded-xl p-4 flex-1 flex flex-col">
+<div class="flex justify-between items-center mb-3">
+<span class="font-title-lg text-title-lg text-primary flex items-center gap-2">
+<span class="material-symbols-outlined">description</span>
+                                Transcription
+                            </span>
+<button class="text-primary font-medium text-xs hover:underline">Clear</button>
+</div>
+<textarea class="flex-1 w-full bg-white border border-outline-variant rounded-lg p-4 font-body-md focus:ring-2 focus:ring-primary focus:border-transparent outline-none resize-none placeholder:text-outline-variant" placeholder="Live speech-to-text will appear here during recording..."></textarea>
+<div class="mt-2 text-right">
+<span class="text-on-surface-variant font-label-sm">Word count: 0</span>
+</div>
+</div>
+<button class="w-full bg-secondary text-on-secondary py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-secondary/90 transition-colors">
+<span class="material-symbols-outlined">lightbulb</span>
+                        Xem đáp án mẫu
+                    </button>
+</div>
+</div>
+</div>
+<!-- Sticky Footer Navigation -->
+<footer class="bg-white border-t border-outline-variant h-16 w-full mt-auto sticky bottom-0 z-30 px-gutter flex items-center justify-between">
+<button class="flex items-center gap-2 px-6 py-2 rounded-lg font-bold bg-surface-container hover:bg-surface-dim transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">arrow_back</span>
+                Trở lại
+            </button>
+<div class="hidden md:flex gap-2">
+<div class="w-2.5 h-2.5 rounded-full bg-primary"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
+<div class="w-2.5 h-2.5 rounded-full bg-outline-variant"></div>
+</div>
+<button class="flex items-center gap-2 px-8 py-2 rounded-lg font-bold bg-tertiary-container text-on-tertiary-container hover:bg-tertiary shadow-sm transition-all hover:-translate-y-0.5">
+                Tiếp theo
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</footer>
+</main>
+<script>
+        function switchTab(tabIndex) {
+            // Content visibility
+            const tabs = ['tab-content-1', 'tab-content-2', 'tab-content-3'];
+            tabs.forEach((tab, index) => {
+                const element = document.getElementById(tab);
+                const btn = document.getElementById(`tab-btn-${index + 1}`);
+                if (index + 1 === tabIndex) {
+                    element.classList.remove('hidden');
+                    btn.classList.add('text-primary', 'font-bold', 'bg-white', 'relative', 'after:absolute', 'after:bottom-0', 'after:left-0', 'after:right-0', 'after:h-1', 'after:bg-primary');
+                    btn.classList.remove('text-on-surface-variant', 'font-medium');
+                } else {
+                    element.classList.add('hidden');
+                    btn.classList.remove('text-primary', 'font-bold', 'bg-white', 'relative', 'after:absolute', 'after:bottom-0', 'after:left-0', 'after:right-0', 'after:h-1', 'after:bg-primary');
+                    btn.classList.add('text-on-surface-variant', 'font-medium');
+                }
+            });
+        }
+
+        // Simple recording simulation
+        const recordBtn = document.getElementById('record-btn');
+        const recordingRing = document.getElementById('recording-ring');
+        const micIcon = document.getElementById('mic-icon');
+        const statusText = document.getElementById('status-text');
+        const progressBar = document.getElementById('progress-bar');
+        const timerDisplay = document.getElementById('timer-display');
+        
+        let isRecording = false;
+        let timeLeft = 45;
+        let timerInterval;
+
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        function startRecording() {
+            isRecording = true;
+            recordBtn.classList.add('record-pulse');
+            recordingRing.classList.remove('opacity-0');
+            micIcon.textContent = 'stop';
+            statusText.textContent = 'Recording... Speak now';
+            statusText.classList.add('text-error', 'font-bold');
+            
+            timeLeft = 45;
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `00:${timeLeft.toString().padStart(2, '0')}`;
+                
+                const progress = ((45 - timeLeft) / 45) * 100;
+                progressBar.style.width = `${progress}%`;
+
+                if (timeLeft <= 0) {
+                    stopRecording();
+                }
+            }, 1000);
+        }
+
+        function stopRecording() {
+            isRecording = false;
+            clearInterval(timerInterval);
+            recordBtn.classList.remove('record-pulse');
+            recordingRing.classList.add('opacity-0');
+            micIcon.textContent = 'mic';
+            statusText.textContent = 'Recording saved';
+            statusText.classList.remove('text-error', 'font-bold');
+            statusText.classList.add('text-tertiary');
+        }
+    </script>
+</body></html>

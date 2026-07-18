@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aptis Keys - Ôn luyện hiệu quả</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed": "#002204",
+                        "tertiary-container": "#358438",
+                        "on-primary-fixed": "#001c38",
+                        "primary-fixed-dim": "#a2c9ff",
+                        "outline": "#707783",
+                        "on-secondary-fixed-variant": "#394951",
+                        "on-secondary": "#ffffff",
+                        "background": "#f8f9fa",
+                        "on-error": "#ffffff",
+                        "on-secondary-fixed": "#0d1e25",
+                        "on-primary-container": "#fdfcff",
+                        "inverse-surface": "#2e3132",
+                        "on-tertiary-fixed-variant": "#005312",
+                        "secondary": "#506169",
+                        "tertiary": "#186a22",
+                        "surface-tint": "#0060a8",
+                        "on-primary-fixed-variant": "#004881",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#404752",
+                        "on-tertiary-container": "#f7fff1",
+                        "surface": "#f8f9fa",
+                        "surface-container-high": "#e7e8e9",
+                        "secondary-container": "#d1e2ec",
+                        "surface-container-highest": "#e1e3e4",
+                        "primary-container": "#0077ce",
+                        "secondary-fixed-dim": "#b8c9d3",
+                        "error": "#ba1a1a",
+                        "outline-variant": "#c0c7d4",
+                        "on-surface": "#191c1d",
+                        "inverse-primary": "#a2c9ff",
+                        "surface-bright": "#f8f9fa",
+                        "primary-fixed": "#d3e4ff",
+                        "inverse-on-surface": "#f0f1f2",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#edeeef",
+                        "secondary-fixed": "#d4e5ef",
+                        "primary": "#005ea4",
+                        "surface-variant": "#e1e3e4",
+                        "on-secondary-container": "#55656d",
+                        "surface-container-low": "#f3f4f5",
+                        "on-error-container": "#93000a",
+                        "surface-dim": "#d9dadb",
+                        "tertiary-fixed": "#a3f69c",
+                        "on-background": "#191c1d",
+                        "error-container": "#ffdad6",
+                        "tertiary-fixed-dim": "#88d982"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container_max_width": "1200px",
+                        "stack_lg": "2rem",
+                        "stack_md": "1rem",
+                        "gutter": "1.5rem",
+                        "sidebar_width": "240px",
+                        "stack_sm": "0.5rem"
+                    },
+                    "fontFamily": {
+                        "title-lg": ["Work Sans"],
+                        "label-sm": ["Work Sans"],
+                        "headline-md-mobile": ["Work Sans"],
+                        "display-lg": ["Work Sans"],
+                        "headline-md": ["Work Sans"],
+                        "body-lg": ["Work Sans"],
+                        "body-md": ["Work Sans"]
+                    },
+                    "fontSize": {
+                        "title-lg": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "label-sm": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.02em", "fontWeight": "500"}],
+                        "headline-md-mobile": ["20px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "display-lg": ["32px", {"lineHeight": "1.2", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "500"}],
+                        "body-lg": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "body-md": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Work Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            line-height: 1;
+            text-transform: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            white-space: nowrap;
+            direction: ltr;
+        }
+        .sidebar-active-indicator {
+            position: absolute;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background-color: var(--primary);
+        }
+        .bento-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .bento-card:hover {
+            transform: translateY(-4px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- SideNavBar (Authority: JSON & Style Guidance) -->
+<aside class="fixed left-0 top-0 h-full w-[240px] bg-inverse-surface dark:bg-on-surface flex flex-col p-stack_md z-50">
+<div class="mb-stack_lg px-4 pt-4">
+<h1 class="font-title-lg text-title-lg text-on-primary-container">English Prep</h1>
+<p class="font-label-sm text-label-sm text-primary-fixed-dim opacity-80 mt-1">Exam Mode Active</p>
+</div>
+<nav class="flex-1 space-y-2">
+<!-- Active Tab: Dashboard -->
+<a class="flex items-center gap-3 px-4 py-3 text-on-primary-fixed bg-primary-container rounded-lg border-l-4 border-primary transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-body-md text-body-md">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-variant hover:text-on-surface-variant hover:bg-surface-variant/10 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-body-md text-body-md">Practice</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-variant hover:text-on-surface-variant hover:bg-surface-variant/10 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-body-md text-body-md">Exams</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-variant hover:text-on-surface-variant hover:bg-surface-variant/10 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+<span class="font-body-md text-body-md">Progress</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-surface-variant hover:text-on-surface-variant hover:bg-surface-variant/10 rounded-lg transition-colors group" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</nav>
+<div class="mt-auto pt-stack_md border-t border-outline/20">
+<div class="bg-primary-container/20 rounded-xl p-4 mb-4">
+<p class="text-on-primary-container font-label-sm mb-2 text-center">Aptis Pro Access</p>
+<button class="w-full py-2 bg-primary text-on-primary rounded-lg font-label-sm hover:brightness-110 transition-all active:scale-95">Upgrade to Pro</button>
+</div>
+<a class="flex items-center gap-3 px-4 py-2 text-surface-variant hover:text-on-surface-variant hover:bg-surface-variant/10 rounded-lg mb-1 transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+<span class="font-body-md text-body-md">Help</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-surface-variant hover:text-on-surface-variant hover:bg-surface-variant/10 rounded-lg transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-body-md text-body-md">Logout</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar (Authority: JSON) -->
+<header class="fixed top-0 right-0 w-[calc(100%-240px)] h-16 bg-surface dark:bg-surface-dim border-b border-outline-variant flex justify-between items-center px-gutter z-40">
+<div class="flex items-center gap-4">
+<h2 class="font-title-lg text-title-lg font-bold text-primary">LingoMaster</h2>
+<div class="h-6 w-[1px] bg-outline-variant mx-2"></div>
+<span class="font-body-md text-on-surface-variant italic">Aptis Keys - Smart Learning</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group hidden md:block">
+<input class="bg-surface-container-low border-none rounded-full px-10 py-2 text-body-md w-64 focus:ring-2 focus:ring-primary/20 outline-none" placeholder="Tìm kiếm bài học..." type="text"/>
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors relative active:scale-90">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-error rounded-full"></span>
+</button>
+<div class="flex items-center gap-3 cursor-pointer group active:scale-95 transition-transform">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant">
+<img class="w-full h-full object-cover" data-alt="Professional studio portrait of a young Vietnamese student wearing modern academic attire, soft diffused lighting, neutral minimalist background, high-end educational lifestyle photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJPv_QTsaTrtgoohZ_HcpbxFCl13cCv_tsEPfis-ZrD81sDJIBMZuOA2p09tFS-cGJX-zsGj8nTNL7kK-Bmq1gVhiup3c5OhG0ZVna7fkaKxBLOtU8xzC5AcQdhN3A3MlqSHAGBy1dLcxAxNNFffOp5n5l6y7oPbKrIRxryE0mvTKBjGOmlD1ay-QmWPb4fCH9257h1AVtLLtnvM6rGNuBtOjWCqpqFTrNgM2SBt-87Use4CtubRBrKZVJg9XuyGg_OVCxLMkHh3o"/>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">account_circle</span>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Stage -->
+<main class="ml-[240px] pt-16 min-h-screen">
+<div class="max-w-[1200px] mx-auto p-gutter pb-32">
+<!-- Hero Greeting Section -->
+<section class="mb-stack_lg">
+<div class="relative overflow-hidden bg-primary-container rounded-3xl p-10 flex flex-col md:flex-row items-center justify-between shadow-sm border border-primary/10">
+<div class="z-10 text-on-primary-container max-w-xl">
+<h1 class="font-display-lg text-display-lg mb-2">Chào buổi sáng, Learner!</h1>
+<p class="font-headline-md text-headline-md opacity-90">Ôn luyện Aptis hiệu quả mỗi ngày</p>
+<div class="mt-6 flex flex-wrap gap-3">
+<span class="bg-on-primary-container/20 px-4 py-1.5 rounded-full text-label-sm backdrop-blur-sm">Lộ trình: B1 Target</span>
+<span class="bg-on-primary-container/20 px-4 py-1.5 rounded-full text-label-sm backdrop-blur-sm">Chuỗi ngày: 12 ngày</span>
+</div>
+</div>
+<div class="relative w-48 h-48 mt-8 md:mt-0 flex items-center justify-center">
+<div class="absolute inset-0 bg-white/10 rounded-full animate-pulse"></div>
+<span class="material-symbols-outlined text-[120px] text-on-primary-container/30" style="font-variation-settings: 'FILL' 1;">rocket_launch</span>
+</div>
+</div>
+</section>
+<!-- Learning Categories (Bento Grid Style) -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- READING SECTION -->
+<div class="bento-card bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 flex flex-col shadow-sm">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-12 h-12 rounded-xl bg-primary-container/10 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-3xl">menu_book</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Reading</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Tư duy đọc hiểu &amp; Từ vựng</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-3 flex-1">
+<button class="flex items-center justify-between p-4 bg-primary-container text-on-primary-container rounded-xl hover:brightness-110 active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">quiz</span>
+<span class="font-body-md font-semibold">Học theo câu hỏi</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 bg-surface-container-high text-on-surface-variant rounded-xl hover:bg-primary-container/10 hover:text-primary active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">library_books</span>
+<span class="font-body-md font-semibold">Học theo bộ đề</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 border border-outline-variant rounded-xl hover:border-primary hover:text-primary active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">lightbulb</span>
+<span class="font-body-md font-semibold">Mẹo học hay</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- LISTENING SECTION -->
+<div class="bento-card bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 flex flex-col shadow-sm">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-12 h-12 rounded-xl bg-tertiary-fixed/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-tertiary text-3xl">headset</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Listening</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Phản xạ nghe &amp; Ghi chú</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-3 flex-1">
+<button class="flex items-center justify-between p-4 bg-tertiary-container text-on-tertiary rounded-xl hover:brightness-110 active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">hearing</span>
+<span class="font-body-md font-semibold">Học theo câu hỏi</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 bg-surface-container-high text-on-surface-variant rounded-xl hover:bg-tertiary-container/10 hover:text-tertiary active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">audio_file</span>
+<span class="font-body-md font-semibold">Học theo bộ đề</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 border border-outline-variant rounded-xl hover:border-tertiary hover:text-tertiary active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">auto_awesome</span>
+<span class="font-body-md font-semibold">Mẹo học hay</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- SPEAKING SECTION -->
+<div class="bento-card bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 flex flex-col shadow-sm">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-12 h-12 rounded-xl bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary text-3xl">record_voice_over</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Speaking</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Phát âm &amp; Diễn đạt</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-3 flex-1">
+<button class="flex items-center justify-between p-4 bg-secondary text-on-secondary rounded-xl hover:brightness-110 active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">mic</span>
+<span class="font-body-md font-semibold">Học theo câu hỏi</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 bg-surface-container-high text-on-surface-variant rounded-xl hover:bg-secondary-container hover:text-secondary active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">topic</span>
+<span class="font-body-md font-semibold">Học theo bộ đề</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 border border-outline-variant rounded-xl hover:border-secondary hover:text-secondary active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">tips_and_updates</span>
+<span class="font-body-md font-semibold">Mẹo học hay</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</div>
+</div>
+<!-- WRITING SECTION -->
+<div class="bento-card bg-surface-container-lowest rounded-2xl border border-outline-variant p-6 flex flex-col shadow-sm">
+<div class="flex items-center gap-3 mb-6">
+<div class="w-12 h-12 rounded-xl bg-error-container/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-error text-3xl">edit_note</span>
+</div>
+<div>
+<h3 class="font-title-lg text-title-lg text-on-surface">Writing</h3>
+<p class="font-label-sm text-label-sm text-on-surface-variant">Cấu trúc câu &amp; Văn phong</p>
+</div>
+</div>
+<div class="grid grid-cols-1 gap-3 flex-1">
+<button class="flex items-center justify-between p-4 bg-error text-on-error rounded-xl hover:brightness-110 active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">history_edu</span>
+<span class="font-body-md font-semibold">Học theo câu hỏi</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 bg-surface-container-high text-on-surface-variant rounded-xl hover:bg-error-container/20 hover:text-error active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">task</span>
+<span class="font-body-md font-semibold">Học theo bộ đề</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+<button class="flex items-center justify-between p-4 border border-outline-variant rounded-xl hover:border-error hover:text-error active:scale-98 transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">bolt</span>
+<span class="font-body-md font-semibold">Mẹo học hay</span>
+</div>
+<span class="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Bottom Floating Progress Bar (Optional UI Touch) -->
+<div class="mt-stack_lg p-6 bg-surface-container-high rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 rounded-full border-4 border-primary border-t-transparent animate-spin flex items-center justify-center" style="animation-duration: 3s;">
+<span class="font-title-lg text-primary transform -rotate-45 animate-none">75%</span>
+</div>
+<div>
+<h4 class="font-body-lg font-bold text-on-surface">Tiến độ tuần này</h4>
+<p class="font-body-md text-on-surface-variant">Bạn đã hoàn thành 15/20 bài luyện tập.</p>
+</div>
+</div>
+<button class="px-8 py-3 bg-primary-fixed text-on-primary-fixed-variant rounded-xl font-body-md font-bold hover:bg-primary-fixed-dim transition-colors">Xem chi tiết lộ trình</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Authority: JSON - Mobile Only View logic) -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-surface-container-highest border-t border-outline-variant flex items-center justify-around px-gutter z-50">
+<button class="flex flex-col items-center gap-1 text-primary">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-sm">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label-sm">Lessons</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">assignment</span>
+<span class="font-label-sm">Exams</span>
+</button>
+<button class="flex flex-col items-center gap-1 text-on-surface-variant">
+<span class="material-symbols-outlined">account_circle</span>
+<span class="font-label-sm">Profile</span>
+</button>
+</nav>
+<!-- Success Feedback Overlay (Micro-interaction) -->
+<div class="fixed bottom-10 right-10 translate-y-20 opacity-0 transition-all duration-300 bg-tertiary-container text-on-tertiary p-4 rounded-xl shadow-lg flex items-center gap-3 z-[60]" id="toast">
+<span class="material-symbols-outlined">check_circle</span>
+<span class="font-body-md">Tiếp tục phát huy nhé!</span>
+</div>
+<script>
+        // Simple micro-interaction for button clicks
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const toast = document.getElementById('toast');
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                
+                setTimeout(() => {
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            });
+        });
+    </script>
+</body></html>
