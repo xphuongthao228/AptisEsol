@@ -1,4 +1,0 @@
-type,topic,content,audio_url,script_text,explanation,points,sort_order,answer1,answer2,answer3,answer4,correct_index
-SINGLE_CHOICE,Listening Part 1,What is not original?,/audio/listening/part1/q1.mp3,Audio script here,Giai thich ngan,1,1,Furniture,Home,Bicycle,,1
-SINGLE_CHOICE,Grammar,I wish I _____ speak French fluently.,,,Dung could cho dieu uoc hien tai,1,1,would,can,could,,3
-TEXT,Writing Practice,Tell me a painting or a photo that you like,,,Sample answer,1,1,,,,,1
