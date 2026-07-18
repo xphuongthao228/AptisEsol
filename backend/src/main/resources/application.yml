@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: ${PORT:8080}
 
 spring:
   application:
@@ -35,8 +35,8 @@ spring:
 app:
   jwt:
     secret: ${JWT_SECRET:}
-    access-token-minutes: 60
-    refresh-token-days: 14
+    access-token-minutes: ${JWT_ACCESS_MINUTES:60}
+    refresh-token-days: ${JWT_REFRESH_DAYS:14}
   upload-dir: ${UPLOAD_DIR:uploads}
   cors: ${APP_CORS:http://localhost:5173}
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
