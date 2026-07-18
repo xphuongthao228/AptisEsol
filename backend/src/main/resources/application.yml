@@ -4,10 +4,12 @@ server:
 spring:
   application:
     name: AptisEsol
+
   datasource:
     url: ${DB_URL:jdbc:mysql://localhost:3306/aptis_esol?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=utf8}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:demo123}
+
   jpa:
     hibernate:
       ddl-auto: update
@@ -16,10 +18,12 @@ spring:
         dialect: org.hibernate.dialect.MySQLDialect
         format_sql: true
     open-in-view: false
+
   servlet:
     multipart:
       max-file-size: 20MB
       max-request-size: 25MB
+
   mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
@@ -31,25 +35,34 @@ spring:
           auth: true
           starttls:
             enable: true
+            required: true
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
 
 app:
   jwt:
     secret: ${JWT_SECRET:}
     access-token-minutes: ${JWT_ACCESS_MINUTES:60}
     refresh-token-days: ${JWT_REFRESH_DAYS:14}
+
   upload-dir: ${UPLOAD_DIR:uploads}
   cors: ${APP_CORS:http://localhost:5173}
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
+
   mail:
     enabled: ${MAIL_ENABLED:true}
     verification-token-hours: ${MAIL_VERIFY_HOURS:24}
+
   subscription:
     free-trial-days: ${FREE_TRIAL_DAYS:2}
+
   seed:
     admin-email: ${SEED_ADMIN_EMAIL:admin@aptis.com}
     admin-password: ${SEED_ADMIN_PASSWORD:}
     student-email: ${SEED_STUDENT_EMAIL:student@aptis.com}
     student-password: ${SEED_STUDENT_PASSWORD:}
+
   payment:
     bank-id: ${PAYMENT_BANK_ID:}
     account-no: ${PAYMENT_ACCOUNT_NO:}
