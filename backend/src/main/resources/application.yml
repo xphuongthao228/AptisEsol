@@ -24,7 +24,7 @@ spring:
       max-file-size: 20MB
       max-request-size: 25MB
 
-   mail:
+  mail:
     host: ${MAIL_HOST:smtp.gmail.com}
     port: ${MAIL_PORT:587}
     username: ${MAIL_USERNAME:}
