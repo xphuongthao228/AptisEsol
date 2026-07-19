@@ -3,7 +3,6 @@ package com.example.aptis.exception;
 import com.example.aptis.dto.ApiResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -20,15 +19,9 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(ex.getMessage(), null));
     }
 
-    @ExceptionHandler({IllegalArgumentException.class, IllegalStateException.class})
+    @ExceptionHandler({ IllegalArgumentException.class, IllegalStateException.class })
     ResponseEntity<ApiResponse<Void>> badRequest(RuntimeException ex) {
         return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage(), null));
-    }
-
-    @ExceptionHandler(MailException.class)
-    ResponseEntity<ApiResponse<Void>> mail(MailException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
-                .body(ApiResponse.error("Không gửi được email OTP. Kiểm tra MAIL_USERNAME, MAIL_PASSWORD hoặc App Password Gmail.", null));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

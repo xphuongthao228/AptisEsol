@@ -24,27 +24,6 @@ spring:
       max-file-size: 20MB
       max-request-size: 25MB
 
-  mail:
-    host: ${MAIL_HOST:smtp.gmail.com}
-    port: ${MAIL_PORT:465}
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
-    protocol: smtp
-    default-encoding: UTF-8
-    properties:
-      mail:
-        smtp:
-          auth: true
-          ssl:
-            enable: true
-            trust: smtp.gmail.com
-          starttls:
-            enable: false
-            required: false
-          connectiontimeout: 20000
-          timeout: 20000
-          writetimeout: 20000
-
 app:
   jwt:
     secret: ${JWT_SECRET:}
@@ -58,6 +37,8 @@ app:
   mail:
     enabled: ${MAIL_ENABLED:true}
     verification-token-hours: ${MAIL_VERIFY_HOURS:24}
+    gas-url: ${GAS_MAIL_URL:}
+    gas-secret: ${GAS_MAIL_SECRET:}
 
   subscription:
     free-trial-days: ${FREE_TRIAL_DAYS:2}
@@ -80,5 +61,4 @@ springdoc:
 
 logging:
   level:
-    org.springframework.mail: DEBUG
-    org.eclipse.angus.mail: DEBUG
+    com.example.aptis.service.EmailService: INFO
