@@ -78,18 +78,18 @@ public class DataSeeder {
                 });
             }
 
-            createSkill(SkillType.LISTENING, "Listening", "Luyen nghe Aptis voi cau hoi tinh huong thuc te.");
-            createSkill(SkillType.SPEAKING, "Speaking", "Luyen noi theo tung part voi goi y cham diem.");
-            createSkill(SkillType.READING, "Reading", "Doc hieu, sap xep cau va dien tu.");
-            createSkill(SkillType.WRITING, "Writing", "Viet email, note va essay ngan.");
-            createSkill(SkillType.GRAMMAR, "Grammar", "Luyen ngu phap, tu vung va collocation theo dang cau hoi Aptis.");
+            createSkill(SkillType.LISTENING, "Listening", "Luyện nghe Aptis với câu hỏi tình huống thực tế.");
+            createSkill(SkillType.SPEAKING, "Speaking", "Luyện nói theo từng part với gợi ý chấm điểm.");
+            createSkill(SkillType.READING, "Reading", "Đọc hiểu, sắp xếp câu và điền từ.");
+            createSkill(SkillType.WRITING, "Writing", "Viết email, note và essay ngắn.");
+            createSkill(SkillType.GRAMMAR, "Grammar", "Luyện ngữ pháp, từ vựng và collocation theo dạng câu hỏi Aptis.");
 
             if (tests.count() == 0) {
                 skills.findAll().forEach(skill -> {
                     Test test = new Test();
                     test.setSkill(skill);
                     test.setTitle(skill.getName() + " Practice Set 1");
-                    test.setDescription("Bo luyen tap dau tien cho ky nang " + skill.getName());
+                    test.setDescription("Bộ luyện tập đầu tiên cho kỹ năng " + skill.getName());
                     test.setDurationMinutes(skill.getType() == SkillType.SPEAKING ? 12 : 30);
                     test.setMode(TestMode.PRACTICE);
                     tests.save(test);

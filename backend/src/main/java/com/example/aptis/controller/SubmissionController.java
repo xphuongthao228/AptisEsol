@@ -16,8 +16,27 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SubmissionController {
     private final CoreService service;
-    @PostMapping @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)") public ApiResponse<CoreDtos.SubmissionResponse> submit(Authentication auth, @Valid @RequestBody CoreDtos.SubmissionRequest request) { return ApiResponse.ok(service.submit(auth.getName(), request)); }
-    @GetMapping("/my-results") public ApiResponse<List<CoreDtos.SubmissionResponse>> mine(Authentication auth) { return ApiResponse.ok(service.myResults(auth.getName())); }
-    @GetMapping @PreAuthorize("hasRole('ADMIN')") public ApiResponse<List<CoreDtos.SubmissionResponse>> all() { return ApiResponse.ok(service.allResults()); }
-    @GetMapping("/{id}") public ApiResponse<CoreDtos.SubmissionResponse> one(@PathVariable Long id) { return ApiResponse.ok(service.submission(id)); }
+
+    @PostMapping
+    @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
+    public ApiResponse<CoreDtos.SubmissionResponse> submit(Authentication auth,
+            @Valid @RequestBody CoreDtos.SubmissionRequest request) {
+        return ApiResponse.ok(service.submit(auth.getName(), request));
+    }
+
+    @GetMapping("/my-results")
+    public ApiResponse<List<CoreDtos.SubmissionResponse>> mine(Authentication auth) {
+        return ApiResponse.ok(service.myResults(auth.getName()));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<List<CoreDtos.SubmissionResponse>> all() {
+        return ApiResponse.ok(service.allResults());
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<CoreDtos.SubmissionResponse> one(@PathVariable Long id) {
+        return ApiResponse.ok(service.submission(id));
+    }
 }

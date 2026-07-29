@@ -18,9 +18,31 @@ import java.util.List;
 public class UserController {
     private final CoreService service;
 
-    @GetMapping public ApiResponse<List<AuthDtos.UserResponse>> all() { return ApiResponse.ok(service.users()); }
-    @GetMapping("/{id}") public ApiResponse<AuthDtos.UserResponse> one(@PathVariable Long id) { return ApiResponse.ok(service.user(id)); }
-    @PutMapping("/{id}") public ApiResponse<AuthDtos.UserResponse> update(@PathVariable Long id, @Valid @RequestBody CoreDtos.UserUpdateRequest request) { return ApiResponse.ok(service.updateUser(id, request)); }
-    @PostMapping("/{id}/extend-access") public ApiResponse<AuthDtos.UserResponse> extendAccess(@PathVariable Long id, @Valid @RequestBody CoreDtos.ExtendUserAccessRequest request) { return ApiResponse.ok(service.extendUserAccess(id, request)); }
-    @DeleteMapping("/{id}") public ApiResponse<Void> delete(@PathVariable Long id) { service.deleteUser(id); return ApiResponse.message("Deleted", null); }
+    @GetMapping
+    public ApiResponse<List<AuthDtos.UserResponse>> all() {
+        return ApiResponse.ok(service.users());
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<AuthDtos.UserResponse> one(@PathVariable Long id) {
+        return ApiResponse.ok(service.user(id));
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<AuthDtos.UserResponse> update(@PathVariable Long id,
+            @Valid @RequestBody CoreDtos.UserUpdateRequest request) {
+        return ApiResponse.ok(service.updateUser(id, request));
+    }
+
+    @PostMapping("/{id}/extend-access")
+    public ApiResponse<AuthDtos.UserResponse> extendAccess(@PathVariable Long id,
+            @Valid @RequestBody CoreDtos.ExtendUserAccessRequest request) {
+        return ApiResponse.ok(service.extendUserAccess(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        service.deleteUser(id);
+        return ApiResponse.message("Deleted", null);
+    }
 }

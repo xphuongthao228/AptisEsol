@@ -64,7 +64,8 @@ public class CoreService {
     public AuthDtos.UserResponse updateUser(Long id, CoreDtos.UserUpdateRequest request) {
         User user = users.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         user.setFullName(request.fullName());
-        if (request.enabled() != null) user.setEnabled(request.enabled());
+        if (request.enabled() != null)
+            user.setEnabled(request.enabled());
         return mapper.user(users.save(user));
     }
 
@@ -84,8 +85,10 @@ public class CoreService {
         LocalDateTime trialExpiresAt = user.getCreatedAt() == null ? null : user.getCreatedAt().plusDays(freeTrialDays);
         LocalDateTime proExpiresAt = user.getProExpiresAt();
 
-        if (trialExpiresAt == null) return proExpiresAt;
-        if (proExpiresAt == null) return trialExpiresAt;
+        if (trialExpiresAt == null)
+            return proExpiresAt;
+        if (proExpiresAt == null)
+            return trialExpiresAt;
         return proExpiresAt.isAfter(trialExpiresAt) ? proExpiresAt : trialExpiresAt;
     }
 
@@ -153,12 +156,16 @@ public class CoreService {
     }
 
     private void applyTest(Test test, CoreDtos.TestRequest request) {
-        test.setSkill(skills.findById(request.skillId()).orElseThrow(() -> new ResourceNotFoundException("Skill not found")));
+        test.setSkill(
+                skills.findById(request.skillId()).orElseThrow(() -> new ResourceNotFoundException("Skill not found")));
         test.setTitle(request.title());
         test.setDescription(request.description());
-        if (request.durationMinutes() != null) test.setDurationMinutes(request.durationMinutes());
-        if (request.status() != null) test.setStatus(request.status());
-        if (request.mode() != null) test.setMode(request.mode());
+        if (request.durationMinutes() != null)
+            test.setDurationMinutes(request.durationMinutes());
+        if (request.status() != null)
+            test.setStatus(request.status());
+        if (request.mode() != null)
+            test.setMode(request.mode());
     }
 
     @Transactional
@@ -187,7 +194,8 @@ public class CoreService {
                     Test saved = tests.save(test);
                     imported.add(mapper.test(saved, 0));
                 } catch (RuntimeException ex) {
-                    throw new IllegalArgumentException("CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
+                    throw new IllegalArgumentException(
+                            "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
                 }
             }
         }
@@ -203,7 +211,8 @@ public class CoreService {
 
     public CoreDtos.LessonResponse lesson(Long id) {
         Lesson lesson = lessons.findById(id).orElseThrow(() -> new ResourceNotFoundException("Lesson not found"));
-        if (lesson.getDeletedAt() != null) throw new ResourceNotFoundException("Lesson not found");
+        if (lesson.getDeletedAt() != null)
+            throw new ResourceNotFoundException("Lesson not found");
         return mapper.lesson(lesson);
     }
 
@@ -215,7 +224,8 @@ public class CoreService {
 
     public CoreDtos.LessonResponse updateLesson(Long id, CoreDtos.LessonRequest request) {
         Lesson lesson = lessons.findById(id).orElseThrow(() -> new ResourceNotFoundException("Lesson not found"));
-        if (lesson.getDeletedAt() != null) throw new ResourceNotFoundException("Lesson not found");
+        if (lesson.getDeletedAt() != null)
+            throw new ResourceNotFoundException("Lesson not found");
         applyLesson(lesson, request);
         return mapper.lesson(lessons.save(lesson));
     }
@@ -257,14 +267,16 @@ public class CoreService {
                     lesson.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
                     imported.add(mapper.lesson(lessons.save(lesson)));
                 } catch (RuntimeException ex) {
-                    throw new IllegalArgumentException("CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
+                    throw new IllegalArgumentException(
+                            "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
                 }
             }
         }
         return imported;
     }
 
-    public List<CoreDtos.PredictionResponse> predictions(com.example.aptis.enums.SkillType skill, boolean publishedOnly) {
+    public List<CoreDtos.PredictionResponse> predictions(com.example.aptis.enums.SkillType skill,
+            boolean publishedOnly) {
         List<Prediction> list;
         if (skill != null && publishedOnly) {
             list = predictions.findBySkillAndStatusAndDeletedAtIsNullOrderByPriorityAscUpdatedAtDesc(
@@ -281,8 +293,10 @@ public class CoreService {
     }
 
     public CoreDtos.PredictionResponse prediction(Long id) {
-        Prediction prediction = predictions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
-        if (prediction.getDeletedAt() != null) throw new ResourceNotFoundException("Prediction not found");
+        Prediction prediction = predictions.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
+        if (prediction.getDeletedAt() != null)
+            throw new ResourceNotFoundException("Prediction not found");
         return mapper.prediction(prediction);
     }
 
@@ -293,14 +307,17 @@ public class CoreService {
     }
 
     public CoreDtos.PredictionResponse updatePrediction(Long id, CoreDtos.PredictionRequest request) {
-        Prediction prediction = predictions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
-        if (prediction.getDeletedAt() != null) throw new ResourceNotFoundException("Prediction not found");
+        Prediction prediction = predictions.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
+        if (prediction.getDeletedAt() != null)
+            throw new ResourceNotFoundException("Prediction not found");
         applyPrediction(prediction, request);
         return mapper.prediction(predictions.save(prediction));
     }
 
     public void deletePrediction(Long id) {
-        Prediction prediction = predictions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
+        Prediction prediction = predictions.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
         prediction.setDeletedAt(LocalDateTime.now());
         predictions.save(prediction);
     }
@@ -312,7 +329,8 @@ public class CoreService {
         prediction.setContent(request.content());
         prediction.setTags(request.tags());
         prediction.setPriority(request.priority() == null || request.priority() < 1 ? 1 : request.priority());
-        prediction.setStatus(request.status() == null ? com.example.aptis.enums.TestStatus.PUBLISHED : request.status());
+        prediction
+                .setStatus(request.status() == null ? com.example.aptis.enums.TestStatus.PUBLISHED : request.status());
     }
 
     public List<CoreDtos.QuestionResponse> questions(Long testId) {
@@ -323,7 +341,8 @@ public class CoreService {
     }
 
     public CoreDtos.QuestionResponse question(Long id) {
-        return mapper.question(questions.findWithAnswersById(id).orElseThrow(() -> new ResourceNotFoundException("Question not found")));
+        return mapper.question(questions.findWithAnswersById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found")));
     }
 
     @Transactional
@@ -373,7 +392,10 @@ public class CoreService {
                     boolean listeningPart4 = isListeningPart4Type(rawType);
                     boolean speakingTemplate = isSpeakingTemplateType(rawType);
                     boolean grammarTemplate = isGrammarTemplateType(rawType);
-                    q.setType((listeningPart2 || listeningPart3 || listeningPart4 || speakingTemplate || grammarTemplate) ? QuestionType.TEXT : parseQuestionType(rawType));
+                    q.setType(
+                            (listeningPart2 || listeningPart3 || listeningPart4 || speakingTemplate || grammarTemplate)
+                                    ? QuestionType.TEXT
+                                    : parseQuestionType(rawType));
                     q.setTopic(cleanTopic(csv(record, "topic", "")));
                     q.setAudioUrl(firstNonBlank(csv(record, "audio_url", ""), csv(record, "audioUrl", "")));
                     q.setScriptText(firstNonBlank(csv(record, "script_text", ""), csv(record, "scriptText", "")));
@@ -427,15 +449,15 @@ public class CoreService {
                     }
                     imported.add(questions.save(q));
                 } catch (RuntimeException ex) {
-                    throw new IllegalArgumentException("CSV row " + record.getRecordNumber() + " error: " + ex.getMessage());
+                    throw new IllegalArgumentException(
+                            "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage());
                 }
             }
         }
         if (!speakingPart3Items.isEmpty()) {
             speakingPart3Question.setContent(buildSpeakingPart3Template(
                     speakingPart3Total > 0 ? speakingPart3Total : speakingPart3Items.size(),
-                    speakingPart3Items
-            ));
+                    speakingPart3Items));
             imported.add(questions.save(speakingPart3Question));
         }
         if (imported.isEmpty()) {
@@ -484,9 +506,12 @@ public class CoreService {
     }
 
     private boolean hasSpeakingPart3Columns(CSVRecord record) {
-        return !firstNonBlank(csv(record, "urlpic1", ""), firstNonBlank(csv(record, "urlPic1", ""), csv(record, "image1", ""))).isBlank()
-                || !firstNonBlank(csv(record, "urlpic2", ""), firstNonBlank(csv(record, "urlPic2", ""), csv(record, "image2", ""))).isBlank()
-                || !firstNonBlank(csv(record, "question1", ""), firstNonBlank(csv(record, "q1", ""), csv(record, "prompt1", ""))).isBlank();
+        return !firstNonBlank(csv(record, "urlpic1", ""),
+                firstNonBlank(csv(record, "urlPic1", ""), csv(record, "image1", ""))).isBlank()
+                || !firstNonBlank(csv(record, "urlpic2", ""),
+                        firstNonBlank(csv(record, "urlPic2", ""), csv(record, "image2", ""))).isBlank()
+                || !firstNonBlank(csv(record, "question1", ""),
+                        firstNonBlank(csv(record, "q1", ""), csv(record, "prompt1", ""))).isBlank();
     }
 
     private String buildSpeakingPart3QuestionItem(CSVRecord record, int index) {
@@ -567,19 +592,23 @@ public class CoreService {
         List<String> options = new ArrayList<>();
         for (int i = 1; i <= 8; i++) {
             String option = csv(record, "answer" + i, "");
-            if (!option.isBlank()) options.add(option);
+            if (!option.isBlank())
+                options.add(option);
         }
         if (options.isEmpty()) {
             throw new IllegalArgumentException("Listening Part 2 requires answer1-answer6 options");
         }
         String instructions = firstNonBlank(csv(record, "instructions", ""), csv(record, "content", ""));
         String extraInstruction = csv(record, "explanation", "");
-        if (!hasPersonCorrectIndexes(record) && !extraInstruction.isBlank() && !instructions.contains(extraInstruction)) {
-            instructions = firstNonBlank(instructions, "Four people are discussing their views on " + topic + ". Complete the sentences.")
+        if (!hasPersonCorrectIndexes(record) && !extraInstruction.isBlank()
+                && !instructions.contains(extraInstruction)) {
+            instructions = firstNonBlank(instructions,
+                    "Four people are discussing their views on " + topic + ". Complete the sentences.")
                     + " " + extraInstruction;
         }
         if (instructions.isBlank()) {
-            instructions = "Four people are discussing their views on " + topic + ". Complete the sentences. Use each answer only once. You will not need two of the answers.";
+            instructions = "Four people are discussing their views on " + topic
+                    + ". Complete the sentences. Use each answer only once. You will not need two of the answers.";
         }
         List<String> correctAnswers = new ArrayList<>();
         for (int i = 1; i <= 4; i++) {
@@ -605,7 +634,8 @@ public class CoreService {
 
     private boolean hasPersonCorrectIndexes(CSVRecord record) {
         for (int i = 1; i <= 4; i++) {
-            if (!csv(record, "correct_index_person" + i, "").isBlank()) return true;
+            if (!csv(record, "correct_index_person" + i, "").isBlank())
+                return true;
         }
         return false;
     }
@@ -616,7 +646,8 @@ public class CoreService {
         List<String> options = new ArrayList<>();
         for (int i = 1; i <= 6; i++) {
             String option = csv(record, "answer" + i, "");
-            if (!option.isBlank()) options.add(option);
+            if (!option.isBlank())
+                options.add(option);
         }
         if (options.isEmpty()) {
             options.add("Man");
@@ -627,18 +658,21 @@ public class CoreService {
         List<String> statements = new ArrayList<>();
         for (int i = 1; i <= 8; i++) {
             String statement = firstNonBlank(csv(record, "statement" + i, ""), csv(record, "question" + i, ""));
-            if (!statement.isBlank()) statements.add(statement);
+            if (!statement.isBlank())
+                statements.add(statement);
         }
         if (statements.isEmpty()) {
             String rawStatements = firstNonBlank(csv(record, "statements", ""), csv(record, "rows", ""));
             if (!rawStatements.isBlank()) {
                 for (String statement : rawStatements.split("\\|")) {
-                    if (!statement.trim().isBlank()) statements.add(statement.trim());
+                    if (!statement.trim().isBlank())
+                        statements.add(statement.trim());
                 }
             }
         }
         if (statements.isEmpty()) {
-            throw new IllegalArgumentException("Listening Part 3 requires statement1-statement4 or statements. answer1-answer3 are dropdown choices only");
+            throw new IllegalArgumentException(
+                    "Listening Part 3 requires statement1-statement4 or statements. answer1-answer3 are dropdown choices only");
         }
 
         String instructions = firstNonBlank(csv(record, "instructions", ""), csv(record, "content", ""));
@@ -648,7 +682,8 @@ public class CoreService {
 
         List<String> correctAnswers = new ArrayList<>();
         for (int i = 1; i <= statements.size(); i++) {
-            String direct = firstNonBlank(csv(record, "correct_statement" + i, ""), csv(record, "correct_answer" + i, ""));
+            String direct = firstNonBlank(csv(record, "correct_statement" + i, ""),
+                    csv(record, "correct_answer" + i, ""));
             int answerIndex = parseInteger(record, "correct_index_statement" + i, 0);
             if (!direct.isBlank()) {
                 correctAnswers.add(direct);
@@ -680,22 +715,22 @@ public class CoreService {
         for (int groupIndex = 1; groupIndex <= 2; groupIndex++) {
             String prompt = firstNonBlank(
                     csv(record, "question" + groupIndex, ""),
-                    firstNonBlank(csv(record, "prompt" + groupIndex, ""), csv(record, "q" + groupIndex, ""))
-            );
+                    firstNonBlank(csv(record, "prompt" + groupIndex, ""), csv(record, "q" + groupIndex, "")));
             List<String> options = new ArrayList<>();
             for (int answerIndex = 1; answerIndex <= 4; answerIndex++) {
                 String option = firstNonBlank(
                         csv(record, "q" + groupIndex + "_answer" + answerIndex, ""),
-                        csv(record, "question" + groupIndex + "_answer" + answerIndex, "")
-                );
-                if (!option.isBlank()) options.add(option);
+                        csv(record, "question" + groupIndex + "_answer" + answerIndex, ""));
+                if (!option.isBlank())
+                    options.add(option);
             }
             if (prompt.isBlank() && groupIndex == 1) {
                 prompt = csv(record, "content", "");
             }
             if (!prompt.isBlank() || !options.isEmpty()) {
                 if (prompt.isBlank() || options.size() < 2) {
-                    throw new IllegalArgumentException("Listening Part 4 question" + groupIndex + " requires prompt and at least 2 options");
+                    throw new IllegalArgumentException(
+                            "Listening Part 4 question" + groupIndex + " requires prompt and at least 2 options");
                 }
                 groups.add("{\"prompt\":" + json(prompt)
                         + ",\"options\":" + jsonArray(options)
@@ -705,7 +740,8 @@ public class CoreService {
         }
 
         if (groups.isEmpty()) {
-            throw new IllegalArgumentException("Listening Part 4 requires question1/q1_answer1-q1_answer3 and question2/q2_answer1-q2_answer3");
+            throw new IllegalArgumentException(
+                    "Listening Part 4 requires question1/q1_answer1-q1_answer3 and question2/q2_answer1-q2_answer3");
         }
 
         return "{\n"
@@ -723,9 +759,9 @@ public class CoreService {
     private String correctListeningPart4Answer(CSVRecord record, int groupIndex, List<String> options) {
         String direct = firstNonBlank(
                 csv(record, "correct_answer" + groupIndex, ""),
-                csv(record, "q" + groupIndex + "_correct_answer", "")
-        );
-        if (!direct.isBlank()) return direct;
+                csv(record, "q" + groupIndex + "_correct_answer", ""));
+        if (!direct.isBlank())
+            return direct;
 
         int answerIndex = parseInteger(record, "q" + groupIndex + "_correct_index", 0);
         if (answerIndex == 0) {
@@ -750,7 +786,8 @@ public class CoreService {
     }
 
     private String json(String value) {
-        if (value == null) return "\"\"";
+        if (value == null)
+            return "\"\"";
         return "\"" + value
                 .replace("\\", "\\\\")
                 .replace("\"", "\\\"")
@@ -843,13 +880,15 @@ public class CoreService {
 
     private String requiredCsv(CSVRecord record, String name) {
         String value = csv(record, name, "");
-        if (value.isBlank()) throw new IllegalArgumentException("missing required column/value: " + name);
+        if (value.isBlank())
+            throw new IllegalArgumentException("missing required column/value: " + name);
         return value;
     }
 
     private int parseInteger(CSVRecord record, String name, int defaultValue) {
         String value = csv(record, name, String.valueOf(defaultValue));
-        if (value == null || value.isBlank()) return defaultValue;
+        if (value == null || value.isBlank())
+            return defaultValue;
         try {
             return Integer.parseInt(value);
         } catch (NumberFormatException ex) {
@@ -859,14 +898,17 @@ public class CoreService {
 
     private void applyQuestion(Question q, CoreDtos.QuestionRequest request) {
         q.setTest(tests.findById(request.testId()).orElseThrow(() -> new ResourceNotFoundException("Test not found")));
-        if (request.type() != null) q.setType(request.type());
+        if (request.type() != null)
+            q.setType(request.type());
         q.setContent(request.content());
         q.setTopic(request.topic());
         q.setAudioUrl(request.audioUrl());
         q.setScriptText(request.scriptText());
         q.setExplanation(request.explanation());
-        if (request.points() != null) q.setPoints(request.points());
-        if (request.sortOrder() != null) q.setSortOrder(request.sortOrder());
+        if (request.points() != null)
+            q.setPoints(request.points());
+        if (request.sortOrder() != null)
+            q.setSortOrder(request.sortOrder());
         if (request.answers() != null) {
             request.answers().forEach(a -> {
                 Answer answer = new Answer();
@@ -889,7 +931,8 @@ public class CoreService {
         int score = 0;
         int max = 0;
         for (CoreDtos.SubmitAnswerRequest item : request.answers()) {
-            Question q = questions.findById(item.questionId()).orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+            Question q = questions.findById(item.questionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
             max += q.getPoints();
             Answer selected = item.answerId() == null ? null : answers.findById(item.answerId()).orElse(null);
             boolean correct = selected != null && selected.isCorrect();
@@ -928,19 +971,23 @@ public class CoreService {
 
     @Transactional(readOnly = true)
     public CoreDtos.SubmissionResponse submission(Long id) {
-        return mapper.submission(submissions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Submission not found")));
+        return mapper.submission(
+                submissions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Submission not found")));
     }
 
     public List<CoreDtos.ProgressResponse> myProgress(String email) {
         User user = users.findByEmailAndDeletedAtIsNull(email).orElseThrow();
         return progress.findByUserId(user.getId()).stream()
-                .map(p -> new CoreDtos.ProgressResponse(p.getSkill().getId(), p.getSkill().getName(), p.getCompletedTests(), p.getBestScore()))
+                .map(p -> new CoreDtos.ProgressResponse(p.getSkill().getId(), p.getSkill().getName(),
+                        p.getCompletedTests(), p.getBestScore()))
                 .toList();
     }
 
     public CoreDtos.StatisticsResponse statistics() {
         List<Submission> all = submissions.findAll();
-        double avg = all.stream().mapToDouble(s -> s.getMaxScore() == 0 ? 0 : (s.getTotalScore() * 100.0 / s.getMaxScore())).average().orElse(0);
+        double avg = all.stream()
+                .mapToDouble(s -> s.getMaxScore() == 0 ? 0 : (s.getTotalScore() * 100.0 / s.getMaxScore())).average()
+                .orElse(0);
         return new CoreDtos.StatisticsResponse(users.count(), tests.count(), submissions.count(), avg);
     }
 
@@ -954,7 +1001,8 @@ public class CoreService {
         media.setStoredName(stored);
         media.setContentType(file.getContentType() == null ? "application/octet-stream" : file.getContentType());
         media.setSizeBytes(file.getSize());
-        media.setType(media.getContentType().startsWith("image/") ? MediaType.IMAGE : media.getContentType().startsWith("audio/") ? MediaType.AUDIO : MediaType.OTHER);
+        media.setType(media.getContentType().startsWith("image/") ? MediaType.IMAGE
+                : media.getContentType().startsWith("audio/") ? MediaType.AUDIO : MediaType.OTHER);
         media.setUploadedBy(uploader);
         return media(mediaFiles.save(media));
     }
@@ -965,7 +1013,8 @@ public class CoreService {
     }
 
     public CoreDtos.MediaResponse media(MediaFile media) {
-        return new CoreDtos.MediaResponse(media.getId(), media.getOriginalName(), media.getContentType(), media.getSizeBytes(), media.getType());
+        return new CoreDtos.MediaResponse(media.getId(), media.getOriginalName(), media.getContentType(),
+                media.getSizeBytes(), media.getType());
     }
 
     public List<CoreDtos.MediaResponse> mediaList() {

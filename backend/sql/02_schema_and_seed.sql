@@ -191,14 +191,14 @@ INSERT IGNORE INTO roles (name) VALUES ('ADMIN'), ('STUDENT');
 
 INSERT IGNORE INTO skills (type, name, description)
 VALUES
-    ('LISTENING', 'Listening', 'Luyen nghe Aptis voi cau hoi tinh huong thuc te.'),
-    ('SPEAKING', 'Speaking', 'Luyen noi theo tung part voi goi y cham diem.'),
-    ('READING', 'Reading', 'Doc hieu, sap xep cau va dien tu.'),
-    ('WRITING', 'Writing', 'Viet email, note va essay ngan.'),
-    ('GRAMMAR', 'Grammar', 'Luyen ngu phap, tu vung va collocation theo dang cau hoi Aptis.');
+    ('LISTENING', 'Listening', 'Luyện nghe Aptis với câu hỏi tình huống thực tế.'),
+    ('SPEAKING', 'Speaking', 'Luyện nói theo từng part với gợi ý chấm điểm.'),
+    ('READING', 'Reading', 'Đọc hiểu, sắp xếp câu và điền từ.'),
+    ('WRITING', 'Writing', 'Viết email, note và essay ngắn.'),
+    ('GRAMMAR', 'Grammar', 'Luyện ngữ pháp, từ vựng và collocation theo dạng câu hỏi Aptis.');
 
 INSERT INTO tests (skill_id, title, description, duration_minutes, status, mode)
-SELECT id, CONCAT(name, ' Practice Set 1'), CONCAT('Bo luyen tap dau tien cho ky nang ', name),
+SELECT id, CONCAT(name, ' Practice Set 1'), CONCAT('Bộ luyện tập đầu tiên cho kỹ năng ', name),
        CASE WHEN type = 'SPEAKING' THEN 12 ELSE 30 END, 'PUBLISHED', 'PRACTICE'
 FROM skills
 WHERE NOT EXISTS (SELECT 1 FROM tests);

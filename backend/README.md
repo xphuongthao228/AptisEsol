@@ -75,7 +75,7 @@ Configure SePay webhook URL:
 POST https://your-public-domain/api/payments/sepay/webhook
 ```
 
-In SePay dashboard, set the webhook auth method to `None / Khong xac thuc` unless you deliberately configure a token.
+In SePay dashboard, set the webhook auth method to `None / Không xác thực` unless you deliberately configure a token.
 If you want to protect the webhook with a token, set this env var and send the same value from SePay in one header:
 
 ```text

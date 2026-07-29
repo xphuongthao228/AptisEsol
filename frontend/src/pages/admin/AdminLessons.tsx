@@ -64,7 +64,7 @@ export function AdminLessons() {
       setLoading(true);
       setLessons(await unwrap<AdminLesson[]>(api.get('/lessons')));
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Khong tai duoc danh sach bai hoc'));
+      toast.error(apiErrorMessage(error, 'Không tải được danh sách bài học'));
     } finally {
       setLoading(false);
     }
@@ -87,7 +87,7 @@ export function AdminLessons() {
 
   async function saveLesson() {
     if (!form.title.trim() || !form.content.trim()) {
-      toast.error('Vui long nhap tieu de va noi dung bai hoc');
+      toast.error('Vui lòng nhập tiêu đề và nội dung bài học');
       return;
     }
 
@@ -109,9 +109,9 @@ export function AdminLessons() {
         ? current.map((lesson) => (lesson.id === saved.id ? saved : lesson))
         : [saved, ...current]);
       setForm(emptyForm);
-      toast.success(form.id ? 'Da cap nhat bai hoc' : 'Da tao bai hoc moi');
+      toast.success(form.id ? 'Đã cập nhật bài học' : 'Đã tạo bài học mới');
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Khong luu duoc bai hoc'));
+      toast.error(apiErrorMessage(error, 'Không lưu được bài học'));
     } finally {
       setSaving(false);
     }
@@ -130,14 +130,14 @@ export function AdminLessons() {
   }
 
   async function deleteLesson(id: number) {
-    if (!confirm('Xoa bai hoc nay?')) return;
+    if (!confirm('Xóa bài học này?')) return;
     try {
       await unwrap(api.delete(`/lessons/${id}`));
       setLessons((current) => current.filter((lesson) => lesson.id !== id));
       if (form.id === id) setForm(emptyForm);
       toast.success('Da xoa bai hoc');
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Khong xoa duoc bai hoc'));
+      toast.error(apiErrorMessage(error, 'Không xóa được bài học'));
     }
   }
 
@@ -150,9 +150,9 @@ export function AdminLessons() {
         headers: { 'Content-Type': 'multipart/form-data' }
       }));
       setLessons((current) => [...imported, ...current]);
-      toast.success(`Da import ${imported.length} bai hoc/tai lieu`);
+      toast.success(`Đã import ${imported.length} bài học/tài liệu`);
     } catch (error) {
-      toast.error(apiErrorMessage(error, 'Khong import duoc bai hoc/tai lieu tu CSV'));
+      toast.error(apiErrorMessage(error, 'Không import được bài học/tài liệu từ CSV'));
     }
   }
 
@@ -160,8 +160,8 @@ export function AdminLessons() {
     <div className="space-y-6">
       <section>
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-600">Admin</p>
-        <h1 className="mt-2 text-3xl font-extrabold text-slate-950">Quan ly bai hoc</h1>
-        <p className="mt-2 text-slate-500">Tao va cap nhat noi dung bai hoc cho hoc vien.</p>
+        <h1 className="mt-2 text-3xl font-extrabold text-slate-950">Quản lý bài học</h1>
+        <p className="mt-2 text-slate-500">Tạo và cập nhật nội dung bài học cho học viên.</p>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[460px_1fr]">
@@ -171,15 +171,15 @@ export function AdminLessons() {
               <BookOpen size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold">{form.id ? 'Sua bai hoc' : 'Tao bai hoc'}</h2>
-              <p className="text-sm text-slate-500">Noi dung nay duoc luu vao backend.</p>
+              <h2 className="text-xl font-extrabold">{form.id ? 'Sửa bài học' : 'Tạo bài học'}</h2>
+              <p className="text-sm text-slate-500">Nội dung nay duoc luu vao backend.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Ky nang</span>
+                <span className="text-sm font-bold text-slate-600">Kỹ năng</span>
                 <select
                   className="input"
                   value={form.skill}
@@ -191,21 +191,21 @@ export function AdminLessons() {
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Trang thai</span>
+                <span className="text-sm font-bold text-slate-600">Trạng thái</span>
                 <select
                   className="input"
                   value={form.status}
                   onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as LessonStatus }))}
                 >
-                  <option value="PUBLISHED">Dang hien</option>
-                  <option value="DRAFT">Ban nhap</option>
-                  <option value="ARCHIVED">Luu tru</option>
+                  <option value="PUBLISHED">Đang hiện</option>
+                  <option value="DRAFT">Bản nháp</option>
+                  <option value="ARCHIVED">Lưu trữ</option>
                 </select>
               </label>
             </div>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Tieu de</span>
+              <span className="text-sm font-bold text-slate-600">Tiêu đề</span>
               <input
                 className="input"
                 value={form.title}
@@ -215,33 +215,33 @@ export function AdminLessons() {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Mo ta ngan</span>
+              <span className="text-sm font-bold text-slate-600">Mô tả ngắn</span>
               <textarea
                 className="input min-h-[90px]"
                 value={form.summary}
                 onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))}
-                placeholder="Tom tat bai hoc..."
+                placeholder="Tóm tắt bài học..."
               />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Noi dung bai hoc</span>
+              <span className="text-sm font-bold text-slate-600">Nội dung bai hoc</span>
               <textarea
                 className="input min-h-[180px]"
                 value={form.content}
                 onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))}
-                placeholder="Nhap noi dung chi tiet..."
+                placeholder="Nhập nội dung chi tiết..."
               />
             </label>
 
             <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
               <button type="button" className="btn-primary justify-center" onClick={saveLesson} disabled={saving}>
                 {form.id ? <Save size={18} /> : <Plus size={18} />}
-                {saving ? 'Dang luu...' : form.id ? 'Cap nhat' : 'Luu bai hoc'}
+                {saving ? 'Đang lưu...' : form.id ? 'Cập nhật' : 'Lưu bài học'}
               </button>
               <button type="button" className="btn-secondary justify-center" onClick={resetForm}>
                 <RotateCcw size={18} />
-                Lam moi
+                Làm mới
               </button>
             </div>
           </div>
@@ -251,7 +251,7 @@ export function AdminLessons() {
           <div className="border-b border-slate-100 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-extrabold">Danh sach bai hoc</h2>
+                <h2 className="text-xl font-extrabold">Danh sách bài học</h2>
                 <p className="text-sm text-slate-500">{lessons.length} bai hoc</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -284,7 +284,7 @@ export function AdminLessons() {
           <div className="max-h-[720px] space-y-3 overflow-y-auto p-5">
             {loading ? (
               <div className="rounded-2xl border border-slate-200 p-10 text-center font-bold text-slate-500">
-                Dang tai bai hoc...
+                Đang tải bài học...
               </div>
             ) : filteredLessons.length > 0 ? filteredLessons.map((lesson) => (
               <article key={lesson.id} className="rounded-2xl border border-slate-200 p-4">
@@ -297,13 +297,13 @@ export function AdminLessons() {
                       <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${
                         lesson.status === 'PUBLISHED' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
                       }`}>
-                        {lesson.status === 'PUBLISHED' ? 'Dang hien' : lesson.status === 'DRAFT' ? 'Ban nhap' : 'Luu tru'}
+                        {lesson.status === 'PUBLISHED' ? 'Đang hiện' : lesson.status === 'DRAFT' ? 'Bản nháp' : 'Lưu trữ'}
                       </span>
                     </div>
                     <h3 className="mt-3 text-lg font-extrabold text-slate-950">{lesson.title}</h3>
                     {lesson.summary && <p className="mt-2 text-sm leading-6 text-slate-500">{lesson.summary}</p>}
                     <p className="mt-3 text-xs font-semibold text-slate-400">
-                      Cap nhat: {new Date(lesson.updatedAt).toLocaleString('vi-VN')}
+                      Cập nhật: {new Date(lesson.updatedAt).toLocaleString('vi-VN')}
                     </p>
                   </div>
                   <div className="flex gap-2">
@@ -318,8 +318,8 @@ export function AdminLessons() {
               </article>
             )) : (
               <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
-                <p className="font-extrabold text-slate-700">Chua co bai hoc nao</p>
-                <p className="mt-2 text-sm text-slate-500">Tao bai hoc dau tien tu form ben trai.</p>
+                <p className="font-extrabold text-slate-700">Chưa có bài học nào</p>
+                <p className="mt-2 text-sm text-slate-500">Tạo bài học dau tien tu form ben trai.</p>
               </div>
             )}
           </div>

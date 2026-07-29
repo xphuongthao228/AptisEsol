@@ -14,10 +14,10 @@ export function AdminDashboard() {
   const loading = usersLoading || testsLoading || skillsLoading;
 
   const cards = [
-    { label: 'Nguoi dung', value: users?.length ?? 0, icon: Users, tone: 'bg-blue-50 text-brand-700' },
-    { label: 'Bai luyen', value: tests?.length ?? 0, icon: BookOpen, tone: 'bg-green-50 text-green-700' },
-    { label: 'Ky nang', value: skills?.length ?? 0, icon: GraduationCap, tone: 'bg-violet-50 text-violet-700' },
-    { label: 'Dang hien', value: publishedTests, icon: Bell, tone: 'bg-amber-50 text-amber-700' }
+    { label: 'Người dùng', value: users?.length ?? 0, icon: Users, tone: 'bg-blue-50 text-brand-700' },
+    { label: 'Bài luyện', value: tests?.length ?? 0, icon: BookOpen, tone: 'bg-green-50 text-green-700' },
+    { label: 'Kỹ năng', value: skills?.length ?? 0, icon: GraduationCap, tone: 'bg-violet-50 text-violet-700' },
+    { label: 'Đang hiện', value: publishedTests, icon: Bell, tone: 'bg-amber-50 text-amber-700' }
   ];
 
   return (
@@ -26,15 +26,15 @@ export function AdminDashboard() {
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <p className="text-sm font-bold uppercase text-blue-200">Admin Control Center</p>
-            <h1 className="mt-3 text-3xl font-extrabold">Bang dieu khien quan tri</h1>
+            <h1 className="mt-3 text-3xl font-extrabold">Bảng điều khiển quản trị</h1>
             <p className="mt-3 max-w-2xl text-slate-300">
-              Quan ly hoc vien, bai hoc, noi dung luyen thi, media va thong bao trong cung mot man hinh.
+              Quản lý học viên, bài học, nội dung luyện thi, media và thông báo trong cùng một màn hình.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link to="/admin/content" className="btn-primary"><Plus size={18} />Tao bai luyen</Link>
+            <Link to="/admin/content" className="btn-primary"><Plus size={18} />Tạo bài luyện</Link>
             <Link to="/admin/lessons" className="btn-secondary border-white/20 bg-white/10 text-white hover:bg-white/20">
-              <GraduationCap size={18} />Quan ly bai hoc
+              <GraduationCap size={18} />Quản lý bài học
             </Link>
           </div>
         </div>
@@ -53,9 +53,9 @@ export function AdminDashboard() {
       <section className="grid gap-5 xl:grid-cols-[1fr_360px]">
         <div className="card p-5">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-xl font-extrabold">Bai luyen gan day</h2>
+            <h2 className="text-xl font-extrabold">Bài luyện gần đây</h2>
             <Link to="/admin/content" className="inline-flex items-center gap-2 text-sm font-bold text-brand-600">
-              Quan ly <ArrowRight size={16} />
+              Quản lý <ArrowRight size={16} />
             </Link>
           </div>
           <div className="space-y-3">
@@ -64,14 +64,14 @@ export function AdminDashboard() {
                 <div>
                   <p className="text-xs font-bold uppercase text-brand-600">{test.skillName} | {test.status}</p>
                   <h3 className="mt-1 font-bold">{test.title}</h3>
-                  <p className="text-sm text-slate-500">{test.durationMinutes} phut</p>
+                  <p className="text-sm text-slate-500">{test.durationMinutes} phút</p>
                 </div>
                 <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">#{test.id}</span>
               </div>
             ))}
             {!tests?.length && (
               <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm font-semibold text-slate-500">
-                Chua co bai luyen nao.
+                Chưa có bài luyện nào.
               </div>
             )}
           </div>
@@ -79,17 +79,17 @@ export function AdminDashboard() {
 
         <aside className="space-y-5">
           <div className="card p-5">
-            <h2 className="text-lg font-extrabold">Tac vu nhanh</h2>
+            <h2 className="text-lg font-extrabold">Tác vụ nhanh</h2>
             <div className="mt-4 space-y-3">
-              <QuickLink to="/admin/lessons" icon={<GraduationCap size={20} />} title="Quan ly bai hoc" text="Tao bai hoc, tai lieu va noi dung hoc tap." />
-              <QuickLink to="/admin/content" icon={<BookOpen size={20} />} title="Quan ly cau hoi" text="Them bai luyen, cau hoi va dap an." />
-              <QuickLink to="/admin/media" icon={<FileAudio size={20} />} title="Upload media" text="Quan ly anh, audio va file noi dung." />
-              <QuickLink to="/admin/notifications" icon={<Bell size={20} />} title="Thong bao" text="Gui thong bao den hoc vien." />
+              <QuickLink to="/admin/lessons" icon={<GraduationCap size={20} />} title="Quản lý bài học" text="Tạo bài học, tài liệu và nội dung học tập." />
+              <QuickLink to="/admin/content" icon={<BookOpen size={20} />} title="Quản lý câu hỏi" text="Thêm bài luyện, câu hỏi và đáp án." />
+              <QuickLink to="/admin/media" icon={<FileAudio size={20} />} title="Upload media" text="Quản lý ảnh, audio và file nội dung." />
+              <QuickLink to="/admin/notifications" icon={<Bell size={20} />} title="Thông báo" text="Gửi thông báo đến học viên." />
             </div>
           </div>
 
           <div className="card p-5">
-            <h2 className="text-lg font-extrabold">Nguoi dung moi</h2>
+            <h2 className="text-lg font-extrabold">Người dùng mới</h2>
             <div className="mt-4 space-y-3">
               {(users ?? []).slice(0, 5).map((user) => (
                 <div className="flex items-center gap-3" key={user.id}>
@@ -102,7 +102,7 @@ export function AdminDashboard() {
                   </div>
                 </div>
               ))}
-              {!users?.length && <p className="text-sm font-semibold text-slate-500">Chua co nguoi dung.</p>}
+              {!users?.length && <p className="text-sm font-semibold text-slate-500">Chưa có người dùng.</p>}
             </div>
           </div>
         </aside>

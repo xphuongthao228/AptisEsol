@@ -17,9 +17,9 @@ type Prediction = {
 
 const skillLabels: Record<SkillType, string> = {
   LISTENING: 'Nghe',
-  SPEAKING: 'Noi',
-  READING: 'Doc hieu',
-  WRITING: 'Viet',
+  SPEAKING: 'Nói',
+  READING: 'Đọc hiểu',
+  WRITING: 'Viết',
   GRAMMAR: 'Grammar'
 };
 
@@ -38,7 +38,7 @@ export function Predictions() {
         setError('');
         setItems(await unwrap<Prediction[]>(api.get('/predictions?publishedOnly=true')));
       } catch {
-        setError('Khong the tai du lieu du doan de.');
+        setError('Không thể tải dữ liệu dự đoán đề.');
       } finally {
         setLoading(false);
       }
@@ -58,15 +58,15 @@ export function Predictions() {
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold text-brand-100">
               <FileSearch size={18} />
-              Du doan de
+              Dự đoán đề
             </span>
             <h1 className="mt-5 text-3xl font-extrabold md:text-4xl">Trong tam on thi Aptis</h1>
             <p className="mt-3 max-w-2xl text-lg text-slate-300">
-              Xem cac chu de, dang bai va goi y on tap moi nhat do admin cap nhat.
+              Xem các chủ đề, dạng bài và gợi ý ôn tập mới nhất do admin cập nhật.
             </p>
           </div>
           <div className="rounded-2xl border border-white/10 bg-white/10 p-5">
-            <p className="text-sm text-slate-300">Tong so muc dang hien</p>
+            <p className="text-sm text-slate-300">Tổng số mục đang hiện</p>
             <p className="mt-2 text-4xl font-extrabold">{items.length}</p>
           </div>
         </div>
@@ -82,13 +82,13 @@ export function Predictions() {
             }`}
             onClick={() => setActiveSkill(filter)}
           >
-            {filter === 'ALL' ? 'Tat ca' : skillLabels[filter]}
+            {filter === 'ALL' ? 'Tất cả' : skillLabels[filter]}
           </button>
         ))}
       </section>
 
       {loading ? (
-        <div className="card p-10 text-center font-bold text-slate-500">Dang tai du doan de...</div>
+        <div className="card p-10 text-center font-bold text-slate-500">Đang tải dự đoán đề...</div>
       ) : error ? (
         <div className="card flex items-center gap-3 border-red-200 p-6 text-red-600">
           <AlertCircle size={22} />
@@ -124,8 +124,8 @@ export function Predictions() {
       ) : (
         <div className="card p-10 text-center">
           <Sparkles className="mx-auto text-brand-600" />
-          <h2 className="mt-4 text-xl font-extrabold">Chua co du doan de</h2>
-          <p className="mt-2 text-slate-500">Admin chua dang noi dung cho muc nay.</p>
+          <h2 className="mt-4 text-xl font-extrabold">Chưa có dự đoán đề</h2>
+          <p className="mt-2 text-slate-500">Admin chưa đăng nội dung cho mục này.</p>
         </div>
       )}
     </div>

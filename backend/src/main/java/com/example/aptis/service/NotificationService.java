@@ -78,7 +78,6 @@ public class NotificationService {
                 notification.isActive(),
                 notification.isPinned(),
                 notification.getCreatedAt(),
-                notification.getUpdatedAt()
-        );
+                notification.getUpdatedAt());
     }
 }

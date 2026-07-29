@@ -15,8 +15,29 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SkillController {
     private final CoreService service;
-    @GetMapping public ApiResponse<List<CoreDtos.SkillResponse>> all() { return ApiResponse.ok(service.skills()); }
-    @PostMapping @PreAuthorize("hasRole('ADMIN')") public ApiResponse<CoreDtos.SkillResponse> create(@Valid @RequestBody CoreDtos.SkillRequest request) { return ApiResponse.ok(service.saveSkill(request)); }
-    @PutMapping("/{id}") @PreAuthorize("hasRole('ADMIN')") public ApiResponse<CoreDtos.SkillResponse> update(@PathVariable Long id, @Valid @RequestBody CoreDtos.SkillRequest request) { return ApiResponse.ok(service.updateSkill(id, request)); }
-    @DeleteMapping("/{id}") @PreAuthorize("hasRole('ADMIN')") public ApiResponse<Void> delete(@PathVariable Long id) { service.deleteSkill(id); return ApiResponse.message("Deleted", null); }
+
+    @GetMapping
+    public ApiResponse<List<CoreDtos.SkillResponse>> all() {
+        return ApiResponse.ok(service.skills());
+    }
+
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<CoreDtos.SkillResponse> create(@Valid @RequestBody CoreDtos.SkillRequest request) {
+        return ApiResponse.ok(service.saveSkill(request));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<CoreDtos.SkillResponse> update(@PathVariable Long id,
+            @Valid @RequestBody CoreDtos.SkillRequest request) {
+        return ApiResponse.ok(service.updateSkill(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<Void> delete(@PathVariable Long id) {
+        service.deleteSkill(id);
+        return ApiResponse.message("Deleted", null);
+    }
 }

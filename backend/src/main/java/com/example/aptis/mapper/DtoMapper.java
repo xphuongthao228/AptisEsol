@@ -27,7 +27,8 @@ public class DtoMapper {
         if (accessExpiresAt == null || (trialExpiresAt != null && trialExpiresAt.isAfter(accessExpiresAt))) {
             accessExpiresAt = trialExpiresAt;
         }
-        return new AuthDtos.UserResponse(user.getId(), user.getEmail(), user.getFullName(), roles, user.isEnabled(), user.getProExpiresAt(), accessExpiresAt);
+        return new AuthDtos.UserResponse(user.getId(), user.getEmail(), user.getFullName(), roles, user.isEnabled(),
+                user.getProExpiresAt(), accessExpiresAt);
     }
 
     public CoreDtos.SkillResponse skill(Skill skill) {
@@ -56,10 +57,12 @@ public class DtoMapper {
     }
 
     private TestMode resolveTestMode(Test test) {
-        if (test.getMode() != null) return test.getMode();
+        if (test.getMode() != null)
+            return test.getMode();
         String value = normalizeText((test.getTitle() == null ? "" : test.getTitle()) + " " +
                 (test.getDescription() == null ? "" : test.getDescription()));
-        if (value.contains("practice") || value.contains("luyen tap")) return TestMode.PRACTICE;
+        if (value.contains("practice") || value.contains("luyen tap"))
+            return TestMode.PRACTICE;
         if (value.contains("bo de") || value.contains("de thi") || value.contains("exam") || value.contains("mock")) {
             return TestMode.EXAM;
         }
@@ -76,10 +79,12 @@ public class DtoMapper {
 
     public CoreDtos.QuestionResponse question(Question question) {
         return new CoreDtos.QuestionResponse(question.getId(), question.getTest().getId(), question.getType(),
-                question.getContent(), question.getTopic(), question.getAudioUrl(), question.getScriptText(), question.getExplanation(),
+                question.getContent(), question.getTopic(), question.getAudioUrl(), question.getScriptText(),
+                question.getExplanation(),
                 question.getPoints(), question.getSortOrder(),
                 question.getAnswers().stream().sorted(Comparator.comparing(Answer::getSortOrder))
-                        .map(answer -> new CoreDtos.AnswerResponse(answer.getId(), answer.getContent(), answer.isCorrect(), answer.getSortOrder()))
+                        .map(answer -> new CoreDtos.AnswerResponse(answer.getId(), answer.getContent(),
+                                answer.isCorrect(), answer.getSortOrder()))
                         .toList());
     }
 

@@ -46,7 +46,8 @@ public class PaymentService {
     private int freeTrialDays;
 
     @Transactional
-    public PaymentDtos.PaymentResponse createRenewalPayment(String email, PaymentDtos.CreateRenewalPaymentRequest request) {
+    public PaymentDtos.PaymentResponse createRenewalPayment(String email,
+            PaymentDtos.CreateRenewalPaymentRequest request) {
         User user = users.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -87,7 +88,8 @@ public class PaymentService {
         long total = paid.stream().mapToLong(PaymentOrder::getAmount).sum();
         long month = paid.stream()
                 .filter(order -> order.getPaidAt() != null)
-                .filter(order -> order.getPaidAt().getMonth() == now.getMonth() && order.getPaidAt().getYear() == now.getYear())
+                .filter(order -> order.getPaidAt().getMonth() == now.getMonth()
+                        && order.getPaidAt().getYear() == now.getYear())
                 .mapToLong(PaymentOrder::getAmount)
                 .sum();
         Set<String> customers = paid.stream().map(order -> order.getUser().getEmail()).collect(Collectors.toSet());
@@ -115,7 +117,8 @@ public class PaymentService {
     }
 
     @Transactional
-    public PaymentDtos.SepayWebhookResponse handleSepayWebhook(PaymentDtos.SepayWebhookRequest request, String authorizationHeader, String sepayTokenHeader, String webhookTokenHeader) {
+    public PaymentDtos.SepayWebhookResponse handleSepayWebhook(PaymentDtos.SepayWebhookRequest request,
+            String authorizationHeader, String sepayTokenHeader, String webhookTokenHeader) {
         validateWebhookToken(authorizationHeader, sepayTokenHeader, webhookTokenHeader);
         if (!isIncomingMoney(firstText(request.transferType(), request.type()))) {
             return webhookResponse(false, "Ignored non incoming transaction", null, null, null);
@@ -129,8 +132,7 @@ public class PaymentService {
                 request.addInfo(),
                 request.remark(),
                 request.code(),
-                request.referenceCode()
-        );
+                request.referenceCode());
         String paymentCode = resolvePaymentCode(request, text);
         if (paymentCode == null) {
             return webhookResponse(false, "Webhook received but no Aptis payment code matched", null,
@@ -145,12 +147,15 @@ public class PaymentService {
 
         if (order.getStatus() == PaymentStatus.PAID) {
             return webhookResponse(true, "Payment order was already paid", paymentCode,
-                    firstPositive(request.transferAmount(), request.amount(), request.value(), request.money()), response(order));
+                    firstPositive(request.transferAmount(), request.amount(), request.value(), request.money()),
+                    response(order));
         }
 
-        Integer receivedAmount = firstPositive(request.transferAmount(), request.amount(), request.value(), request.money());
+        Integer receivedAmount = firstPositive(request.transferAmount(), request.amount(), request.value(),
+                request.money());
         if (receivedAmount == null || receivedAmount < order.getAmount()) {
-            return webhookResponse(false, "Webhook received but transfer amount is not enough", paymentCode, receivedAmount, null);
+            return webhookResponse(false, "Webhook received but transfer amount is not enough", paymentCode,
+                    receivedAmount, null);
         }
 
         order.setStatus(PaymentStatus.PAID);
@@ -175,8 +180,10 @@ public class PaymentService {
         LocalDateTime trialExpiresAt = user.getCreatedAt() == null ? null : user.getCreatedAt().plusDays(freeTrialDays);
         LocalDateTime proExpiresAt = user.getProExpiresAt();
 
-        if (trialExpiresAt == null) return proExpiresAt;
-        if (proExpiresAt == null) return trialExpiresAt;
+        if (trialExpiresAt == null)
+            return proExpiresAt;
+        if (proExpiresAt == null)
+            return trialExpiresAt;
         return proExpiresAt.isAfter(trialExpiresAt) ? proExpiresAt : trialExpiresAt;
     }
 
@@ -201,12 +208,13 @@ public class PaymentService {
     }
 
     private String normalizePaymentText(String value) {
-        if (value == null) return "";
+        if (value == null)
+            return "";
         return value.toUpperCase(Locale.ROOT).replaceAll("[^A-Z0-9]", "");
     }
 
     private PaymentDtos.SepayWebhookResponse webhookResponse(boolean matched, String message, String paymentCode,
-                                                            Integer receivedAmount, PaymentDtos.PaymentResponse payment) {
+            Integer receivedAmount, PaymentDtos.PaymentResponse payment) {
         return new PaymentDtos.SepayWebhookResponse(true, matched, message, paymentCode, receivedAmount, payment);
     }
 
@@ -219,7 +227,8 @@ public class PaymentService {
         String bearer = authorizationHeader == null ? "" : authorizationHeader.trim();
         String rawToken = sepayTokenHeader == null ? "" : sepayTokenHeader.trim();
         String webhookToken = webhookTokenHeader == null ? "" : webhookTokenHeader.trim();
-        if (!bearer.equals("Bearer " + expectedToken) && !rawToken.equals(expectedToken) && !webhookToken.equals(expectedToken)) {
+        if (!bearer.equals("Bearer " + expectedToken) && !rawToken.equals(expectedToken)
+                && !webhookToken.equals(expectedToken)) {
             throw new IllegalArgumentException("Invalid SePay webhook token");
         }
     }
@@ -253,14 +262,16 @@ public class PaymentService {
     }
 
     private boolean isIncomingMoney(String transferType) {
-        if (transferType == null || transferType.isBlank()) return true;
+        if (transferType == null || transferType.isBlank())
+            return true;
         String value = transferType.toLowerCase(Locale.ROOT);
         return value.contains("in") || value.contains("vao") || value.contains("credit");
     }
 
     private String generatePaymentCode(User user) {
         String userCode = String.valueOf(user.getId() == null ? Math.abs(user.getEmail().hashCode()) : user.getId());
-        return ("APTIS" + userCode + UUID.randomUUID().toString().replace("-", "").substring(0, 6)).toUpperCase(Locale.ROOT);
+        return ("APTIS" + userCode + UUID.randomUUID().toString().replace("-", "").substring(0, 6))
+                .toUpperCase(Locale.ROOT);
     }
 
     private PaymentDtos.PaymentResponse response(PaymentOrder order) {
@@ -285,7 +296,6 @@ public class PaymentService {
                 accountName,
                 qrUrl,
                 order.getCreatedAt(),
-                order.getPaidAt()
-        );
+                order.getPaidAt());
     }
 }

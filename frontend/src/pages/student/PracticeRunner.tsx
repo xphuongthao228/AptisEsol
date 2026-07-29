@@ -1,4 +1,4 @@
-﻿import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Fragment } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
@@ -2392,19 +2392,19 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
         <div className="mx-auto max-w-[1180px]">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h1 className="flex items-center gap-2 text-2xl font-extrabold">
-              <ListChecks className="text-brand-600" /> Speaking Question 1 - Danh sach cau hoi
+              <ListChecks className="text-brand-600" /> Speaking Question 1 - Danh sách câu hỏi
             </h1>
             <div className="flex gap-2">
-              <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyen tap</button>
+              <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyện tập</button>
               <button type="button" onClick={() => patchAnswers({ speakingPart1Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Gioi thieu</button>
             </div>
           </div>
           <div className="overflow-hidden rounded-xl border border-slate-300 bg-white">
             <div className="grid grid-cols-[52px_1fr_140px_140px] bg-slate-50 text-sm font-extrabold">
               <div className="border-r border-slate-300 p-3">#</div>
-              <div className="border-r border-slate-300 p-3">Cau hoi</div>
-              <div className="border-r border-slate-300 p-3">Dap an 1</div>
-              <div className="p-3">Dap an 2</div>
+              <div className="border-r border-slate-300 p-3">Câu hỏi</div>
+              <div className="border-r border-slate-300 p-3">Đáp án 1</div>
+              <div className="p-3">Đáp án 2</div>
             </div>
             {questions.map((item: any, itemIndex: number) => {
               const key1 = `${itemIndex}-1`;
@@ -2416,19 +2416,19 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
                     <button type="button" onClick={() => openPractice(itemIndex)} className="border-r border-slate-200 p-3 text-left hover:bg-blue-50">{item.question}</button>
                     <div className="border-r border-slate-200 p-2">
                       <button type="button" onClick={() => toggleAnswer(key1)} className="h-9 rounded border border-brand-600 px-3 text-sm font-semibold text-brand-600">
-                        {openAnswer === key1 ? 'An dap an 1' : 'Xem dap an 1'}
+                        {openAnswer === key1 ? 'Ẩn đáp án 1' : 'Xem đáp án 1'}
                       </button>
                     </div>
                     <div className="p-2">
                       <button type="button" onClick={() => toggleAnswer(key2)} className="h-9 rounded border border-emerald-600 px-3 text-sm font-semibold text-emerald-700">
-                        {openAnswer === key2 ? 'An dap an 2' : 'Xem dap an 2'}
+                        {openAnswer === key2 ? 'Ẩn đáp án 2' : 'Xem đáp án 2'}
                       </button>
                     </div>
                   </div>
                   {(openAnswer === key1 || openAnswer === key2) && (
                     <div className="border-l-4 border-brand-600 bg-blue-50 px-5 py-4 text-sm leading-7 text-slate-800">
                       <p className="mb-1 text-xs font-extrabold uppercase tracking-widest text-slate-500">
-                        {openAnswer === key1 ? 'Dap an mau 1' : 'Dap an mau 2'}
+                        {openAnswer === key1 ? 'Đáp án mẫu 1' : 'Đáp án mẫu 2'}
                       </p>
                       <p>{openAnswer === key1 ? item.answer1 : item.answer2}</p>
                     </div>
@@ -2452,33 +2452,33 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
           </h1>
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
             <div className="grid grid-cols-[190px_1fr_1.35fr] bg-blue-50 text-center text-sm font-extrabold text-blue-950">
-              <div className="border-r border-slate-200 p-4">Phan thi</div>
-              <div className="border-r border-slate-200 p-4">Mo ta</div>
-              <div className="p-4">Huong dan on tap</div>
+              <div className="border-r border-slate-200 p-4">Phần thi</div>
+              <div className="border-r border-slate-200 p-4">Mô tả</div>
+              <div className="p-4">Hướng dẫn ôn tập</div>
             </div>
             <div className="grid grid-cols-[190px_1fr_1.35fr] text-sm leading-7">
               <div className="border-r border-slate-200 bg-slate-50 p-5 font-bold">
                 <p>Part 1:</p>
-                <p>Thong tin ban than</p>
+                <p>Thông tin bản thân</p>
               </div>
               <div className="border-r border-slate-200 p-5">
-                Ban se duoc hoi <b>3 cau</b> xoay quanh cac chu de quen thuoc ve cuoc song ca nhan.
-                Moi cau co <b>45 giay</b> de tra loi. Cau tra loi nen ngan gon, ro rang va dung trong tam.
+                Bạn sẽ được hỏi <b>3 câu</b> xoay quanh các chủ đề quen thuộc về cuộc sống cá nhân.
+                Mỗi câu có <b>45 giây</b> để trả lời. Câu trả lời nên ngắn gọn, rõ ràng và đúng trọng tâm.
               </div>
               <div className="space-y-3 p-5">
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Luyen cach gioi thieu ban than, gia dinh, so thich, hoat dong cuoi tuan.</p>
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Han che liet ke don dieu, dung tu noi va cau ghep de cau tra loi tu nhien hon.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Luyện cách giới thiệu bản thân, gia đình, sở thích, hoạt động cuối tuần.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Hạn chế liệt kê đơn điệu, dùng từ nối và câu ghép để câu trả lời tự nhiên hơn.</p>
               </div>
             </div>
           </div>
           <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
-            <b>Thang diem APTIS:</b> tu A0 den C1. Part 1 danh gia kha nang tra loi ngan gon, ro rang va phu hop chu de.
+            <b>Thang điểm APTIS:</b> từ A0 đến C1. Part 1 đánh giá khả năng trả lời ngắn gọn, rõ ràng và phù hợp chủ đề.
           </div>
           <div className="rounded-2xl bg-white p-6 text-center shadow-soft">
-            <p className="mb-4 text-sm font-semibold text-slate-500">Chon che do hoc</p>
+            <p className="mb-4 text-sm font-semibold text-slate-500">Chọn chế độ học</p>
             <div className="mx-auto grid max-w-[620px] gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => openPractice(0)} className="h-12 rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
-                <Mic className="mr-2 inline" size={16} /> Trang luyen tap
+                <Mic className="mr-2 inline" size={16} /> Trang luyện tập
               </button>
               <button type="button" onClick={() => patchAnswers({ speakingPart1Mode: 'summary', speakingPart1OpenAnswer: '' })} className="h-12 rounded-full border border-slate-400 text-sm font-extrabold text-slate-700 hover:bg-slate-50">
                 <ListChecks className="mr-2 inline" size={16} /> Trang tong hop

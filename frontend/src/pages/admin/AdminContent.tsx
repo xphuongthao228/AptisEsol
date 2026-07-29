@@ -788,7 +788,8 @@ function TemplateEditor({ data, onChange }: { data: TemplateData; onChange: (dat
   }
 
   function listValue(value: string) {
-    return value.split('\n').map((item) => item.trim()).filter(Boolean);
+    const rows = value.split(/\r?\n/).map((item) => item.trim());
+    return rows.every((item) => !item) ? [] : rows;
   }
 
   function commonFields(extra?: ReactNode) {

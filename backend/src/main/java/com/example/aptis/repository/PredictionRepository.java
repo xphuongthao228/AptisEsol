@@ -9,7 +9,11 @@ import java.util.List;
 
 public interface PredictionRepository extends JpaRepository<Prediction, Long> {
     List<Prediction> findByDeletedAtIsNullOrderByPriorityAscUpdatedAtDesc();
+
     List<Prediction> findBySkillAndDeletedAtIsNullOrderByPriorityAscUpdatedAtDesc(SkillType skill);
+
     List<Prediction> findByStatusAndDeletedAtIsNullOrderByPriorityAscUpdatedAtDesc(TestStatus status);
-    List<Prediction> findBySkillAndStatusAndDeletedAtIsNullOrderByPriorityAscUpdatedAtDesc(SkillType skill, TestStatus status);
+
+    List<Prediction> findBySkillAndStatusAndDeletedAtIsNullOrderByPriorityAscUpdatedAtDesc(SkillType skill,
+            TestStatus status);
 }

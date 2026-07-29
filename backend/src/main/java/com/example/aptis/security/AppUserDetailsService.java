@@ -12,18 +12,19 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AppUserDetailsService implements UserDetailsService {
-    private final UserRepository userRepository;
+        private final UserRepository userRepository;
 
-    @Override
-    public UserDetails loadUserByUsername(String email) {
-        User user = userRepository.findByEmailAndDeletedAtIsNull(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
-        return org.springframework.security.core.userdetails.User.withUsername(user.getEmail())
-                .password(user.getPassword())
-                .disabled(!user.isEnabled())
-                .authorities(user.getRoles().stream()
-                        .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
-                        .toList())
-                .build();
-    }
+        @Override
+        public UserDetails loadUserByUsername(String email) {
+                User user = userRepository.findByEmailAndDeletedAtIsNull(email)
+                                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+                return org.springframework.security.core.userdetails.User.withUsername(user.getEmail())
+                                .password(user.getPassword())
+                                .disabled(!user.isEnabled())
+                                .authorities(user.getRoles().stream()
+                                                .map(role -> new SimpleGrantedAuthority(
+                                                                "ROLE_" + role.getName().name()))
+                                                .toList())
+                                .build();
+        }
 }

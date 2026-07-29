@@ -30,152 +30,152 @@ const skillTips: SkillTip[] = [
   {
     key: 'LISTENING',
     label: 'Listening',
-    title: 'Meo hoc cac cau phan Listening',
-    subtitle: 'Hoc theo nhom cau de biet phan nao can nghe ky, phan nao co the an diem nhanh.',
+    title: 'Mẹo học các câu phần Listening',
+    subtitle: 'Học theo nhóm câu để biết phần nào cần nghe kỹ, phần nào có thể ăn điểm nhanh.',
     icon: <Headphones size={22} />,
     practicePath: '/app/tests/questions/LISTENING',
     sections: [
       {
-        title: 'Cau 1-13: Nhom de an diem nhat',
-        description: 'Thuong hoi thong tin ngan nhu do vat, thoi gian, dia diem, hoat dong. Luyen du dang se nhan ra dap an rat nhanh.',
+        title: 'Câu 1-13: Nhóm dễ ăn điểm nhất',
+        description: 'Thường hỏi thông tin ngắn như đồ vật, thời gian, địa điểm, hoạt động. Luyện đủ dạng sẽ nhận ra đáp án rất nhanh.',
         color: 'bg-brand-600 text-white',
-        button: 'Hoc cau 1-13',
-        points: ['Doc cau hoi truoc khi nghe de bat keyword.', 'Chu y tu dong nghia vi audio thuong khong doc y nguyen dap an.', 'Neu lo mot cau, bo qua ngay de giu nhip cho cau tiep theo.']
+        button: 'Học câu 1-13',
+        points: ['Đọc câu hỏi trước khi nghe để bắt keyword.', 'Chú ý từ đồng nghĩa vì audio thường không đọc y nguyên đáp án.', 'Nếu lỡ một câu, bỏ qua ngay để giữ nhịp cho câu tiếp theo.']
       },
       {
-        title: 'Cau 14: Cau kho nhat trong Listening',
-        description: 'Co nhieu dap an gay nhieu. Hay nghe quan diem chinh cua tung nguoi thay vi chi bam vao mot tu khoa.',
+        title: 'Câu 14: Câu khó nhất trong Listening',
+        description: 'Có nhiều đáp án gây nhiễu. Hãy nghe quan điểm chính của từng người thay vì chỉ bám vào một từ khóa.',
         color: 'bg-cyan-500 text-slate-950',
-        button: 'Hoc cau 14',
-        points: ['Ghi nhanh ten nguoi hoac thu tu nguoi noi.', 'Loai dap an xuat hien nhung bi phu dinh.', 'Neu thieu thoi gian, hoc chac cac mau dap an hay gap.']
+        button: 'Học câu 14',
+        points: ['Ghi nhanh tên người hoặc thứ tự người nói.', 'Loại đáp án xuất hiện nhưng bị phủ định.', 'Nếu thiếu thời gian, học chắc các mẫu đáp án hay gặp.']
       },
       {
-        title: 'Cau 15: Nhom tuong doi de hoc',
-        description: 'Thuong la dang noi nguoi voi y kien hoac thong tin. Can phan biet ai dang noi va thai do cua ho.',
+        title: 'Câu 15: Nhóm tương đối dễ học',
+        description: 'Thường là dạng nối người với ý kiến hoặc thông tin. Cần phân biệt ai đang nói và thái độ của họ.',
         color: 'bg-amber-400 text-slate-950',
-        button: 'Hoc cau 15',
-        points: ['Tap nghe cac tu bao hieu y kien: think, prefer, agree, worried.', 'Khong chon theo tu don le, hay chon theo y chinh.', 'Ghi lai cac cum dong nghia sau moi bai.']
+        button: 'Học câu 15',
+        points: ['Tập nghe các từ báo hiệu ý kiến: think, prefer, agree, worried.', 'Không chọn theo từ đơn lẻ, hãy chọn theo ý chính.', 'Ghi lại các cụm đồng nghĩa sau mỗi bài.']
       },
       {
-        title: 'Cau 16 & 17: Hai cau cuoi de mat diem neu voi',
-        description: 'Can nghe y tong quat va tranh nham giua chi tiet phu voi ket luan cua nguoi noi.',
+        title: 'Câu 16 & 17: Hai câu cuối dễ mất điểm nếu vội',
+        description: 'Cần nghe ý tổng quát và tránh nhầm giữa chi tiết phụ với kết luận của người nói.',
         color: 'bg-emerald-700 text-white',
-        button: 'Hoc cau 16 & 17',
-        points: ['Lan mot nghe chu de, lan hai khoa dap an.', 'Uu tien dap an khop voi ket luan cuoi.', 'Can than bay doi thoi gian, doi nguoi, doi ly do.']
+        button: 'Học câu 16 & 17',
+        points: ['Lần một nghe chủ đề, lần hai khóa đáp án.', 'Ưu tiên đáp án khớp với kết luận cuối.', 'Cẩn thận bẫy đổi thời gian, đổi người, đổi lý do.']
       }
     ]
   },
   {
     key: 'READING',
     label: 'Reading',
-    title: 'Meo hoc cac cau phan Reading',
-    subtitle: 'Chia Reading theo tung part: dien tu, sap xep cau, doc forum va noi tieu de.',
+    title: 'Mẹo học các câu phần Reading',
+    subtitle: 'Chia Reading theo từng part: điền từ, sắp xếp câu, đọc forum và nối tiêu đề.',
     icon: <BookOpen size={22} />,
     practicePath: '/app/tests/questions/READING',
     sections: [
       {
-        title: 'Part 1: Cau hoi dau tien',
-        description: 'Dang dien tu vao doan ngan. Diem nam o ngu phap co ban va cum tu quen thuoc.',
+        title: 'Part 1: Câu hỏi đầu tiên',
+        description: 'Dạng điền từ vào đoạn ngắn. Điểm nằm ở ngữ pháp cơ bản và cụm từ quen thuộc.',
         color: 'bg-brand-600 text-white',
-        button: 'Hoc cau 1',
-        points: ['Doc ca cau truoc va sau o trong.', 'Kiem tra loai tu can dien: danh tu, dong tu, tinh tu.', 'Chon tu lam cau tu nhien nhat, dung thi va dung ngu canh.']
+        button: 'Học câu 1',
+        points: ['Đọc cả câu trước và sau ô trống.', 'Kiểm tra loại từ cần điền: danh từ, động từ, tính từ.', 'Chọn từ làm câu tự nhiên nhất, đúng thì và đúng ngữ cảnh.']
       },
       {
-        title: 'Part 2 & 3: Sap xep cau',
-        description: 'Can tim cau mo dau, cau noi y va cau ket. Dung dau hieu lien ket de xep thu tu.',
+        title: 'Part 2 & 3: Sắp xếp câu',
+        description: 'Cần tìm câu mở đầu, câu nối ý và câu kết. Dùng dấu hiệu liên kết để xếp thứ tự.',
         color: 'bg-cyan-500 text-slate-950',
-        button: 'Hoc cau 2 & 3',
-        points: ['Tim cau tong quan truoc.', 'De y dai tu this, that, they va tu noi however, because, after that.', 'Doc lai ca doan sau khi sap xep de kiem tra mach van.']
+        button: 'Học câu 2 & 3',
+        points: ['Tìm câu tổng quan trước.', 'Để ý đại từ this, that, they và từ nối however, because, after that.', 'Đọc lại cả đoạn sau khi sắp xếp để kiểm tra mạch văn.']
       },
       {
-        title: 'Part 4: Doc y kien bon nguoi',
-        description: 'Doc nhanh tung nguoi A, B, C, D va gan keyword rieng cho moi nguoi.',
+        title: 'Part 4: Đọc ý kiến bốn người',
+        description: 'Đọc nhanh từng người A, B, C, D và gắn keyword riêng cho mỗi người.',
         color: 'bg-amber-400 text-slate-950',
-        button: 'Hoc cau 4',
-        points: ['Gach y chinh cua tung nguoi.', 'Cau hoi hay dung tu dong nghia, khong phai tu y nguyen.', 'Neu phan van, chon nguoi co y gan nhat voi ca cau hoi.']
+        button: 'Học câu 4',
+        points: ['Gạch ý chính của từng người.', 'Câu hỏi hay dùng từ đồng nghĩa, không phải từ y nguyên.', 'Nếu phân vân, chọn người có ý gần nhất với cả câu hỏi.']
       },
       {
-        title: 'Part 5: Noi tieu de voi doan',
-        description: 'Khong can dich tung tu. Hay tim keyword va y chinh cua moi doan.',
+        title: 'Part 5: Nối tiêu đề với đoạn',
+        description: 'Không cần dịch từng từ. Hãy tìm keyword và ý chính của mỗi đoạn.',
         color: 'bg-emerald-700 text-white',
-        button: 'Meo hoc nhanh Part 5',
-        points: ['Doc danh sach tieu de truoc.', 'Doc cau dau va cau cuoi cua moi doan.', 'Loai tieu de qua chi tiet hoac chi dung voi mot vi du nho.']
+        button: 'Mẹo học nhanh Part 5',
+        points: ['Đọc danh sách tiêu đề trước.', 'Đọc câu đầu và câu cuối của mỗi đoạn.', 'Loại tiêu đề quá chi tiết hoặc chỉ đúng với một ví dụ nhỏ.']
       }
     ]
   },
   {
     key: 'SPEAKING',
     label: 'Speaking',
-    title: 'Meo hoc cac cau phan Speaking',
-    subtitle: 'Tap tra loi ngan gon, dung trong tam va co cau truc de noi tu nhien hon.',
+    title: 'Mẹo học các câu phần Speaking',
+    subtitle: 'Tập trả lời ngắn gọn, đúng trọng tâm và có cấu trúc để nói tự nhiên hơn.',
     icon: <Mic size={22} />,
     practicePath: '/app/tests/questions/SPEAKING',
     sections: [
       {
-        title: 'Part 1: Thong tin ban than',
-        description: 'Gom cac cau hoi quen thuoc ve gia dinh, ban be, so thich, que huong, thoi tiet.',
+        title: 'Part 1: Thông tin bản thân',
+        description: 'Gồm các câu hỏi quen thuộc về gia đình, bạn bè, sở thích, quê hương, thời tiết.',
         color: 'bg-brand-600 text-white',
-        button: 'Hoc cau 1',
-        points: ['Tra loi 2-3 cau ngan, ro y.', 'Dung vi du ca nhan de cau tra loi tu nhien.', 'Khong hoc thuoc qua dai vi de bi quen.']
+        button: 'Học câu 1',
+        points: ['Trả lời 2-3 câu ngắn, rõ ý.', 'Dùng ví dụ cá nhân để câu trả lời tự nhiên.', 'Không học thuộc quá dài vì dễ bị quên.']
       },
       {
-        title: 'Part 2: Mo ta 1 hinh anh va 2 cau hoi phu',
-        description: 'Can mo ta anh truoc, sau do tra loi them hai cau lien quan den chu de.',
+        title: 'Part 2: Mô tả 1 hình ảnh và 2 câu hỏi phụ',
+        description: 'Cần mô tả ảnh trước, sau đó trả lời thêm hai câu liên quan đến chủ đề.',
         color: 'bg-emerald-700 text-white',
-        button: 'Meo hoc nhanh Part 2',
-        points: ['Noi vi tri, hanh dong, cam xuc va boi canh trong anh.', 'Tra loi du ba cau, khong bo sot cau phu.', 'Dung tu noi don gian: firstly, also, because, in my opinion.']
+        button: 'Mẹo học nhanh Part 2',
+        points: ['Nói vị trí, hành động, cảm xúc và bối cảnh trong ảnh.', 'Trả lời đủ ba câu, không bỏ sót câu phụ.', 'Dùng từ nối đơn giản: firstly, also, because, in my opinion.']
       },
       {
-        title: 'Part 3: So sanh hai hinh anh',
-        description: 'Mo ta hai anh, so sanh diem giong/khac va dua ra y kien.',
+        title: 'Part 3: So sánh hai hình ảnh',
+        description: 'Mô tả hai ảnh, so sánh điểm giống/khác và đưa ra ý kiến.',
         color: 'bg-rose-600 text-white',
-        button: 'Hoc cau 3',
-        points: ['Dung mau: In the first picture..., while in the second picture...', 'Neu hinh kho, tap trung vao boi canh va cam xuc.', 'Nen co mot cau ket ve y kien ca nhan.']
+        button: 'Học câu 3',
+        points: ['Dùng mẫu: In the first picture..., while in the second picture...', 'Nếu hình khó, tập trung vào bối cảnh và cảm xúc.', 'Nên có một câu kết về ý kiến cá nhân.']
       },
       {
-        title: 'Part 4: Ke ve mot trai nghiem',
-        description: 'Thuong hoi ve mot lan ban lam gi do trong qua khu. Can co cau chuyen ngan, ly do va bai hoc.',
+        title: 'Part 4: Kể về một trải nghiệm',
+        description: 'Thường hỏi về một lần bạn làm gì đó trong quá khứ. Cần có câu chuyện ngắn, lý do và bài học.',
         color: 'bg-emerald-700 text-white',
-        button: 'Hoc cau 4',
-        points: ['Dung cau truc: situation - action - result - feeling.', 'Dung thi qua khu neu ke chuyen cu.', 'Chuan bi san cac mau ve money, book, sport, team, good news.']
+        button: 'Học câu 4',
+        points: ['Dùng cấu trúc: situation - action - result - feeling.', 'Dùng thì quá khứ nếu kể chuyện cũ.', 'Chuẩn bị sẵn các mẫu về money, book, sport, team, good news.']
       }
     ]
   },
   {
     key: 'WRITING',
     label: 'Writing',
-    title: 'Meo viet thu va tra loi Writing',
-    subtitle: 'Tong hop meo viet form, chat va email theo tung phan cua Aptis Writing.',
+    title: 'Mẹo viết thư và trả lời Writing',
+    subtitle: 'Tổng hợp mẹo viết form, chat và email theo từng phần của Aptis Writing.',
     icon: <PenLine size={22} />,
     practicePath: '/app/tests/questions/WRITING',
     sections: [
       {
-        title: 'Part 1: Form ngan 1-5 tu',
-        description: 'Tra loi ngan, dung thong tin va dung chinh ta. Khong viet cau dai.',
+        title: 'Part 1: Form ngắn 1-5 từ',
+        description: 'Trả lời ngắn, đúng thông tin và đúng chính tả. Không viết câu dài.',
         color: 'bg-brand-600 text-white',
-        button: 'Hoc Writing Part 1',
-        points: ['Viet hoa ten rieng, quoc gia, thanh pho.', 'Neu hoi so thich, tra loi bang cum ngan: reading books, playing football.', 'Kiem tra spelling truoc khi sang cau tiep.']
+        button: 'Học Writing Part 1',
+        points: ['Viết hoa tên riêng, quốc gia, thành phố.', 'Nếu hỏi sở thích, trả lời bằng cụm ngắn: reading books, playing football.', 'Kiểm tra spelling trước khi sang câu tiếp.']
       },
       {
-        title: 'Part 2: Form 20-30 tu',
-        description: 'Viet 2-3 cau hoan chinh, tra loi truc tiep dung yeu cau cua de.',
+        title: 'Part 2: Form 20-30 từ',
+        description: 'Viết 2-3 câu hoàn chỉnh, trả lời trực tiếp đúng yêu cầu của đề.',
         color: 'bg-cyan-500 text-slate-950',
-        button: 'Hoc Writing Part 2',
-        points: ['Mo dau bang cau tra loi truc tiep.', 'Them mot ly do hoac vi du nho.', 'Can dem tu, thieu qua hoac dai qua deu mat diem.']
+        button: 'Học Writing Part 2',
+        points: ['Mở đầu bằng câu trả lời trực tiếp.', 'Thêm một lý do hoặc ví dụ nhỏ.', 'Cần đếm từ, thiếu quá hoặc dài quá đều mất điểm.']
       },
       {
-        title: 'Part 3: Chat 30-40 tu moi cau',
-        description: 'Tra loi tung tin nhan theo giong than thien, co ly do va goi y ro rang.',
+        title: 'Part 3: Chat 30-40 từ mỗi câu',
+        description: 'Trả lời từng tin nhắn theo giọng thân thiện, có lý do và gợi ý rõ ràng.',
         color: 'bg-amber-400 text-slate-950',
-        button: 'Hoc Writing Part 3',
-        points: ['Moi cau nen co y chinh + ly do + vi du ngan.', 'Dung cau noi tu nhien: I think, For example, Maybe you should.', 'Khong lap mot cau truc qua nhieu lan.']
+        button: 'Học Writing Part 3',
+        points: ['Mỗi câu nên có ý chính + lý do + ví dụ ngắn.', 'Dùng câu nối tự nhiên: I think, For example, Maybe you should.', 'Không lặp một cấu trúc quá nhiều lần.']
       },
       {
-        title: 'Part 4: Email than mat va trang trong',
-        description: 'Viet hai email: mot email ngan cho ban va mot email dai, lich su hon cho nguoi quan ly hoac chu tich.',
+        title: 'Part 4: Email thân mật và trang trọng',
+        description: 'Viết hai email: một email ngắn cho bạn và một email dài, lịch sự hơn cho người quản lý hoặc chủ tịch.',
         color: 'bg-emerald-700 text-white',
-        button: 'Hoc Writing Part 4',
-        points: ['Email cho ban: than mat, tu nhien, co cam xuc.', 'Email trang trong: Dear..., I am writing to..., I would like to...', 'Ket thu bang Best wishes hoac Yours sincerely tuy ngu canh.']
+        button: 'Học Writing Part 4',
+        points: ['Email cho bạn: thân mật, tự nhiên, có cảm xúc.', 'Email trang trọng: Dear..., I am writing to..., I would like to...', 'Kết thư bằng Best wishes hoặc Yours sincerely tùy ngữ cảnh.']
       }
     ]
   }
@@ -186,7 +186,7 @@ export function Lessons() {
   const current = useMemo(() => skillTips.find((item) => item.key === activeSkill) ?? skillTips[0], [activeSkill]);
 
   const { data: subscription } = useApi<SubscriptionResponse | null>(
-    () => unwrap<SubscriptionResponse>(api.get('/subscriptions/me')).catch(() => null),
+    () => unwrap<SubscriptionResponse>(api.get('/payments/subscription/me')).catch(() => null),
     []
   );
 
@@ -201,16 +201,16 @@ export function Lessons() {
   return (
     <div className="space-y-6">
       <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-600 hover:text-brand-600">
-        <ArrowLeft size={18} /> Quay lai luyen tap
+        <ArrowLeft size={18} /> Quay lại luyện tập
       </Link>
 
       <section className="rounded-[28px] bg-slate-950 p-6 text-white shadow-soft sm:p-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.35em] text-blue-200">Thu vien meo Aptis</p>
+        <p className="text-xs font-extrabold uppercase tracking-[0.35em] text-blue-200">Thư viện mẹo Aptis</p>
         <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
           <div>
-            <h1 className="text-3xl font-extrabold sm:text-5xl">Hoc meo theo tung ky nang</h1>
+            <h1 className="text-3xl font-extrabold sm:text-5xl">Học mẹo theo từng kỹ năng</h1>
             <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
-              Chon Listening, Reading, Speaking hoac Writing de xem cac meo on thi ngan gon, dung trong tam.
+              Chọn Listening, Reading, Speaking hoặc Writing để xem các mẹo ôn thi ngắn gọn, đúng trọng tâm.
             </p>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/10 p-5">
@@ -218,7 +218,7 @@ export function Lessons() {
               <ShieldCheck className="text-emerald-300" />
               <div>
                 <p className="font-extrabold">Aptis Pro Access</p>
-                <p className="text-sm text-slate-300">{hasAccess ? `Con han den ${formatSubscriptionDate(expireDate)}` : 'Can gia han de hoc day du'}</p>
+                <p className="text-sm text-slate-300">{hasAccess ? `Còn hạn đến ${formatSubscriptionDate(expireDate)}` : 'Cần gia hạn để học đầy đủ'}</p>
               </div>
             </div>
           </div>
@@ -230,11 +230,11 @@ export function Lessons() {
           <div className="flex items-start gap-3">
             <Lock className="mt-1 shrink-0" size={20} />
             <div>
-              <h2 className="font-extrabold">Tai khoan da het han hoc</h2>
-              <p className="text-sm">Ban van xem duoc danh sach meo, nhung can gia han de vao bai luyen day du.</p>
+              <h2 className="font-extrabold">Tài khoản đã hết hạn học</h2>
+              <p className="text-sm">Bạn vẫn xem được danh sách mẹo, nhưng cần gia hạn để vào bài luyện đầy đủ.</p>
             </div>
           </div>
-          <Link to="/app/renew" className="btn-primary h-11 px-5">Gia han ngay</Link>
+          <Link to="/app/renew" className="btn-primary h-11 px-5">Gia hạn ngay</Link>
         </section>
       )}
 
@@ -249,7 +249,7 @@ export function Lessons() {
             }`}
           >
             <span className="mb-3 grid h-11 w-11 place-items-center rounded-xl bg-white/15 text-current">{skill.icon}</span>
-            <span className="text-sm font-black uppercase tracking-[0.2em] opacity-70">Ky nang</span>
+            <span className="text-sm font-black uppercase tracking-[0.2em] opacity-70">Kỹ năng</span>
             <span className="mt-1 block text-xl font-extrabold">{skill.label}</span>
           </button>
         ))}
@@ -259,13 +259,13 @@ export function Lessons() {
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-extrabold text-brand-700">
-              <Lightbulb size={15} /> Meo hoc
+              <Lightbulb size={15} /> Mẹo học
             </p>
             <h2 className="mt-3 text-2xl font-extrabold text-slate-950 sm:text-3xl">{current.title}</h2>
             <p className="mt-2 max-w-3xl leading-7 text-slate-500">{current.subtitle}</p>
           </div>
           <Link to={current.practicePath} className="btn-secondary h-11 px-5">
-            Vao luyen tap <ArrowRight size={18} />
+            Vào luyện tập <ArrowRight size={18} />
           </Link>
         </div>
 
@@ -295,13 +295,13 @@ export function Lessons() {
       <section className="grid gap-4 lg:grid-cols-2">
         <MaterialCard
           icon={<Mail />}
-          title="Checklist Writing truoc khi nop"
-          items={['Dung so tu yeu cau cua tung part.', 'Co mo bai, than bai va ket bai ro neu la email.', 'Dung giong than mat cho ban be, trang trong cho nguoi quan ly.', 'Kiem tra thi dong tu, dau cau, viet hoa va chinh ta.']}
+          title="Checklist Writing trước khi nộp"
+          items={['Đúng số từ yêu cầu của từng part.', 'Có mở bài, thân bài và kết bài rõ nếu là email.', 'Dùng giọng thân mật cho bạn bè, trang trọng cho người quản lý.', 'Kiểm tra thì động từ, dấu câu, viết hoa và chính tả.']}
         />
         <MaterialCard
           icon={<FileText />}
-          title="Cach hoc meo hieu qua"
-          items={['Doc meo truoc, lam 3-5 cau cung dang, roi xem lai loi.', 'Ghi cau sai thanh danh sach bay rieng.', 'Khi lam bo de, chi kiem tra dap an o cuoi de giu cam giac thi that.', 'On lai meo truoc ngay thi thay vi hoc them qua nhieu dang moi.']}
+          title="Cách học mẹo hiệu quả"
+          items={['Đọc mẹo trước, làm 3-5 câu cùng dạng, rồi xem lại lỗi.', 'Ghi câu sai thành danh sách bẫy riêng.', 'Khi làm bộ đề, chỉ kiểm tra đáp án ở cuối để giữ cảm giác thi thật.', 'Ôn lại mẹo trước ngày thi thay vì học thêm quá nhiều dạng mới.']}
         />
       </section>
     </div>

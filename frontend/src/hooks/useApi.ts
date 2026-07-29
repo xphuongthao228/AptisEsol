@@ -15,13 +15,15 @@ export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []) {
         const status = err?.response?.status;
         const apiMessage = err?.response?.data?.message;
         const detail = err?.response?.data?.errors ? `: ${JSON.stringify(err.response.data.errors)}` : '';
-        const message = apiMessage
+        const message = status === 403
+          ? 'Tài khoản không có quyền truy cập dữ liệu này.'
+          : apiMessage
           ? `${apiMessage}${detail}`
           : status
             ? `Không thể tải dữ liệu (HTTP ${status})`
             : 'Không thể tải dữ liệu. Kiểm tra backend có đang chạy không.';
         setError(message);
-        toast.error(message);
+        toast.error(message, { id: `api-error-${status ?? 'network'}` });
       })
       .finally(() => mounted && setLoading(false));
     return () => {

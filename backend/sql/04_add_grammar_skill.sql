@@ -6,5 +6,5 @@ ALTER TABLE skills
   CHECK (type IN ('LISTENING', 'SPEAKING', 'READING', 'WRITING', 'GRAMMAR'));
 
 INSERT INTO skills (type, name, description, created_at, updated_at)
-SELECT 'GRAMMAR', 'Grammar', 'Luyen ngu phap, tu vung va collocation theo dang cau hoi Aptis.', NOW(), NOW()
+SELECT 'GRAMMAR', 'Grammar', 'Luyện ngữ pháp, từ vựng và collocation theo dạng câu hỏi Aptis.', NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM skills WHERE type = 'GRAMMAR');

@@ -15,14 +15,19 @@ export function Login() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      toast.error('Tài khoản hoặc mật khẩu không đúng');
+      return;
+    }
+
     setLoading(true);
     try {
       await login(email, password);
       toast.success('Đăng nhập thành công');
       const nextUser = useAuthStore.getState().user ?? user;
       navigate(nextUser?.roles.includes('ADMIN') ? '/admin' : '/app');
-    } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Đăng nhập thất bại');
+    } catch {
+      toast.error('Tài khoản hoặc mật khẩu không đúng');
     } finally {
       setLoading(false);
     }

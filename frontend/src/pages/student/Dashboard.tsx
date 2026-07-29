@@ -125,7 +125,7 @@ export function Dashboard() {
             icon: SpellCheck,
             color: 'bg-violet-600',
             soft: 'bg-violet-50 text-violet-600',
-            subtitle: 'Ngu phap, tu vung va collocation'
+            subtitle: 'Ngữ pháp, từ vựng và collocation'
           };
           const Icon = style.icon;
           const firstTest = tests?.find((test) => test.skillId === skill.id);
