@@ -141,7 +141,7 @@ export function Dashboard() {
               <div className="space-y-3">
                 <ActionRow to={firstTest ? `/app/tests/${firstTest.id}` : '/app/tests'} color={style.color} icon={<FileText size={22} />} label="Học theo câu hỏi" primary />
                 <ActionRow to="/app/tests" icon={<BookOpen size={22} />} label="Học theo bộ đề" />
-                <ActionRow to="/app/tests" icon={<Lightbulb size={22} />} label="Mẹo học hay" />
+                <ActionRow to="/app/lessons" icon={<Lightbulb size={22} />} label="Mẹo học hay" />
               </div>
             </div>
           );

@@ -386,7 +386,7 @@ function SkillPracticeCard({ skill, tests }: {
       <div className="mt-6 grid gap-3 md:grid-cols-3">
         <ModeButton to={`/app/tests/questions/${skill.type}`} icon={<FileText size={18} />} title="Học theo câu hỏi" disabled={!firstPracticeTest} />
         <ModeButton to={`/app/tests/sets/${skill.type}`} icon={<Timer size={18} />} title="Xem bộ đề" disabled={!firstExamTest} primary />
-        <ModeButton to="/app/lessons" icon={<Lightbulb size={18} />} title="Mẹo học" />
+        <ModeButton to={`/app/lessons/${skill.type}`} icon={<Lightbulb size={18} />} title="Mẹo học" />
       </div>
 
       {!practiceTests.length && !examTests.length && (

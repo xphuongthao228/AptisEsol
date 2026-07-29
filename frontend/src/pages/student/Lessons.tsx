@@ -1,6 +1,6 @@
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, Puzzle, ShieldCheck } from 'lucide-react';
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { SubscriptionResponse } from '../../types';
@@ -24,6 +24,24 @@ type SkillTip = {
   icon: JSX.Element;
   practicePath: string;
   sections: TipItem[];
+};
+
+type TipAction = {
+  label: string;
+  to: string;
+  tone: 'blue' | 'cyan' | 'green' | 'amber' | 'red';
+  icon: 'book' | 'puzzle' | 'lightbulb' | 'clipboard';
+};
+
+type TipLandingSection = {
+  title: string;
+  description: string;
+  actions: TipAction[];
+};
+
+type TipLanding = {
+  title: string;
+  sections: TipLandingSection[];
 };
 
 const skillTips: SkillTip[] = [
@@ -181,8 +199,118 @@ const skillTips: SkillTip[] = [
   }
 ];
 
+const tipLanding: Record<SkillKey, TipLanding> = {
+  LISTENING: {
+    title: 'Mẹo học các câu phần Listening',
+    sections: [
+      {
+        title: 'Câu 1-13: Các câu này dễ ăn điểm nhất',
+        description: 'Câu 1-13 có khoảng hơn 150 câu, bạn chỉ cần học thuộc hết các câu hỏi sau là được, thực chất bạn không cần nghe audio, cứ học thuộc đáp án, vào thi thấy đáp án giống là chọn thôi.',
+        actions: [{ label: 'Học câu 1 - 13', to: '/app/tests/questions/LISTENING/part/1', tone: 'blue', icon: 'book' }]
+      },
+      {
+        title: 'Câu 14: Đây là câu khó nhất trong các phần',
+        description: 'Bài này sẽ có 6 đáp án, trong đó có đáp án gây nhiễu. Hãy học theo key, nghe kỹ người nói và loại đáp án bị phủ định trước khi chọn.',
+        actions: [{ label: 'Học câu 14', to: '/app/tests/questions/LISTENING/part/2', tone: 'cyan', icon: 'puzzle' }]
+      },
+      {
+        title: 'Câu 15: Câu này tương đối dễ học',
+        description: 'Part này cũng phải học thôi, học cũng không khó vì số lượng câu hỏi ít.',
+        actions: [{ label: 'Mẹo học câu 15', to: '/app/lessons/LISTENING/cau-15', tone: 'green', icon: 'lightbulb' }]
+      },
+      {
+        title: 'Câu 16 & 17: Hai câu này dễ ăn điểm',
+        description: 'Bạn chỉ cần học thuộc các đáp án dưới đây, không cần phải quan tâm đến câu hỏi hay nội dung nghe. Học cho nhuần nhuyễn đến nỗi nhìn cái là biết đáp án nào.',
+        actions: [{ label: 'Học câu 16 & 17', to: '/app/tests/questions/LISTENING/part/4', tone: 'green', icon: 'lightbulb' }]
+      }
+    ]
+  },
+  READING: {
+    title: 'Mẹo học các câu phần Reading',
+    sections: [
+      {
+        title: 'Part 1: Câu hỏi đầu tiên',
+        description: 'Part này bạn chỉ cần học hết các câu hỏi sau là được.',
+        actions: [{ label: 'Học câu 1', to: '/app/tests/questions/READING/part/1', tone: 'blue', icon: 'book' }]
+      },
+      {
+        title: 'Part 2 & 3: Câu hỏi thứ hai và thứ ba',
+        description: 'Part này bạn cũng cần phải học đầy đủ các câu hỏi sau.',
+        actions: [{ label: 'Học câu 2 & 3', to: '/app/tests/questions/READING/part/2', tone: 'cyan', icon: 'puzzle' }]
+      },
+      {
+        title: 'Part 4: Câu hỏi thứ tư',
+        description: 'Part này cũng phải học thôi, học cũng không khó đâu vì số lượng câu hỏi ít.',
+        actions: [{ label: 'Học câu 4', to: '/app/tests/questions/READING/part/4', tone: 'amber', icon: 'clipboard' }]
+      },
+      {
+        title: 'Part 5: Câu hỏi thứ năm',
+        description: 'Part này bạn có thể học theo key, học theo thơ hoặc theo đoạn văn. Mỗi bài có một mẹo nhỏ riêng nên bạn chỉ cần học đúng mẹo đó là ổn.',
+        actions: [{ label: 'Mẹo học nhanh (chỉ học đáp án)', to: '/app/tests/questions/READING/part/5', tone: 'green', icon: 'lightbulb' }]
+      }
+    ]
+  },
+  SPEAKING: {
+    title: 'Mẹo học các câu phần Speaking',
+    sections: [
+      {
+        title: 'Part 1: Part này gồm có 3 câu hỏi',
+        description: 'Part này bạn chỉ cần học hết các câu hỏi sau là được, đi thi thường xoay quanh mấy câu này thôi.',
+        actions: [{ label: 'Học câu 1', to: '/app/tests/questions/SPEAKING/part/1', tone: 'blue', icon: 'book' }]
+      },
+      {
+        title: 'Part 2: Mô tả 1 hình ảnh và 2 câu hỏi phụ',
+        description: 'Part này có mẹo là học một form chung rồi áp dụng toàn bộ ảnh cho các form đó.',
+        actions: [
+          { label: 'Mẹo học nhanh', to: '/app/tests/questions/SPEAKING/part/2', tone: 'green', icon: 'lightbulb' },
+          { label: 'Học đầy đủ câu 2 này', to: '/app/tests/questions/SPEAKING/part/2', tone: 'amber', icon: 'clipboard' }
+        ]
+      },
+      {
+        title: 'Part 3: Mô tả 2 hình ảnh và 2 câu hỏi phụ',
+        description: 'Part này giống câu 2 nhưng là hai hình ảnh. Bạn mô tả hai hình ảnh, nói sự khác biệt rồi áp dụng form đã học.',
+        actions: [{ label: 'Học câu 3', to: '/app/tests/questions/SPEAKING/part/3', tone: 'red', icon: 'clipboard' }]
+      },
+      {
+        title: 'Part 4: Thường là kể về một lần gì đó trong quá khứ',
+        description: 'Mẹo part này đã được trình bày đầy đủ trong phần câu hỏi 4, bạn xem lại câu hỏi và học kỹ là được.',
+        actions: [{ label: 'Học câu 4', to: '/app/tests/questions/SPEAKING/part/4', tone: 'green', icon: 'lightbulb' }]
+      }
+    ]
+  },
+  WRITING: {
+    title: 'Mẹo học các câu phần Writing',
+    sections: [
+      {
+        title: 'Part 1: Form ngắn',
+        description: 'Học cách trả lời ngắn, đúng thông tin, đúng chính tả và không viết quá dài.',
+        actions: [{ label: 'Học Writing Part 1', to: '/app/tests/questions/WRITING/part/1', tone: 'blue', icon: 'book' }]
+      },
+      {
+        title: 'Part 2: Form 20-30 từ',
+        description: 'Trả lời trực tiếp, thêm một lý do hoặc ví dụ nhỏ, kiểm tra số từ trước khi nộp.',
+        actions: [{ label: 'Học Writing Part 2', to: '/app/tests/questions/WRITING/part/2', tone: 'cyan', icon: 'puzzle' }]
+      },
+      {
+        title: 'Part 3: Chat 30-40 từ mỗi câu',
+        description: 'Mỗi câu nên có ý chính, lý do và ví dụ ngắn. Dùng giọng thân thiện, tự nhiên.',
+        actions: [{ label: 'Học Writing Part 3', to: '/app/tests/questions/WRITING/part/3', tone: 'amber', icon: 'clipboard' }]
+      },
+      {
+        title: 'Part 4: Email thân mật và trang trọng',
+        description: 'Phân biệt giọng viết cho bạn bè và người quản lý. Chú ý mở bài, thân bài, kết bài.',
+        actions: [{ label: 'Học Writing Part 4', to: '/app/tests/questions/WRITING/part/4', tone: 'green', icon: 'lightbulb' }]
+      }
+    ]
+  }
+};
+
+const writingLetterPdfUrl = '/docs/aptis-keys-meo-viet-thu.pdf';
+
 export function Lessons() {
+  const { skillType, tipSlug } = useParams();
   const [activeSkill, setActiveSkill] = useState<SkillKey>('READING');
+  const selectedTipSkill = normalizeTipSkill(skillType);
   const current = useMemo(() => skillTips.find((item) => item.key === activeSkill) ?? skillTips[0], [activeSkill]);
 
   const { data: subscription } = useApi<SubscriptionResponse | null>(
@@ -197,6 +325,14 @@ export function Lessons() {
   const status = getSubscriptionStatus();
   const expireDate = subscription?.expiresAt ? new Date(subscription.expiresAt) : status.expireDate;
   const hasAccess = subscription?.active ?? status.active;
+
+  if (selectedTipSkill === 'LISTENING' && tipSlug === 'cau-15') {
+    return <ListeningQuestion15TipPage />;
+  }
+
+  if (selectedTipSkill) {
+    return <TipLandingPage skill={selectedTipSkill} />;
+  }
 
   return (
     <div className="space-y-6">
@@ -283,7 +419,7 @@ export function Lessons() {
                     <span>{point}</span>
                   </div>
                 ))}
-                <Link to={current.practicePath} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
+                <Link to={`/app/lessons/${current.key}`} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
                   <BookOpen size={16} /> {section.button}
                 </Link>
               </div>
@@ -306,6 +442,380 @@ export function Lessons() {
       </section>
     </div>
   );
+}
+
+function TipLandingPage({ skill }: { skill: SkillKey }) {
+  const data = tipLanding[skill];
+  const isWriting = skill === 'WRITING';
+
+  return (
+    <div className="mx-auto max-w-[1120px] bg-[#f7f7fc] pb-8 text-slate-950">
+      <Link to="/app/lessons" className="mb-6 inline-flex items-center gap-2 text-sm font-extrabold text-slate-600 hover:text-brand-600">
+        <ArrowLeft size={18} /> Quay lại thư viện mẹo
+      </Link>
+      <h1 className="text-center text-4xl font-normal tracking-normal">{data.title}</h1>
+      {isWriting && <WritingLetterPdfSection />}
+      <div className="mt-12 space-y-16">
+        {data.sections.map((section) => (
+          <section key={section.title}>
+            <h2 className="text-center text-2xl font-normal tracking-normal">{section.title}</h2>
+            <p className="mt-4 leading-7 text-slate-950">{section.description}</p>
+            <div className={`mt-5 grid gap-5 ${section.actions.length > 1 ? 'md:grid-cols-2 xl:grid-cols-3' : ''}`}>
+              {section.actions.map((action) => (
+                <Link
+                  key={action.label}
+                  to={action.to}
+                  className={`flex min-h-12 items-center justify-center gap-3 rounded-lg px-5 text-lg font-medium transition hover:-translate-y-0.5 hover:shadow-lg ${tipActionTone(action.tone)}`}
+                >
+                  {tipActionIcon(action.icon)}
+                  <span>{action.label}</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function WritingLetterPdfSection() {
+  return (
+    <section className="mt-10 space-y-5">
+      <div className="overflow-hidden rounded-[24px] border border-slate-200 bg-white shadow-soft">
+        <div className="grid gap-6 bg-white p-6 lg:grid-cols-[1fr_340px] lg:p-7">
+          <div className="flex gap-4">
+            <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-700">
+              <PenLine size={26} />
+            </div>
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-600">Aptis Keys</p>
+              <h2 className="mt-2 text-3xl font-extrabold text-slate-950">Mẹo viết thư</h2>
+              <p className="mt-3 max-w-2xl leading-7 text-slate-500">
+                Tài liệu này tổng hợp form mẫu, cách triển khai ý và ví dụ Book Club cho phần Writing Question 4.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a className="btn-primary h-11 px-5" href={writingLetterPdfUrl} target="_blank" rel="noreferrer">
+                  Mở PDF
+                </a>
+                <a className="btn-secondary h-11 px-5" href={writingLetterPdfUrl} download>
+                  Tải PDF
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-2xl bg-slate-50 p-4">
+            <p className="text-sm font-extrabold text-slate-800">Nên xem nhanh</p>
+            <div className="mt-3 grid gap-2">
+              {['Giới thiệu', 'Form mẫu', 'Ví dụ Book Club'].map((item) => (
+                <div className="flex items-center gap-3 rounded-xl bg-white px-3 py-3 text-sm font-semibold text-slate-600" key={item}>
+                  <CheckCircle2 className="text-emerald-600" size={17} />
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="border-t border-slate-100 bg-slate-50 px-4 py-4 sm:px-6">
+          <div className="overflow-hidden rounded-[20px] border border-slate-200 bg-white shadow-sm">
+            <div className="flex flex-col gap-3 border-b border-slate-200 bg-slate-900 px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white">
+                  <FileText size={19} />
+                </span>
+                <div>
+                  <p className="text-sm font-extrabold">Xem tài liệu</p>
+                  <p className="text-xs text-slate-300">PDF được nhúng trực tiếp trong trang</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <a className="rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-slate-900 hover:bg-slate-100" href={writingLetterPdfUrl} target="_blank" rel="noreferrer">Mở tab mới</a>
+                <a className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-brand-700" href={writingLetterPdfUrl} download>Tải xuống</a>
+              </div>
+            </div>
+            <div className="h-[72vh] min-h-[580px] bg-[#eef2f7] p-3">
+              <object data={`${writingLetterPdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} type="application/pdf" className="h-full w-full rounded-xl bg-white">
+                <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
+                  <p className="font-semibold text-slate-600">Trình duyệt không hiển thị được PDF trong trang.</p>
+                  <a className="btn-primary" href={writingLetterPdfUrl} target="_blank" rel="noreferrer">Mở PDF</a>
+                </div>
+              </object>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+type ListeningQ15Variant = {
+  speaker?: 'Nam' | 'Nữ';
+  key: string;
+  note: string;
+  warning?: string;
+  badge?: string;
+};
+
+type ListeningQ15Topic = {
+  no: number;
+  topic: string;
+  subtitle: string;
+  variants: ListeningQ15Variant[];
+};
+
+const listeningQ15Topics: ListeningQ15Topic[] = [
+  {
+    no: 1,
+    topic: 'Politics',
+    subtitle: 'Chính trị',
+    variants: [
+      { speaker: 'Nam', key: 'B - M - W - B', note: 'Cả (B) đàn ông (M) và phụ nữ (W) đều (B) phải tôn trọng pháp luật.' },
+      { speaker: 'Nữ', key: 'B - W - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 2,
+    topic: 'IT & Tech',
+    subtitle: 'Thông tin & Công nghệ',
+    variants: [
+      { speaker: 'Nam', key: 'M - W - W - B', note: 'Đàn ông (M) chê phụ nữ (W) kém công nghệ, nhưng phụ nữ (W) nghĩ cả 2 (B) đều giỏi.' },
+      { speaker: 'Nữ', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 3,
+    topic: 'Arts',
+    subtitle: 'Nghệ thuật',
+    variants: [
+      { speaker: 'Nam', key: 'M - W - B - W', note: 'Chàng trai (M) và cô gái (W) cùng nhau (B) nhảy múa, nhưng cô gái (W) rời đi khi tuổi đời còn rất trẻ.' },
+      { speaker: 'Nữ', key: 'W - M - B - M', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 4,
+    topic: 'Music',
+    subtitle: 'Âm nhạc & Ca sĩ',
+    variants: [
+      { speaker: 'Nam', key: 'M - B - W - B', note: 'Đàn ông (M) thích cả (B) âm nhạc và ca sĩ. Phụ nữ (W) cũng thích cả (B) âm nhạc và ca sĩ.' },
+      { speaker: 'Nữ', key: 'W - B - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 5,
+    topic: 'University',
+    subtitle: 'Trường đại học',
+    variants: [
+      { speaker: 'Nam', key: 'B - W - M - W', note: 'Bố (M) đưa con gái (W) đi học, nhưng đến trường thì người yêu (M) đưa con gái (W) đi chơi.' },
+      { speaker: 'Nữ', key: 'B - M - W - M', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 6,
+    topic: 'Urban Farming',
+    subtitle: 'Nông nghiệp đô thị',
+    variants: [
+      { speaker: 'Nam', key: 'W - B - M - B', note: 'Phụ nữ (W) nói cả (B) đàn ông (M) và phụ nữ đều (B) phải làm ruộng.' },
+      { speaker: 'Nữ', key: 'M - B - W - B', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 7,
+    topic: 'Local Center',
+    subtitle: 'Trung tâm cộng đồng',
+    variants: [
+      { speaker: 'Nam', key: 'M - B - W - W', note: 'Mẹ (M) bảo (B) Win (W) tìm em gái (W) ở trung tâm cộng đồng.' },
+      { speaker: 'Nữ', key: 'W - B - M - M', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 8,
+    topic: 'Design',
+    subtitle: 'Thiết kế cộng đồng',
+    variants: [
+      { speaker: 'Nam', key: 'B - W - M - B', note: 'Bố (B) Win (W) muốn (M) bán (B) bản vẽ thiết kế nhà.' },
+      { speaker: 'Nữ', key: 'B - M - W - B', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 9,
+    topic: 'Beauty',
+    subtitle: 'Sắc đẹp',
+    variants: [
+      { speaker: 'Nữ', key: 'M - W - B - W', warning: 'Chỉ có phiên bản giọng Nữ.', note: 'Chàng trai (M) đưa cô gái (W) đi làm đẹp, cuối cùng cả hai (B) bị bà chủ tiệm (W) lừa bán sang campuchia.' }
+    ]
+  },
+  {
+    no: 10,
+    topic: 'Workplace',
+    subtitle: 'Nơi làm việc',
+    variants: [
+      { speaker: 'Nữ', key: 'M - W - B - M', warning: 'Chỉ có phiên bản giọng Nữ.', note: 'Người đàn ông (M) trách người phụ nữ (W) lười làm việc, cả hai (B) sống nghèo khổ, cuối cùng người đàn ông (M) bỏ đi.' }
+    ]
+  },
+  {
+    no: 11,
+    topic: 'Actor',
+    subtitle: 'Diễn viên',
+    variants: [
+      { key: 'M - W - B - B', note: 'Mẹo: "Mẹ Win Bừa Bộn" (MWBB). Cả nam hoặc nữ nói trước.', badge: 'Do có nhiều phiên bản nên chọn MWBB' }
+    ]
+  },
+  {
+    no: 12,
+    topic: 'Internet',
+    subtitle: 'Mạng Internet',
+    variants: [
+      { key: 'B - W - B - B', note: 'Mẹo: "Bố Win Bừa Bộn" (BWBB). Cả nam hoặc nữ nói trước.', badge: 'Do có nhiều phiên bản nên chọn BWBB' }
+    ]
+  },
+  {
+    no: 13,
+    topic: 'Homeschooling',
+    subtitle: 'Học tại nhà',
+    variants: [
+      { speaker: 'Nữ', key: 'M - W - W - B', note: 'Mình (M) vẫn (W) viết (W) bài (B) cho trường học.' },
+      { speaker: 'Nam', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 14,
+    topic: 'Children and Teenagers with Technology',
+    subtitle: 'Trẻ em và thanh thiếu niên với công nghệ',
+    variants: [
+      { speaker: 'Nam', key: 'B - B - M - W', note: 'Công nghệ biến (B) bạn (B) mê (M) Web (W).' },
+      { speaker: 'Nữ', key: 'B - B - W - M', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 15,
+    topic: 'Environmental volunteer program',
+    subtitle: 'Chương trình tình nguyện môi trường',
+    variants: [
+      { speaker: 'Nam', key: 'B - M - W - M', note: 'Bố (B) muốn (M) con gái (W) và con trai (M) tham gia chương trình tình nguyện môi trường.' },
+      { speaker: 'Nữ', key: 'B - W - M - W', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 16,
+    topic: 'Local Culture different',
+    subtitle: 'Văn hóa địa phương khác biệt',
+    variants: [
+      { speaker: 'Nam', key: 'M - B - W - W', note: 'Đàn ông (M) không nên bắt (B) hai phụ nữ (WW) phải giống nhau khi văn hóa của họ không giống nhau.' },
+      { speaker: 'Nữ', key: 'W - B - M - M', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  },
+  {
+    no: 17,
+    topic: 'Work Business / Business and Cultural',
+    subtitle: 'Kinh doanh & Văn hóa công sở',
+    variants: [
+      { speaker: 'Nam', key: 'W - B - M - M', note: 'Một phụ nữ (W) và (B) hai người đàn ông (M) (M) cùng khởi nghiệp kinh doanh.' },
+      { speaker: 'Nữ', key: 'M - B - W - W', note: 'Đảo vị trí M và W ở câu trên.' }
+    ]
+  }
+];
+
+function ListeningQuestion15TipPage() {
+  return (
+    <div className="mx-auto max-w-[1180px] space-y-6 pb-8">
+      <Link to="/app/lessons/LISTENING" className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-600 hover:text-brand-600">
+        <ArrowLeft size={18} /> Quay lại mẹo Listening
+      </Link>
+
+      <section className="rounded-[22px] border border-blue-200 bg-blue-100 px-5 py-4 text-blue-950 shadow-soft">
+        <div className="flex gap-3">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600 font-black text-white">i</span>
+          <p className="leading-7">
+            <b>Hướng dẫn học nhanh:</b> Hãy chú ý giọng đọc đầu tiên (Nam hay Nữ) để chọn dãy đáp án phù hợp.
+            Các ký tự <ListeningCode value="B" /> <ListeningCode value="M" /> <ListeningCode value="W" /> đại diện cho Both, Man, Woman.
+          </p>
+        </div>
+      </section>
+
+      <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-soft">
+        <div className="overflow-x-auto">
+          <table className="min-w-[980px] w-full border-collapse text-left">
+            <thead className="bg-slate-800 text-sm uppercase text-white">
+              <tr>
+                <th className="w-16 px-5 py-4">TT</th>
+                <th className="w-[250px] px-5 py-4">Topic (Chủ đề)</th>
+                <th className="w-[170px] px-5 py-4 text-center">Giọng trước</th>
+                <th className="w-[210px] px-5 py-4 text-center">Đáp án (Key)</th>
+                <th className="px-5 py-4">Ghi chú & mẹo nhớ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listeningQ15Topics.map((topic) =>
+                topic.variants.map((variant, index) => (
+                  <tr className="border-t border-slate-200 odd:bg-white even:bg-slate-50" key={`${topic.no}-${variant.key}-${index}`}>
+                    {index === 0 && (
+                      <>
+                        <td rowSpan={topic.variants.length} className="px-5 py-5 align-middle text-lg font-extrabold text-slate-600">{topic.no}</td>
+                        <td rowSpan={topic.variants.length} className="px-5 py-5 align-middle">
+                          <p className="font-extrabold text-slate-950">{topic.topic}</p>
+                          <p className="mt-1 text-sm text-slate-500">{topic.subtitle}</p>
+                        </td>
+                      </>
+                    )}
+                    <td className="px-5 py-4 text-center">{variant.speaker ? <SpeakerBadge speaker={variant.speaker} /> : null}</td>
+                    <td className="px-5 py-4 text-center"><KeyBadge value={variant.key} highlight={!variant.speaker} /></td>
+                    <td className="px-5 py-4">
+                      {variant.warning && <p className="mb-2 font-bold text-red-500">{variant.warning}</p>}
+                      <p className={index > 0 ? 'italic text-slate-600' : 'text-slate-950'}>{variant.note}</p>
+                      {variant.badge && <span className="mt-2 inline-flex rounded bg-emerald-700 px-2 py-1 text-xs font-extrabold text-white">{variant.badge}</span>}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+function ListeningCode({ value }: { value: string }) {
+  return <span className="mx-1 inline-flex h-6 min-w-6 items-center justify-center rounded-md bg-slate-600 px-1.5 text-xs font-black text-white">{value}</span>;
+}
+
+function SpeakerBadge({ speaker }: { speaker: 'Nam' | 'Nữ' }) {
+  const isMale = speaker === 'Nam';
+  return (
+    <span className={`inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-1 text-sm font-bold ${isMale ? 'border-sky-200 bg-sky-100 text-sky-700' : 'border-pink-200 bg-pink-100 text-pink-600'}`}>
+      {speaker}
+    </span>
+  );
+}
+
+function KeyBadge({ value, highlight }: { value: string; highlight?: boolean }) {
+  return (
+    <span className={`inline-flex rounded-lg px-3 py-2 font-mono text-sm font-black tracking-[0.2em] ${highlight ? 'bg-amber-400 text-slate-950' : 'bg-red-50 text-red-600'}`}>
+      {value}
+    </span>
+  );
+}
+
+function normalizeTipSkill(value?: string): SkillKey | '' {
+  const upper = value?.toUpperCase();
+  return upper === 'LISTENING' || upper === 'READING' || upper === 'SPEAKING' || upper === 'WRITING' ? upper : '';
+}
+
+function tipActionTone(tone: TipAction['tone']) {
+  if (tone === 'blue') return 'bg-blue-600 text-white';
+  if (tone === 'cyan') return 'bg-cyan-500 text-slate-950';
+  if (tone === 'green') return 'bg-emerald-700 text-white';
+  if (tone === 'amber') return 'bg-amber-400 text-slate-950';
+  return 'bg-red-600 text-white';
+}
+
+function tipActionIcon(icon: TipAction['icon']) {
+  if (icon === 'book') return <BookOpen size={22} />;
+  if (icon === 'puzzle') return <Puzzle size={22} />;
+  if (icon === 'clipboard') return <ClipboardCheck size={22} />;
+  return <Lightbulb size={22} />;
 }
 
 function MaterialCard({ icon, title, items }: { icon: JSX.Element; title: string; items: string[] }) {

@@ -34,6 +34,8 @@ export const router = createBrowserRouter([
     children: [{ path: '/app', element: <AppLayout />, children: [
       { index: true, element: <Dashboard /> },
       { path: 'lessons', element: <SubscriptionGate><Lessons /></SubscriptionGate> },
+      { path: 'lessons/:skillType', element: <SubscriptionGate><Lessons /></SubscriptionGate> },
+      { path: 'lessons/:skillType/:tipSlug', element: <SubscriptionGate><Lessons /></SubscriptionGate> },
       { path: 'tests', element: <SubscriptionGate><Tests /></SubscriptionGate> },
       { path: 'tests/questions/:skillType', element: <SubscriptionGate><SkillQuestionParts /></SubscriptionGate> },
       { path: 'tests/questions/:skillType/part/:part', element: <SubscriptionGate><SkillPartQuestions /></SubscriptionGate> },
