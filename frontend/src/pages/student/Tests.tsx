@@ -342,7 +342,7 @@ export function SkillPartQuestions() {
                     <div className="flex gap-3">
                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white text-sm font-extrabold text-brand-700">{index + 1}</span>
                       <div>
-                        <p className="line-clamp-2 font-bold text-slate-800">{previewQuestion(question.content)}</p>
+                        <p className="line-clamp-2 font-bold text-slate-800">{previewQuestion(question)}</p>
                         <p className="mt-1 text-xs font-semibold text-slate-400">{question.type} - {question.points} điểm</p>
                       </div>
                     </div>
@@ -524,11 +524,20 @@ function getWritingTopicColor(index: number) {
   return colors[index % colors.length];
 }
 
-function previewQuestion(content: string) {
+function previewQuestion(question: Question) {
+  const directTopic = cleanTopicTitle(question.topic);
+  if (directTopic) return directTopic;
+
   try {
-    const data = JSON.parse(content);
-    return data.prompt || data.title || data.topic || data.instructions || content;
+    const data = JSON.parse(question.content);
+    const topic = cleanTopicTitle(data.topic);
+    return topic || data.title || data.prompt || data.instructions || question.content;
   } catch {
-    return content;
+    return question.content;
   }
+}
+
+function cleanTopicTitle(value?: string) {
+  if (!value) return '';
+  return value.replace(/^topic:\s*/i, '').trim();
 }

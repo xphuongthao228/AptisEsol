@@ -13,6 +13,8 @@ import { AdminPredictions } from '../pages/admin/AdminPredictions';
 import { AdminRevenue } from '../pages/admin/AdminRevenue';
 import { AdminUsers } from '../pages/admin/AdminUsers';
 import { Dashboard } from '../pages/student/Dashboard';
+import { Contact } from '../pages/student/Contact';
+import { Donate } from '../pages/student/Donate';
 import { Exams } from '../pages/student/Exams';
 import { Lessons } from '../pages/student/Lessons';
 import { PracticeRunner } from '../pages/student/PracticeRunner';
@@ -45,6 +47,8 @@ export const router = createBrowserRouter([
       { path: 'predictions', element: <SubscriptionGate><Predictions /></SubscriptionGate> },
       { path: 'tests/:id', element: <SubscriptionGate><PracticeRunner /></SubscriptionGate> },
       { path: 'renewal', element: <Renewal /> },
+      { path: 'donate', element: <Donate /> },
+      { path: 'contact', element: <Contact /> },
       { path: 'settings', element: <Settings /> }
     ] }]
   },

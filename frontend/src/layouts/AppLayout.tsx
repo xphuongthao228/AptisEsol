@@ -6,9 +6,11 @@ import {
   FileSearch,
   FileText,
   GraduationCap,
+  HeartHandshake,
   HelpCircle,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu,
   Search,
   Settings,
@@ -26,6 +28,8 @@ const studentLinks = [
   { to: '/app/exams', label: 'Đề thi', icon: FileText },
   { to: '/app/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/app/renewal', label: 'Gia hạn', icon: CalendarPlus },
+  { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },
+  { to: '/app/contact', label: 'Liên hệ', icon: Mail },
   { to: '/app/settings', label: 'Cài đặt', icon: Settings }
 ];
 
@@ -83,7 +87,7 @@ export function AppLayout() {
               <p className="mb-2 text-center text-xs font-bold text-white">Aptis Pro Access</p>
               <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">Nâng cấp Pro</Link>
             </div>
-            <div className="flex h-10 items-center gap-3 rounded-lg px-4 text-sm text-slate-300 hover:bg-white/10 hover:text-white"><HelpCircle size={20} />Trợ giúp</div>
+            <Link to="/app/contact" className="flex h-10 items-center gap-3 rounded-lg px-4 text-sm text-slate-300 hover:bg-white/10 hover:text-white"><HelpCircle size={20} />Trợ giúp</Link>
             <button onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
               <LogOut size={20} />Đăng xuất
             </button>
