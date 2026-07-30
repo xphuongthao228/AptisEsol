@@ -5,6 +5,9 @@ import { Link, useParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { Question, SkillType, Test } from '../../types';
+import { repairMojibake } from '../../utils/textRepair';
+
+const POINTS_PER_QUESTION = 2;
 
 const skillCards: Array<{
   type: SkillType;
@@ -343,7 +346,7 @@ export function SkillPartQuestions() {
                       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white text-sm font-extrabold text-brand-700">{index + 1}</span>
                       <div>
                         <p className="line-clamp-2 font-bold text-slate-800">{previewQuestion(question)}</p>
-                        <p className="mt-1 text-xs font-semibold text-slate-400">{question.type} - {question.points} điểm</p>
+                        <p className="mt-1 text-xs font-semibold text-slate-400">{question.type} - {displayQuestionMeta(question)}</p>
                       </div>
                     </div>
                     <ArrowRight className="mt-1 shrink-0 text-slate-400" size={18} />
@@ -526,18 +529,31 @@ function getWritingTopicColor(index: number) {
 
 function previewQuestion(question: Question) {
   const directTopic = cleanTopicTitle(question.topic);
-  if (directTopic) return directTopic;
+  if (directTopic && !isGenericPartTopic(directTopic)) return directTopic;
 
   try {
     const data = JSON.parse(question.content);
     const topic = cleanTopicTitle(data.topic);
-    return topic || data.title || data.prompt || data.instructions || question.content;
+    const value = topic && !isGenericPartTopic(topic)
+      ? topic
+      : data.title || data.prompt || data.instructions || data.content || question.content;
+    return repairMojibake(String(value));
   } catch {
-    return question.content;
+    return repairMojibake(question.content);
   }
 }
 
 function cleanTopicTitle(value?: string) {
   if (!value) return '';
-  return value.replace(/^topic:\s*/i, '').trim();
+  return repairMojibake(value).replace(/^topic:\s*/i, '').trim();
+}
+
+function isGenericPartTopic(value: string) {
+  return /^(reading|listening|grammar|writing|speaking)\s+part\s+\d+$/i.test(value.trim());
+}
+
+function displayQuestionMeta(question: Question) {
+  const topic = cleanTopicTitle(question.topic);
+  const prefix = topic ? `${topic} - ` : '';
+  return `${prefix}${POINTS_PER_QUESTION} điểm`;
 }

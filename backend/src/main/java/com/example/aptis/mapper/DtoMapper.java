@@ -16,6 +16,8 @@ import java.util.stream.Collectors;
 
 @Component
 public class DtoMapper {
+    private static final int EXAM_POINT_PER_QUESTION = 2;
+
     @Value("${app.subscription.free-trial-days:2}")
     private int freeTrialDays;
 
@@ -81,7 +83,7 @@ public class DtoMapper {
         return new CoreDtos.QuestionResponse(question.getId(), question.getTest().getId(), question.getType(),
                 question.getContent(), question.getTopic(), question.getAudioUrl(), question.getScriptText(),
                 question.getExplanation(),
-                question.getPoints(), question.getSortOrder(),
+                EXAM_POINT_PER_QUESTION, question.getSortOrder(),
                 question.getAnswers().stream().sorted(Comparator.comparing(Answer::getSortOrder))
                         .map(answer -> new CoreDtos.AnswerResponse(answer.getId(), answer.getContent(),
                                 answer.isCorrect(), answer.getSortOrder()))

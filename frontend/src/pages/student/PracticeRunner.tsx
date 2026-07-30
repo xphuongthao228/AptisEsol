@@ -7,6 +7,7 @@ import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'reac
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { Answer, Question, Submission, Test } from '../../types';
+import { repairMojibake } from '../../utils/textRepair';
 
 const examLinks = [
   { to: '/app', label: 'Trang chủ', icon: LayoutDashboard, active: false },
@@ -94,7 +95,7 @@ export function PracticeRunner() {
   const sharedAudioUrl = useMemo(() => getSharedAudioUrl(questions ?? []), [questions]);
   const audioUrl = activeQuestion ? getQuestionAudioUrl(activeQuestion, renderTemplateData, sharedAudioUrl) : '';
   const scriptText = activeQuestion ? getQuestionScriptText(activeQuestion, renderTemplateData) : '';
-  const topicTitle = activeQuestion?.topic || test?.title || 'Luyện thi Aptis';
+  const topicTitle = repairMojibake(activeQuestion?.topic || test?.title || 'Luyện thi Aptis');
   const progress = useMemo(() => totalQuestions ? Math.round(((currentIndex + 1) / totalQuestions) * 100) : 0, [currentIndex, totalQuestions]);
   const requestedQuestionId = Number(searchParams.get('questionId'));
   const requestedClubIndex = Number(searchParams.get('clubIndex'));
@@ -548,7 +549,7 @@ export function PracticeRunner() {
                       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-brand-600"><HelpCircle size={18} /></div>
                       <div>
                         <h2 className="text-base font-extrabold">{activeQuestion.answers.length ? 'Chọn đáp án đúng' : 'Trả lời tự luận'}</h2>
-                        <p className="mt-1 text-sm leading-5 text-slate-600">{activeQuestion.content}</p>
+                        <p className="mt-1 text-sm leading-5 text-slate-600">{repairMojibake(activeQuestion.content)}</p>
                       </div>
                     </div>
                   </div>
@@ -558,7 +559,7 @@ export function PracticeRunner() {
                       {activeQuestion.answers.map((answer, index) => (
                         <label className={`flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border bg-white px-4 py-2 text-sm shadow-soft transition ${getAnswerClassName({ answer, selectedValue: answers[activeQuestion.id], checked: activeChecked })}`} key={answer.id}>
                           <input className="h-4 w-4" type="radio" name={`q-${activeQuestion.id}`} value={answer.id} onChange={(e) => setAnswers({ ...answers, [activeQuestion.id]: e.target.value })} />
-                          <span className="flex-1">{answer.content}</span>
+                          <span className="flex-1">{repairMojibake(answer.content)}</span>
                           <AnswerStatusBadge answer={answer} selectedValue={answers[activeQuestion.id]} checked={activeChecked} />
                           <span className="grid h-7 w-7 place-items-center rounded-full border border-slate-300 text-xs text-slate-400">{index + 1}</span>
                         </label>
@@ -859,6 +860,7 @@ function QuestionNavigator({ total, currentIndex, answeredIds, checkedIds, quest
 
 type TemplateData = Record<string, any> & { template: string };
 type ListeningReviewGroup = '1-13' | '14' | '15' | '16-17';
+const EXAM_POINT_PER_QUESTION = 2;
 
 type ListeningReviewItem = {
   group: ListeningReviewGroup;
@@ -1043,10 +1045,10 @@ function buildReadingExamReview(test: Test | null, questions: Question[], answer
     }
   });
 
-  const score = items.filter((item) => item.correct).length;
+  const correctCount = items.filter((item) => item.correct).length;
   return {
-    score,
-    maxScore: items.length,
+    score: correctCount * EXAM_POINT_PER_QUESTION,
+    maxScore: items.length * EXAM_POINT_PER_QUESTION,
     items
   };
 }
@@ -1161,7 +1163,8 @@ function ReadingExamReviewModal({ review, onClose }: {
   }, [activePart, parts]);
 
   const partItems = review.items.filter((item) => item.part === activePart);
-  const partScore = partItems.filter((item) => item.correct).length;
+  const partScore = partItems.filter((item) => item.correct).length * EXAM_POINT_PER_QUESTION;
+  const partMaxScore = partItems.length * EXAM_POINT_PER_QUESTION;
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/45 px-4 py-8">
@@ -1189,7 +1192,7 @@ function ReadingExamReviewModal({ review, onClose }: {
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
               <h3 className="text-2xl font-bold text-slate-900">Part {activePart}</h3>
-              <p className="mt-1 text-sm text-slate-600">Score: {partScore} / {partItems.length}</p>
+              <p className="mt-1 text-sm text-slate-600">Score: {partScore} / {partMaxScore}</p>
             </div>
             <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-brand-700">
               {partItems.length} câu
@@ -1232,7 +1235,7 @@ function buildListeningPart2FallbackTemplate(question: Question, test: Test | nu
 
   const options = [...question.answers]
     .sort((first, second) => first.sortOrder - second.sortOrder)
-    .map((answer) => answer.content)
+    .map((answer) => repairMojibake(answer.content))
     .filter(Boolean);
 
   const correctAnswers = parsePersonCorrectAnswers(question.explanation, options);
@@ -1242,7 +1245,7 @@ function buildListeningPart2FallbackTemplate(question: Question, test: Test | nu
     template: 'LISTENING_PEOPLE_MATCH',
     total: totalQuestions || 13,
     topic,
-    instructions: question.content,
+    instructions: repairMojibake(question.content),
     playsRemaining: '2 of 2 plays remaining',
     audioUrl: getQuestionAudioUrl(question, null),
     scriptText: question.scriptText,
@@ -1268,16 +1271,16 @@ function buildListeningPart3FallbackTemplate(question: Question, test: Test | nu
 
   const rawOptions = [...question.answers]
     .sort((first, second) => first.sortOrder - second.sortOrder)
-    .map((answer) => answer.content)
+    .map((answer) => repairMojibake(answer.content))
     .filter(Boolean);
   const options = rawOptions.length ? rawOptions : ['Man', 'Woman', 'Both'];
-  const statements = splitStatementRows(question.content);
+  const statements = splitStatementRows(repairMojibake(question.content));
 
   return {
     template: 'LISTENING_OPINION_MATCH',
     total: totalQuestions || 17,
     topic: cleanAptisTopic(question.topic || test?.title || 'Aptis Listening Part 3'),
-    instructions: statements.length > 1 ? defaultListeningPart3Instructions() : question.content,
+    instructions: statements.length > 1 ? defaultListeningPart3Instructions() : repairMojibake(question.content),
     playsRemaining: '2 of 2 plays remaining',
     audioUrl: getQuestionAudioUrl(question, null),
     scriptText: question.scriptText,
@@ -1290,7 +1293,7 @@ function buildListeningPart3FallbackTemplate(question: Question, test: Test | nu
 function isListeningPart3FallbackQuestion(question: Question, test: Test | null, totalQuestions: number) {
   const text = `${test?.title ?? ''} ${test?.skillName ?? ''} ${question.topic ?? ''} ${question.content ?? ''}`.toLowerCase();
   const looksLikePart3 = totalQuestions === 17 || /(?:lis|listening).{0,16}part\s*3|part\s*3/.test(text);
-  const optionText = question.answers.map((answer) => answer.content.toLowerCase()).join(' ');
+  const optionText = question.answers.map((answer) => repairMojibake(answer.content).toLowerCase()).join(' ');
   const hasOpinionOptions = /man/.test(optionText) && /woman/.test(optionText) && /both/.test(optionText);
   const looksLikeOpinionMatch = /two colleagues|man's|woman's|whose opinion|who expresses|man\s*\/\s*woman|woman\s*\/\s*both/.test(text);
 
@@ -1303,10 +1306,10 @@ function buildListeningPart4FallbackTemplate(question: Question, test: Test | nu
 
   const options = [...question.answers]
     .sort((first, second) => first.sortOrder - second.sortOrder)
-    .map((answer) => answer.content)
+    .map((answer) => repairMojibake(answer.content))
     .filter(Boolean);
   const groups = options.length
-    ? [{ prompt: stripPart4Content(question.content), options, correctAnswer: question.answers.find((answer) => answer.correct)?.content ?? '' }]
+    ? [{ prompt: stripPart4Content(repairMojibake(question.content)), options, correctAnswer: repairMojibake(question.answers.find((answer) => answer.correct)?.content ?? '') }]
     : [{
         prompt: 'Chưa có câu hỏi con. Hãy điền question1, q1_answer1-3, question2, q2_answer1-3 trong file CSV rồi import lại.',
         options: [],
@@ -1361,7 +1364,7 @@ function parsePersonCorrectAnswers(explanation: string, options: string[]) {
 }
 
 function cleanAptisTopic(value: string) {
-  return value.replace(/^topic:\s*/i, '').trim();
+  return repairMojibake(value).replace(/^topic:\s*/i, '').trim();
 }
 
 function stripLeadingIndex(value: string) {
@@ -1371,10 +1374,21 @@ function stripLeadingIndex(value: string) {
 function parseTemplate(content: string): TemplateData | null {
   try {
     const parsed = JSON.parse(content);
-    return parsed?.template ? parsed : null;
+    return parsed?.template ? repairTemplateData(parsed) : null;
   } catch {
     return null;
   }
+}
+
+function repairTemplateData<T>(value: T): T {
+  if (typeof value === 'string') return repairMojibake(value) as T;
+  if (Array.isArray(value)) return value.map((item) => repairTemplateData(item)) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, repairTemplateData(item)])
+    ) as T;
+  }
+  return value;
 }
 
 function getReadingGapParts(row: any) {
@@ -1419,6 +1433,93 @@ function getReadingOrderCorrectSentences(data: TemplateData): string[] {
   if (Array.isArray(data.correctSentences) && data.correctSentences.length) return data.correctSentences;
   if (Array.isArray(data.correctOrder) && data.correctOrder.length) return data.correctOrder;
   return data.sentences ?? [];
+}
+
+function displayTemplateTopic(data: TemplateData) {
+  const topic = cleanDisplayTopic(data.topic);
+  if (topic && !isGenericTemplateTopic(topic)) return topic;
+  return inferTemplateTopic(data);
+}
+
+function cleanDisplayTopic(value?: string) {
+  return repairMojibake(value ?? '').replace(/^topic:\s*/i, '').trim();
+}
+
+function isGenericTemplateTopic(value: string) {
+  return /^(reading|listening|grammar|writing|speaking)\s+(question|part)\s*\d+$/i.test(value.trim());
+}
+
+function inferTemplateTopic(data: TemplateData) {
+  const contentCandidates = [
+    data.title,
+    data.prompt,
+    data.leftTitle,
+    ...(Array.isArray(data.correctSentences) ? data.correctSentences : []),
+    ...(Array.isArray(data.sentences) ? data.sentences : []),
+    ...(Array.isArray(data.displaySentences) ? data.displaySentences : []),
+    ...(Array.isArray(data.paragraphs) ? data.paragraphs : []),
+    ...(Array.isArray(data.opinions) ? data.opinions : []),
+    ...(Array.isArray(data.questions) ? data.questions : []),
+    data.instructions
+  ]
+    .map((value) => cleanDisplayTopic(String(value ?? '')))
+    .filter(Boolean);
+
+  for (const candidate of contentCandidates) {
+    const inferred = inferTopicFromText(candidate);
+    if (inferred) return inferred;
+  }
+
+  return fallbackTopicFromContent(contentCandidates);
+}
+
+function inferTopicFromText(value: string) {
+  const text = stripHtml(value).replace(/\s+/g, ' ').trim();
+  const explicit = text.match(/\b(?:about|on|regarding|views on|topic is)\s+([A-Za-z][A-Za-z\s-]{2,60}?)(?:[.,;:]|\s+with\b|\s+and\b|$)/i);
+  if (explicit?.[1]) return toTitleCase(cleanInferredTopic(explicit[1]));
+
+  const nouns = text.match(/\b(?:workshop|meeting|event|club|course|project|festival|competition|survey|program|programme)\s+(?:about|on|for)\s+([A-Za-z][A-Za-z\s-]{2,60}?)(?:[.,;:]|$)/i);
+  if (nouns?.[1]) return toTitleCase(cleanInferredTopic(nouns[1]));
+
+  return '';
+}
+
+function fallbackTopicFromContent(candidates: string[]) {
+  const candidate = candidates
+    .map((value) => stripHtml(value).replace(/\s+/g, ' ').trim())
+    .find((value) => value && !isGenericInstruction(value) && !isGenericTemplateTopic(value));
+  if (!candidate) return '';
+  return summarizeTopic(candidate);
+}
+
+function isGenericInstruction(value: string) {
+  return /^(put|choose|read|listen|match|select|complete|answer)\b/i.test(value)
+    || /sentences below|right order|correct answer|first sentence is done/i.test(value);
+}
+
+function summarizeTopic(value: string) {
+  const cleaned = value
+    .replace(/^[A-Z]\.\s*/, '')
+    .replace(/\([^)]*\)/g, '')
+    .replace(/[.!?].*$/, '')
+    .trim();
+  const words = cleaned.split(/\s+/).filter(Boolean).slice(0, 8).join(' ');
+  return toTitleCase(words || cleaned);
+}
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]*>/g, ' ');
+}
+
+function cleanInferredTopic(value: string) {
+  return value
+    .replace(/\b(?:the|a|an)\s+$/i, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function toTitleCase(value: string) {
+  return value.replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
 
 function evaluateTemplateAnswer(data: TemplateData | null, value: string) {
@@ -1654,12 +1755,13 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
 
   if (data.template === 'LISTENING_AUDIO_MC') {
     const revealStatus = checked !== undefined || showAnswers;
+    const topic = displayTemplateTopic(data);
     return (
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} total={data.total} />
         <AudioBar text={data.playsRemaining} audioUrl={data.audioUrl} />
         <div className="rounded-lg bg-[#eeeeee] px-5 py-4">
-          {data.topic && <h2 className="mb-4 text-base font-extrabold">Topic: {data.topic}</h2>}
+          {topic && <h2 className="mb-4 text-base font-extrabold">Topic: {topic}</h2>}
           <div className="space-y-4">
             {(data.groups ?? []).map((group: any, groupIndex: number) => (
               <div key={groupIndex}>
@@ -1720,12 +1822,13 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
   if (data.template === 'LISTENING_OPINION_MATCH' || data.template === 'LISTENING_PEOPLE_MATCH') {
     const rows = data.template === 'LISTENING_PEOPLE_MATCH' ? data.rows : data.statements;
     const revealAnswers = checked !== undefined || showAnswers;
+    const topic = displayTemplateTopic(data);
     return (
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} total={data.total} />
         <AudioBar text={data.playsRemaining ?? '2 of 2 plays remaining'} audioUrl={data.audioUrl} />
         <div className="rounded-lg bg-[#eeeeee] px-8 py-8">
-          <h2 className="mb-6 text-xl font-extrabold">Topic: {data.topic}</h2>
+          {topic && <h2 className="mb-6 text-xl font-extrabold">Topic: {topic}</h2>}
           {data.instructions && <p className="mb-7 max-w-6xl text-[15px] leading-7">{data.instructions}</p>}
           <div className="space-y-3">
             {(rows ?? []).map((row: string, index: number) => {
@@ -1783,9 +1886,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
     const rows = data.rows ?? [];
     const correctAnswers = getReadingGapCorrectAnswers(data);
     const revealStatus = checked !== undefined || showAnswers;
+    const topic = displayTemplateTopic(data);
     return (
       <AptisPaper narrow>
         <h1 className="mb-3 text-3xl font-extrabold">Reading Question <span className="mx-2 inline-flex min-w-12 justify-center border-b border-slate-900">{currentNumber ?? 1}</span> of {data.total}</h1>
+        {topic && <h2 className="mb-4 text-xl font-bold text-red-600">Topic: {topic}</h2>}
         <p className="mb-4 text-sm">{data.instructions}</p>
         {data.before && <p className="mb-4 whitespace-pre-line text-sm">{data.before}</p>}
         <div className="space-y-2.5">
@@ -1832,7 +1937,9 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
     const correctOrder = getReadingOrderCorrectSentences(data);
     const selectedOrder = Array.isArray((saved as any).order) ? (saved as any).order as string[] : [];
     const currentOrder = selectedOrder.length ? selectedOrder : displaySentences;
-    const score = selectedOrder.filter((sentence, index) => sentence === correctOrder[index]).length;
+    const score = selectedOrder.filter((sentence, index) => sentence === correctOrder[index]).length * EXAM_POINT_PER_QUESTION;
+    const maxScore = correctOrder.length * EXAM_POINT_PER_QUESTION;
+    const topic = displayTemplateTopic(data);
     function saveOrder(nextOrder: string[]) {
       onChange(JSON.stringify({ ...saved, order: nextOrder }));
     }
@@ -1858,7 +1965,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
         <h1 className="mb-4 text-2xl font-extrabold">
           Reading Question <span className="mx-3 inline-flex min-w-12 justify-center rounded border border-slate-300 bg-white px-4 py-1 text-base">{currentNumber ?? 1}</span> of {data.total}
         </h1>
-        <h2 className="mb-5 text-2xl font-bold text-red-600">Topic: {data.topic}</h2>
+        {topic && <h2 className="mb-5 text-2xl font-bold text-red-600">Topic: {topic}</h2>}
         <p className="mb-5 font-semibold">{data.instructions}</p>
         <div className="space-y-2">
           {currentOrder.map((sentence: string, index: number) => {
@@ -1934,7 +2041,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
                 <button type="button" className="text-3xl leading-none text-slate-500 hover:text-slate-900" onClick={() => setShowAnswers(false)}>×</button>
               </div>
               <div className="p-5">
-                <p className="mb-5 text-center text-2xl font-extrabold text-green-700">Your score: {score} / {correctOrder.length}</p>
+                <p className="mb-5 text-center text-2xl font-extrabold text-green-700">Your score: {score} / {maxScore}</p>
                 <div className="grid border border-slate-300 text-center md:grid-cols-2">
                   <div className="border-b border-slate-300 p-3 font-extrabold md:border-r">Your Answer</div>
                   <div className="border-b border-slate-300 p-3 font-extrabold">Correct Answer</div>
@@ -1955,10 +2062,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
 
   if (data.template === 'READING_FORUM_MATCH') {
     const correctAnswers = data.correctAnswers ?? [];
+    const topic = displayTemplateTopic(data);
     return (
       <AptisPaper>
         <h1 className="mb-3 text-3xl font-extrabold">Reading Question 4 ({currentNumber ?? 1}/{data.total})</h1>
-        <h2 className="mb-4 text-xl font-bold text-red-600">Topic: {data.topic}</h2>
+        {topic && <h2 className="mb-4 text-xl font-bold text-red-600">Topic: {topic}</h2>}
         <div className="grid gap-6 text-[15px] leading-6 lg:grid-cols-[1.15fr_0.85fr]">
           <section>
             <p className="mb-3 font-extrabold leading-6" dangerouslySetInnerHTML={{ __html: data.leftTitle ?? '' }} />
@@ -2027,12 +2135,13 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
     const paragraphs = data.paragraphs ?? [];
     const options = (data.options ?? []).filter(Boolean);
     const correctAnswers = data.correctAnswers ?? options.slice(0, paragraphs.length);
-    const score = correctAnswers.filter((answer: string, index: number) => (saved[`heading${index}`] ?? '') === answer).length * 2;
-    const maxScore = correctAnswers.length * 2;
+    const score = correctAnswers.filter((answer: string, index: number) => (saved[`heading${index}`] ?? '') === answer).length * EXAM_POINT_PER_QUESTION;
+    const maxScore = correctAnswers.length * EXAM_POINT_PER_QUESTION;
+    const topic = displayTemplateTopic(data);
     return (
       <AptisPaper narrow>
         <h1 className="mb-4 text-4xl font-extrabold">Reading question 5 ({currentNumber ?? 1}/{data.total})</h1>
-        <h2 className="mb-5 text-2xl font-bold text-red-600">TOPIC: {data.topic}</h2>
+        {topic && <h2 className="mb-5 text-2xl font-bold text-red-600">TOPIC: {topic}</h2>}
         <div className="mb-6 flex flex-wrap gap-2">
           <button type="button" className="rounded bg-slate-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowScript((value) => !value)}>
             {showScript ? 'Ẩn nội dung' : 'Xem nội dung'}

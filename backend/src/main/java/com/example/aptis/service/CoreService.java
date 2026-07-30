@@ -35,6 +35,8 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class CoreService {
+    private static final int EXAM_POINT_PER_QUESTION = 2;
+
     private final UserRepository users;
     private final SkillRepository skills;
     private final TestRepository tests;
@@ -933,7 +935,7 @@ public class CoreService {
         for (CoreDtos.SubmitAnswerRequest item : request.answers()) {
             Question q = questions.findById(item.questionId())
                     .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
-            max += q.getPoints();
+            max += EXAM_POINT_PER_QUESTION;
             Answer selected = item.answerId() == null ? null : answers.findById(item.answerId()).orElse(null);
             boolean correct = selected != null && selected.isCorrect();
             SubmissionAnswer sa = new SubmissionAnswer();
@@ -942,7 +944,7 @@ public class CoreService {
             sa.setAnswer(selected);
             sa.setTextAnswer(item.textAnswer());
             sa.setCorrect(correct);
-            sa.setScore(correct ? q.getPoints() : 0);
+            sa.setScore(correct ? EXAM_POINT_PER_QUESTION : 0);
             submission.getAnswers().add(sa);
             score += sa.getScore();
         }
