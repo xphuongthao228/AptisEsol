@@ -40,6 +40,9 @@ public class User extends BaseEntity {
     @Column(name = "pro_expires_at")
     private LocalDateTime proExpiresAt;
 
+    @Column(name = "last_seen_at")
+    private LocalDateTime lastSeenAt;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(name = "user_roles",
             joinColumns = @JoinColumn(name = "user_id"),

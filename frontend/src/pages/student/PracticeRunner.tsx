@@ -471,7 +471,7 @@ export function PracticeRunner() {
               <div className="hidden h-9 w-px bg-slate-200 sm:block" />
               <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
             </div>
-            <div className="flex h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500">
+            <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
               <Search size={19} />
               <span className="hidden sm:inline">Tìm tài liệu...</span>
             </div>
@@ -573,10 +573,10 @@ export function PracticeRunner() {
             )}
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-4 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
-            <div className="flex items-center justify-between gap-4">
-              <button type="button" onClick={goBack} className="inline-flex items-center gap-3 font-semibold text-slate-600 disabled:opacity-50" disabled={!canGoBack}><ArrowLeft />Quay lại</button>
-              <div className="flex gap-2">
+          <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <button type="button" onClick={goBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
+              <div className="grid grid-cols-2 gap-2 sm:flex">
                 <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={resetCurrentQuestion}><RotateCcw size={17} />Làm lại</button>
                 <button type="button" onClick={checkCurrentQuestion} disabled={!canCheckCurrent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-green-700 px-5 text-sm font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"><CheckSquare size={18} />Kiểm tra</button>
                 <button type="button" className="btn-primary h-10 px-5 text-sm outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50" onClick={goNext} disabled={!canGoNext}>Kế tiếp <ArrowRight size={18} /></button>
@@ -647,7 +647,7 @@ function AppTopbar() {
           <div className="hidden h-9 w-px bg-slate-200 sm:block" />
           <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
         </div>
-        <div className="flex h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500">
+        <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
           <Search size={19} />
           <span className="hidden sm:inline">Tìm tài liệu...</span>
         </div>
@@ -666,12 +666,12 @@ function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onChec
   showCheck?: boolean;
 }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-4 py-2 shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
-      <div className="flex items-center justify-between gap-4">
-        <button type="button" onClick={onBack} className="inline-flex items-center gap-3 font-semibold text-slate-600 disabled:opacity-50" disabled={currentIndex === 0}>
+    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <button type="button" onClick={onBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={currentIndex === 0}>
           <ArrowLeft />Quay lại
         </button>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:flex">
           <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={onReset}>
             <RotateCcw size={17} />Làm lại
           </button>
@@ -1760,7 +1760,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} total={data.total} />
         <AudioBar text={data.playsRemaining} audioUrl={data.audioUrl} />
-        <div className="rounded-lg bg-[#eeeeee] px-5 py-4">
+        <div className="rounded-2xl bg-[#eeeeee] px-4 py-5 sm:rounded-lg sm:px-5 sm:py-4">
           {topic && <h2 className="mb-4 text-base font-extrabold">Topic: {topic}</h2>}
           <div className="space-y-4">
             {(data.groups ?? []).map((group: any, groupIndex: number) => (
@@ -1771,7 +1771,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
                     File CSV hiện chưa có đáp án cho câu này, nên chưa thể hiện radio giống mẫu.
                   </div>
                 ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2 sm:space-y-1.5">
                   {(group.options ?? []).map((option: string) => {
                     const selected = saved[`g${groupIndex}`] === option;
                     const isCorrect = group.correctAnswer === option;
@@ -1783,8 +1783,8 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
                           : 'border-transparent'
                       : 'border-transparent';
                     return (
-                    <label className={`flex w-fit items-center gap-2.5 rounded-md border px-2 py-0.5 text-[14px] ${statusClass}`} key={option}>
-                      <input type="radio" name={`${questionId}-${groupIndex}`} checked={saved[`g${groupIndex}`] === option} onChange={() => setAnswer(`g${groupIndex}`, option)} />
+                    <label className={`flex min-h-10 w-full items-center gap-3 rounded-lg border px-3 py-1.5 text-[15px] sm:min-h-0 sm:w-fit sm:gap-2.5 sm:rounded-md sm:px-2 sm:py-0.5 sm:text-[14px] ${statusClass}`} key={option}>
+                      <input className="h-4 w-4 shrink-0" type="radio" name={`${questionId}-${groupIndex}`} checked={saved[`g${groupIndex}`] === option} onChange={() => setAnswer(`g${groupIndex}`, option)} />
                       <span>{option}</span>
                       {showAnswers && isCorrect && <span className="text-xs font-bold text-green-700">Đáp án</span>}
                     </label>
@@ -1800,12 +1800,12 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
             ))}
           </div>
         </div>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <button type="button" className="h-9 rounded-lg bg-green-700 px-4 text-sm font-extrabold text-white shadow-sm hover:bg-green-800" onClick={() => setShowAnswers((value) => !value)}>
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+          <button type="button" className="h-11 rounded-xl bg-green-700 px-3 text-sm font-extrabold text-white shadow-sm hover:bg-green-800 sm:h-9 sm:rounded-lg sm:px-4" onClick={() => setShowAnswers((value) => !value)}>
             {showAnswers ? 'Ẩn đáp án' : 'Xem đáp án'}
           </button>
           {data.scriptText && (
-            <button type="button" className="h-9 rounded-lg bg-slate-700 px-4 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800" onClick={() => setShowScript((value) => !value)}>
+            <button type="button" className="h-11 rounded-xl bg-slate-700 px-3 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800 sm:h-9 sm:rounded-lg sm:px-4" onClick={() => setShowScript((value) => !value)}>
               {showScript ? 'Ẩn script' : 'Show script'}
             </button>
           )}
@@ -3471,18 +3471,18 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
 function AptisPaper({ children, narrow, classic, compact }: { children: ReactNode; narrow?: boolean; classic?: boolean; compact?: boolean }) {
   if (classic) {
     return (
-      <div className="border-t-2 border-red-600 bg-white px-6 pb-24 pt-0 text-slate-950">
-        <div className="max-w-none">
+      <div className="bg-white px-3 pb-36 pt-3 text-slate-950 sm:border-t-2 sm:border-red-600 sm:px-6 sm:pb-24 sm:pt-0">
+        <div className="mx-auto max-w-[1180px]">
           {children}
         </div>
       </div>
     );
   }
-  return <div className={`mx-auto bg-white text-slate-950 ${compact ? 'px-4 py-4 sm:px-6' : 'px-4 py-8 sm:px-8'} ${narrow ? 'max-w-[1280px]' : 'max-w-[1320px]'}`}>{children}</div>;
+  return <div className={`mx-auto bg-white text-slate-950 ${compact ? 'px-3 py-4 sm:px-6' : 'px-3 py-6 sm:px-8 sm:py-8'} ${narrow ? 'max-w-[1280px]' : 'max-w-[1320px]'}`}>{children}</div>;
 }
 
 function QuestionCounter({ current, total }: { current?: number; total?: number }) {
-  return <h1 className="mb-4 text-xl font-extrabold">Question <span className="mx-3 inline-flex min-w-10 justify-center border-b border-slate-900">{current ?? 1}</span> of {total ?? 1}</h1>;
+  return <h1 className="mb-3 flex flex-wrap items-center gap-2 text-[22px] font-extrabold leading-tight sm:mb-4 sm:text-xl">Question <span className="inline-flex min-w-9 justify-center border-b border-slate-900 px-1">{current ?? 1}</span> of {total ?? 1}</h1>;
 }
 
 function InlineNumber({ value = 1 }: { value?: number }) {
@@ -3507,8 +3507,8 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
   }
 
   return (
-    <div className="mb-4 flex min-h-12 items-center justify-between gap-4 rounded bg-[#ef2620] px-5 py-1.5 text-white">
-      <div className="flex min-w-0 flex-1 items-center gap-4">
+    <div className="mb-5 rounded-xl bg-[#ef2620] px-4 py-4 text-white shadow-sm sm:flex sm:min-h-12 sm:items-center sm:justify-between sm:gap-4 sm:rounded sm:px-5 sm:py-2">
+      <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
         {audioUrl && (
           <audio
             ref={ref}
@@ -3520,16 +3520,16 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
             className="hidden"
           />
         )}
-        <button type="button" onClick={toggleAudio} className="grid h-7 w-7 place-items-center rounded-full text-white hover:bg-white/10" aria-label={playing ? 'Pause audio' : 'Play audio'}>
-          <Play size={16} fill="currentColor" className={playing ? 'opacity-70' : ''} />
+        <button type="button" onClick={toggleAudio} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:h-7 sm:w-7 sm:bg-transparent" aria-label={playing ? 'Pause audio' : 'Play audio'}>
+          <Play size={18} fill="currentColor" className={playing ? 'opacity-70' : ''} />
         </button>
-        <Volume2 size={17} fill="currentColor" />
-        <div className="relative h-1.5 w-32 rounded-full bg-white">
+        <Volume2 className="hidden sm:block" size={17} fill="currentColor" />
+        <div className="relative h-2 min-w-0 flex-1 rounded-full bg-white sm:h-1.5 sm:w-32 sm:flex-none">
           <span className="absolute left-0 top-0 h-full rounded-full bg-white" style={{ width: `${progress}%` }} />
           <span className="absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-brand-600" style={{ left: `calc(${progress || 50}% - 7px)` }} />
         </div>
       </div>
-      <span className="text-xs font-bold">{text ?? '2 of 2 plays remaining'}</span>
+      <span className="mt-3 block text-right text-xs font-bold sm:mt-0 sm:text-left">{text ?? '2 of 2 plays remaining'}</span>
     </div>
   );
 }

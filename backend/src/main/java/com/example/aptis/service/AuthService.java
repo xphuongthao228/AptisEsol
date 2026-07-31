@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -42,6 +43,7 @@ public class AuthService {
     private final JwtService jwtService;
     private final DtoMapper mapper;
     private final EmailService emailService;
+    private final ActiveVisitorService activeVisitorService;
 
     @Value("${app.jwt.refresh-token-days}")
     private long refreshDays;
@@ -133,6 +135,18 @@ public class AuthService {
     public AuthDtos.UserResponse currentUser(String email) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow();
         return mapper.user(user);
+    }
+
+    @Transactional
+    public AuthDtos.HeartbeatResponse heartbeat(String visitorId, String email) {
+        String normalizedVisitorId = activeVisitorService.touch(visitorId);
+        AuthDtos.UserResponse userResponse = null;
+        if (email != null && !email.isBlank()) {
+            User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow();
+            user.setLastSeenAt(LocalDateTime.now());
+            userResponse = mapper.user(userRepository.save(user));
+        }
+        return new AuthDtos.HeartbeatResponse(normalizedVisitorId, activeVisitorService.onlineCount(), userResponse);
     }
 
     public AuthDtos.UserResponse updateProfile(String email, AuthDtos.UpdateProfileRequest request) {

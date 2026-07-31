@@ -59,6 +59,14 @@ public class AuthController {
         return ApiResponse.ok(authService.currentUser(authentication.getName()));
     }
 
+    @PostMapping("/heartbeat")
+    public ApiResponse<AuthDtos.HeartbeatResponse> heartbeat(Authentication authentication,
+            @RequestBody(required = false) AuthDtos.HeartbeatRequest request) {
+        String email = authentication == null ? null : authentication.getName();
+        String visitorId = request == null ? null : request.visitorId();
+        return ApiResponse.ok(authService.heartbeat(visitorId, email));
+    }
+
     @PutMapping("/me")
     public ApiResponse<AuthDtos.UserResponse> updateProfile(Authentication authentication, @Valid @RequestBody AuthDtos.UpdateProfileRequest request) {
         return ApiResponse.ok(authService.updateProfile(authentication.getName(), request));

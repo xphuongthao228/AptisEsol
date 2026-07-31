@@ -3,6 +3,7 @@ package com.example.aptis.controller;
 import com.example.aptis.dto.ApiResponse;
 import com.example.aptis.dto.AuthDtos;
 import com.example.aptis.dto.CoreDtos;
+import com.example.aptis.service.ActiveVisitorService;
 import com.example.aptis.service.CoreService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,10 +18,16 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {
     private final CoreService service;
+    private final ActiveVisitorService activeVisitorService;
 
     @GetMapping
     public ApiResponse<List<AuthDtos.UserResponse>> all() {
         return ApiResponse.ok(service.users());
+    }
+
+    @GetMapping("/online-count")
+    public ApiResponse<Long> onlineCount() {
+        return ApiResponse.ok(activeVisitorService.onlineCount());
     }
 
     @GetMapping("/{id}")

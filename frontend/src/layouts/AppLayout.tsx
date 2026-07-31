@@ -16,12 +16,21 @@ import {
   Settings,
   Shield,
   Upload,
-  Users
+  Users,
+  X,
+  type LucideIcon
 } from 'lucide-react';
+import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 
-const studentLinks = [
+type LayoutLink = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+const studentLinks: LayoutLink[] = [
   { to: '/app', label: 'Tổng quan', icon: LayoutDashboard },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/tests', label: 'Luyện tập', icon: BookOpen },
@@ -33,7 +42,7 @@ const studentLinks = [
   { to: '/app/settings', label: 'Cài đặt', icon: Settings }
 ];
 
-const adminLinks = [
+const adminLinks: LayoutLink[] = [
   { to: '/admin', label: 'Tổng quan', icon: Shield },
   { to: '/admin/users', label: 'Người dùng', icon: Users },
   { to: '/admin/content', label: 'Nội dung', icon: BookOpen },
@@ -46,6 +55,7 @@ const adminLinks = [
 
 export function AppLayout() {
   const { user, logout } = useAuthStore();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const isAdmin = user?.roles.includes('ADMIN');
@@ -53,6 +63,7 @@ export function AppLayout() {
   const isExamMode = !isAdmin && /^\/app\/(tests|exams)\/\d+/.test(location.pathname);
 
   const signOut = async () => {
+    setMobileMenuOpen(false);
     await logout();
     navigate('/login');
   };
@@ -97,7 +108,7 @@ export function AppLayout() {
         <header className="fixed right-0 top-0 z-30 h-16 border-b border-slate-200 bg-white xl:left-[260px]">
           <div className="flex h-16 items-center justify-between px-4 xl:px-8">
             <div className="flex min-w-0 items-center gap-4">
-              <button className="lg:hidden"><Menu size={22} /></button>
+              <button className="grid h-10 w-10 place-items-center rounded-lg text-slate-700 hover:bg-slate-100 xl:hidden" onClick={() => setMobileMenuOpen(true)} aria-label="Mở menu"><Menu size={22} /></button>
               <div className="text-xl font-extrabold text-brand-600">LingoMaster</div>
               <div className="hidden h-8 w-px bg-slate-200 sm:block" />
               <p className="hidden truncate text-sm italic text-slate-500 sm:block">Aptis Keys - Học thông minh</p>
@@ -116,8 +127,9 @@ export function AppLayout() {
             </div>
           </div>
         </header>
+        <MobileDrawer links={links} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onSignOut={signOut} isAdmin={Boolean(isAdmin)} />
         <main className="min-h-screen pb-24 pt-16 xl:ml-[260px]">
-          <div className="mx-auto max-w-[1200px] px-4 py-10 xl:px-8">
+          <div className="mx-auto max-w-[1200px] px-3 py-5 sm:px-4 sm:py-8 xl:px-8">
             <Outlet />
           </div>
         </main>
@@ -159,7 +171,7 @@ export function AppLayout() {
       <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur lg:ml-64">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div className="flex items-center gap-3">
-            <Menu className="lg:hidden" size={20} />
+            <button className="grid h-10 w-10 place-items-center rounded-lg text-slate-700 hover:bg-slate-100 lg:hidden" onClick={() => setMobileMenuOpen(true)} aria-label="Mở menu"><Menu size={20} /></button>
             <div>
               <p className="text-xs font-medium uppercase text-brand-600">Xin chào</p>
               <h2 className="text-lg font-semibold text-slate-900">{user?.fullName ?? 'Learner'}</h2>
@@ -168,9 +180,10 @@ export function AppLayout() {
           <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">{isAdmin ? 'ADMIN' : 'STUDENT'}</span>
         </div>
       </header>
+      <MobileDrawer links={links} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onSignOut={signOut} isAdmin={Boolean(isAdmin)} />
 
       <main className="pb-24 lg:ml-64 lg:pb-8">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-6xl px-3 py-5 sm:px-6 lg:px-8">
           <Outlet />
         </div>
       </main>
@@ -183,6 +196,48 @@ export function AppLayout() {
           </NavLink>
         ))}
       </nav>
+    </div>
+  );
+}
+
+function MobileDrawer({ links, open, onClose, onSignOut, isAdmin }: {
+  links: LayoutLink[];
+  open: boolean;
+  onClose: () => void;
+  onSignOut: () => void;
+  isAdmin: boolean;
+}) {
+  return (
+    <div className={`fixed inset-0 z-50 xl:hidden ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
+      <div className={`absolute inset-0 bg-slate-950/45 transition-opacity ${open ? 'opacity-100' : 'opacity-0'}`} onClick={onClose} />
+      <aside className={`absolute inset-y-0 left-0 flex w-[min(86vw,320px)] flex-col bg-[#1e293b] p-4 text-white shadow-2xl transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="mb-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase text-white/55">{isAdmin ? 'Admin' : 'English Prep'}</p>
+            <h2 className="text-lg font-extrabold">LingoMaster</h2>
+          </div>
+          <button className="grid h-10 w-10 place-items-center rounded-lg text-white/80 hover:bg-white/10" onClick={onClose} aria-label="Đóng menu">
+            <X size={21} />
+          </button>
+        </div>
+        <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+          {links.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/app' || to === '/admin'}
+              onClick={onClose}
+              className={({ isActive }) => `flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${isActive ? 'bg-brand-600 text-white' : 'text-white/78 hover:bg-white/10 hover:text-white'}`}
+            >
+              <Icon className="shrink-0" size={21} />
+              <span className="truncate">{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+        <button onClick={onSignOut} className="mt-4 flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-red-200 hover:bg-white/10">
+          <LogOut size={20} /> Đăng xuất
+        </button>
+      </aside>
     </div>
   );
 }

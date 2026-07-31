@@ -6,6 +6,7 @@
 body {
   margin: 0;
   min-width: 320px;
+  overflow-x: hidden;
   background: #f7f7fc;
   color: #141b2b;
 }
@@ -24,4 +25,61 @@ body {
 
 .btn-secondary {
   @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 transition hover:bg-slate-50;
+}
+
+@media (max-width: 640px) {
+  .card {
+    border-radius: 14px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    min-width: 0;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  table {
+    white-space: nowrap;
+  }
+
+  .fixed.bottom-0.left-0.right-0.z-30.border-t > div {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .fixed.bottom-0.left-0.right-0.z-30.border-t > div > div {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .fixed.bottom-0.left-0.right-0.z-30.border-t button {
+    justify-content: center;
+    min-width: 0;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+    white-space: nowrap;
+  }
+
+  .fixed.bottom-0.left-0.right-0.z-30.border-t button svg {
+    flex-shrink: 0;
+  }
+
+  .grid[class*="grid-cols-["] {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .cursor-grab.items-center.justify-between {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cursor-grab.items-center.justify-between .ml-4 {
+    align-self: flex-end;
+    margin-left: 0;
+  }
 }

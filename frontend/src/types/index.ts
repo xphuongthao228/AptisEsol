@@ -19,12 +19,19 @@ export interface User {
   enabled: boolean;
   proExpiresAt: string | null;
   accessExpiresAt: string | null;
+  lastSeenAt: string | null;
 }
 
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
   user: User;
+}
+
+export interface HeartbeatResponse {
+  visitorId: string;
+  onlineCount: number;
+  user: User | null;
 }
 
 export interface Skill {
