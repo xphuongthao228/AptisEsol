@@ -5,7 +5,7 @@ import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { RoleName, User } from '../../types';
 
-type StatusFilter = 'ALL' | 'ACTIVE' | 'LOCKED';
+type StatusFilter = 'ALL' | 'ACTIVE' | 'ONLINE' | 'LOCKED';
 type RoleFilter = 'ALL' | RoleName;
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 
@@ -23,7 +23,10 @@ export function AdminUsers() {
 
   const filtered = useMemo(() => users.filter((user) => {
     const matchQuery = [user.fullName, user.email].join(' ').toLowerCase().includes(query.toLowerCase());
-    const matchStatus = status === 'ALL' || (status === 'ACTIVE' ? user.enabled : !user.enabled);
+    const matchStatus = status === 'ALL'
+      || (status === 'ACTIVE' && user.enabled)
+      || (status === 'ONLINE' && user.enabled && isOnlineUser(user))
+      || (status === 'LOCKED' && !user.enabled);
     const matchRole = role === 'ALL' || user.roles.includes(role);
     return matchQuery && matchStatus && matchRole;
   }), [users, query, status, role]);
@@ -119,6 +122,7 @@ export function AdminUsers() {
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)}>
             <option value="ALL">Tất cả trạng thái</option>
             <option value="ACTIVE">Hoạt động</option>
+            <option value="ONLINE">Đang truy cập</option>
             <option value="LOCKED">Đã khóa</option>
           </select>
         </div>
