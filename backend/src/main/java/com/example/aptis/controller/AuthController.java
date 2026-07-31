@@ -6,6 +6,7 @@ import com.example.aptis.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -62,7 +63,9 @@ public class AuthController {
     @PostMapping("/heartbeat")
     public ApiResponse<AuthDtos.HeartbeatResponse> heartbeat(Authentication authentication,
             @RequestBody(required = false) AuthDtos.HeartbeatRequest request) {
-        String email = authentication == null ? null : authentication.getName();
+        String email = authentication == null || authentication instanceof AnonymousAuthenticationToken
+                ? null
+                : authentication.getName();
         String visitorId = request == null ? null : request.visitorId();
         return ApiResponse.ok(authService.heartbeat(visitorId, email));
     }

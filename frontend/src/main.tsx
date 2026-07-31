@@ -12,13 +12,17 @@ const VISITOR_ID_KEY = 'aptis-esol-visitor-id';
 
 function OnlineHeartbeat() {
   const accessToken = useAuthStore((state) => state.accessToken);
+  const setUser = useAuthStore((state) => state.setUser);
 
   useEffect(() => {
+    if (!accessToken) return;
+
     const ping = async () => {
       if (document.visibilityState === 'hidden') return;
       const visitorId = window.localStorage.getItem(VISITOR_ID_KEY);
       const response = await unwrap<HeartbeatResponse>(api.post('/auth/heartbeat', { visitorId }));
       window.localStorage.setItem(VISITOR_ID_KEY, response.visitorId);
+      if (response.user) setUser(response.user);
     };
 
     ping().catch(() => undefined);
@@ -31,7 +35,7 @@ function OnlineHeartbeat() {
       window.clearInterval(intervalId);
       window.removeEventListener('focus', ping);
     };
-  }, [accessToken]);
+  }, [accessToken, setUser]);
 
   return null;
 }
