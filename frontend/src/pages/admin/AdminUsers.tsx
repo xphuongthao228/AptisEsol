@@ -14,10 +14,9 @@ export function AdminUsers() {
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [role, setRole] = useState<RoleFilter>('ALL');
-  const [onlineVisitorCount, setOnlineVisitorCount] = useState(0);
-
   const users = data ?? [];
   const activeUsers = users.filter((user) => user.enabled);
+  const onlineUsers = users.filter((user) => user.enabled && isOnlineUser(user));
   const expiredUsers = users.filter((user) => user.enabled && !hasActiveAccess(user));
   const lockedUsers = users.filter((user) => !user.enabled);
 
@@ -33,12 +32,8 @@ export function AdminUsers() {
 
   useEffect(() => {
     const refreshOnlineData = async () => {
-      const [latestUsers, latestOnlineCount] = await Promise.all([
-        unwrap<User[]>(api.get('/users')),
-        unwrap<number>(api.get('/users/online-count'))
-      ]);
+      const latestUsers = await unwrap<User[]>(api.get('/users'));
       setData(latestUsers);
-      setOnlineVisitorCount(latestOnlineCount);
     };
 
     refreshOnlineData().catch(() => undefined);
@@ -102,7 +97,7 @@ export function AdminUsers() {
         </div>
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:flex">
           <Summary label="Hoạt động" value={activeUsers.length} icon={<UserCheck size={18} />} />
-          <Summary label="Đang truy cập" value={onlineVisitorCount} icon={<Wifi size={18} />} />
+          <Summary label="Đang truy cập" value={onlineUsers.length} icon={<Wifi size={18} />} />
           <Summary label="Hết hạn" value={expiredUsers.length} icon={<UserX size={18} />} />
           <Summary label="Đã khóa" value={lockedUsers.length} icon={<UserX size={18} />} />
         </div>
