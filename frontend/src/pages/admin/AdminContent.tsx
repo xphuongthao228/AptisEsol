@@ -690,6 +690,8 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
         {displayedQuestions.map((question) => {
           const template = parseTemplateContent(question.content);
           const templateName = template ? getTemplateName(question.content) : '';
+          const topicLabel = getQuestionTopicLabel(question, template, selectedTest, templateName);
+          const questionTitle = getQuestionPreview(question, templateName, selectedTest);
           return (
             <div className={`card p-4 ${selectedQuestionIds.includes(question.id) ? 'border-brand-300 ring-2 ring-brand-100' : ''}`} key={question.id}>
               <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -702,15 +704,15 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
                   />
                   <div>
                     <p className="text-xs font-semibold text-brand-600">
-                      #{question.sortOrder} | {templateName ? `TEMPLATE: ${templateName}` : question.type} | {question.points} điểm
+                      #{question.sortOrder} | {questionTitle} | {question.points} điểm
                     </p>
                     {question.featured && (
                       <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">
                         <Star size={14} className="fill-amber-400 text-amber-500" /> Nổi bật
                       </span>
                     )}
-                    {question.topic && <p className="mt-1 text-xs font-bold uppercase text-slate-500">{formatTopicLabel(question.topic)}</p>}
-                    <h3 className="mt-1 font-semibold">{getQuestionPreview(question, templateName)}</h3>
+                    {topicLabel && <p className="mt-1 text-xs font-bold uppercase text-slate-500">{topicLabel}</p>}
+                    <h3 className="mt-1 font-semibold">{questionTitle}</h3>
                     {template?.instructions && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{template.instructions}</p>}
                     {(question.audioUrl || template?.audioUrl) && <p className="mt-1 truncate text-xs text-blue-600">Audio: {question.audioUrl || template?.audioUrl}</p>}
                     {(question.scriptText || template?.scriptText) && <p className="mt-1 line-clamp-2 text-xs text-slate-500">Script: {question.scriptText || template?.scriptText}</p>}
@@ -764,16 +766,44 @@ function getTemplateName(content: string) {
 }
 
 function formatTopicLabel(topic: string) {
-  const cleaned = topic.replace(/^topic:\s*/i, '').trim();
-  return `Topic: ${cleaned}`;
+  const cleaned = cleanTopicName(topic);
+  return cleaned ? `Topic: ${cleaned}` : '';
 }
 
-function getQuestionPreview(question: Question, templateName: string) {
+function getQuestionTopicLabel(question: Question, template: TemplateData | null, selectedTest?: Test, templateName = '') {
+  const topic = getDisplayTopic(question, template, selectedTest, templateName);
+
+  return topic ? `Topic: ${topic}` : '';
+}
+
+function cleanTopicName(value?: string) {
+  return (value ?? '').replace(/^topic:\s*/i, '').trim();
+}
+
+function isTemplateLabelName(value: string, templateName: string) {
+  const cleaned = value.trim().toLowerCase();
+  return cleaned === templateName.trim().toLowerCase()
+    || cleaned === 'template'
+    || cleaned.startsWith('template:');
+}
+
+function getDisplayTopic(question: Question, template: TemplateData | null, selectedTest?: Test, templateName = '') {
+  return [
+    question.topic,
+    template?.topic,
+    template?.title,
+    selectedTest?.title,
+    selectedTest?.description
+  ].map((value) => cleanTopicName(value))
+    .find((value) => value && !isTemplateLabelName(value, templateName))
+    ?? '';
+}
+
+function getQuestionPreview(question: Question, templateName: string, selectedTest?: Test) {
   const template = parseTemplateContent(question.content);
   if (!template) return question.content;
 
-  const title = template.topic ?? template.title ?? question.topic ?? '';
-  return title ? `${templateName}: ${title}` : templateName;
+  return getDisplayTopic(question, template, selectedTest, templateName) || 'Chưa đặt tên topic';
 }
 
 type TemplateData = Record<string, any> & { template: string };
