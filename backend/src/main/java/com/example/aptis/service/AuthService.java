@@ -149,10 +149,15 @@ public class AuthService {
         return new AuthDtos.HeartbeatResponse(normalizedVisitorId, activeVisitorService.onlineCount(), userResponse);
     }
 
+    @Transactional
     public AuthDtos.UserResponse updateProfile(String email, AuthDtos.UpdateProfileRequest request) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow();
+
         user.setFullName(request.fullName().trim());
-        return mapper.user(userRepository.save(user));
+
+        User saved = userRepository.save(user);
+
+        return mapper.user(saved);
     }
 
     @Transactional

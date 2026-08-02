@@ -49,7 +49,8 @@ public class DtoMapper {
 
     public CoreDtos.LessonResponse lesson(Lesson lesson) {
         return new CoreDtos.LessonResponse(lesson.getId(), lesson.getSkill(), lesson.getTitle(),
-                lesson.getSummary(), lesson.getContent(), lesson.getStatus(), lesson.getUpdatedAt());
+                lesson.getSummary(), lesson.getContent(), lesson.getStatus(), lesson.getUpdatedAt(),
+                lesson.getResourceType(), lesson.getResourceUrl(), lesson.getPartLabel());
     }
 
     public CoreDtos.PredictionResponse prediction(Prediction prediction) {
@@ -83,7 +84,7 @@ public class DtoMapper {
         return new CoreDtos.QuestionResponse(question.getId(), question.getTest().getId(), question.getType(),
                 question.getContent(), question.getTopic(), question.getAudioUrl(), question.getScriptText(),
                 question.getExplanation(),
-                EXAM_POINT_PER_QUESTION, question.getSortOrder(),
+                EXAM_POINT_PER_QUESTION, question.getSortOrder(), question.isFeatured(),
                 question.getAnswers().stream().sorted(Comparator.comparing(Answer::getSortOrder))
                         .map(answer -> new CoreDtos.AnswerResponse(answer.getId(), answer.getContent(),
                                 answer.isCorrect(), answer.getSortOrder()))

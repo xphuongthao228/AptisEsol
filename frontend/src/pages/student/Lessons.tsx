@@ -1,12 +1,13 @@
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, Puzzle, ShieldCheck } from 'lucide-react';
+﻿import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, ShieldCheck, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
-import type { SubscriptionResponse } from '../../types';
+import type { Lesson, SubscriptionResponse } from '../../types';
 import { formatSubscriptionDate, getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 
 type SkillKey = 'LISTENING' | 'READING' | 'SPEAKING' | 'WRITING';
+type ResourceKind = 'VIDEO' | 'DOCUMENT';
 
 type TipItem = {
   title: string;
@@ -42,6 +43,16 @@ type TipLandingSection = {
 type TipLanding = {
   title: string;
   sections: TipLandingSection[];
+};
+
+type LearningResource = {
+  title: string;
+  description: string;
+  content?: string;
+  meta: string;
+  tags: string[];
+  to?: string;
+  href?: string;
 };
 
 const skillTips: SkillTip[] = [
@@ -310,8 +321,20 @@ const writingLetterPdfUrl = '/docs/aptis-keys-meo-viet-thu.pdf';
 export function Lessons() {
   const { skillType, tipSlug } = useParams();
   const [activeSkill, setActiveSkill] = useState<SkillKey>('READING');
+  const [resourceKind, setResourceKind] = useState<ResourceKind>('VIDEO');
+  const [openResource, setOpenResource] = useState<LearningResource | null>(null);
   const selectedTipSkill = normalizeTipSkill(skillType);
   const current = useMemo(() => skillTips.find((item) => item.key === activeSkill) ?? skillTips[0], [activeSkill]);
+  const { data: backendLessons } = useApi<Lesson[]>(() => unwrap(api.get(`/lessons?skill=${activeSkill}`)), [activeSkill]);
+  const resources = useMemo(() => {
+    return (backendLessons ?? [])
+      .filter((lesson) => {
+        if (lesson.status !== 'PUBLISHED') return false;
+        const type = lesson.resourceType ?? 'TIP';
+        return resourceKind === 'DOCUMENT' ? type === 'DOCUMENT' || type === 'TIP' : type === 'VIDEO';
+      })
+      .map(lessonToResource);
+  }, [backendLessons, resourceKind]);
 
   const { data: subscription } = useApi<SubscriptionResponse | null>(
     () => unwrap<SubscriptionResponse>(api.get('/payments/subscription/me')).catch(() => null),
@@ -391,6 +414,49 @@ export function Lessons() {
         ))}
       </section>
 
+      <section className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-soft sm:p-6">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-brand-600">Kho học liệu {current.label}</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-slate-950">Video và tài liệu ôn tập</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+              Chọn loại học liệu để xem nhanh video hướng dẫn hoặc tài liệu tóm tắt theo kỹ năng đang chọn.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 rounded-2xl border border-slate-200 bg-slate-50 p-1">
+            {([
+              { key: 'VIDEO', label: 'Video', icon: <PlayCircle size={17} /> },
+              { key: 'DOCUMENT', label: 'Tài liệu', icon: <FileText size={17} /> }
+            ] as const).map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => setResourceKind(item.key)}
+                className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold transition ${
+                  resourceKind === item.key ? 'bg-brand-600 text-white shadow-soft' : 'text-slate-600 hover:bg-white'
+                }`}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {resources.length > 0 ? (
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {resources.map((resource) => (
+              <ResourceCard key={resource.title} resource={resource} kind={resourceKind} onOpen={setOpenResource} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-8 text-center">
+            <p className="font-extrabold text-slate-700">Chưa có {resourceKind === 'VIDEO' ? 'video' : 'tài liệu'} cho {current.label}</p>
+            <p className="mt-2 text-sm text-slate-500">Admin có thể thêm link trong mục Quản lý bài học.</p>
+          </div>
+        )}
+      </section>
+
       <section className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-soft sm:p-7">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
@@ -440,6 +506,7 @@ export function Lessons() {
           items={['Đọc mẹo trước, làm 3-5 câu cùng dạng, rồi xem lại lỗi.', 'Ghi câu sai thành danh sách bẫy riêng.', 'Khi làm bộ đề, chỉ kiểm tra đáp án ở cuối để giữ cảm giác thi thật.', 'Ôn lại mẹo trước ngày thi thay vì học thêm quá nhiều dạng mới.']}
         />
       </section>
+      {openResource && <ResourceModal resource={openResource} onClose={() => setOpenResource(null)} />}
     </div>
   );
 }
@@ -474,6 +541,88 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
             </div>
           </section>
         ))}
+      </div>
+    </div>
+  );
+}
+
+function lessonToResource(lesson: Lesson): LearningResource {
+  const type = lesson.resourceType ?? 'TIP';
+  const resourceUrl = normalizeResourceUrl(lesson.resourceUrl);
+  return {
+    title: lesson.title,
+    description: lesson.summary || lesson.content || lesson.title,
+    content: lesson.content,
+    meta: lesson.partLabel || (type === 'VIDEO' ? 'Video' : type === 'TIP' ? 'Mẹo học' : 'Tài liệu'),
+    tags: [lesson.partLabel, type === 'VIDEO' ? 'Video' : type === 'TIP' ? 'Mẹo học' : 'Tài liệu', lesson.skill]
+      .filter(Boolean)
+      .map(String),
+    href: resourceUrl,
+    to: undefined
+  };
+}
+
+function normalizeResourceUrl(value: string | null | undefined) {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (/^(https?:|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+function ResourceCard({ resource, kind, onOpen }: { resource: LearningResource; kind: ResourceKind; onOpen: (resource: LearningResource) => void }) {
+  const icon = kind === 'VIDEO' ? <PlayCircle size={52} /> : <FileText size={52} />;
+  const actionText = kind === 'VIDEO' ? 'Xem video' : 'Mở tài liệu';
+
+  const content = (
+    <article className="group flex h-full min-h-[292px] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-soft">
+      <div className="relative grid min-h-[210px] flex-1 place-items-center bg-slate-50">
+        <span className="absolute left-3 top-3 rounded-full bg-amber-400 px-3 py-1 text-xs font-extrabold text-white">
+          {resource.meta}
+        </span>
+        <div className={`grid h-28 w-28 place-items-center rounded-xl shadow-lg ${kind === 'VIDEO' ? 'bg-rose-500 text-white' : 'bg-brand-500 text-white'}`}>
+          {icon}
+        </div>
+      </div>
+      <div className="border-t border-slate-100 px-4 py-4 text-center">
+        <h3 className="line-clamp-2 min-h-11 text-base font-extrabold leading-6 text-slate-950">{resource.title}</h3>
+        <p className="mt-2 line-clamp-2 text-xs font-semibold leading-5 text-slate-500">{resource.description}</p>
+        <span className="mt-3 inline-flex items-center justify-center gap-2 text-sm font-extrabold text-brand-600">
+          {actionText} <ArrowRight size={15} />
+        </span>
+      </div>
+    </article>
+  );
+
+  if (resource.href) {
+    return <a href={resource.href} target="_blank" rel="noreferrer">{content}</a>;
+  }
+
+  if (resource.to) {
+    return <Link to={resource.to}>{content}</Link>;
+  }
+
+  return <button type="button" className="text-left" onClick={() => onOpen(resource)}>{content}</button>;
+}
+
+function ResourceModal({ resource, onClose }: { resource: LearningResource; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end bg-slate-950/45 p-0 sm:items-center sm:p-6">
+      <div className="mx-auto max-h-[92vh] w-full max-w-3xl overflow-hidden rounded-t-[24px] bg-white shadow-2xl sm:rounded-[24px]">
+        <div className="flex items-start justify-between gap-4 border-b border-slate-100 p-5">
+          <div>
+            <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-brand-600">{resource.meta}</p>
+            <h2 className="mt-2 text-2xl font-extrabold text-slate-950">{resource.title}</h2>
+            {resource.description && <p className="mt-2 text-sm leading-6 text-slate-500">{resource.description}</p>}
+          </div>
+          <button type="button" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50" onClick={onClose}>
+            <X size={20} />
+          </button>
+        </div>
+        <div className="max-h-[68vh] overflow-y-auto p-5">
+          <div className="whitespace-pre-line rounded-2xl bg-slate-50 p-5 text-sm font-semibold leading-7 text-slate-700">
+            {resource.content || resource.description || 'Chưa có nội dung tài liệu.'}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -836,3 +985,5 @@ function MaterialCard({ icon, title, items }: { icon: JSX.Element; title: string
     </div>
   );
 }
+
+

@@ -1,6 +1,7 @@
 package com.example.aptis.entity;
 
 import com.example.aptis.enums.SkillType;
+import com.example.aptis.enums.LessonResourceType;
 import com.example.aptis.enums.TestStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -29,6 +30,16 @@ public class Lesson extends BaseEntity {
 
     @Column(length = 1000)
     private String summary;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "resource_type", nullable = false, length = 30)
+    private LessonResourceType resourceType = LessonResourceType.TIP;
+
+    @Column(name = "resource_url", columnDefinition = "text")
+    private String resourceUrl;
+
+    @Column(name = "part_label", length = 80)
+    private String partLabel;
 
     @Lob
     @Column(nullable = false, columnDefinition = "LONGTEXT")

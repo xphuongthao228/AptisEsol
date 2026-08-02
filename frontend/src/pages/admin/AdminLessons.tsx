@@ -2,7 +2,7 @@ import { BookOpen, Pencil, Plus, RotateCcw, Save, Search, Trash2, UploadCloud } 
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
-import type { SkillType } from '../../types';
+import type { LessonResourceType, SkillType } from '../../types';
 
 type LessonStatus = 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
 
@@ -14,6 +14,9 @@ type AdminLesson = {
   content: string;
   status: LessonStatus;
   updatedAt: string;
+  resourceType: LessonResourceType;
+  resourceUrl: string | null;
+  partLabel: string | null;
 };
 
 type LessonForm = {
@@ -23,6 +26,9 @@ type LessonForm = {
   summary: string;
   content: string;
   status: LessonStatus;
+  resourceType: LessonResourceType;
+  resourceUrl: string;
+  partLabel: string;
 };
 
 const emptyForm: LessonForm = {
@@ -31,7 +37,10 @@ const emptyForm: LessonForm = {
   title: '',
   summary: '',
   content: '',
-  status: 'PUBLISHED'
+  status: 'PUBLISHED',
+  resourceType: 'TIP',
+  resourceUrl: '',
+  partLabel: ''
 };
 
 const skillLabels: Record<SkillType, string> = {
@@ -40,6 +49,12 @@ const skillLabels: Record<SkillType, string> = {
   READING: 'Reading',
   WRITING: 'Writing',
   GRAMMAR: 'Grammar'
+};
+
+const resourceTypeLabels: Record<LessonResourceType, string> = {
+  TIP: 'Mẹo học',
+  VIDEO: 'Video',
+  DOCUMENT: 'Tài liệu'
 };
 
 function apiErrorMessage(error: any, fallback: string) {
@@ -74,7 +89,7 @@ export function AdminLessons() {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return lessons;
     return lessons.filter((lesson) =>
-      [lesson.title, lesson.summary, lesson.content, skillLabels[lesson.skill]]
+      [lesson.title, lesson.summary, lesson.content, lesson.resourceUrl, skillLabels[lesson.skill], resourceTypeLabels[lesson.resourceType ?? 'TIP']]
         .join(' ')
         .toLowerCase()
         .includes(keyword)
@@ -86,8 +101,13 @@ export function AdminLessons() {
   }
 
   async function saveLesson() {
-    if (!form.title.trim() || !form.content.trim()) {
-      toast.error('Vui lòng nhập tiêu đề và nội dung bài học');
+    if (!form.title.trim()) {
+      toast.error('Vui lòng nhập tiêu đề');
+      return;
+    }
+
+    if (form.resourceType !== 'TIP' && !form.resourceUrl.trim()) {
+      toast.error('Vui lòng nhập link video hoặc tài liệu');
       return;
     }
 
@@ -96,7 +116,10 @@ export function AdminLessons() {
       title: form.title.trim(),
       summary: form.summary.trim(),
       content: form.content.trim(),
-      status: form.status
+      status: form.status,
+      resourceType: form.resourceType,
+      resourceUrl: form.resourceUrl.trim(),
+      partLabel: form.partLabel.trim()
     };
 
     try {
@@ -124,7 +147,10 @@ export function AdminLessons() {
       title: lesson.title,
       summary: lesson.summary ?? '',
       content: lesson.content,
-      status: lesson.status
+      status: lesson.status,
+      resourceType: lesson.resourceType ?? 'TIP',
+      resourceUrl: lesson.resourceUrl ?? '',
+      partLabel: lesson.partLabel ?? ''
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -203,6 +229,40 @@ export function AdminLessons() {
                 </select>
               </label>
             </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-600">Loại học liệu</span>
+                <select
+                  className="input"
+                  value={form.resourceType}
+                  onChange={(event) => setForm((current) => ({ ...current, resourceType: event.target.value as LessonResourceType }))}
+                >
+                  {Object.entries(resourceTypeLabels).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-600">Nhãn phần</span>
+                <input
+                  className="input"
+                  value={form.partLabel}
+                  onChange={(event) => setForm((current) => ({ ...current, partLabel: event.target.value }))}
+                  placeholder="VD: Phần 1"
+                />
+              </label>
+            </div>
+
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-slate-600">Link video/tài liệu</span>
+              <input
+                className="input"
+                value={form.resourceUrl}
+                onChange={(event) => setForm((current) => ({ ...current, resourceUrl: event.target.value }))}
+                placeholder="Dán link YouTube, Google Drive, PDF hoặc tài liệu..."
+              />
+            </label>
 
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-600">Tiêu đề</span>
@@ -299,9 +359,18 @@ export function AdminLessons() {
                       }`}>
                         {lesson.status === 'PUBLISHED' ? 'Đang hiện' : lesson.status === 'DRAFT' ? 'Bản nháp' : 'Lưu trữ'}
                       </span>
+                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">
+                        {resourceTypeLabels[lesson.resourceType ?? 'TIP']}
+                      </span>
+                      {lesson.partLabel && (
+                        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-extrabold text-amber-700">
+                          {lesson.partLabel}
+                        </span>
+                      )}
                     </div>
                     <h3 className="mt-3 text-lg font-extrabold text-slate-950">{lesson.title}</h3>
                     {lesson.summary && <p className="mt-2 text-sm leading-6 text-slate-500">{lesson.summary}</p>}
+                    {lesson.resourceUrl && <p className="mt-2 max-w-[560px] truncate text-xs font-semibold text-brand-600">{lesson.resourceUrl}</p>}
                     <p className="mt-3 text-xs font-semibold text-slate-400">
                       Cập nhật: {new Date(lesson.updatedAt).toLocaleString('vi-VN')}
                     </p>

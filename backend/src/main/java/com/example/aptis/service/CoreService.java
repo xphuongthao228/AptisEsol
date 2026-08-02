@@ -242,8 +242,11 @@ public class CoreService {
         lesson.setSkill(request.skill());
         lesson.setTitle(request.title());
         lesson.setSummary(request.summary());
-        lesson.setContent(request.content());
+        lesson.setContent(firstNonBlank(firstNonBlank(request.content(), request.summary()), request.title()));
         lesson.setStatus(request.status() == null ? com.example.aptis.enums.TestStatus.PUBLISHED : request.status());
+        lesson.setResourceType(request.resourceType() == null ? com.example.aptis.enums.LessonResourceType.TIP : request.resourceType());
+        lesson.setResourceUrl(request.resourceUrl());
+        lesson.setPartLabel(request.partLabel());
     }
 
     @Transactional
@@ -267,6 +270,9 @@ public class CoreService {
                     lesson.setSummary(csv(record, "summary", ""));
                     lesson.setContent(requiredCsv(record, "content"));
                     lesson.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
+                    lesson.setResourceType(parseLessonResourceType(csv(record, "resource_type", "TIP")));
+                    lesson.setResourceUrl(csv(record, "resource_url", ""));
+                    lesson.setPartLabel(csv(record, "part_label", ""));
                     imported.add(mapper.lesson(lessons.save(lesson)));
                 } catch (RuntimeException ex) {
                     throw new IllegalArgumentException(
@@ -275,6 +281,13 @@ public class CoreService {
             }
         }
         return imported;
+    }
+
+    private com.example.aptis.enums.LessonResourceType parseLessonResourceType(String value) {
+        if (value == null || value.isBlank()) {
+            return com.example.aptis.enums.LessonResourceType.TIP;
+        }
+        return com.example.aptis.enums.LessonResourceType.valueOf(value.trim().toUpperCase());
     }
 
     public List<CoreDtos.PredictionResponse> predictions(com.example.aptis.enums.SkillType skill,
@@ -404,6 +417,7 @@ public class CoreService {
                     q.setExplanation(csv(record, "explanation", ""));
                     q.setPoints(parseInteger(record, "points", 1));
                     q.setSortOrder(parseInteger(record, "sort_order", imported.size() + 1));
+                    q.setFeatured(parseBoolean(csv(record, "featured", "false")));
                     if (rawType.equals("SPEAKING_PART3") && hasSpeakingPart3Columns(record)) {
                         if (speakingPart3Question == null) {
                             speakingPart3Question = q;
@@ -898,6 +912,20 @@ public class CoreService {
         }
     }
 
+    private boolean parseBoolean(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        String normalized = value.trim().toLowerCase();
+        return normalized.equals("true")
+                || normalized.equals("1")
+                || normalized.equals("yes")
+                || normalized.equals("y")
+                || normalized.equals("featured")
+                || normalized.equals("noi bat")
+                || normalized.equals("nổi bật");
+    }
+
     private void applyQuestion(Question q, CoreDtos.QuestionRequest request) {
         q.setTest(tests.findById(request.testId()).orElseThrow(() -> new ResourceNotFoundException("Test not found")));
         if (request.type() != null)
@@ -911,6 +939,7 @@ public class CoreService {
             q.setPoints(request.points());
         if (request.sortOrder() != null)
             q.setSortOrder(request.sortOrder());
+        q.setFeatured(Boolean.TRUE.equals(request.featured()));
         if (request.answers() != null) {
             request.answers().forEach(a -> {
                 Answer answer = new Answer();

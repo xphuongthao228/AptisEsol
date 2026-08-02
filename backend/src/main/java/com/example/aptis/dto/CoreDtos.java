@@ -1,6 +1,7 @@
 package com.example.aptis.dto;
 
 import com.example.aptis.enums.MediaType;
+import com.example.aptis.enums.LessonResourceType;
 import com.example.aptis.enums.NotificationAudience;
 import com.example.aptis.enums.NotificationLevel;
 import com.example.aptis.enums.QuestionType;
@@ -36,11 +37,12 @@ public class CoreDtos {
     }
 
     public record LessonRequest(@NotNull SkillType skill, @NotBlank String title, String summary,
-            @NotBlank String content, TestStatus status) {
+            String content, TestStatus status, LessonResourceType resourceType, String resourceUrl, String partLabel) {
     }
 
     public record LessonResponse(Long id, SkillType skill, String title, String summary, String content,
-            TestStatus status, LocalDateTime updatedAt) {
+            TestStatus status, LocalDateTime updatedAt, LessonResourceType resourceType, String resourceUrl,
+            String partLabel) {
     }
 
     public record PredictionRequest(@NotNull SkillType skill, @NotBlank String title, String summary,
@@ -59,12 +61,12 @@ public class CoreDtos {
 
     public record QuestionRequest(@NotNull Long testId, QuestionType type, @NotBlank String content,
             String topic, String audioUrl, String scriptText, String explanation, Integer points, Integer sortOrder,
-            List<AnswerRequest> answers) {
+            Boolean featured, List<AnswerRequest> answers) {
     }
 
     public record QuestionResponse(Long id, Long testId, QuestionType type, String content, String topic,
             String audioUrl, String scriptText, String explanation,
-            Integer points, Integer sortOrder, List<AnswerResponse> answers) {
+            Integer points, Integer sortOrder, Boolean featured, List<AnswerResponse> answers) {
     }
 
     public record SubmitAnswerRequest(@NotNull Long questionId, Long answerId, String textAnswer) {

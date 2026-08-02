@@ -2,6 +2,7 @@ export type RoleName = 'ADMIN' | 'STUDENT';
 export type SkillType = 'LISTENING' | 'SPEAKING' | 'READING' | 'WRITING' | 'GRAMMAR';
 export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TEXT' | 'AUDIO' | 'SPEAKING';
 export type TestMode = 'PRACTICE' | 'EXAM';
+export type LessonResourceType = 'TIP' | 'VIDEO' | 'DOCUMENT';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -41,6 +42,19 @@ export interface Skill {
   description: string;
 }
 
+export interface Lesson {
+  id: number;
+  skill: SkillType;
+  title: string;
+  summary: string;
+  content: string;
+  status: string;
+  updatedAt: string;
+  resourceType: LessonResourceType;
+  resourceUrl: string | null;
+  partLabel: string | null;
+}
+
 export interface Test {
   id: number;
   skillId: number;
@@ -71,6 +85,7 @@ export interface Question {
   explanation: string;
   points: number;
   sortOrder: number;
+  featured: boolean;
   answers: Answer[];
 }
 

@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Fragment } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ArrowRight, BookOpen, CalendarPlus, CheckSquare, Clock, FileSearch, HelpCircle, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, TrendingUp, Volume2 } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, CalendarPlus, CheckSquare, Clock, FileSearch, HelpCircle, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
@@ -399,11 +399,13 @@ export function PracticeRunner() {
           <AppTopbar />
         <form onSubmit={submit} className="pb-24">
           {loading && <div className="mx-auto max-w-[1460px] p-8">Đang tải câu hỏi...</div>}
+          {activeQuestion?.featured && <FeaturedQuestionCallout />}
           {activeQuestion && renderTemplateData && (
             <AptisTemplateRenderer
               data={renderTemplateData}
               questionId={activeQuestion.id}
               currentNumber={currentIndex + 1}
+              featured={activeQuestion.featured}
               initialClubIndex={Number.isFinite(requestedClubIndex) ? requestedClubIndex : undefined}
               checked={activeChecked}
               value={answers[activeQuestion.id] ?? ''}
@@ -483,7 +485,10 @@ export function PracticeRunner() {
             {!templateOwnsHeader && (
             <div className="mb-2 flex flex-col justify-between gap-2 lg:flex-row lg:items-end">
               <div>
-                <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">Đọc hiểu</span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">Đọc hiểu</span>
+                  {activeQuestion?.featured && <FeaturedQuestionBadge />}
+                </div>
                 <h1 className="mt-1 text-2xl font-extrabold tracking-normal sm:text-3xl">Câu {currentIndex + 1} / {totalQuestions}</h1>
                 <p className="mt-1 text-sm">{isExamSetMode ? 'Bộ đề' : 'Chủ đề'}: <span className="font-extrabold text-brand-600">{topicTitle}</span></p>
               </div>
@@ -526,11 +531,14 @@ export function PracticeRunner() {
 
             {loading && <div className="rounded-[18px] border border-slate-200 bg-white p-7">Đang tải câu hỏi...</div>}
 
+            {activeQuestion?.featured && <FeaturedQuestionCallout />}
+
             {activeQuestion && renderTemplateData && (
               <AptisTemplateRenderer
                 data={renderTemplateData}
                 questionId={activeQuestion.id}
                 currentNumber={currentIndex + 1}
+                featured={activeQuestion.featured}
                 initialClubIndex={Number.isFinite(requestedClubIndex) ? requestedClubIndex : undefined}
                 checked={activeChecked}
                 value={answers[activeQuestion.id] ?? ''}
@@ -548,7 +556,10 @@ export function PracticeRunner() {
                     <div className="flex gap-3">
                       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-brand-600"><HelpCircle size={18} /></div>
                       <div>
-                        <h2 className="text-base font-extrabold">{activeQuestion.answers.length ? 'Chọn đáp án đúng' : 'Trả lời tự luận'}</h2>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-base font-extrabold">{activeQuestion.answers.length ? 'Chọn đáp án đúng' : 'Trả lời tự luận'}</h2>
+                          {activeQuestion.featured && <FeaturedQuestionBadge />}
+                        </div>
                         <p className="mt-1 text-sm leading-5 text-slate-600">{repairMojibake(activeQuestion.content)}</p>
                       </div>
                     </div>
@@ -810,6 +821,31 @@ function findAudioUrl(text: string) {
   return '';
 }
 
+function FeaturedQuestionBadge() {
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-gradient-to-r from-amber-100 to-yellow-50 px-3 py-1.5 text-xs font-black text-amber-800 shadow-sm ring-2 ring-amber-100">
+      <Star size={15} className="fill-amber-400 text-amber-500" />
+      Câu nổi bật
+    </span>
+  );
+}
+
+function FeaturedQuestionCallout() {
+  return (
+    <div className="mx-auto mb-3 max-w-[1180px] rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-100 via-yellow-50 to-white px-4 py-3 text-amber-900 shadow-[0_10px_24px_rgba(245,158,11,0.18)]">
+      <div className="flex items-center gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-amber-400 text-white shadow-sm">
+          <Star size={22} className="fill-white" />
+        </div>
+        <div>
+          <p className="text-sm font-black uppercase tracking-wide">Câu nổi bật</p>
+          <p className="text-sm font-semibold text-amber-800">Admin đã đánh dấu câu này cần chú ý hơn.</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function QuestionNavigator({ total, currentIndex, answeredIds, checkedIds, questions, onSelect }: {
   total: number;
   currentIndex: number;
@@ -832,23 +868,38 @@ function QuestionNavigator({ total, currentIndex, answeredIds, checkedIds, quest
           const active = index === currentIndex;
           const answered = Boolean(answeredIds[question.id]);
           const checked = checkedIds[question.id];
+          const featured = Boolean(question.featured);
           return (
             <button
               type="button"
               key={question.id}
               onClick={() => onSelect(index)}
-              className={`grid h-7 min-w-7 place-items-center rounded-md border text-[10px] font-extrabold transition ${
+              title={featured ? 'Câu nổi bật' : undefined}
+              aria-label={featured ? `Câu ${index + 1} nổi bật` : `Câu ${index + 1}`}
+              className={`relative grid ${featured ? 'h-8 min-w-8' : 'h-7 min-w-7'} place-items-center rounded-md border text-[10px] font-extrabold transition ${
                 active
-                  ? 'border-brand-600 bg-brand-600 text-white shadow-soft'
+                  ? featured
+                    ? 'border-amber-400 bg-brand-600 text-white shadow-soft ring-2 ring-amber-400 ring-offset-1'
+                    : 'border-brand-600 bg-brand-600 text-white shadow-soft'
                   : checked === true
                     ? 'border-green-300 bg-green-100 text-green-800'
                     : checked === false
                       ? 'border-red-300 bg-red-100 text-red-700'
                   : answered
-                    ? 'border-green-200 bg-green-50 text-green-700'
-                    : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-300'
+                    ? featured
+                      ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-[0_0_0_2px_rgba(251,191,36,0.35)]'
+                      : 'border-green-200 bg-green-50 text-green-700'
+                    : featured
+                      ? 'border-amber-400 bg-amber-100 text-amber-900 shadow-[0_0_0_2px_rgba(251,191,36,0.35)] hover:border-amber-500'
+                      : 'border-slate-200 bg-slate-50 text-slate-600 hover:border-brand-300'
               }`}
             >
+              {featured && (
+                <Star
+                  size={12}
+                  className={`absolute -right-1.5 -top-1.5 rounded-full ${active ? 'fill-amber-300 text-amber-300' : 'fill-amber-500 text-amber-500'}`}
+                />
+              )}
               {index + 1}
             </button>
           );
@@ -1584,10 +1635,11 @@ function isClassicAptisTemplate(data: TemplateData | null) {
     || data?.template === 'LISTENING_PEOPLE_MATCH';
 }
 
-function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubIndex, checked, value, onChange }: {
+function AptisTemplateRenderer({ data, questionId, currentNumber, featured, initialClubIndex, checked, value, onChange }: {
   data: TemplateData;
   questionId: number;
   currentNumber?: number;
+  featured?: boolean;
   initialClubIndex?: number;
   checked?: boolean;
   value: string;
@@ -1667,6 +1719,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
             <span className="text-brand-600">‹</span>
             Question {data.questionNumber ?? currentNumber ?? 1} of {data.total ?? 30}
           </h1>
+          {featured && <div className="mt-2"><FeaturedQuestionBadge /></div>}
           {data.instructions && <p className="mt-2 text-sm text-slate-600">{data.instructions}</p>}
         </div>
 
@@ -1758,7 +1811,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
     const topic = displayTemplateTopic(data);
     return (
       <AptisPaper classic>
-        <QuestionCounter current={currentNumber} total={data.total} />
+        <QuestionCounter current={currentNumber} featured={featured} total={data.total} />
         <AudioBar text={data.playsRemaining} audioUrl={data.audioUrl} />
         <div className="rounded-2xl bg-[#eeeeee] px-4 py-5 sm:rounded-lg sm:px-5 sm:py-4">
           {topic && <h2 className="mb-4 text-base font-extrabold">Topic: {topic}</h2>}
@@ -1825,7 +1878,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, initialClubInd
     const topic = displayTemplateTopic(data);
     return (
       <AptisPaper classic>
-        <QuestionCounter current={currentNumber} total={data.total} />
+        <QuestionCounter current={currentNumber} featured={featured} total={data.total} />
         <AudioBar text={data.playsRemaining ?? '2 of 2 plays remaining'} audioUrl={data.audioUrl} />
         <div className="rounded-lg bg-[#eeeeee] px-8 py-8">
           {topic && <h2 className="mb-6 text-xl font-extrabold">Topic: {topic}</h2>}
@@ -3481,8 +3534,15 @@ function AptisPaper({ children, narrow, classic, compact }: { children: ReactNod
   return <div className={`mx-auto bg-white text-slate-950 ${compact ? 'px-3 py-4 sm:px-6' : 'px-3 py-6 sm:px-8 sm:py-8'} ${narrow ? 'max-w-[1280px]' : 'max-w-[1320px]'}`}>{children}</div>;
 }
 
-function QuestionCounter({ current, total }: { current?: number; total?: number }) {
-  return <h1 className="mb-3 flex flex-wrap items-center gap-2 text-[22px] font-extrabold leading-tight sm:mb-4 sm:text-xl">Question <span className="inline-flex min-w-9 justify-center border-b border-slate-900 px-1">{current ?? 1}</span> of {total ?? 1}</h1>;
+function QuestionCounter({ current, total, featured }: { current?: number; total?: number; featured?: boolean }) {
+  return (
+    <div className="mb-3 flex flex-wrap items-center gap-2 sm:mb-4">
+      <h1 className="flex flex-wrap items-center gap-2 text-[22px] font-extrabold leading-tight sm:text-xl">
+        Question <span className="inline-flex min-w-9 justify-center border-b border-slate-900 px-1">{current ?? 1}</span> of {total ?? 1}
+      </h1>
+      {featured && <FeaturedQuestionBadge />}
+    </div>
+  );
 }
 
 function InlineNumber({ value = 1 }: { value?: number }) {

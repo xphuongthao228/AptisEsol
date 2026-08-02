@@ -1,7 +1,7 @@
 ﻿import { FormEvent, useMemo, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { BookOpen, Check, Download, Layers, ListChecks, MessageCircle, Mic, Pencil, Play, Plus, Trash2, UploadCloud, Volume2, Wand2 } from 'lucide-react';
+import { BookOpen, Check, Download, Layers, ListChecks, MessageCircle, Mic, Pencil, Play, Plus, Star, Trash2, UploadCloud, Volume2, Wand2 } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { Question, QuestionType, Skill, SkillType, Test, TestMode } from '../../types';
@@ -315,6 +315,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
   const [explanation, setExplanation] = useState('');
   const [points, setPoints] = useState(5);
   const [sortOrder, setSortOrder] = useState(1);
+  const [featured, setFeatured] = useState(false);
   const [answer1, setAnswer1] = useState('');
   const [answer2, setAnswer2] = useState('');
   const [answer3, setAnswer3] = useState('');
@@ -324,6 +325,10 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
   const selectedTemplate = parseTemplateContent(content);
   const selectedTemplateName = selectedTemplate ? getTemplateName(content) : '';
   const allSelected = questions.length > 0 && selectedQuestionIds.length === questions.length;
+  const displayedQuestions = useMemo(
+    () => [...questions].sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || a.sortOrder - b.sortOrder),
+    [questions]
+  );
 
   function fill(question: Question) {
     setEditing(question);
@@ -335,6 +340,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
     setExplanation(question.explanation ?? '');
     setPoints(question.points);
     setSortOrder(question.sortOrder);
+    setFeatured(Boolean(question.featured));
     setAnswer1(question.answers[0]?.content ?? '');
     setAnswer2(question.answers[1]?.content ?? '');
     setAnswer3(question.answers[2]?.content ?? '');
@@ -352,6 +358,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
     setExplanation('');
     setPoints(5);
     setSortOrder(1);
+    setFeatured(false);
     setAnswer1('');
     setAnswer2('');
     setAnswer3('');
@@ -454,8 +461,8 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
   }
   function downloadCsvTemplate() {
     const csv = [
-      'type,topic,audio_url,script_text,content,explanation,points,sort_order,answer1,answer2,answer3,answer4,answer5,answer6,correct_index_person1,correct_index_person2,correct_index_person3,correct_index_person4',
-      '"MATCHING_4_PEOPLE","Protect the environment","https://example.com/audio/listening-part2.mp3","Person A transcript...\n\nPerson B transcript...\n\nPerson C transcript...\n\nPerson D transcript...","Four people are discussing their views on Protect the environment. Complete the sentences. Use each answer only once. You will not need two of the answers.","Person 1: Does not use commercial cleaning products | Person 2: Give away used items | Person 3: Buy environmentally friendly products | Person 4: Reuse containers for storing food",5,1,"Does not use commercial cleaning products","Give away used items","Buy environmentally friendly products","Reuse containers for storing food","Plant trees in the backyard","Use solar panels for electricity",1,2,3,4'
+      'type,topic,audio_url,script_text,content,explanation,points,sort_order,featured,answer1,answer2,answer3,answer4,answer5,answer6,correct_index_person1,correct_index_person2,correct_index_person3,correct_index_person4',
+      '"MATCHING_4_PEOPLE","Protect the environment","https://example.com/audio/listening-part2.mp3","Person A transcript...\n\nPerson B transcript...\n\nPerson C transcript...\n\nPerson D transcript...","Four people are discussing their views on Protect the environment. Complete the sentences. Use each answer only once. You will not need two of the answers.","Person 1: Does not use commercial cleaning products | Person 2: Give away used items | Person 3: Buy environmentally friendly products | Person 4: Reuse containers for storing food",5,1,true,"Does not use commercial cleaning products","Give away used items","Buy environmentally friendly products","Reuse containers for storing food","Plant trees in the backyard","Use solar panels for electricity",1,2,3,4'
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -519,6 +526,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
       explanation,
       points,
       sortOrder,
+      featured,
       answers: type === 'TEXT' || type === 'SPEAKING'
         ? []
         : rawAnswers.map((answer, index) => ({ content: answer, correct: index + 1 === correctIndex, sortOrder: index + 1 }))
@@ -633,6 +641,16 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
               <input className="input" type="number" min={1} value={points} onChange={(e) => setPoints(Number(e.target.value))} placeholder="Điểm" />
               <input className="input" type="number" min={1} value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} placeholder="Thứ tự" />
             </div>
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${featured ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200'}`}>
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
+                checked={featured}
+                onChange={(event) => setFeatured(event.target.checked)}
+              />
+              <Star size={18} className={featured ? 'fill-amber-400 text-amber-500' : 'text-slate-400'} />
+              Đánh dấu câu hỏi nổi bật
+            </label>
             {type !== 'TEXT' && type !== 'SPEAKING' && (
               <div className="space-y-3 rounded-lg bg-slate-50 p-3">
                 {[answer1, answer2, answer3, answer4].map((value, index) => (
@@ -669,7 +687,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
           </div>
         </div>
         {loading && <div className="card p-5 text-sm text-slate-500">Đang tải câu hỏi...</div>}
-        {questions.map((question) => {
+        {displayedQuestions.map((question) => {
           const template = parseTemplateContent(question.content);
           const templateName = template ? getTemplateName(question.content) : '';
           return (
@@ -686,6 +704,11 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
                     <p className="text-xs font-semibold text-brand-600">
                       #{question.sortOrder} | {templateName ? `TEMPLATE: ${templateName}` : question.type} | {question.points} điểm
                     </p>
+                    {question.featured && (
+                      <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-800">
+                        <Star size={14} className="fill-amber-400 text-amber-500" /> Nổi bật
+                      </span>
+                    )}
                     {question.topic && <p className="mt-1 text-xs font-bold uppercase text-slate-500">{formatTopicLabel(question.topic)}</p>}
                     <h3 className="mt-1 font-semibold">{getQuestionPreview(question, templateName)}</h3>
                     {template?.instructions && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{template.instructions}</p>}

@@ -52,6 +52,9 @@ public class Question extends BaseEntity {
     @Column(name = "sort_order", nullable = false)
     private Integer sortOrder = 1;
 
+    @Column(nullable = false)
+    private boolean featured = false;
+
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("sortOrder ASC")
     private List<Answer> answers = new ArrayList<>();
