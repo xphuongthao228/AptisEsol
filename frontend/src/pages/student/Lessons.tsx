@@ -321,7 +321,7 @@ const writingLetterPdfUrl = '/docs/aptis-keys-meo-viet-thu.pdf';
 export function Lessons() {
   const { skillType, tipSlug } = useParams();
   const [activeSkill, setActiveSkill] = useState<SkillKey>('READING');
-  const [resourceKind, setResourceKind] = useState<ResourceKind>('VIDEO');
+  const [resourceKind, setResourceKind] = useState<ResourceKind>('DOCUMENT');
   const [openResource, setOpenResource] = useState<LearningResource | null>(null);
   const selectedTipSkill = normalizeTipSkill(skillType);
   const current = useMemo(() => skillTips.find((item) => item.key === activeSkill) ?? skillTips[0], [activeSkill]);
