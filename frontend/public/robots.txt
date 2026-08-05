@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /app/settings
+
+Sitemap: https://www.aptisfree.site/sitemap.xml

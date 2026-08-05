@@ -1,5 +1,6 @@
 import { BookOpenCheck, CheckCircle2, Headphones, Mic, PenLine, SpellCheck, Timer } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { SEO } from '../../components/SEO';
 
 const skillItems = [
   { label: 'Listening', icon: <Headphones size={18} /> },
@@ -11,6 +12,7 @@ const skillItems = [
 export function AuthShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
   return (
     <main className="min-h-screen bg-[#f6f8ff] text-slate-950 lg:grid lg:grid-cols-[1.08fr_0.92fr]">
+      <SEO title={title} description={subtitle} />
       <section className="relative hidden overflow-hidden bg-[#172235] px-12 py-10 text-white lg:flex lg:flex-col lg:justify-between">
         <div className="absolute inset-x-0 top-0 h-1 bg-brand-600" />
         <div className="absolute -right-28 top-24 h-72 w-72 rounded-full bg-brand-500/20 blur-3xl" />

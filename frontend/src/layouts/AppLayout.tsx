@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { SEO, getSeoByPath } from '../components/SEO';
 import { useAuthStore } from '../store/authStore';
 
 type LayoutLink = {
@@ -61,6 +62,7 @@ export function AppLayout() {
   const isAdmin = user?.roles.includes('ADMIN');
   const links = isAdmin ? adminLinks : studentLinks;
   const isExamMode = !isAdmin && /^\/app\/(tests|exams)\/\d+/.test(location.pathname);
+  const seo = getSeoByPath(location.pathname, Boolean(isAdmin));
 
   const signOut = async () => {
     setMobileMenuOpen(false);
@@ -69,12 +71,18 @@ export function AppLayout() {
   };
 
   if (isExamMode) {
-    return <Outlet />;
+    return (
+      <>
+        <SEO {...seo} />
+        <Outlet />
+      </>
+    );
   }
 
   if (!isAdmin) {
     return (
       <div className="min-h-screen bg-[#f7f7fc]">
+        <SEO {...seo} />
         <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col overflow-hidden bg-[#1e293b] text-white xl:flex">
           <div className="px-6 py-6">
             <h1 className="text-2xl font-extrabold tracking-tight">English Prep</h1>
@@ -147,6 +155,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-[#f8f9fa]">
+      <SEO {...seo} />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 bg-slatePanel px-4 py-5 text-white lg:block">
         <div className="mb-8 flex items-center gap-3 px-2">
           <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand-600 font-bold">A</div>
