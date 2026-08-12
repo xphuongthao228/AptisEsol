@@ -12,7 +12,7 @@ import { repairMojibake } from '../../utils/textRepair';
 const examLinks = [
   { to: '/app', label: 'Trang chủ', icon: LayoutDashboard, active: false },
   { to: '/app/tests', label: 'Luyện tập', icon: BookOpen, active: true },
-  { to: '/app/exams', label: 'Đề thi', icon: ListChecks, active: false },
+  { to: '/app/exams', label: 'Thi thử', icon: ListChecks, active: false },
   { to: '/app/predictions', label: 'Dự đoán đề', icon: FileSearch, active: false },
   { to: '/app/renewal', label: 'Gia hạn', icon: CalendarPlus, active: false },
   { to: '/app/settings', label: 'Cài đặt', icon: Settings, active: false }

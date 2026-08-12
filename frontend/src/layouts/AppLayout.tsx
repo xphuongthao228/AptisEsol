@@ -35,7 +35,7 @@ const studentLinks: LayoutLink[] = [
   { to: '/app', label: 'Tổng quan', icon: LayoutDashboard },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/tests', label: 'Luyện tập', icon: BookOpen },
-  { to: '/app/exams', label: 'Đề thi', icon: FileText },
+  { to: '/app/exams', label: 'Thi thử', icon: FileText },
   { to: '/app/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/app/renewal', label: 'Gia hạn', icon: CalendarPlus },
   { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },

@@ -42,7 +42,7 @@ public class PaymentService {
     @Value("${app.payment.sepay-webhook-token:}")
     private String sepayWebhookToken;
 
-    @Value("${app.subscription.free-trial-days:2}")
+    @Value("${app.subscription.free-trial-days:1}")
     private int freeTrialDays;
 
     @Transactional

@@ -52,7 +52,7 @@ public class CoreService {
     @Value("${app.upload-dir}")
     private String uploadDir;
 
-    @Value("${app.subscription.free-trial-days:2}")
+    @Value("${app.subscription.free-trial-days:1}")
     private int freeTrialDays;
 
     public List<AuthDtos.UserResponse> users() {
