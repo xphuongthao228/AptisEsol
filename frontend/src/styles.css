@@ -32,6 +32,148 @@ body {
     border-radius: 14px;
   }
 
+  .mock-test-topbar {
+    height: auto !important;
+    min-height: 64px;
+    padding: 0.65rem 0.85rem !important;
+  }
+
+  .mock-test-topbar > div {
+    gap: 0.75rem;
+  }
+
+  .mock-test-topbar h1 {
+    max-width: 48vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mock-test-topbar button {
+    height: 38px;
+    min-width: 0;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    font-size: 0.875rem !important;
+    white-space: nowrap;
+  }
+
+  .mock-speaking-main {
+    min-height: calc(100vh - 64px) !important;
+    padding: 1rem 0.75rem 8.5rem !important;
+  }
+
+  .mock-speaking-grid {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .mock-speaking-card {
+    min-height: 0 !important;
+    padding: 1.1rem !important;
+  }
+
+  .mock-speaking-card p {
+    max-width: 100%;
+  }
+
+  .mock-speaking-card img {
+    height: auto !important;
+    max-height: 260px;
+  }
+
+  .mock-speaking-image-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mock-speaking-recorder {
+    width: 100%;
+  }
+
+  .mock-speaking-recorder > div {
+    min-height: 0 !important;
+    padding: 1.25rem !important;
+  }
+
+  .mock-speaking-recorder > div > div {
+    height: 132px !important;
+    margin-top: 1rem !important;
+    width: 132px !important;
+  }
+
+  .mock-speaking-recorder > div > div p {
+    font-size: 2rem !important;
+  }
+
+  .mock-speaking-side-actions {
+    bottom: 4.7rem !important;
+    left: 0.75rem !important;
+    right: 0.75rem !important;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem !important;
+  }
+
+  .mock-speaking-side-actions button {
+    justify-content: center;
+    min-width: 0;
+    padding-left: 0.6rem !important;
+    padding-right: 0.6rem !important;
+    white-space: nowrap;
+  }
+
+  .mock-speaking-draft-panel {
+    border-bottom-left-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    bottom: 0 !important;
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    top: 4.75rem !important;
+    width: auto !important;
+  }
+
+  .mock-speaking-draft-panel footer {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .mock-reading-footer {
+    padding: 0.6rem 0.75rem !important;
+  }
+
+  .mock-reading-footer-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.6rem !important;
+  }
+
+  .mock-reading-footer-actions,
+  .mock-reading-footer-tools,
+  .mock-reading-footer-nav {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .mock-reading-footer-tools {
+    display: none !important;
+  }
+
+  .mock-reading-footer-nav {
+    justify-content: stretch !important;
+  }
+
+  .mock-reading-footer-nav > :first-child {
+    display: none !important;
+  }
+
+  .mock-reading-footer-nav > button {
+    justify-content: center;
+    min-width: 0;
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    width: 100%;
+  }
+
   .btn-primary,
   .btn-secondary {
     min-width: 0;

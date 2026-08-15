@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, ReactNode, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Bot, Send, Sparkles, UserRound, X } from 'lucide-react';
 import { api, unwrap } from '../api/client';
@@ -75,8 +75,8 @@ export function LingoWidget() {
                     <Sparkles size={14} />
                   </div>
                 )}
-                <div className={`max-w-[280px] whitespace-pre-wrap rounded-2xl px-3 py-2 text-sm leading-6 ${message.role === 'user' ? 'bg-slate-900 text-white' : 'bg-white text-slate-800 shadow-sm'}`}>
-                  {message.content}
+                <div className={`max-w-[280px] rounded-2xl px-3 py-2 text-sm leading-6 ${message.role === 'user' ? 'whitespace-pre-wrap bg-slate-900 text-white' : 'bg-white text-slate-800 shadow-sm'}`}>
+                  {message.role === 'assistant' ? <AssistantMessage content={message.content} /> : message.content}
                 </div>
                 {message.role === 'user' && (
                   <div className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-200 text-slate-700">
@@ -131,4 +131,57 @@ export function LingoWidget() {
       </button>
     </div>
   );
+}
+
+function AssistantMessage({ content }: { content: string }) {
+  const lines = content.split(/\r?\n/);
+
+  return (
+    <div className="space-y-2">
+      {lines.map((line, index) => {
+        const trimmed = line.trim();
+        if (!trimmed) return <div key={`blank-${index}`} className="h-1" />;
+
+        const quote = trimmed.match(/^>\s*(.+)$/);
+        if (quote) {
+          return (
+            <blockquote key={`${line}-${index}`} className="border-l-4 border-violet-300 pl-3 italic text-slate-700">
+              {renderInlineMarkdown(quote[1])}
+            </blockquote>
+          );
+        }
+
+        const bullet = trimmed.match(/^[-*]\s+(.+)$/);
+        if (bullet) {
+          return (
+            <div key={`${line}-${index}`} className="flex gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500" />
+              <span>{renderInlineMarkdown(bullet[1])}</span>
+            </div>
+          );
+        }
+
+        const heading = trimmed.match(/^#{1,3}\s+(.+)$/);
+        if (heading) {
+          return (
+            <p key={`${line}-${index}`} className="font-extrabold text-slate-950">
+              {renderInlineMarkdown(heading[1])}
+            </p>
+          );
+        }
+
+        return <p key={`${line}-${index}`}>{renderInlineMarkdown(trimmed)}</p>;
+      })}
+    </div>
+  );
+}
+
+function renderInlineMarkdown(text: string): ReactNode[] {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+
+  return parts.filter(Boolean).map((part, index) => {
+    const bold = part.match(/^\*\*([^*]+)\*\*$/);
+    if (bold) return <strong key={`${part}-${index}`} className="font-extrabold">{bold[1]}</strong>;
+    return <span key={`${part}-${index}`}>{part}</span>;
+  });
 }

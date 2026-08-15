@@ -29,8 +29,10 @@
   RotateCcw,
   Search,
   Settings,
+  Sparkles,
   Volume2,
   VolumeX,
+  X,
   type LucideIcon
 } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -43,6 +45,18 @@ import { useAuthStore } from '../../store/authStore';
 type SpeakingScreen = 'select' | 'fullStart' | 'fullResult' | 'start' | 'instructions' | 'prompt' | 'question' | 'part2Prompt' | 'part2Question' | 'part3Prompt' | 'part3Question' | 'part4Prompt' | 'part4Question' | 'complete' | 'readingStart' | 'readingInstructions' | 'readingQuestion' | 'readingCohesion' | 'readingOpinion' | 'readingLong' | 'readingResult' | 'readingReview' | 'listeningStart' | 'listeningInstructions' | 'listeningQuestion' | 'listeningMatching' | 'listeningShort' | 'listeningMonologues' | 'listeningResult' | 'listeningReview' | 'writingInstructions' | 'writingPart' | 'writingResult' | 'grammarStart' | 'grammarInstructions' | 'grammarQuestion' | 'grammarResult';
 type Part4Phase = 'prepare' | 'recording';
 type MockSkill = 'FULL' | 'LISTENING' | 'SPEAKING' | 'WRITING' | 'READING' | 'GRAMMAR';
+type DraftLevel = 'B1' | 'B2';
+type SpeakingDraftField = {
+  label: string;
+  prefix: string;
+  b1: readonly string[];
+  b2: readonly string[];
+};
+type SpeakingDraftTemplate = {
+  title: string;
+  target: string;
+  fields: readonly SpeakingDraftField[];
+};
 
 type AiWritingScore = {
   overallScore: number;
@@ -466,6 +480,11 @@ const speakingQuestions = [
   'What do you usually do in your free time?',
   'Tell me about a place in your city that you like.'
 ];
+const speakingSampleAnswers = [
+  'I live with my parents and my younger sister. We are quite close, and we usually have dinner together in the evening. My parents are supportive, and my sister is friendly and funny.',
+  'In my free time, I usually listen to music, watch short English videos, or go out for coffee with my friends. I also try to practise English speaking for a few minutes every day.',
+  'One place I like in my city is a small park near my house. It is quiet, clean, and has many trees. I often go there to walk, relax, and clear my mind after studying.'
+];
 
 const speakingInstructionsSpeechText = 'Aptis General Speaking Test Instructions. Speaking. You will answer some questions about yourself and then do three short speaking tasks. Listen to the instructions and speak clearly into your microphone when you hear the signal. Each part of the test will appear automatically. The test will take about 12 minutes. When you click on the Next button, the test will begin.';
 const promptSpeechText = 'Part One. In this part, I am going to ask you three short questions about yourself and your interests. You will have 30 seconds to reply to each question. Begin speaking when you hear this sound.';
@@ -508,10 +527,20 @@ const part2Questions = [
   'What do you think the people are talking about?',
   'Do you like eating with friends? Why or why not?'
 ];
+const part2SampleAnswers = [
+  'In the picture, I can see several people sitting around a table and having a meal together. They look relaxed and happy. It seems like they are friends or family members enjoying food and conversation.',
+  'I think they are talking about their day, their work, or something funny that happened recently. Because they are smiling, the conversation is probably friendly and casual.',
+  'Yes, I like eating with friends because it makes the meal more enjoyable. We can share stories, laugh together, and feel less stressed after a busy day.'
+];
 const part3Questions = [
   'Compare the pictures.',
   'What are the advantages of travelling by car?',
   'Do you prefer travelling alone or with other people? Why?'
+];
+const part3SampleAnswers = [
+  'Both pictures show ways of travelling. In the first picture, people are travelling by car, which may be more private and flexible. In the second picture, people are travelling by train, which may be more comfortable for long distances.',
+  'Travelling by car is convenient because you can choose your own route and stop whenever you want. It is also useful when you travel with family or carry a lot of luggage.',
+  'I prefer travelling with other people because it is more fun and safer. We can talk during the journey, share costs, and help each other if there is a problem.'
 ];
 const part4Topic = {
   title: 'Receiving a gift',
@@ -522,6 +551,7 @@ const part4Topic = {
     'Are you planning to give a gift to anyone soon? Tell me about it.'
   ]
 };
+const part4SampleAnswer = 'The last gift I received was a book from my friend on my birthday. I liked it because it showed that my friend understood my interests. I usually prefer thoughtful gifts, whether they are handmade or bought in a shop, because the meaning is more important than the price. I am planning to give my mother a small present soon, maybe some flowers or a nice scarf, to thank her for always supporting me.';
 const listeningPart1Questions: ListeningPart1Question[] = [
   {
     prompt: 'A person calls a friend about his new car. How much does the small car cost him?',
@@ -946,6 +976,9 @@ export function MockTests() {
   const [speakingSoundEnabled, setSpeakingSoundEnabled] = useState(true);
   const [microphoneLevel, setMicrophoneLevel] = useState(0);
   const [speakingRecordings, setSpeakingRecordings] = useState<Record<string, Blob>>({});
+  const [speakingDraftOpen, setSpeakingDraftOpen] = useState(false);
+  const [speakingDraftText, setSpeakingDraftText] = useState('');
+  const [speakingDraftLevel, setSpeakingDraftLevel] = useState<DraftLevel>('B1');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
@@ -957,7 +990,16 @@ export function MockTests() {
 
   useEffect(() => {
     setAnswerRevealOpen(false);
+    setSpeakingDraftOpen(false);
   }, [screen, questionIndex, part2QuestionIndex, part3QuestionIndex, listeningQuestionIndex, listeningMonologueIndex, readingCohesionIndex, writingPartIndex, grammarQuestionIndex]);
+
+  function insertSpeakingDraft(text: string) {
+    setSpeakingDraftText((current) => {
+      const cleaned = text.trim();
+      if (!cleaned) return current;
+      return current.trim() ? `${current.trim()}\n\n${cleaned}` : cleaned;
+    });
+  }
 
   function stopSpeakingRecording() {
     speechRecognitionRef.current?.stop();
@@ -1933,8 +1975,10 @@ export function MockTests() {
               index={questionIndex}
               total={speakingQuestions.length}
               seconds={recordingSeconds}
+              showAnswer={answerRevealOpen}
               isReading={!speechReady}
               microphoneLevel={microphoneLevel}
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onFinish={goNext}
             />
           )}
@@ -1944,8 +1988,11 @@ export function MockTests() {
               index={part2QuestionIndex}
               total={part2Questions.length}
               seconds={recordingSeconds}
+              showAnswer={answerRevealOpen}
               isReading={!speechReady}
               microphoneLevel={microphoneLevel}
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onOpenDraft={() => setSpeakingDraftOpen(true)}
               onFinish={goNext}
             />
           )}
@@ -1955,8 +2002,11 @@ export function MockTests() {
               index={part3QuestionIndex}
               total={part3Questions.length}
               seconds={recordingSeconds}
+              showAnswer={answerRevealOpen}
               isReading={!speechReady}
               microphoneLevel={microphoneLevel}
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onOpenDraft={() => setSpeakingDraftOpen(true)}
               onFinish={goNext}
             />
           )}
@@ -1964,8 +2014,24 @@ export function MockTests() {
             <Part4Question
               phase={part4Phase}
               seconds={recordingSeconds}
+              showAnswer={answerRevealOpen}
               microphoneLevel={microphoneLevel}
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onOpenDraft={() => setSpeakingDraftOpen(true)}
               onFinish={goNext}
+            />
+          )}
+          {speakingDraftOpen && ['part2Question', 'part3Question', 'part4Question'].includes(screen) && (
+            <SpeakingDraftPanel
+              level={speakingDraftLevel}
+              part={screen === 'part2Question' ? 2 : screen === 'part3Question' ? 3 : 4}
+              question={screen === 'part2Question' ? part2Questions[part2QuestionIndex] : screen === 'part3Question' ? part3Questions[part3QuestionIndex] : part4Topic.title}
+              questionIndex={screen === 'part2Question' ? part2QuestionIndex : screen === 'part3Question' ? part3QuestionIndex : 0}
+              text={speakingDraftText}
+              onClose={() => setSpeakingDraftOpen(false)}
+              onInsert={insertSpeakingDraft}
+              onLevelChange={setSpeakingDraftLevel}
+              onTextChange={setSpeakingDraftText}
             />
           )}
           {screen === 'complete' && (
@@ -2260,10 +2326,19 @@ function MockSelectLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="min-h-screen pb-24 pt-16 xl:ml-[260px]">
-        <div className="mx-auto max-w-[1180px] px-4 py-8 xl:px-0">
+        <div className="mx-auto max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 xl:px-0">
           {children}
         </div>
       </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white p-2 xl:hidden">
+        {sidebarLinks.filter((link) => ['/app', '/app/tests', '/app/mock-tests'].includes(link.to)).map(({ to, label, icon: Icon }) => (
+          <NavLink key={to} to={to} end={to === '/app'} className={({ isActive }) => `flex flex-col items-center gap-1 rounded-lg py-2 text-xs font-bold ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-500'}`}>
+            <Icon size={20} />
+            <span className="max-w-full truncate">{label}</span>
+          </NavLink>
+        ))}
+      </nav>
     </div>
   );
 }
@@ -2393,7 +2468,7 @@ function InfoBox({ icon, label, value }: { icon: ReactNode; label: string; value
 function SpeakingTopbar({ part, soundEnabled, onExit, onToggleSound }: { part: number; soundEnabled: boolean; onExit: () => void; onToggleSound: () => void }) {
   const SoundIcon = soundEnabled ? Volume2 : VolumeX;
   return (
-    <header className="h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
@@ -2423,7 +2498,7 @@ function SpeakingTopbarWithAudio({ part, soundEnabled, onExit, onToggleSound }: 
   const SoundIcon = soundEnabled ? Volume2 : VolumeX;
 
   return (
-    <header className="h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
@@ -2451,7 +2526,7 @@ function SpeakingTopbarWithAudio({ part, soundEnabled, onExit, onToggleSound }: 
 
 function ReadingTopbar({ title, onExit }: { title: string; onExit: () => void }) {
   return (
-    <header className="h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-semibold text-[#d9c7f3]">Reading</p>
@@ -2468,7 +2543,7 @@ function ReadingTopbar({ title, onExit }: { title: string; onExit: () => void })
 
 function ListeningTopbar({ title, onExit }: { title: string; onExit: () => void }) {
   return (
-    <header className="h-[66px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[66px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-semibold text-[#d9c7f3]">Listening</p>
@@ -2485,7 +2560,7 @@ function ListeningTopbar({ title, onExit }: { title: string; onExit: () => void 
 
 function WritingTopbar({ title, onExit }: { title: string; onExit: () => void }) {
   return (
-    <header className="h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-medium text-[#d9c7f3]">Writing</p>
@@ -2502,7 +2577,7 @@ function WritingTopbar({ title, onExit }: { title: string; onExit: () => void })
 
 function GrammarTopbar({ onExit }: { onExit: () => void }) {
   return (
-    <header className="h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-medium text-[#d9c7f3]">Grammar & Vocabulary</p>
@@ -5214,6 +5289,7 @@ function WritingAnswerContent({ part, partIndex }: { part: typeof writingParts[n
 function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = false, nextLabel = 'Next', onPrevious, onNext, onToggleAnswer }: { answerOpen?: boolean; showAnswer?: boolean; nextDisabled?: boolean; nextLabel?: string; onPrevious: () => void; onNext: () => void; onToggleAnswer?: () => void }) {
   return (
     <footer
+      className="mock-reading-footer"
       style={{
         position: 'fixed',
         left: 0,
@@ -5226,6 +5302,7 @@ function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = 
       }}
     >
       <div
+        className="mock-reading-footer-grid"
         style={{
           display: 'grid',
           gridTemplateColumns: '1fr auto 1fr',
@@ -5233,7 +5310,7 @@ function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = 
           gap: 16
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+        <div className="mock-reading-footer-actions" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
           {showAnswer && (
             <button type="button" onClick={onToggleAnswer} style={sideActionStyle}>
               <Eye size={17} />
@@ -5246,13 +5323,13 @@ function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = 
           </button>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="mock-reading-footer-tools" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <UtilityIcon icon={<List size={21} />} />
           <UtilityIcon icon={<Info size={21} />} />
           <UtilityIcon icon={<Move size={20} />} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
+        <div className="mock-reading-footer-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
           <UtilityIcon icon={<LogOut size={21} />} />
           <button
             type="button"
@@ -5336,6 +5413,7 @@ function SpeakingStart({ test, onStart }: { test: typeof speakingMockTests[numbe
 function SpeakingInstructions() {
   return (
     <main
+      className="mock-speaking-main"
       style={{
         minHeight: '100vh',
         backgroundColor: '#f1f1f1',
@@ -5343,6 +5421,7 @@ function SpeakingInstructions() {
       }}
     >
       <section
+        className="mock-speaking-grid"
         style={{
           width: 'min(960px, 100%)',
           margin: '0 auto',
@@ -5405,7 +5484,7 @@ function SpeakingPrompt({ part }: { part: 1 | 2 | 3 | 4 }) {
   );
 }
 
-function SpeakingQuestion({ question, index, total, seconds, isReading, microphoneLevel, onFinish }: { question: string; index: number; total: number; seconds: number; isReading: boolean; microphoneLevel: number; onFinish: () => void }) {
+function SpeakingQuestion({ question, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onFinish }: { question: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onFinish: () => void }) {
   return (
     <main
       style={{
@@ -5426,6 +5505,7 @@ function SpeakingQuestion({ question, index, total, seconds, isReading, micropho
         }}
       >
         <div
+          className="mock-speaking-card"
           style={{
             minHeight: 500,
             backgroundColor: '#ffffff',
@@ -5438,9 +5518,10 @@ function SpeakingQuestion({ question, index, total, seconds, isReading, micropho
           <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Question {index + 1} of {total}</h2>
           <p style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', margin: '34px 0 0' }}>{question}</p>
           <AutoScoredRecordingNote />
+          {showAnswer && <SpeakingSampleAnswer text={speakingSampleAnswers[index]} />}
         </div>
 
-        <aside>
+        <aside className="mock-speaking-recorder">
           <div
             style={{
               minHeight: 324,
@@ -5495,10 +5576,10 @@ function SpeakingQuestion({ question, index, total, seconds, isReading, micropho
         </aside>
       </section>
 
-      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button type="button" style={sideActionStyle}>
+      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" onClick={onToggleAnswer} style={sideActionStyle}>
           <Eye size={17} />
-          Hiện đáp án
+          {showAnswer ? 'Ẩn đáp án' : 'Hiện đáp án'}
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
@@ -5509,9 +5590,10 @@ function SpeakingQuestion({ question, index, total, seconds, isReading, micropho
   );
 }
 
-function Part2Question({ question, index, total, seconds, isReading, microphoneLevel, onFinish }: { question: string; index: number; total: number; seconds: number; isReading: boolean; microphoneLevel: number; onFinish: () => void }) {
+function Part2Question({ question, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { question: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
   return (
     <main
+      className="mock-speaking-main"
       style={{
         minHeight: 'calc(100vh - 74px)',
         backgroundColor: '#f1f1f1',
@@ -5520,6 +5602,7 @@ function Part2Question({ question, index, total, seconds, isReading, microphoneL
       }}
     >
       <section
+        className="mock-speaking-grid"
         style={{
           width: 'min(1400px, 100%)',
           margin: '0 auto',
@@ -5530,6 +5613,7 @@ function Part2Question({ question, index, total, seconds, isReading, microphoneL
         }}
       >
         <div
+          className="mock-speaking-card"
           style={{
             minHeight: 580,
             backgroundColor: '#ffffff',
@@ -5554,9 +5638,10 @@ function Part2Question({ question, index, total, seconds, isReading, microphoneL
           />
           <p style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', margin: '22px 0 0' }}>{question}</p>
           <AutoScoredRecordingNote />
+          {showAnswer && <SpeakingSampleAnswer text={part2SampleAnswers[index]} />}
         </div>
 
-        <aside>
+        <aside className="mock-speaking-recorder">
           <div
             style={{
               minHeight: 324,
@@ -5611,14 +5696,14 @@ function Part2Question({ question, index, total, seconds, isReading, microphoneL
         </aside>
       </section>
 
-      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button type="button" style={sideActionStyle}>
+      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" onClick={onOpenDraft} style={sideActionStyle}>
           <FileText size={17} />
           Nháp
         </button>
-        <button type="button" style={sideActionStyle}>
+        <button type="button" onClick={onToggleAnswer} style={sideActionStyle}>
           <Eye size={17} />
-          Hiện đáp án
+          {showAnswer ? 'Ẩn đáp án' : 'Hiện đáp án'}
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
@@ -5629,9 +5714,10 @@ function Part2Question({ question, index, total, seconds, isReading, microphoneL
   );
 }
 
-function Part3Question({ question, index, total, seconds, isReading, microphoneLevel, onFinish }: { question: string; index: number; total: number; seconds: number; isReading: boolean; microphoneLevel: number; onFinish: () => void }) {
+function Part3Question({ question, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { question: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
   return (
     <main
+      className="mock-speaking-main"
       style={{
         minHeight: 'calc(100vh - 74px)',
         backgroundColor: '#f1f1f1',
@@ -5640,6 +5726,7 @@ function Part3Question({ question, index, total, seconds, isReading, microphoneL
       }}
     >
       <section
+        className="mock-speaking-grid"
         style={{
           width: 'min(1400px, 100%)',
           margin: '0 auto',
@@ -5650,6 +5737,7 @@ function Part3Question({ question, index, total, seconds, isReading, microphoneL
         }}
       >
         <div
+          className="mock-speaking-card"
           style={{
             minHeight: 500,
             backgroundColor: '#ffffff',
@@ -5661,6 +5749,7 @@ function Part3Question({ question, index, total, seconds, isReading, microphoneL
           <p style={{ color: '#7a8393', fontSize: 16, fontWeight: 500, margin: 0 }}>Speaking</p>
           <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Question {index + 1} of {total}</h2>
           <div
+            className="mock-speaking-image-grid"
             style={{
               display: 'grid',
               gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
@@ -5682,9 +5771,10 @@ function Part3Question({ question, index, total, seconds, isReading, microphoneL
           </div>
           <p style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', margin: '22px 0 0' }}>{question}</p>
           <AutoScoredRecordingNote />
+          {showAnswer && <SpeakingSampleAnswer text={part3SampleAnswers[index]} />}
         </div>
 
-        <aside>
+        <aside className="mock-speaking-recorder">
           <div
             style={{
               minHeight: 324,
@@ -5739,14 +5829,14 @@ function Part3Question({ question, index, total, seconds, isReading, microphoneL
         </aside>
       </section>
 
-      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button type="button" style={sideActionStyle}>
+      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" onClick={onOpenDraft} style={sideActionStyle}>
           <FileText size={17} />
           Nháp
         </button>
-        <button type="button" style={sideActionStyle}>
+        <button type="button" onClick={onToggleAnswer} style={sideActionStyle}>
           <Eye size={17} />
-          Hiện đáp án
+          {showAnswer ? 'Ẩn đáp án' : 'Hiện đáp án'}
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
@@ -5757,11 +5847,12 @@ function Part3Question({ question, index, total, seconds, isReading, microphoneL
   );
 }
 
-function Part4Question({ phase, seconds, microphoneLevel, onFinish }: { phase: Part4Phase; seconds: number; microphoneLevel: number; onFinish: () => void }) {
+function Part4Question({ phase, seconds, showAnswer, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { phase: Part4Phase; seconds: number; showAnswer?: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
   const isPreparing = phase === 'prepare';
 
   return (
     <main
+      className="mock-speaking-main"
       style={{
         minHeight: 'calc(100vh - 74px)',
         backgroundColor: '#f1f1f1',
@@ -5770,6 +5861,7 @@ function Part4Question({ phase, seconds, microphoneLevel, onFinish }: { phase: P
       }}
     >
       <section
+        className="mock-speaking-grid"
         style={{
           width: 'min(1400px, 100%)',
           margin: '0 auto',
@@ -5780,6 +5872,7 @@ function Part4Question({ phase, seconds, microphoneLevel, onFinish }: { phase: P
         }}
       >
         <div
+          className="mock-speaking-card"
           style={{
             minHeight: 650,
             backgroundColor: '#ffffff',
@@ -5824,10 +5917,11 @@ function Part4Question({ phase, seconds, microphoneLevel, onFinish }: { phase: P
                 : 'You now have two minutes to speak.'}
             </p>
             {!isPreparing && <AutoScoredRecordingNote />}
+            {showAnswer && <SpeakingSampleAnswer text={part4SampleAnswer} />}
           </div>
         </div>
 
-        <aside>
+        <aside className="mock-speaking-recorder">
           {isPreparing ? (
             <div
               style={{
@@ -5915,14 +6009,14 @@ function Part4Question({ phase, seconds, microphoneLevel, onFinish }: { phase: P
         </aside>
       </section>
 
-      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <button type="button" style={sideActionStyle}>
+      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" onClick={onOpenDraft} style={sideActionStyle}>
           <FileText size={17} />
           Nháp
         </button>
-        <button type="button" style={sideActionStyle}>
+        <button type="button" onClick={onToggleAnswer} style={sideActionStyle}>
           <Eye size={17} />
-          Hiện đáp án
+          {showAnswer ? 'Ẩn đáp án' : 'Hiện đáp án'}
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
@@ -5931,6 +6025,237 @@ function Part4Question({ phase, seconds, microphoneLevel, onFinish }: { phase: P
       </div>
     </main>
   );
+}
+
+const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
+  '2-0': {
+    title: 'Dựng bài miêu tả ảnh',
+    target: 'Mục tiêu: 4-6 câu, khoảng 40-45 giây.',
+    fields: [
+      { label: 'Mở đầu', prefix: 'In this picture I can see', b1: ['a group of friends', 'several people', 'some young people'], b2: ['a group of friends spending time together', 'several people enjoying a meal together', 'some young people in a relaxed social setting'] },
+      { label: 'Ở đâu', prefix: 'They are', b1: ['at an outdoor restaurant', 'in a cafe', 'around a table'], b2: ['sitting at an outdoor restaurant', 'gathered around a table in a cafe', 'having lunch in a bright outdoor space'] },
+      { label: 'Đang làm gì', prefix: 'They are', b1: ['talking and laughing', 'eating lunch together', 'having a good time'], b2: ['talking and laughing while they eat lunch', 'sharing food and enjoying a friendly conversation', 'smiling as they spend time together'] },
+      { label: 'Chi tiết', prefix: 'I can also see', b1: ['food and drinks on the table', 'a red umbrella', 'many green plants'], b2: ['food and drinks on the table, which makes the scene feel lively', 'a red umbrella and some plants in the background', 'bright colours that make the place look comfortable'] },
+      { label: 'Cảm xúc', prefix: 'Overall, they look', b1: ['happy and relaxed', 'friendly and comfortable', 'excited'], b2: ['happy and relaxed, so it seems like they are enjoying the moment', 'comfortable with each other, which suggests they are close friends', 'cheerful because the atmosphere looks warm and friendly'] }
+    ]
+  },
+  '2-1': {
+    title: 'Dựng bài suy đoán nội dung nói chuyện',
+    target: 'Mục tiêu: 3-5 câu, khoảng 40-45 giây.',
+    fields: [
+      { label: 'Trả lời trực tiếp', prefix: 'I think they are talking about', b1: ['their food', 'their weekend plans', 'something funny'], b2: ['their meal and what they want to do later', 'their weekend plans or a funny story', 'something enjoyable that happened recently'] },
+      { label: 'Lý do 1', prefix: 'I say this because', b1: ['they are smiling', 'they look relaxed', 'they are sitting together'], b2: ['they are smiling and looking at each other', 'their body language looks very relaxed', 'they seem comfortable with each other'] },
+      { label: 'Lý do 2', prefix: 'Also, I can see', b1: ['food on the table', 'drinks in front of them', 'a friendly atmosphere'], b2: ['food and drinks on the table, so the topic may be casual', 'a friendly atmosphere around them', 'people leaning forward as if they are interested in the conversation'] },
+      { label: 'Suy đoán thêm', prefix: 'Maybe they are', b1: ['celebrating something', 'planning another meeting', 'sharing news'], b2: ['celebrating something special together', 'planning what to do after lunch', 'sharing personal news or telling jokes'] },
+      { label: 'Kết ý', prefix: 'Overall, the conversation seems', b1: ['friendly and relaxed', 'fun and positive', 'casual'], b2: ['friendly and relaxed rather than serious', 'positive because everyone looks comfortable', 'casual, like a normal conversation between friends'] }
+    ]
+  },
+  '2-2': {
+    title: 'Dựng bài ý kiến cá nhân',
+    target: 'Mục tiêu: 4-5 câu, khoảng 40-45 giây.',
+    fields: [
+      { label: 'Trả lời chính', prefix: 'Yes, I like eating with friends because', b1: ['it is fun', 'I can talk with them', 'it helps me relax'], b2: ['it makes the meal more enjoyable', 'we can talk and share stories', 'it helps me relax after a busy day'] },
+      { label: 'Chi tiết', prefix: 'When we eat together, we can', b1: ['laugh a lot', 'share food', 'talk about our day'], b2: ['laugh together and share our problems', 'try different dishes and enjoy the atmosphere', 'talk about our day and feel closer'] },
+      { label: 'Ví dụ cá nhân', prefix: 'For example, I often', b1: ['have dinner with my friends', 'go to a cafe with my classmates', 'eat out at weekends'], b2: ['have dinner with my friends after studying', 'go to a cafe with my classmates at weekends', 'eat out with close friends when we have free time'] },
+      { label: 'Cảm xúc', prefix: 'It makes me feel', b1: ['happy', 'comfortable', 'less stressed'], b2: ['happier and less stressed', 'more connected to my friends', 'comfortable because I can be myself'] },
+      { label: 'Kết ý', prefix: 'So I think eating with friends is', b1: ['a good way to relax', 'better than eating alone', 'very enjoyable'], b2: ['a good way to relax and build relationships', 'more enjoyable than eating alone', 'important because it creates good memories'] }
+    ]
+  },
+  '3-0': {
+    title: 'Dựng bài so sánh 2 ảnh',
+    target: 'Mục tiêu: 6-8 câu, khoảng 45 giây.',
+    fields: [
+      { label: 'Mở đầu chung', prefix: 'These two pictures both show', b1: ['people travelling', 'different ways of travelling', 'people on a journey'], b2: ['people travelling in two different ways', 'two different travel situations', 'different experiences during a journey'] },
+      { label: 'Ảnh 1 - ai / cái gì', prefix: 'First I can see', b1: ['a man and a woman inside a car', 'two people in a car', 'a couple travelling by car'], b2: ['a man and a woman sitting inside a car', 'two people enjoying a comfortable car journey', 'a couple travelling together in a private car'] },
+      { label: 'Ảnh 1 - đang làm gì', prefix: 'They are', b1: ['smiling and looking very relaxed', 'talking and enjoying the trip', 'sitting comfortably'], b2: ['smiling and looking very relaxed while they travel', 'talking together and enjoying the journey', 'sitting comfortably, which makes the trip seem pleasant'] },
+      { label: 'Ảnh 1 - chi tiết', prefix: 'I can also see', b1: ['warm afternoon light through the window', 'sunlight inside the car', 'a bright view outside'], b2: ['warm afternoon light coming through the window', 'soft sunlight inside the car, which creates a calm mood', 'a bright view outside, so the journey looks peaceful'] },
+      { label: 'Ảnh 2 - ai / cái gì', prefix: 'The second picture shows', b1: ['a group of four people on a train', 'some people travelling by train', 'friends sitting on a train'], b2: ['a group of four people sitting together on a train', 'some passengers travelling by train in a shared space', 'friends enjoying a train journey together'] },
+      { label: 'Ảnh 2 - đang làm gì', prefix: 'They are', b1: ['talking and drinking coffee together', 'chatting with each other', 'relaxing during the journey'], b2: ['talking and drinking coffee together during the journey', 'having a conversation while they travel by train', 'relaxing together, which makes the journey feel social'] },
+      { label: 'Ảnh 2 - chi tiết', prefix: 'Around them I notice', b1: ['green fields through the large window', 'large windows and green fields', 'a nice view outside'], b2: ['green fields through the large window', 'large windows with green fields outside, which makes the trip look scenic', 'a beautiful countryside view outside the train'] },
+      { label: 'Nhận xét chung', prefix: 'So the two pictures', b1: ['show two very different journeys', 'show different ways to travel', 'are both about travelling but in different places'], b2: ['show two very different journey experiences', 'compare private travel with a more social train journey', 'suggest that travelling can be relaxing in different ways'] }
+    ]
+  },
+  '3-1': {
+    title: 'Dựng bài nêu ưu điểm',
+    target: 'Mục tiêu: 4-5 câu, khoảng 45 giây.',
+    fields: [
+      { label: 'Trả lời chính', prefix: 'Travelling by car is convenient because', b1: ['you can choose the route', 'you can stop anywhere', 'it is private'], b2: ['you can choose your own route and schedule', 'you can stop whenever you want', 'it gives you more privacy and flexibility'] },
+      { label: 'Ưu điểm 1', prefix: 'Another advantage is that', b1: ['you can carry more things', 'it is good for families', 'you feel comfortable'], b2: ['you can carry more luggage without worrying too much', 'it is very useful for families or small groups', 'you can feel more comfortable during the journey'] },
+      { label: 'Ví dụ', prefix: 'For example, if I travel with my family, we can', b1: ['bring food and bags', 'stop for photos', 'listen to music'], b2: ['bring food and bags more easily', 'stop to take photos or rest on the way', 'listen to music and talk freely in the car'] },
+      { label: 'Điểm cần cân bằng', prefix: 'However, it can be', b1: ['expensive', 'tiring', 'slow in traffic'], b2: ['expensive if the distance is long', 'tiring for the driver', 'slow and stressful when there is heavy traffic'] },
+      { label: 'Kết ý', prefix: 'Overall, I think travelling by car is', b1: ['comfortable and flexible', 'good for short trips', 'useful for many people'], b2: ['comfortable and flexible, especially for family trips', 'a good choice for short or medium journeys', 'useful when people want more freedom'] }
+    ]
+  },
+  '3-2': {
+    title: 'Dựng bài nêu sở thích',
+    target: 'Mục tiêu: 4-5 câu, khoảng 45 giây.',
+    fields: [
+      { label: 'Chọn ý', prefix: 'I prefer travelling', b1: ['with other people', 'with my friends', 'with my family'], b2: ['with other people rather than alone', 'with my close friends', 'with my family because it feels safer'] },
+      { label: 'Lý do 1', prefix: 'The main reason is that', b1: ['it is more fun', 'I feel safer', 'we can talk together'], b2: ['the journey becomes more fun and memorable', 'I feel safer when someone is with me', 'we can talk and help each other during the trip'] },
+      { label: 'Lý do 2', prefix: 'Also, we can', b1: ['share costs', 'take photos', 'help each other'], b2: ['share the costs of transport and food', 'take photos and enjoy the experience together', 'help each other if there is a problem'] },
+      { label: 'Ví dụ cá nhân', prefix: 'For example, last time I travelled with friends, we', b1: ['had a lot of fun', 'talked all the way', 'shared many memories'], b2: ['had a lot of fun and took many photos', 'talked all the way, so the trip felt shorter', 'created many good memories together'] },
+      { label: 'Kết ý', prefix: 'That is why I think travelling with others is', b1: ['better for me', 'more enjoyable', 'a good choice'], b2: ['better for me because I enjoy company', 'more enjoyable and less stressful', 'a good choice for most journeys'] }
+    ]
+  },
+  '4-0': {
+    title: 'Dựng bài trả lời chủ đề',
+    target: 'Mục tiêu: 5-7 ý, khoảng 2 phút.',
+    fields: [
+      { label: 'Mở ý', prefix: 'I would like to talk about', b1: ['receiving a gift', 'a special gift I got', 'a present from my friend'], b2: ['a memorable gift I received', 'a gift that was meaningful to me', 'an occasion when someone gave me a thoughtful present'] },
+      { label: 'Chi tiết', prefix: 'It was', b1: ['a book from my friend', 'a small present on my birthday', 'something simple but useful'], b2: ['a book from my friend on my birthday', 'a small but thoughtful present', 'something simple, but it matched my interests very well'] },
+      { label: 'Lý do', prefix: 'I liked it because', b1: ['it was useful', 'it made me happy', 'my friend remembered me'], b2: ['it showed that my friend understood me', 'it was both useful and personal', 'it reminded me of our friendship'] },
+      { label: 'Ý kiến', prefix: 'In my opinion, gifts should be', b1: ['meaningful', 'useful', 'given with care'], b2: ['meaningful rather than expensive', 'chosen carefully for the person who receives them', 'a way to show care and attention'] },
+      { label: 'Kết bài', prefix: 'Overall, I think', b1: ['a good gift can make people feel loved', 'small gifts can be very special', 'the meaning is more important than the price'], b2: ['a good gift can make people feel appreciated', 'even a small gift can become special if it has meaning', 'the thought behind a gift matters more than its price'] }
+    ]
+  }
+} as const;
+
+function SpeakingDraftPanel({ part, question, questionIndex, level, text, onClose, onInsert, onLevelChange, onTextChange }: { part: 2 | 3 | 4; question: string; questionIndex: number; level: DraftLevel; text: string; onClose: () => void; onInsert: (text: string) => void; onLevelChange: (level: DraftLevel) => void; onTextChange: (text: string) => void }) {
+  const template = getSpeakingDraftTemplate(part, questionIndex, question);
+  const [choices, setChoices] = useState<Record<number, string>>(() => Object.fromEntries(template.fields.map((field, index) => [index, field[level.toLowerCase() as Lowercase<DraftLevel>][0]])));
+  const selectedText = buildSpeakingDraft(template.fields, choices, level);
+  const notes = text
+    .split(/[.\n]/)
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .slice(0, 8);
+
+  function updateChoice(index: number, value: string) {
+    setChoices((current) => ({ ...current, [index]: value }));
+  }
+
+  function changeLevel(nextLevel: DraftLevel) {
+    onLevelChange(nextLevel);
+    setChoices(Object.fromEntries(template.fields.map((field, index) => [index, field[nextLevel.toLowerCase() as Lowercase<DraftLevel>][0]])));
+  }
+
+  useEffect(() => {
+    setChoices(Object.fromEntries(template.fields.map((field, index) => [index, field[level.toLowerCase() as Lowercase<DraftLevel>][0]])));
+  }, [level, part, question, questionIndex, template]);
+
+  return (
+    <aside className="mock-speaking-draft-panel fixed bottom-20 right-3 top-[86px] z-40 flex w-[min(760px,calc(100vw-24px))] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/18">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-slate-200 px-4">
+        <div className="flex items-center gap-2">
+          <FileText size={18} className="text-[#2b075c]" />
+          <h2 className="text-base font-extrabold text-[#2b075c]">Nháp</h2>
+        </div>
+        <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng nháp">
+          <X size={18} />
+        </button>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="border-b border-slate-200 p-4">
+          <textarea
+            value={text}
+            onChange={(event) => onTextChange(event.target.value)}
+            className="min-h-[118px] w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-800 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+            placeholder="Gõ ý tưởng của bạn ở đây..."
+          />
+          {notes.length > 0 && (
+            <div className="mt-3 rounded-xl border border-violet-100 bg-violet-50 p-3">
+              <p className="mb-2 text-xs font-extrabold uppercase text-[#2b075c]">Gợi ý nhìn khi nói</p>
+              <div className="flex flex-wrap gap-2">
+                {notes.map((note, index) => (
+                  <span key={`${note}-${index}`} className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">{note}</span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-4 bg-[#f7f4fb] p-4">
+          <div className="rounded-xl border border-violet-100 bg-white p-3 text-sm font-semibold text-slate-700">
+            <span className="mr-2 font-extrabold text-[#2b075c]">Câu hiện tại:</span>
+            {question}
+          </div>
+
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="flex items-center gap-2 text-sm font-extrabold uppercase text-[#2b075c]"><Sparkles size={16} /> {template.title}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">{template.target}</p>
+            </div>
+            <div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1">
+              {(['B1', 'B2'] as DraftLevel[]).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => changeLevel(item)}
+                  className={`h-9 rounded-lg px-4 text-sm font-extrabold ${level === item ? 'bg-[#2b075c] text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {template.fields.map((field, index) => {
+              const options = field[level.toLowerCase() as Lowercase<DraftLevel>];
+              return (
+                <label key={field.label} className="block rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                  <span className="mb-2 block text-sm font-extrabold text-[#2b075c]">{index + 1}. {field.label}</span>
+                  <span className="flex flex-wrap items-center gap-2 text-sm leading-7 text-slate-800">
+                    <span>{field.prefix}</span>
+                    <select
+                      value={choices[index] ?? options[0]}
+                      onChange={(event) => updateChoice(index, event.target.value)}
+                      className="min-h-9 max-w-full rounded-lg border border-amber-200 bg-amber-50 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                    >
+                      {options.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                    <span>.</span>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
+            <p className="mb-2 text-xs font-extrabold uppercase text-emerald-700">Đoạn sẽ chèn</p>
+            {selectedText}
+          </div>
+        </div>
+      </div>
+
+      <footer className="grid shrink-0 grid-cols-2 gap-2 border-t border-slate-200 bg-white p-3">
+        <button type="button" onClick={() => onTextChange('')} className="h-11 rounded-xl border border-slate-200 text-sm font-extrabold text-slate-600 hover:bg-slate-50">
+          Xóa nháp
+        </button>
+        <button type="button" onClick={() => onInsert(selectedText)} className="h-11 rounded-xl bg-[#2b075c] text-sm font-extrabold text-white hover:opacity-95">
+          Chèn vào nháp
+        </button>
+      </footer>
+    </aside>
+  );
+}
+
+function buildSpeakingDraft(fields: readonly SpeakingDraftField[], choices: Record<number, string>, level: DraftLevel) {
+  return fields
+    .map((field, index) => {
+      const options = field[level.toLowerCase() as Lowercase<DraftLevel>];
+      return `${field.prefix} ${choices[index] ?? options[0]}.`;
+    })
+    .join(' ');
+}
+
+function getSpeakingDraftTemplate(part: 2 | 3 | 4, questionIndex: number, question: string) {
+  const normalizedQuestion = question.toLowerCase();
+
+  if (part === 2) {
+    if (/describe|picture|photo/.test(normalizedQuestion)) return speakingDraftTemplates['2-0'];
+    if (/talking about|talk about|people.*talk|what.*talk/.test(normalizedQuestion)) return speakingDraftTemplates['2-1'];
+    if (/do you like|why or why not|your opinion|would you like/.test(normalizedQuestion)) return speakingDraftTemplates['2-2'];
+  }
+
+  if (part === 3) {
+    if (/compare|similar|different|pictures/.test(normalizedQuestion)) return speakingDraftTemplates['3-0'];
+    if (/advantage|benefit|good thing|travelling by car|traveling by car/.test(normalizedQuestion)) return speakingDraftTemplates['3-1'];
+    if (/prefer|alone|with other people|rather/.test(normalizedQuestion)) return speakingDraftTemplates['3-2'];
+  }
+
+  return speakingDraftTemplates[`${part}-${questionIndex}`] ?? speakingDraftTemplates[`${part}-0`];
 }
 
 const sideActionStyle = {
@@ -5952,6 +6277,15 @@ function AutoScoredRecordingNote() {
   return (
     <div style={{ marginTop: 24, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: '14px 16px', color: '#64748b', fontSize: 15, lineHeight: '22px', fontWeight: 700 }}>
       Bài nói sẽ được ghi âm và tự chấm sau khi bạn hoàn thành phần Speaking.
+    </div>
+  );
+}
+
+function SpeakingSampleAnswer({ text }: { text?: string }) {
+  return (
+    <div style={{ marginTop: 18, borderRadius: 14, border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4', padding: '16px 18px', color: '#14532d', fontSize: 16, lineHeight: '26px' }}>
+      <p style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 900, letterSpacing: 0.4, textTransform: 'uppercase', color: '#047857' }}>Đáp án mẫu</p>
+      <p style={{ margin: 0, fontWeight: 600 }}>{text || 'Chưa có đáp án mẫu cho câu này.'}</p>
     </div>
   );
 }
