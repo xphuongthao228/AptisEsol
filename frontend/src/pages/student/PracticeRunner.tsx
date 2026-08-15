@@ -6,17 +6,18 @@ import { ArrowLeft, ArrowRight, BookOpen, CalendarPlus, CheckSquare, Clock, File
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../store/authStore';
 import type { Answer, Question, Submission, Test } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
 
 const examLinks = [
-  { to: '/app', label: 'Trang chá»§', icon: LayoutDashboard, active: false },
-  { to: '/app/tests', label: 'Luyá»‡n táº­p', icon: BookOpen, active: true },
-  { to: '/app/exams', label: 'Äá» thi', icon: ListChecks, active: false },
-  { to: '/app/mock-tests', label: 'Thi thá»­', icon: FileSearch, active: false },
-  { to: '/app/predictions', label: 'Dá»± Ä‘oÃ¡n Ä‘á»', icon: FileSearch, active: false },
-  { to: '/app/renewal', label: 'Gia háº¡n', icon: CalendarPlus, active: false },
-  { to: '/app/settings', label: 'CÃ i Ä‘áº·t', icon: Settings, active: false }
+  { to: '/app', label: 'Trang ch\u1ee7', icon: LayoutDashboard, active: false },
+  { to: '/app/tests', label: 'Luy\u1ec7n t\u1eadp', icon: BookOpen, active: true },
+  { to: '/app/exams', label: '\u0110\u1ec1 thi', icon: ListChecks, active: false },
+  { to: '/app/mock-tests', label: 'Thi th\u1eed', icon: FileSearch, active: false },
+  { to: '/app/predictions', label: 'D\u1ef1 \u0111o\u00e1n \u0111\u1ec1', icon: FileSearch, active: false },
+  { to: '/app/renewal', label: 'Gia h\u1ea1n', icon: CalendarPlus, active: false },
+  { to: '/app/settings', label: 'C\u00e0i \u0111\u1eb7t', icon: Settings, active: false }
 ];
 
 function localSpeakingImage(part: 'part2' | 'part3', fileName: string) {
@@ -73,6 +74,7 @@ export function PracticeRunner() {
   const [listeningReviewOpen, setListeningReviewOpen] = useState(false);
   const [listeningReviewGroup, setListeningReviewGroup] = useState<ListeningReviewGroup>('1-13');
   const [readingReviewOpen, setReadingReviewOpen] = useState(false);
+  const logout = useAuthStore((state) => state.logout);
   const { data: test } = useApi<Test>(() => unwrap(api.get(`/tests/${id}`)), [id]);
   const { data: questions, loading } = useApi<Question[]>(() => unwrap(api.get(`/questions?testId=${id}`)), [id]);
   const activeQuestion = questions?.[currentIndex];
@@ -395,11 +397,11 @@ export function PracticeRunner() {
   if (classicTemplate) {
     return (
       <div className="min-h-screen bg-white text-slate-950">
-        <AppSidebar pathname={location.pathname} navigate={navigate} />
+        <AppSidebar pathname={location.pathname} onSignOut={async () => { await logout(); navigate('/login'); }} />
         <main className="xl:pl-[260px]">
           <AppTopbar />
         <form onSubmit={submit} className="pb-24">
-          {loading && <div className="mx-auto max-w-[1460px] p-8">Äang táº£i cÃ¢u há»i...</div>}
+          {loading && <div className="mx-auto max-w-[1460px] p-8">Đang tải câu hỏi...</div>}
           {activeQuestion?.featured && <FeaturedQuestionCallout />}
           {activeQuestion && renderTemplateData && (
             <AptisTemplateRenderer
@@ -447,7 +449,7 @@ export function PracticeRunner() {
       <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col bg-[#1e293b] text-white xl:flex">
         <div className="px-6 py-8">
           <h1 className="text-2xl font-extrabold tracking-tight">English Prep</h1>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Cháº¿ Ä‘á»™ Ã´n thi</p>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Chế độ ôn thi</p>
         </div>
         <nav className="flex-1 space-y-2 overflow-hidden px-4 pb-4">
           {examLinks.map(({ to, label, icon: Icon }) => (
@@ -457,11 +459,11 @@ export function PracticeRunner() {
         <div className="border-t border-slate-700/60 p-4">
           <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
             <p className="mb-2 text-center text-xs font-bold text-white">Aptis Pro Access</p>
-            <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">NÃ¢ng cáº¥p Pro</Link>
+            <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">Nâng cấp Pro</Link>
           </div>
-          <ExamNav icon={<HelpCircle />} label="Trá»£ giÃºp" />
-          <button onClick={() => navigate('/login')} className="flex h-11 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
-            <LogOut size={20} />ÄÄƒng xuáº¥t
+          <ExamNav icon={<HelpCircle />} label="Trợ giúp" />
+          <button onClick={async () => { await logout(); navigate('/login'); }} className="flex h-11 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
+            <LogOut size={20} />Đăng xuất
           </button>
         </div>
       </aside>
@@ -472,11 +474,11 @@ export function PracticeRunner() {
             <div className="flex items-center gap-6">
               <div className="text-lg font-extrabold text-brand-600">LingoMaster</div>
               <div className="hidden h-9 w-px bg-slate-200 sm:block" />
-              <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />CÃ²n 12:45</div>
+              <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
             </div>
             <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
               <Search size={19} />
-              <span className="hidden sm:inline">TÃ¬m tÃ i liá»‡u...</span>
+              <span className="hidden sm:inline">Tìm tài liệu...</span>
             </div>
           </div>
         </header>
@@ -487,11 +489,11 @@ export function PracticeRunner() {
             <div className="mb-2 flex flex-col justify-between gap-2 lg:flex-row lg:items-end">
               <div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">Äá»c hiá»ƒu</span>
+                  <span className="rounded-full bg-blue-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">Đọc hiểu</span>
                   {activeQuestion?.featured && <FeaturedQuestionBadge />}
                 </div>
-                <h1 className="mt-1 text-2xl font-extrabold tracking-normal sm:text-3xl">CÃ¢u {currentIndex + 1} / {totalQuestions}</h1>
-                <p className="mt-1 text-sm">{isExamSetMode ? 'Bá»™ Ä‘á»' : 'Chá»§ Ä‘á»'}: <span className="font-extrabold text-brand-600">{topicTitle}</span></p>
+                <h1 className="mt-1 text-2xl font-extrabold tracking-normal sm:text-3xl">Câu {currentIndex + 1} / {totalQuestions}</h1>
+                <p className="mt-1 text-sm">{isExamSetMode ? 'Bộ đề' : 'Chủ đề'}: <span className="font-extrabold text-brand-600">{topicTitle}</span></p>
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex gap-2">
@@ -500,7 +502,7 @@ export function PracticeRunner() {
                   <span className="h-2 w-8 rounded-full bg-brand-600" />
                   <span className="h-2 w-8 rounded-full bg-blue-100" />
                 </div>
-                <span className="text-sm font-bold">{progress}% hoÃ n thÃ nh</span>
+                <span className="text-sm font-bold">{progress}% hoàn thành</span>
               </div>
             </div>
             )}
@@ -530,7 +532,7 @@ export function PracticeRunner() {
               <QuestionScriptBox scriptText={scriptText} />
             )}
 
-            {loading && <div className="rounded-[18px] border border-slate-200 bg-white p-7">Äang táº£i cÃ¢u há»i...</div>}
+            {loading && <div className="rounded-[18px] border border-slate-200 bg-white p-7">Đang tải câu hỏi...</div>}
 
             {activeQuestion?.featured && <FeaturedQuestionCallout />}
 
@@ -558,7 +560,7 @@ export function PracticeRunner() {
                       <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-50 text-brand-600"><HelpCircle size={18} /></div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <h2 className="text-base font-extrabold">{activeQuestion.answers.length ? 'Chá»n Ä‘Ã¡p Ã¡n Ä‘Ãºng' : 'Tráº£ lá»i tá»± luáº­n'}</h2>
+                          <h2 className="text-base font-extrabold">{activeQuestion.answers.length ? 'Chọn đáp án đúng' : 'Trả lời tự luận'}</h2>
                           {activeQuestion.featured && <FeaturedQuestionBadge />}
                         </div>
                         <p className="mt-1 text-sm leading-5 text-slate-600">{repairMojibake(activeQuestion.content)}</p>
@@ -578,7 +580,7 @@ export function PracticeRunner() {
                       ))}
                     </div>
                   ) : (
-                    <textarea className="min-h-[170px] w-full rounded-[14px] border border-slate-300 bg-white p-4 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Nháº­p cÃ¢u tráº£ lá»i..." onChange={(e) => setAnswers({ ...answers, [activeQuestion.id]: e.target.value })} />
+                    <textarea className="min-h-[170px] w-full rounded-[14px] border border-slate-300 bg-white p-4 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Nhập câu trả lời..." onChange={(e) => setAnswers({ ...answers, [activeQuestion.id]: e.target.value })} />
                   )}
                   {activeChecked !== undefined && <QuestionFeedback isCorrect={activeChecked} textOnly={!activeQuestion.answers.length} />}
               </section>
@@ -587,11 +589,11 @@ export function PracticeRunner() {
 
           <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <button type="button" onClick={goBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay láº¡i</button>
+              <button type="button" onClick={goBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
               <div className="grid grid-cols-2 gap-2 sm:flex">
-                <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={resetCurrentQuestion}><RotateCcw size={17} />LÃ m láº¡i</button>
-                <button type="button" onClick={checkCurrentQuestion} disabled={!canCheckCurrent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-green-700 px-5 text-sm font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"><CheckSquare size={18} />Kiá»ƒm tra</button>
-                <button type="button" className="btn-primary h-10 px-5 text-sm outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50" onClick={goNext} disabled={!canGoNext}>Káº¿ tiáº¿p <ArrowRight size={18} /></button>
+                <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={resetCurrentQuestion}><RotateCcw size={17} />Làm lại</button>
+                <button type="button" onClick={checkCurrentQuestion} disabled={!canCheckCurrent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-green-700 px-5 text-sm font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"><CheckSquare size={18} />Kiểm tra</button>
+                <button type="button" className="btn-primary h-10 px-5 text-sm outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50" onClick={goNext} disabled={!canGoNext}>Kế tiếp <ArrowRight size={18} /></button>
               </div>
             </div>
           </div>
@@ -624,12 +626,12 @@ function isActiveExamNav(to: string, pathname: string) {
   return pathname.startsWith(to);
 }
 
-function AppSidebar({ pathname, navigate }: { pathname: string; navigate: (to: string) => void }) {
+function AppSidebar({ pathname, onSignOut }: { pathname: string; onSignOut: () => void }) {
   return (
     <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col bg-[#1e293b] text-white xl:flex">
       <div className="px-6 py-8">
         <h1 className="text-2xl font-extrabold tracking-tight">English Prep</h1>
-        <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Cháº¿ Ä‘á»™ Ã´n thi</p>
+        <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Chế độ ôn thi</p>
       </div>
       <nav className="flex-1 space-y-2 overflow-hidden px-4 pb-4">
         {examLinks.map(({ to, label, icon: Icon }) => (
@@ -639,11 +641,11 @@ function AppSidebar({ pathname, navigate }: { pathname: string; navigate: (to: s
       <div className="border-t border-slate-700/60 p-4">
         <div className="mb-4 rounded-xl border border-white/10 bg-white/5 p-4">
           <p className="mb-2 text-center text-xs font-bold text-white">Aptis Pro Access</p>
-          <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">NÃ¢ng cáº¥p Pro</Link>
+          <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">Nâng cấp Pro</Link>
         </div>
-        <ExamNav icon={<HelpCircle />} label="Trá»£ giÃºp" />
-        <button onClick={() => navigate('/login')} className="flex h-11 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
-          <LogOut size={20} />ÄÄƒng xuáº¥t
+        <ExamNav icon={<HelpCircle />} label="Trợ giúp" />
+        <button onClick={onSignOut} className="flex h-11 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
+          <LogOut size={20} />Đăng xuất
         </button>
       </div>
     </aside>
@@ -657,11 +659,11 @@ function AppTopbar() {
         <div className="flex items-center gap-6">
           <div className="text-lg font-extrabold text-brand-600">LingoMaster</div>
           <div className="hidden h-9 w-px bg-slate-200 sm:block" />
-          <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />CÃ²n 12:45</div>
+          <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
         </div>
         <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
           <Search size={19} />
-          <span className="hidden sm:inline">TÃ¬m tÃ i liá»‡u...</span>
+          <span className="hidden sm:inline">Tìm tài liệu...</span>
         </div>
       </div>
     </header>
@@ -685,12 +687,10 @@ function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onChec
         </button>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={onReset}>
-            <RotateCcw size={17} />LÃ m láº¡i
-          </button>
+            <RotateCcw size={17} />Làm lại</button>
           {showCheck && (
             <button type="button" onClick={onCheck} className="inline-flex h-10 items-center gap-2 rounded-xl bg-green-700 px-5 text-sm font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200">
-              <CheckSquare size={18} />Kiá»ƒm tra
-            </button>
+              <CheckSquare size={18} />Kiểm tra</button>
           )}
           <button type="button" className="btn-primary h-10 px-5 text-sm outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50" onClick={onNext} disabled={currentIndex >= totalQuestions - 1}>
             Káº¿ tiáº¿p <ArrowRight size={18} />
@@ -865,8 +865,8 @@ function QuestionNavigator({ total, currentIndex, answeredIds, checkedIds, quest
     <div className="mb-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 shadow-soft">
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-extrabold">Chá»n cÃ¢u há»i</h2>
-          <p className="hidden text-xs text-slate-500 md:block">Báº¥m sá»‘ cÃ¢u Ä‘á»ƒ chuyá»ƒn nhanh.</p>
+          <h2 className="text-sm font-extrabold">Chọn câu hỏi</h2>
+          <p className="hidden text-xs text-slate-500 md:block">Bấm số câu để chuyển nhanh.</p>
         </div>
         <span className="text-xs font-bold text-brand-600">{currentIndex + 1}/{total}</span>
       </div>
@@ -881,8 +881,8 @@ function QuestionNavigator({ total, currentIndex, answeredIds, checkedIds, quest
               type="button"
               key={question.id}
               onClick={() => onSelect(index)}
-              title={featured ? 'CÃ¢u ná»•i báº­t' : undefined}
-              aria-label={featured ? `CÃ¢u ${index + 1} ná»•i báº­t` : `CÃ¢u ${index + 1}`}
+              title={featured ? 'Câu nổi bật' : undefined}
+              aria-label={featured ? `Câu ${index + 1} nổi bật` : `Câu ${index + 1}`}
               className={`relative grid ${featured ? 'h-8 min-w-8' : 'h-7 min-w-7'} place-items-center rounded-md border text-[10px] font-extrabold transition ${
                 active
                   ? featured

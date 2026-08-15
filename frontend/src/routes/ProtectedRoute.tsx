@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
 import type { RoleName } from '../types';
+import { userHasRole } from '../utils/roles';
 
 export function ProtectedRoute({ role }: { role?: RoleName }) {
   const { user, accessToken } = useAuthStore();
@@ -24,8 +25,8 @@ export function ProtectedRoute({ role }: { role?: RoleName }) {
   }
 
   if (!accessToken || !user) return <Navigate to="/login" replace />;
-  if (role && !user.roles.includes(role)) {
-    return <Navigate to={user.roles.includes('ADMIN') ? '/admin' : '/app'} replace />;
+  if (role && !userHasRole(user, role)) {
+    return <Navigate to={userHasRole(user, 'ADMIN') ? '/admin' : '/app'} replace />;
   }
 
   return <Outlet />;

@@ -26,6 +26,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-do
 import { LingoWidget } from '../components/LingoWidget';
 import { SEO, getSeoByPath } from '../components/SEO';
 import { useAuthStore } from '../store/authStore';
+import { userHasRole } from '../utils/roles';
 
 type LayoutLink = {
   to: string;
@@ -63,7 +64,7 @@ export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdmin = user?.roles.includes('ADMIN');
+  const isAdmin = userHasRole(user, 'ADMIN');
   const links = isAdmin ? adminLinks : studentLinks;
   const isExamMode = !isAdmin && (/^\/app\/(tests|exams)\/\d+/.test(location.pathname) || location.pathname.startsWith('/app/mock-tests'));
   const seo = getSeoByPath(location.pathname, Boolean(isAdmin));

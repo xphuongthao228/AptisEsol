@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 import { AuthShell } from './AuthShell';
 import { useAuthStore } from '../../store/authStore';
+import { userHasRole } from '../../utils/roles';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -25,7 +26,7 @@ export function Login() {
       await login(email, password);
       toast.success('Đăng nhập thành công');
       const nextUser = useAuthStore.getState().user ?? user;
-      navigate(nextUser?.roles.includes('ADMIN') ? '/admin' : '/app');
+      navigate(userHasRole(nextUser, 'ADMIN') ? '/admin' : '/app');
     } catch {
       toast.error('Tài khoản hoặc mật khẩu không đúng');
     } finally {
