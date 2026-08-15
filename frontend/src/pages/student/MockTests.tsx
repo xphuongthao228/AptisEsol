@@ -34,7 +34,7 @@
   type LucideIcon
 } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
@@ -78,6 +78,7 @@ type MockCard = {
   title: string;
   description: string;
   questions: string;
+  questionData?: string;
   minutes: string;
   icon: LucideIcon;
   ready: boolean;
@@ -90,6 +91,7 @@ type StoredAdminMockTest = {
   title?: string;
   description?: string;
   questions?: string;
+  questionData?: string;
   minutes?: string;
   status?: 'PUBLISHED' | 'DRAFT';
 };
@@ -100,8 +102,17 @@ type ApiMockTest = {
   title: string;
   description?: string;
   questions?: string;
+  questionData?: string;
   minutes?: string;
   status?: 'PUBLISHED' | 'DRAFT';
+};
+
+type ListeningPart1Question = {
+  prompt: string;
+  options: string[];
+  audioUrl?: string;
+  answer?: string;
+  correctAnswer?: string;
 };
 
 type GrammarQuestionItem = {
@@ -250,6 +261,7 @@ function loadPublishedAdminMockCards() {
           title: item.title.trim(),
           description: item.description?.trim() || 'Đề thi thử do admin thêm.',
           questions: item.questions?.trim() || 'Chưa rõ',
+          questionData: (item as StoredAdminMockTest & { questionData?: string }).questionData?.trim(),
           minutes: item.minutes?.trim() || 'Chưa rõ',
           icon: meta.icon,
           ready: true,
@@ -271,11 +283,60 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
     title: item.title.trim(),
     description: item.description?.trim() || 'Đề thi thử do admin thêm.',
     questions: item.questions?.trim() || 'Chưa rõ',
+    questionData: item.questionData?.trim(),
     minutes: item.minutes?.trim() || 'Chưa rõ',
     icon: meta.icon,
     ready: true,
     color: meta.color
   };
+}
+
+function parseQuestionDataArray(questionData?: string) {
+  if (!questionData?.trim()) return [];
+  try {
+    const parsed = JSON.parse(questionData);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Question[] {
+  const rows = parseQuestionDataArray(card?.questionData);
+  return rows
+    .filter((item): item is Record<string, unknown> => item && typeof item === 'object')
+    .filter((item) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      const part = String(item.part ?? item.section ?? '').trim();
+      return (!skill || skill === 'LISTENING') && (!part || part === '1' || part.toLowerCase() === 'part1');
+    })
+    .reduce<ListeningPart1Question[]>((questions, item) => {
+      const options = Array.isArray(item.options) ? item.options.map(String).filter(Boolean) : [];
+      const prompt = String(item.prompt ?? item.question ?? '').trim();
+      if (!prompt || options.length === 0) return questions;
+      questions.push({
+        prompt,
+        options,
+        audioUrl: String(item.audioUrl ?? item.audio ?? item.url ?? '').trim() || undefined,
+        answer: String(item.answer ?? '').trim() || undefined,
+        correctAnswer: String(item.correctAnswer ?? '').trim() || undefined
+      });
+      return questions;
+    }, []);
+}
+
+function listeningAudioByPartFromCard(card?: MockCard | null) {
+  const rows = parseQuestionDataArray(card?.questionData);
+  return rows.reduce<Record<string, string>>((result, item) => {
+    if (!item || typeof item !== 'object') return result;
+    const row = item as Record<string, unknown>;
+    const skill = String(row.skill ?? '').toUpperCase();
+    if (skill && skill !== 'LISTENING') return result;
+    const audioUrl = String(row.audioUrl ?? row.audio ?? row.url ?? '').trim();
+    const part = String(row.part ?? row.section ?? '').trim().toLowerCase();
+    if (audioUrl && part) result[part.replace('part', '')] = audioUrl;
+    return result;
+  }, {});
 }
 
 const speakingMockTests = [
@@ -423,7 +484,7 @@ const part4Topic = {
     'Are you planning to give a gift to anyone soon? Tell me about it.'
   ]
 };
-const listeningPart1Questions = [
+const listeningPart1Questions: ListeningPart1Question[] = [
   {
     prompt: 'A person calls a friend about his new car. How much does the small car cost him?',
     options: ['3250 pounds', '3550 pounds', '4250 pounds']
@@ -636,6 +697,54 @@ function limitWords(value: string, maxWords: number) {
   return words.slice(0, maxWords).join(' ');
 }
 
+function useAudioPlayer(audioUrl?: string) {
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [playing, setPlaying] = useState(false);
+
+  useEffect(() => {
+    audioRef.current?.pause();
+    audioRef.current = null;
+    setPlaying(false);
+  }, [audioUrl]);
+
+  useEffect(() => () => {
+    audioRef.current?.pause();
+  }, []);
+
+  async function toggleAudio() {
+    if (!audioUrl) {
+      toast.error('Chưa có file nghe cho câu này.');
+      return;
+    }
+
+    try {
+      if (!audioRef.current) {
+        const audio = new Audio(audioUrl);
+        audio.preload = 'auto';
+        audio.onended = () => setPlaying(false);
+        audio.onerror = () => {
+          setPlaying(false);
+          toast.error('Không phát được file nghe. Kiểm tra lại link audioUrl.');
+        };
+        audioRef.current = audio;
+      }
+
+      if (playing) {
+        audioRef.current.pause();
+        setPlaying(false);
+      } else {
+        await audioRef.current.play();
+        setPlaying(true);
+      }
+    } catch {
+      setPlaying(false);
+      toast.error('Không phát được file nghe. Kiểm tra lại link audioUrl hoặc quyền truy cập file.');
+    }
+  }
+
+  return { playing, toggleAudio };
+}
+
 function sameAnswer(user?: string, answer?: string) {
   return (user ?? '').trim().toLowerCase() === (answer ?? '').trim().toLowerCase();
 }
@@ -643,6 +752,15 @@ function sameAnswer(user?: string, answer?: string) {
 function scoreFromCorrect(correct: number, total: number, maxScore: number) {
   if (total <= 0) return 0;
   return Math.round((correct / total) * maxScore);
+}
+
+function clampScore50(score: number) {
+  return Math.min(50, Math.max(0, Math.round(Number.isFinite(score) ? score : 0)));
+}
+
+function correctToAptis25(correct: number, total: number) {
+  if (total <= 0) return 0;
+  return Math.min(25, Math.max(0, Math.round((correct / total) * 25)));
 }
 
 function cefrFromAptisTotal(totalScore: number) {
@@ -654,27 +772,19 @@ function cefrFromAptisTotal(totalScore: number) {
   return 'A1';
 }
 
-function cefrFromReadingCorrect(correct: number) {
-  if (correct >= 23) return 'C';
-  if (correct >= 19) return 'B2';
-  if (correct >= 13) return 'B1';
-  if (correct >= 8) return 'A2';
+function cefrFromReadingCorrect25(correctOutOf25: number) {
+  if (correctOutOf25 >= 23) return 'C';
+  if (correctOutOf25 >= 19) return 'B2';
+  if (correctOutOf25 >= 13) return 'B1';
+  if (correctOutOf25 >= 8) return 'A2';
   return 'A1';
 }
 
-function cefrFromListeningCorrect(correct: number) {
-  if (correct >= 21) return 'C';
-  if (correct >= 17) return 'B2';
-  if (correct >= 12) return 'B1';
-  if (correct >= 8) return 'A2';
-  return 'A1';
-}
-
-function cefrFromFiftyScore(score: number) {
-  if (score >= 45) return 'C';
-  if (score >= 38) return 'B2';
-  if (score >= 26) return 'B1';
-  if (score >= 16) return 'A2';
+function cefrFromListeningCorrect25(correctOutOf25: number) {
+  if (correctOutOf25 >= 21) return 'C';
+  if (correctOutOf25 >= 17) return 'B2';
+  if (correctOutOf25 >= 12) return 'B1';
+  if (correctOutOf25 >= 8) return 'A2';
   return 'A1';
 }
 
@@ -694,28 +804,30 @@ function scoreGrammarAnswers(answers: Record<number, string>): SkillScoreSummary
     { part: 'Grammar multiple choice', correct: `${counts.slice(0, 25).reduce((sum, value) => sum + value, 0)}/25`, score: `${counts.slice(0, 25).reduce((sum, value) => sum + value, 0)}/25` },
     { part: 'Vocabulary & matching', correct: `${counts.slice(25).reduce((sum, value) => sum + value, 0)}/25`, score: `${counts.slice(25).reduce((sum, value) => sum + value, 0)}/25` }
   ];
-  return { correct, total: 50, score: correct, maxScore: 50, cefr: cefrFromFiftyScore(correct), rows };
+  return { correct, total: 50, score: correct, maxScore: 50, cefr: 'Không xếp CEFR', rows };
 }
 
 function scoreListeningAnswers(
   part1Answers: Record<number, string>,
   matchingAnswers: Record<string, string>,
   shortAnswers: Record<number, string>,
-  monologueAnswers: Record<string, string>
+  monologueAnswers: Record<string, string>,
+  part1AnswerKey: string[] = listeningPart1AnswerKey
 ): SkillScoreSummary {
-  const part1Correct = listeningPart1AnswerKey.filter((answer, index) => sameAnswer(part1Answers[index], answer)).length;
+  const part1Correct = part1AnswerKey.filter((answer, index) => sameAnswer(part1Answers[index], answer)).length;
   const matchingCorrect = Object.entries(listeningMatchingAnswerKey).filter(([speaker, answer]) => sameAnswer(matchingAnswers[speaker], answer)).length;
   const shortCorrect = listeningShortAnswerKey.filter((answer, index) => sameAnswer(shortAnswers[index], answer)).length;
   const monologueCorrect = Object.entries(listeningMonologueAnswerKey).filter(([key, answer]) => sameAnswer(monologueAnswers[key], answer)).length;
   const rows = [
-    { part: 'Part 1 - Word Recognition', correct: `${part1Correct}/13`, score: `${scoreFromCorrect(part1Correct, 13, 26)}/26` },
+    { part: 'Part 1 - Word Recognition', correct: `${part1Correct}/${part1AnswerKey.length}`, score: `${scoreFromCorrect(part1Correct, part1AnswerKey.length, 26)}/26` },
     { part: 'Part 2 - Matching Information', correct: `${matchingCorrect}/4`, score: `${scoreFromCorrect(matchingCorrect, 4, 8)}/8` },
     { part: 'Part 3 - Short Conversations', correct: `${shortCorrect}/4`, score: `${scoreFromCorrect(shortCorrect, 4, 8)}/8` },
     { part: 'Part 4 - Monologues', correct: `${monologueCorrect}/4`, score: `${scoreFromCorrect(monologueCorrect, 4, 8)}/8` }
   ];
   const correct = part1Correct + matchingCorrect + shortCorrect + monologueCorrect;
-  const score = scoreFromCorrect(part1Correct, 13, 26) + scoreFromCorrect(matchingCorrect, 4, 8) + scoreFromCorrect(shortCorrect, 4, 8) + scoreFromCorrect(monologueCorrect, 4, 8);
-  return { correct, total: 25, score, maxScore: 50, cefr: cefrFromListeningCorrect(correct), rows };
+  const total = part1AnswerKey.length + 12;
+  const score = scoreFromCorrect(part1Correct, part1AnswerKey.length, 26) + scoreFromCorrect(matchingCorrect, 4, 8) + scoreFromCorrect(shortCorrect, 4, 8) + scoreFromCorrect(monologueCorrect, 4, 8);
+  return { correct, total, score: clampScore50(score), maxScore: 50, cefr: cefrFromListeningCorrect25(correctToAptis25(correct, total)), rows };
 }
 
 function scoreReadingAnswers(
@@ -746,7 +858,8 @@ function scoreReadingAnswers(
   ];
   const correct = gapCorrect + cohesionCorrect + opinionCorrect + longCorrect;
   const score = rows.reduce((sum, row) => sum + Number(row.score.split('/')[0]), 0);
-  return { correct, total: 27, score, maxScore: 50, cefr: cefrFromReadingCorrect(correct), rows };
+  const aptisCorrect = correctToAptis25(correct, 27);
+  return { correct, total: 27, score: clampScore50(score), maxScore: 50, cefr: cefrFromReadingCorrect25(aptisCorrect), rows };
 }
 
 export function MockTests() {
@@ -1563,9 +1676,15 @@ export function MockTests() {
   }
 
   const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers);
-  const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers);
+  const activeListeningPart1Questions = useMemo(() => {
+    const fromAdmin = listeningQuestionsFromCard(selectedMockCard);
+    return fromAdmin.length > 0 ? fromAdmin : listeningPart1Questions;
+  }, [selectedMockCard]);
+  const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
+  const activeListeningAudioByPart = useMemo(() => listeningAudioByPartFromCard(selectedMockCard), [selectedMockCard]);
+  const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey);
   const grammarSummary = scoreGrammarAnswers(grammarAnswers);
-  const fullTotalScore = readingSummary.score + listeningSummary.score + (speakingScore?.overallScore ?? 0) + (writingScore?.overallScore ?? 0);
+  const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
 
   return (
     <div className="min-h-screen bg-[#f1f1f1] text-[#040817]">
@@ -1705,17 +1824,18 @@ export function MockTests() {
           {screen === 'listeningQuestion' && (
             <ListeningQuestion
               answer={listeningAnswers[listeningQuestionIndex]}
-              correctAnswer={listeningPart1AnswerKey[listeningQuestionIndex]}
+              correctAnswer={activeListeningPart1AnswerKey[listeningQuestionIndex]}
               index={listeningQuestionIndex}
-              question={listeningPart1Questions[listeningQuestionIndex]}
+              question={activeListeningPart1Questions[listeningQuestionIndex]}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
-              total={listeningPart1Questions.length}
+              total={activeListeningPart1Questions.length}
               onAnswer={(answer) => setListeningAnswers((currentAnswers) => ({ ...currentAnswers, [listeningQuestionIndex]: answer }))}
             />
           )}
           {screen === 'listeningMatching' && (
             <ListeningMatching
+              audioUrl={activeListeningAudioByPart['2']}
               answers={listeningMatchingAnswers}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
@@ -1724,6 +1844,7 @@ export function MockTests() {
           )}
           {screen === 'listeningShort' && (
             <ListeningShortConversations
+              audioUrl={activeListeningAudioByPart['3']}
               answers={listeningShortAnswers}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
@@ -1732,6 +1853,7 @@ export function MockTests() {
           )}
           {screen === 'listeningMonologues' && (
             <ListeningMonologues
+              audioUrl={activeListeningAudioByPart['4']}
               answers={listeningMonologueAnswers}
               index={listeningMonologueIndex}
               showAnswer={answerRevealOpen}
@@ -1752,9 +1874,11 @@ export function MockTests() {
           )}
           {screen === 'listeningReview' && (
             <ListeningReview
+              part1AnswerKey={activeListeningPart1AnswerKey}
               matchingAnswers={listeningMatchingAnswers}
               monologueAnswers={listeningMonologueAnswers}
               part1Answers={listeningAnswers}
+              part1Questions={activeListeningPart1Questions}
               shortAnswers={listeningShortAnswers}
               onBack={() => setScreen('listeningResult')}
             />
@@ -1913,7 +2037,7 @@ export function MockTests() {
                 else setScreen('listeningInstructions');
               }}
               onNext={() => {
-                if (listeningQuestionIndex < listeningPart1Questions.length - 1) setListeningQuestionIndex((value) => value + 1);
+                if (listeningQuestionIndex < activeListeningPart1Questions.length - 1) setListeningQuestionIndex((value) => value + 1);
                 else setScreen('listeningMatching');
               }}
             />
@@ -1924,7 +2048,7 @@ export function MockTests() {
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onPrevious={() => {
-                setListeningQuestionIndex(listeningPart1Questions.length - 1);
+                setListeningQuestionIndex(activeListeningPart1Questions.length - 1);
                 setScreen('listeningQuestion');
               }}
               onNext={() => setScreen('listeningShort')}
@@ -3289,13 +3413,14 @@ function ListeningQuestion({
   answer?: string;
   correctAnswer?: string;
   index: number;
-  question: typeof listeningPart1Questions[number];
+  question: ListeningPart1Question;
   showAnswer?: boolean;
   timeRemaining: string;
   total: number;
   onAnswer: (answer: string) => void;
 }) {
   const labels = ['A', 'B', 'C'];
+  const { playing, toggleAudio } = useAudioPlayer(question.audioUrl);
 
   return (
     <main
@@ -3358,6 +3483,7 @@ function ListeningQuestion({
           <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>{question.prompt}</p>
           <button
             type="button"
+            onClick={toggleAudio}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -3373,7 +3499,7 @@ function ListeningQuestion({
             }}
           >
             <PlayCircle size={18} />
-            Play/Stop
+            {playing ? 'Stop' : 'Play'}
           </button>
 
           <div
@@ -3439,17 +3565,20 @@ function ListeningQuestion({
 }
 
 function ListeningMatching({
+  audioUrl,
   answers,
   showAnswer,
   timeRemaining,
   onAnswer
 }: {
+  audioUrl?: string;
   answers: Record<string, string>;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (speaker: string, answer: string) => void;
 }) {
   const speakers = ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'];
+  const { playing, toggleAudio } = useAudioPlayer(audioUrl);
 
   return (
     <main
@@ -3514,6 +3643,7 @@ function ListeningMatching({
           </p>
           <button
             type="button"
+            onClick={toggleAudio}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -3529,7 +3659,7 @@ function ListeningMatching({
             }}
           >
             <PlayCircle size={18} />
-            Play/Stop
+            {playing ? 'Stop' : 'Play'}
           </button>
 
           <div style={{ display: 'grid', gap: 14, marginTop: 26, width: 'min(625px, 100%)' }}>
@@ -3582,16 +3712,20 @@ function ListeningMatching({
 }
 
 function ListeningShortConversations({
+  audioUrl,
   answers,
   showAnswer,
   timeRemaining,
   onAnswer
 }: {
+  audioUrl?: string;
   answers: Record<number, string>;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (index: number, answer: string) => void;
 }) {
+  const { playing, toggleAudio } = useAudioPlayer(audioUrl);
+
   return (
     <main
       style={{
@@ -3653,6 +3787,7 @@ function ListeningShortConversations({
           <p style={{ color: '#020817', fontSize: 19, lineHeight: '28px', margin: 0 }}>There is too much information on the Internet</p>
           <button
             type="button"
+            onClick={toggleAudio}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -3668,7 +3803,7 @@ function ListeningShortConversations({
             }}
           >
             <PlayCircle size={18} />
-            Play/Stop
+            {playing ? 'Stop' : 'Play'}
           </button>
 
           <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: '44px 0 30px' }}>Who expresses which opinion?</p>
@@ -3724,12 +3859,14 @@ function ListeningShortConversations({
 }
 
 function ListeningMonologues({
+  audioUrl,
   answers,
   index,
   showAnswer,
   timeRemaining,
   onAnswer
 }: {
+  audioUrl?: string;
   answers: Record<string, string>;
   index: number;
   showAnswer?: boolean;
@@ -3738,6 +3875,7 @@ function ListeningMonologues({
 }) {
   const labels = ['A', 'B', 'C'];
   const currentRecording = listeningMonologues[index];
+  const { playing, toggleAudio } = useAudioPlayer(audioUrl);
 
   return (
     <main
@@ -3798,6 +3936,7 @@ function ListeningMonologues({
 
         <button
           type="button"
+          onClick={toggleAudio}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -3813,7 +3952,7 @@ function ListeningMonologues({
           }}
         >
           <PlayCircle size={18} />
-          Play/Stop
+          {playing ? 'Stop' : 'Play'}
         </button>
 
         <div style={{ display: 'grid', gap: 36, marginTop: 26 }}>
@@ -4445,6 +4584,8 @@ function ReadingLong({ answers, showAnswer, timeRemaining, onAnswer }: { answers
 }
 
 function ReadingResult({ summary, onExit, onReview, onRetry }: { summary: SkillScoreSummary; onExit: () => void; onReview: () => void; onRetry: () => void }) {
+  const aptisCorrect = correctToAptis25(summary.correct, summary.total);
+
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
       <section style={{ width: 'min(864px, 100%)', margin: '0 auto' }}>
@@ -4456,6 +4597,9 @@ function ReadingResult({ summary, onExit, onReview, onRetry }: { summary: SkillS
             <ResultStat value={summary.cefr} label="Trình độ" tone="red" />
             <ResultStat value={`${summary.correct}/${summary.total}`} label="Số câu đúng" tone="black" />
           </div>
+          <p style={{ color: '#64748b', fontSize: 14, margin: '16px 0 0' }}>
+            CEFR Reading xét theo số câu đúng quy đổi Aptis: {aptisCorrect}/25.
+          </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 36 }}>
             <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
@@ -4545,33 +4689,22 @@ function ListeningResult({ summary, onExit, onReview, onRetry }: { summary: Skil
 }
 
 function ListeningReview({
+  part1AnswerKey,
   matchingAnswers,
   monologueAnswers,
   part1Answers,
+  part1Questions,
   shortAnswers,
   onBack
 }: {
+  part1AnswerKey: string[];
   matchingAnswers: Record<string, string>;
   monologueAnswers: Record<string, string>;
   part1Answers: Record<number, string>;
+  part1Questions: ListeningPart1Question[];
   shortAnswers: Record<number, string>;
   onBack: () => void;
 }) {
-  const part1CorrectAnswers = [
-    '3250 pounds',
-    '8:30',
-    'Four',
-    'A grammar book',
-    'Blue',
-    'To the museum',
-    'His laptop',
-    'Snacks',
-    'Wednesday',
-    'A taxi',
-    'Traffic',
-    'His mother',
-    'Cycling'
-  ];
   const matchingCorrectAnswers: Record<string, string> = {
     'Speaker A ...': 'wants to learn a new skill',
     'Speaker B ...': 'enjoys meeting new people',
@@ -4588,10 +4721,10 @@ function ListeningReview({
   const groups = [
     {
       title: 'Part 1 - Word Recognition',
-      rows: listeningPart1Questions.map((question, index) => ({
+      rows: part1Questions.map((question, index) => ({
         question: question.prompt,
         user: part1Answers[index] || 'Chưa chọn',
-        answer: part1CorrectAnswers[index]
+        answer: part1AnswerKey[index]
       }))
     },
     {
@@ -4679,7 +4812,7 @@ function GrammarResult({ summary, onExit, onRetry }: { summary: SkillScoreSummar
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 26, maxWidth: 480, margin: '32px auto 0' }}>
             <ResultStat value={`${summary.score}/50`} label="Điểm" tone="red" />
-            <ResultStat value={summary.cefr} label="Mức tham khảo" tone="red" />
+            <ResultStat value={summary.cefr} label="Báo cáo riêng" tone="red" />
             <ResultStat value={`${summary.correct}/${summary.total}`} label="Số câu đúng" tone="black" />
           </div>
           <div style={{ marginTop: 30, display: 'grid', gap: 12, textAlign: 'left' }}>
@@ -4726,11 +4859,12 @@ function FullResult({
   onExit: () => void;
   onRetry: () => void;
 }) {
+  const readingAptisCorrect = correctToAptis25(reading.correct, reading.total);
   const skillRows = [
-    { skill: 'Reading', score: reading.score, cefr: reading.cefr, note: `${reading.correct}/${reading.total} câu đúng` },
+    { skill: 'Reading', score: clampScore50(reading.score), cefr: reading.cefr, note: `${reading.correct}/${reading.total} câu đúng, quy đổi ${readingAptisCorrect}/25` },
     { skill: 'Listening', score: listening.score, cefr: listening.cefr, note: `${listening.correct}/${listening.total} câu đúng` },
-    { skill: 'Speaking', score: speaking?.overallScore ?? 0, cefr: speaking?.cefrLevel ?? 'A1', note: speaking ? 'Chấm bằng AI' : 'Chưa có kết quả AI' },
-    { skill: 'Writing', score: writing?.overallScore ?? 0, cefr: writing?.cefrLevel ?? 'A1', note: writing ? 'Chấm bằng AI' : 'Chưa có kết quả AI' }
+    { skill: 'Speaking', score: clampScore50(speaking?.overallScore ?? 0), cefr: speaking?.cefrLevel ?? 'A1', note: speaking ? 'Chấm bằng AI' : 'Chưa có kết quả AI' },
+    { skill: 'Writing', score: clampScore50(writing?.overallScore ?? 0), cefr: writing?.cefrLevel ?? 'A1', note: writing ? 'Chấm bằng AI' : 'Chưa có kết quả AI' }
   ];
   const overallCefr = cefrFromAptisTotal(totalScore);
 
