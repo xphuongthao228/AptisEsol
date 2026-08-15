@@ -1,0 +1,6047 @@
+﻿import {
+  ArrowLeft,
+  ArrowRight,
+  AlertCircle,
+  Bell,
+  BookOpen,
+  Bookmark,
+  CalendarPlus,
+  CheckCircle2,
+  Clock,
+  Eye,
+  FileCheck,
+  FileQuestion,
+  FileSearch,
+  FileText,
+  Flag,
+  GraduationCap,
+  HeartHandshake,
+  HelpCircle,
+  Info,
+  LayoutDashboard,
+  List,
+  LogOut,
+  Mail,
+  Mic,
+  Move,
+  Pause,
+  PlayCircle,
+  RotateCcw,
+  Search,
+  Settings,
+  Volume2,
+  VolumeX,
+  type LucideIcon
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import toast from 'react-hot-toast';
+import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
+import { api, unwrap } from '../../api/client';
+import { useAuthStore } from '../../store/authStore';
+
+type SpeakingScreen = 'select' | 'fullStart' | 'fullResult' | 'start' | 'instructions' | 'prompt' | 'question' | 'part2Prompt' | 'part2Question' | 'part3Prompt' | 'part3Question' | 'part4Prompt' | 'part4Question' | 'complete' | 'readingStart' | 'readingInstructions' | 'readingQuestion' | 'readingCohesion' | 'readingOpinion' | 'readingLong' | 'readingResult' | 'readingReview' | 'listeningStart' | 'listeningInstructions' | 'listeningQuestion' | 'listeningMatching' | 'listeningShort' | 'listeningMonologues' | 'listeningResult' | 'listeningReview' | 'writingInstructions' | 'writingPart' | 'writingResult' | 'grammarStart' | 'grammarInstructions' | 'grammarQuestion' | 'grammarResult';
+type Part4Phase = 'prepare' | 'recording';
+type MockSkill = 'FULL' | 'LISTENING' | 'SPEAKING' | 'WRITING' | 'READING' | 'GRAMMAR';
+
+type AiWritingScore = {
+  overallScore: number;
+  cefrLevel: string;
+  summary: string;
+  criteria: { name: string; score: number; feedback: string }[];
+  parts: { title: string; score: number; feedback: string }[];
+  corrections: string[];
+  suggestedAnswer: string;
+};
+
+type AiSpeakingScore = {
+  overallScore: number;
+  cefrLevel: string;
+  summary: string;
+  criteria: { name: string; score: number; feedback: string }[];
+  parts: { title: string; score: number; feedback: string }[];
+  pronunciationTips: string[];
+  fluencyTips: string[];
+  improvedAnswer: string;
+};
+
+type SidebarLink = {
+  to: string;
+  label: string;
+  icon: LucideIcon;
+};
+
+type MockCard = {
+  id: string;
+  skill: MockSkill;
+  label: string;
+  title: string;
+  description: string;
+  questions: string;
+  minutes: string;
+  icon: LucideIcon;
+  ready: boolean;
+  color: string;
+};
+
+type StoredAdminMockTest = {
+  id?: string;
+  skill?: MockSkill;
+  title?: string;
+  description?: string;
+  questions?: string;
+  minutes?: string;
+  status?: 'PUBLISHED' | 'DRAFT';
+};
+
+type ApiMockTest = {
+  id: number;
+  skill: MockSkill;
+  title: string;
+  description?: string;
+  questions?: string;
+  minutes?: string;
+  status?: 'PUBLISHED' | 'DRAFT';
+};
+
+type GrammarQuestionItem = {
+  prompt?: string;
+  options: string[];
+  answer?: string;
+  matchRows?: { word: string; answer: string }[];
+  definitionRows?: { definition: string; answer: string }[];
+  definitionMode?: 'completion' | 'matching';
+  sentenceRows?: { before: string; after?: string; answer: string }[];
+  collocationRows?: { word: string; answer: string }[];
+};
+
+type SkillScoreSummary = {
+  correct: number;
+  total: number;
+  score: number;
+  maxScore: number;
+  cefr: string;
+  rows: { part: string; correct: string; score: string }[];
+};
+
+const sidebarLinks: SidebarLink[] = [
+  { to: '/app', label: 'Tổng quan', icon: LayoutDashboard },
+  { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
+  { to: '/app/tests', label: 'Luyện tập', icon: BookOpen },
+  { to: '/app/exams', label: 'Đề thi', icon: FileText },
+  { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
+  { to: '/app/predictions', label: 'Dự đoán đề', icon: FileSearch },
+  { to: '/app/renewal', label: 'Gia hạn', icon: CalendarPlus },
+  { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },
+  { to: '/app/contact', label: 'Liên hệ', icon: Mail },
+  { to: '/app/settings', label: 'Cài đặt', icon: Settings }
+];
+
+const skillFilters: { key: MockSkill; label: string }[] = [
+  { key: 'FULL', label: 'Full' },
+  { key: 'LISTENING', label: 'Listening' },
+  { key: 'SPEAKING', label: 'Speaking' },
+  { key: 'WRITING', label: 'Writing' },
+  { key: 'READING', label: 'Reading' },
+  { key: 'GRAMMAR', label: 'Grammar' }
+];
+
+const mockCards: MockCard[] = [
+  {
+    id: 'full-1',
+    skill: 'FULL',
+    label: 'Full',
+    title: 'Full Aptis Mock Test',
+    description: 'Làm trọn bộ các kỹ năng trong cùng một phiên thi thử mô phỏng.',
+    questions: '5 kỹ năng',
+    minutes: '162 phút',
+    icon: FileCheck,
+    ready: true,
+    color: 'bg-indigo-50 text-indigo-700'
+  },
+  {
+    id: 'listening-1',
+    skill: 'LISTENING',
+    label: 'Listening',
+    title: 'Listening Mock Test',
+    description: 'Giao diện mô phỏng bài nghe Aptis với audio, lượt nghe và câu hỏi.',
+    questions: '17',
+    minutes: '40 phút',
+    icon: Volume2,
+    ready: true,
+    color: 'bg-blue-50 text-blue-700'
+  },
+  {
+    id: 'speaking-1',
+    skill: 'SPEAKING',
+    label: 'Speaking',
+    title: 'Speaking Practice Test 1',
+    description: 'Mô phỏng bài Speaking với màn hình hướng dẫn, prompt và ghi âm thử.',
+    questions: '4',
+    minutes: '12 phút',
+    icon: Mic,
+    ready: true,
+    color: 'bg-rose-50 text-rose-700'
+  },
+  {
+    id: 'writing-1',
+    skill: 'WRITING',
+    label: 'Writing',
+    title: 'Writing Mock Test',
+    description: 'Giao diện mô phỏng bài viết với khung trả lời và bộ đếm thời gian.',
+    questions: '4',
+    minutes: '50 phút',
+    icon: FileText,
+    ready: true,
+    color: 'bg-violet-50 text-violet-700'
+  },
+  {
+    id: 'reading-1',
+    skill: 'READING',
+    label: 'Reading',
+    title: 'Reading Mock Test',
+    description: 'Giao diện mô phỏng đọc hiểu theo từng phần của bài thi Aptis.',
+    questions: '5',
+    minutes: '35 phút',
+    icon: BookOpen,
+    ready: true,
+    color: 'bg-emerald-50 text-emerald-700'
+  },
+  {
+    id: 'grammar-1',
+    skill: 'GRAMMAR',
+    label: 'Grammar',
+    title: 'Grammar & Vocabulary Mock Test',
+    description: 'Giao diện mô phỏng bài Grammar & Vocabulary với câu hỏi trắc nghiệm và bộ đếm thời gian.',
+    questions: '30',
+    minutes: '25 phút',
+    icon: FileQuestion,
+    ready: true,
+    color: 'bg-amber-50 text-amber-700'
+  }
+];
+
+const mockCardMeta: Record<MockSkill, Pick<MockCard, 'icon' | 'color' | 'label'>> = {
+  FULL: { icon: FileCheck, color: 'bg-indigo-50 text-indigo-700', label: 'Full' },
+  LISTENING: { icon: Volume2, color: 'bg-blue-50 text-blue-700', label: 'Listening' },
+  SPEAKING: { icon: Mic, color: 'bg-rose-50 text-rose-700', label: 'Speaking' },
+  WRITING: { icon: FileText, color: 'bg-violet-50 text-violet-700', label: 'Writing' },
+  READING: { icon: BookOpen, color: 'bg-emerald-50 text-emerald-700', label: 'Reading' },
+  GRAMMAR: { icon: FileQuestion, color: 'bg-amber-50 text-amber-700', label: 'Grammar' }
+};
+
+function loadPublishedAdminMockCards() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = window.localStorage.getItem('aptis-admin-mock-tests');
+    if (!saved) return [];
+    const parsed = JSON.parse(saved) as StoredAdminMockTest[];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item): item is StoredAdminMockTest & { skill: MockSkill; title: string } =>
+        Boolean(item.skill && mockCardMeta[item.skill] && item.title?.trim() && item.status !== 'DRAFT')
+      )
+      .map<MockCard>((item) => {
+        const meta = mockCardMeta[item.skill];
+        return {
+          id: item.id ? `admin-${item.id}` : `admin-${item.skill}-${item.title}`,
+          skill: item.skill,
+          label: meta.label,
+          title: item.title.trim(),
+          description: item.description?.trim() || 'Đề thi thử do admin thêm.',
+          questions: item.questions?.trim() || 'Chưa rõ',
+          minutes: item.minutes?.trim() || 'Chưa rõ',
+          icon: meta.icon,
+          ready: true,
+          color: meta.color
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+function apiMockTestToCard(item: ApiMockTest): MockCard | null {
+  if (!item.skill || !mockCardMeta[item.skill] || !item.title?.trim()) return null;
+  const meta = mockCardMeta[item.skill];
+  return {
+    id: `api-${item.id}`,
+    skill: item.skill,
+    label: meta.label,
+    title: item.title.trim(),
+    description: item.description?.trim() || 'Đề thi thử do admin thêm.',
+    questions: item.questions?.trim() || 'Chưa rõ',
+    minutes: item.minutes?.trim() || 'Chưa rõ',
+    icon: meta.icon,
+    ready: true,
+    color: meta.color
+  };
+}
+
+const speakingMockTests = [
+  { id: 1, title: 'Speaking Practice Test 1', subtitle: 'Part 1 of 4', questions: 4, minutes: 12 }
+];
+
+const grammarQuestions: GrammarQuestionItem[] = [
+  { prompt: 'My father, ___ is a dentist, told me not to drink sugary drinks.', options: ['who', 'which', 'that'], answer: 'who' },
+  { prompt: 'If I ___ more time, I would learn another language.', options: ['have', 'had', 'will have'], answer: 'had' },
+  { prompt: 'She has lived in this city ___ 2019.', options: ['for', 'since', 'during'], answer: 'since' },
+  { prompt: 'The train was delayed, ___ we arrived late.', options: ['because', 'so', 'although'], answer: 'so' },
+  { prompt: 'I am interested ___ learning about other cultures.', options: ['in', 'on', 'at'], answer: 'in' },
+  { prompt: 'This is the best film I have ___ seen.', options: ['ever', 'never', 'yet'], answer: 'ever' },
+  { prompt: 'Could you tell me where ___?', options: ['is the station', 'the station is', 'does the station'], answer: 'the station is' },
+  { prompt: 'They ___ dinner when I called them.', options: ['have', 'were having', 'are having'], answer: 'were having' },
+  { prompt: 'You should ___ your homework before watching TV.', options: ['finish', 'to finish', 'finishing'], answer: 'finish' },
+  { prompt: 'The room was ___ small for all the guests.', options: ['too', 'enough', 'such'], answer: 'too' },
+  { prompt: 'I have never been to Canada, ___ I would like to go.', options: ['but', 'or', 'because'], answer: 'but' },
+  { prompt: 'The book ___ I borrowed was very useful.', options: ['where', 'which', 'who'], answer: 'which' },
+  { prompt: 'She speaks English ___ than her brother.', options: ['good', 'better', 'best'], answer: 'better' },
+  { prompt: 'We need to leave now, ___ we will miss the bus.', options: ['otherwise', 'however', 'despite'], answer: 'otherwise' },
+  { prompt: 'There are ___ apples in the fridge.', options: ['a few', 'much', 'any'], answer: 'a few' },
+  { prompt: 'He is responsible ___ managing the team.', options: ['for', 'to', 'with'], answer: 'for' },
+  { prompt: 'I wish I ___ play the piano.', options: ['can', 'could', 'will'], answer: 'could' },
+  { prompt: 'The meeting has been ___ until Friday.', options: ['put off', 'put on', 'put out'], answer: 'put off' },
+  { prompt: 'She asked me ___ I was from.', options: ['where', 'what', 'when'], answer: 'where' },
+  { prompt: 'I prefer tea ___ coffee.', options: ['than', 'to', 'from'], answer: 'to' },
+  { prompt: 'The exam was not as difficult ___ I expected.', options: ['as', 'than', 'like'], answer: 'as' },
+  { prompt: 'They have already ___ the tickets.', options: ['buy', 'bought', 'buying'], answer: 'bought' },
+  { prompt: 'Please speak more ___; I cannot hear you.', options: ['loud', 'loudly', 'louder'], answer: 'loudly' },
+  { prompt: 'The restaurant ___ we had lunch was very busy.', options: ['where', 'which', 'who'], answer: 'where' },
+  { prompt: 'I am looking forward ___ from you soon.', options: ['hear', 'to hearing', 'hearing'], answer: 'to hearing' },
+  {
+    options: ['make', 'select', 'shut', 'develop', 'look after', 'repair', 'begin'],
+    matchRows: [
+      { word: 'create', answer: 'make' },
+      { word: 'choose', answer: 'select' },
+      { word: 'close', answer: 'shut' },
+      { word: 'improve', answer: 'develop' },
+      { word: 'care', answer: 'look after' }
+    ]
+  },
+  {
+    options: ['argue', 'train', 'receive', 'repay', 'agree', 'borrow', 'return'],
+    definitionMode: 'completion',
+    definitionRows: [
+      { definition: 'To oppose someone is to...', answer: 'argue' },
+      { definition: 'To teach someone is to...', answer: 'train' },
+      { definition: 'To accept something is to...', answer: 'receive' },
+      { definition: 'To get something is to...', answer: 'receive' },
+      { definition: 'To pay someone is to...', answer: 'repay' }
+    ]
+  },
+  {
+    options: ['passionate', 'curious', 'artificial', 'unclear', 'smooth', 'ordinary', 'empty'],
+    definitionMode: 'matching',
+    definitionRows: [
+      { definition: 'Having a lot of strong emotion.', answer: 'passionate' },
+      { definition: 'Wanting to know or learn something.', answer: 'curious' },
+      { definition: 'Not natural or real.', answer: 'artificial' },
+      { definition: 'Not clear and difficult to understand or see.', answer: 'unclear' },
+      { definition: 'Having a flat, even surface.', answer: 'smooth' }
+    ]
+  },
+  {
+    options: ['corridor', 'discipline', 'wardrobe', 'fringe', 'museum', 'garden', 'traffic'],
+    sentenceRows: [
+      { before: 'He had to walk down a long dark', after: 'to get to his room.', answer: 'corridor' },
+      { before: 'The teacher should maintain', after: 'in the classroom to make the lesson effective.', answer: 'discipline' },
+      { before: 'She opened the', after: 'and took a coat out of it.', answer: 'wardrobe' },
+      { before: 'You should cut your', after: 'regularly otherwise your hair will get in your eyes.', answer: 'fringe' },
+      { before: 'The local', after: 'has an exhibit about the history of this area.', answer: 'museum' }
+    ]
+  },
+  {
+    options: ['idea', 'track', 'road', 'pace', 'chores', 'painting', 'training'],
+    collocationRows: [
+      { word: 'abstract', answer: 'idea' },
+      { word: 'athletics', answer: 'track' },
+      { word: 'congested', answer: 'road' },
+      { word: 'frantic', answer: 'pace' },
+      { word: 'housework', answer: 'chores' }
+    ]
+  }
+];
+
+const speakingQuestions = [
+  'Please tell me about your family.',
+  'What do you usually do in your free time?',
+  'Tell me about a place in your city that you like.'
+];
+
+const speakingInstructionsSpeechText = 'Aptis General Speaking Test Instructions. Speaking. You will answer some questions about yourself and then do three short speaking tasks. Listen to the instructions and speak clearly into your microphone when you hear the signal. Each part of the test will appear automatically. The test will take about 12 minutes. When you click on the Next button, the test will begin.';
+const promptSpeechText = 'Part One. In this part, I am going to ask you three short questions about yourself and your interests. You will have 30 seconds to reply to each question. Begin speaking when you hear this sound.';
+const part2PromptSpeechText = "Part Two. In this part, I'm going to ask you to describe a picture. Then I will ask you two questions about it. You will have 45 seconds for each response. Begin speaking when you hear this sound.";
+const part3PromptSpeechText = "Part Three. In this part, I'm going to ask you to compare two pictures, and I will then ask you two questions about them. You will have 45 seconds for each response. Begin speaking when you hear this sound.";
+const part4PromptSpeechText = 'Part Four. In this part, you will discuss a topic. You will have 60 seconds to prepare and 120 seconds to speak. Begin speaking when you hear this sound.';
+
+function playSpeakingBeep() {
+  const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return Promise.resolve();
+
+  const audioContext = new AudioContextClass();
+  const oscillator = audioContext.createOscillator();
+  const gain = audioContext.createGain();
+
+  oscillator.type = 'sine';
+  oscillator.frequency.value = 880;
+  gain.gain.setValueAtTime(0.001, audioContext.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.25, audioContext.currentTime + 0.02);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioContext.currentTime + 0.28);
+  oscillator.connect(gain);
+  gain.connect(audioContext.destination);
+  oscillator.start();
+  oscillator.stop(audioContext.currentTime + 0.3);
+
+  return new Promise<void>((resolve) => {
+    oscillator.onended = () => {
+      audioContext.close().catch(() => undefined);
+      resolve();
+    };
+  });
+}
+
+function shouldBeepBeforeSpeakingTimer(screen: SpeakingScreen) {
+  return screen === 'question' || screen === 'part2Question' || screen === 'part3Question';
+}
+
+const part2Questions = [
+  'Describe the picture.',
+  'What do you think the people are talking about?',
+  'Do you like eating with friends? Why or why not?'
+];
+const part3Questions = [
+  'Compare the pictures.',
+  'What are the advantages of travelling by car?',
+  'Do you prefer travelling alone or with other people? Why?'
+];
+const part4Topic = {
+  title: 'Receiving a gift',
+  image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=900&q=80',
+  questions: [
+    'Tell me about the last gift you received. Who gave it to you, and what was the occasion?',
+    'Do you prefer receiving handmade gifts or gifts bought in a shop? Why?',
+    'Are you planning to give a gift to anyone soon? Tell me about it.'
+  ]
+};
+const listeningPart1Questions = [
+  {
+    prompt: 'A person calls a friend about his new car. How much does the small car cost him?',
+    options: ['3250 pounds', '3550 pounds', '4250 pounds']
+  },
+  {
+    prompt: 'A woman asks about a train ticket. What time does the next train leave?',
+    options: ['8:15', '8:30', '8:45']
+  },
+  {
+    prompt: 'A man is booking a table. How many people will come to dinner?',
+    options: ['Three', 'Four', 'Five']
+  },
+  {
+    prompt: 'A student phones the library. Which book does she need?',
+    options: ['A history book', 'A grammar book', 'A science book']
+  },
+  {
+    prompt: 'A customer asks about a jacket. What colour does he choose?',
+    options: ['Black', 'Blue', 'Green']
+  },
+  {
+    prompt: 'A woman talks about her weekend. Where did she go?',
+    options: ['To the beach', 'To the cinema', 'To the museum']
+  },
+  {
+    prompt: 'A man calls a repair shop. What is broken?',
+    options: ['His phone', 'His laptop', 'His watch']
+  },
+  {
+    prompt: 'Two friends talk about a party. What should Anna bring?',
+    options: ['Drinks', 'Music', 'Snacks']
+  },
+  {
+    prompt: 'A teacher gives an announcement. When is the test?',
+    options: ['Monday', 'Wednesday', 'Friday']
+  },
+  {
+    prompt: 'A woman is at a hotel. What does she ask for?',
+    options: ['A map', 'A towel', 'A taxi']
+  },
+  {
+    prompt: 'A man leaves a message. Why is he late?',
+    options: ['Traffic', 'Bad weather', 'A meeting']
+  },
+  {
+    prompt: 'A customer is buying flowers. Who are they for?',
+    options: ['His mother', 'His teacher', 'His friend']
+  },
+  {
+    prompt: 'Two people discuss exercise. What sport will they try?',
+    options: ['Swimming', 'Tennis', 'Cycling']
+  }
+];
+const listeningPart1AnswerKey = ['3250 pounds', '8:30', 'Four', 'A grammar book', 'Blue', 'To the museum', 'His laptop', 'Snacks', 'Wednesday', 'A taxi', 'Traffic', 'His mother', 'Cycling'];
+const listeningMatchingOptions = [
+  'enjoys meeting new people',
+  'wants to learn a new skill',
+  'prefers working alone',
+  'needs more time to practise',
+  'has already done this activity before',
+  'is worried about the cost'
+];
+const listeningMatchingAnswerKey: Record<string, string> = {
+  'Speaker A ...': 'wants to learn a new skill',
+  'Speaker B ...': 'enjoys meeting new people',
+  'Speaker C ...': 'needs more time to practise',
+  'Speaker D ...': 'has already done this activity before'
+};
+const listeningShortStatements = [
+  'There is too much information on the Internet',
+  'Finding information on the Internet requires skills',
+  'The use of the Internet affects the way we think',
+  'The Internet makes young people less patient.'
+];
+const listeningSpeakerOptions = ['Man', 'Woman', 'Both', 'Neither'];
+const listeningShortAnswerKey = ['Woman', 'Man', 'Both', 'Woman'];
+const listeningMonologues = [
+  {
+    questions: [
+      {
+        prompt: 'What does the announcer say about the new novel?',
+        options: ['It is different from his earlier works', 'It is romantic and soft', 'It is less famous than his earlier works']
+      },
+      {
+        prompt: 'What does the announcer say the writer should do in the future?',
+        options: ['The writer should continue to write this genre', 'The writer should go back to his original genre', 'He should listen to critics before writing his next work']
+      }
+    ]
+  },
+  {
+    questions: [
+      {
+        prompt: 'What does the expert say being professional is all about?',
+        options: ['To maintain a positive attitude.', 'To create a good working environment.', 'To make a good impression.']
+      },
+      {
+        prompt: 'What does the expert say about the definition of professionalism?',
+        options: ['It is the same as 40 years ago.', 'Our definition of it is changing.', 'It will not change anymore.']
+      }
+    ]
+  }
+];
+const listeningMonologueAnswerKey: Record<string, string> = {
+  '0-0': 'It is different from his earlier works',
+  '0-1': 'The writer should go back to his original genre',
+  '1-0': 'To make a good impression.',
+  '1-1': 'Our definition of it is changing.'
+};
+const writingParts = [
+  {
+    title: 'Part 1',
+    heading: 'You are joining a Art Club. Fill out the form. Write short answers (1-5 words) for each message',
+    prompt: '',
+    questions: ['Do you enjoy drawing or painting?', 'What kind of art do you like?', 'When did you last visit an exhibition?', 'Who is your favourite artist?', 'What do you usually do in your free time?'],
+    helper: 'Words'
+  },
+  {
+    title: 'Part 2',
+    heading: 'You are a new member of an online club.',
+    prompt: 'Write a message to other members. Tell them about yourself and ask one question.',
+    questions: [],
+    helper: 'Write 20-30 words.'
+  },
+  {
+    title: 'Part 3',
+    heading: 'You are speaking to fellow members of the Art Club in a group chat. Respond to them in full sentences (30-40 words per answer).',
+    prompt: '',
+    questions: [
+      'Tell me a thing that you have had for a long time.',
+      'Should I take a course at my local college? Please, give me some advice.',
+      'Street art is becoming popular. However, some people criticize that it is bad. What is your opinion?'
+    ],
+    helper: 'Words'
+  },
+  {
+    title: 'Part 4',
+    heading: 'Write a short email (about 50 words) to your friend, and a longer email (120-150 words) to the president of the club.',
+    prompt: 'Dear all members,\nThe Art Club is organizing a talk to the public to attract more attention. We are going to invite an artist to give a talk to the members. As a member of our club, could you give us an artist to join our talk and what topic should they share to gain more attention? Especially, we would like to have more both young and elderly members.',
+    questions: [],
+    helper: 'Write 40-50 words.'
+  }
+];
+const speakingScreens: SpeakingScreen[] = ['select', 'fullStart', 'fullResult', 'start', 'instructions', 'prompt', 'question', 'part2Prompt', 'part2Question', 'part3Prompt', 'part3Question', 'part4Prompt', 'part4Question', 'complete', 'readingStart', 'readingInstructions', 'readingQuestion', 'readingCohesion', 'readingOpinion', 'readingLong', 'readingResult', 'readingReview', 'listeningStart', 'listeningInstructions', 'listeningQuestion', 'listeningMatching', 'listeningShort', 'listeningMonologues', 'listeningResult', 'listeningReview', 'writingInstructions', 'writingPart', 'writingResult', 'grammarStart', 'grammarInstructions', 'grammarQuestion', 'grammarResult'];
+const mockSkills: MockSkill[] = ['FULL', 'LISTENING', 'SPEAKING', 'WRITING', 'READING', 'GRAMMAR'];
+
+function readScreen(value: string | null): SpeakingScreen {
+  return speakingScreens.includes(value as SpeakingScreen) ? (value as SpeakingScreen) : 'select';
+}
+
+function readSkill(value: string | null): MockSkill {
+  return mockSkills.includes(value as MockSkill) ? (value as MockSkill) : 'FULL';
+}
+
+function readQuestionIndex(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return 0;
+  return Math.min(Math.max(numberValue, 0), speakingQuestions.length - 1);
+}
+
+function readPart2QuestionIndex(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return 0;
+  return Math.min(Math.max(numberValue, 0), part2Questions.length - 1);
+}
+
+function readPart3QuestionIndex(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return 0;
+  return Math.min(Math.max(numberValue, 0), part3Questions.length - 1);
+}
+
+function readPart4Phase(value: string | null): Part4Phase {
+  return value === 'recording' ? 'recording' : 'prepare';
+}
+
+function readListeningQuestionIndex(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return 0;
+  return Math.min(Math.max(numberValue, 0), listeningPart1Questions.length - 1);
+}
+
+function readListeningRecordingIndex(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return 0;
+  return Math.min(Math.max(numberValue, 0), listeningMonologues.length - 1);
+}
+
+function readWritingPartIndex(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return 0;
+  return Math.min(Math.max(numberValue, 0), writingParts.length - 1);
+}
+
+function readGrammarQuestionIndex(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue)) return 0;
+  return Math.min(Math.max(numberValue, 0), grammarQuestions.length - 1);
+}
+
+function formatReadingTime(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function limitWords(value: string, maxWords: number) {
+  const words = value.trim().split(/\s+/).filter(Boolean);
+  if (words.length <= maxWords) return value;
+  return words.slice(0, maxWords).join(' ');
+}
+
+function sameAnswer(user?: string, answer?: string) {
+  return (user ?? '').trim().toLowerCase() === (answer ?? '').trim().toLowerCase();
+}
+
+function scoreFromCorrect(correct: number, total: number, maxScore: number) {
+  if (total <= 0) return 0;
+  return Math.round((correct / total) * maxScore);
+}
+
+function cefrFromAptisTotal(totalScore: number) {
+  if (totalScore > 180) return 'C2';
+  if (totalScore >= 160) return 'C1';
+  if (totalScore >= 120) return 'B2';
+  if (totalScore >= 80) return 'B1';
+  if (totalScore >= 40) return 'A2';
+  return 'A1';
+}
+
+function cefrFromReadingCorrect(correct: number) {
+  if (correct >= 23) return 'C';
+  if (correct >= 19) return 'B2';
+  if (correct >= 13) return 'B1';
+  if (correct >= 8) return 'A2';
+  return 'A1';
+}
+
+function cefrFromListeningCorrect(correct: number) {
+  if (correct >= 21) return 'C';
+  if (correct >= 17) return 'B2';
+  if (correct >= 12) return 'B1';
+  if (correct >= 8) return 'A2';
+  return 'A1';
+}
+
+function cefrFromFiftyScore(score: number) {
+  if (score >= 45) return 'C';
+  if (score >= 38) return 'B2';
+  if (score >= 26) return 'B1';
+  if (score >= 16) return 'A2';
+  return 'A1';
+}
+
+function scoreGrammarAnswers(answers: Record<number, string>): SkillScoreSummary {
+  const counts = grammarQuestions.map((question, index) => {
+    const answer = answers[index];
+    if (question.answer) return sameAnswer(answer, question.answer) ? 1 : 0;
+    const selections = parseGrammarMatchingAnswer(answer);
+    const rows = question.matchRows ?? question.definitionRows ?? question.sentenceRows ?? question.collocationRows ?? [];
+    return rows.filter((row) => {
+      const key = 'word' in row ? row.word : 'definition' in row ? row.definition : row.before;
+      return sameAnswer(selections[key], row.answer);
+    }).length;
+  });
+  const correct = counts.reduce((sum, value) => sum + value, 0);
+  const rows = [
+    { part: 'Grammar multiple choice', correct: `${counts.slice(0, 25).reduce((sum, value) => sum + value, 0)}/25`, score: `${counts.slice(0, 25).reduce((sum, value) => sum + value, 0)}/25` },
+    { part: 'Vocabulary & matching', correct: `${counts.slice(25).reduce((sum, value) => sum + value, 0)}/25`, score: `${counts.slice(25).reduce((sum, value) => sum + value, 0)}/25` }
+  ];
+  return { correct, total: 50, score: correct, maxScore: 50, cefr: cefrFromFiftyScore(correct), rows };
+}
+
+function scoreListeningAnswers(
+  part1Answers: Record<number, string>,
+  matchingAnswers: Record<string, string>,
+  shortAnswers: Record<number, string>,
+  monologueAnswers: Record<string, string>
+): SkillScoreSummary {
+  const part1Correct = listeningPart1AnswerKey.filter((answer, index) => sameAnswer(part1Answers[index], answer)).length;
+  const matchingCorrect = Object.entries(listeningMatchingAnswerKey).filter(([speaker, answer]) => sameAnswer(matchingAnswers[speaker], answer)).length;
+  const shortCorrect = listeningShortAnswerKey.filter((answer, index) => sameAnswer(shortAnswers[index], answer)).length;
+  const monologueCorrect = Object.entries(listeningMonologueAnswerKey).filter(([key, answer]) => sameAnswer(monologueAnswers[key], answer)).length;
+  const rows = [
+    { part: 'Part 1 - Word Recognition', correct: `${part1Correct}/13`, score: `${scoreFromCorrect(part1Correct, 13, 26)}/26` },
+    { part: 'Part 2 - Matching Information', correct: `${matchingCorrect}/4`, score: `${scoreFromCorrect(matchingCorrect, 4, 8)}/8` },
+    { part: 'Part 3 - Short Conversations', correct: `${shortCorrect}/4`, score: `${scoreFromCorrect(shortCorrect, 4, 8)}/8` },
+    { part: 'Part 4 - Monologues', correct: `${monologueCorrect}/4`, score: `${scoreFromCorrect(monologueCorrect, 4, 8)}/8` }
+  ];
+  const correct = part1Correct + matchingCorrect + shortCorrect + monologueCorrect;
+  const score = scoreFromCorrect(part1Correct, 13, 26) + scoreFromCorrect(matchingCorrect, 4, 8) + scoreFromCorrect(shortCorrect, 4, 8) + scoreFromCorrect(monologueCorrect, 4, 8);
+  return { correct, total: 25, score, maxScore: 50, cefr: cefrFromListeningCorrect(correct), rows };
+}
+
+function scoreReadingAnswers(
+  gapAnswers: Record<number, string>,
+  cohesionAnswers: Record<number, string[]>,
+  opinionAnswers: Record<number, string>,
+  longAnswers: Record<number, string>
+): SkillScoreSummary {
+  const gapCorrectAnswers = ['see', 'store', 'lunch', 'watched'];
+  const cohesionCorrectAnswers: Record<number, string[]> = {
+    0: ['B', 'C', 'A', 'E', 'D'],
+    1: ['C', 'A', 'D', 'B']
+  };
+  const opinionCorrectAnswers = ['B', 'D', 'A', 'C', 'C', 'A', 'B'];
+  const longCorrectAnswers = ['A global writer', 'Difficult language', 'A famous tragedy', 'A lasting legacy', 'Early success', 'Protecting his reputation', 'Remembering Dickens'];
+  const gapCorrect = gapCorrectAnswers.filter((answer, index) => sameAnswer(gapAnswers[index], answer)).length;
+  const cohesionCorrect = Object.entries(cohesionCorrectAnswers).reduce((sum, [key, answers]) => {
+    const userAnswers = cohesionAnswers[Number(key)] ?? [];
+    return sum + answers.filter((answer, index) => sameAnswer(userAnswers[index], answer)).length;
+  }, 0);
+  const opinionCorrect = opinionCorrectAnswers.filter((answer, index) => sameAnswer(opinionAnswers[index], answer)).length;
+  const longCorrect = longCorrectAnswers.filter((answer, index) => sameAnswer(longAnswers[index], answer)).length;
+  const rows = [
+    { part: 'Part 1 - Gap Fill', correct: `${gapCorrect}/4`, score: `${scoreFromCorrect(gapCorrect, 4, 7)}/7` },
+    { part: 'Part 2 + 3 - Text Cohesion', correct: `${cohesionCorrect}/9`, score: `${scoreFromCorrect(cohesionCorrect, 9, 17)}/17` },
+    { part: 'Part 4 - Opinion Matching', correct: `${opinionCorrect}/7`, score: `${scoreFromCorrect(opinionCorrect, 7, 13)}/13` },
+    { part: 'Part 5 - Long Reading', correct: `${longCorrect}/7`, score: `${scoreFromCorrect(longCorrect, 7, 13)}/13` }
+  ];
+  const correct = gapCorrect + cohesionCorrect + opinionCorrect + longCorrect;
+  const score = rows.reduce((sum, row) => sum + Number(row.score.split('/')[0]), 0);
+  return { correct, total: 27, score, maxScore: 50, cefr: cefrFromReadingCorrect(correct), rows };
+}
+
+export function MockTests() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [screen, setScreen] = useState<SpeakingScreen>(() => readScreen(searchParams.get('screen')));
+  const [answerRevealOpen, setAnswerRevealOpen] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState<MockSkill>(() => readSkill(searchParams.get('skill')));
+  const [selectedTest, setSelectedTest] = useState(speakingMockTests[0]);
+  const [questionIndex, setQuestionIndex] = useState(() => readQuestionIndex(searchParams.get('question')));
+  const [part2QuestionIndex, setPart2QuestionIndex] = useState(() => readPart2QuestionIndex(searchParams.get('part2Question')));
+  const [part3QuestionIndex, setPart3QuestionIndex] = useState(() => readPart3QuestionIndex(searchParams.get('part3Question')));
+  const [recordingSeconds, setRecordingSeconds] = useState(30);
+  const [readingSeconds, setReadingSeconds] = useState(35 * 60);
+  const [readingCohesionIndex, setReadingCohesionIndex] = useState(0);
+  const [readingGapAnswers, setReadingGapAnswers] = useState<Record<number, string>>({});
+  const [readingCohesionAnswers, setReadingCohesionAnswers] = useState<Record<number, string[]>>({});
+  const [readingOpinionAnswers, setReadingOpinionAnswers] = useState<Record<number, string>>({});
+  const [readingLongAnswers, setReadingLongAnswers] = useState<Record<number, string>>({});
+  const [listeningQuestionIndex, setListeningQuestionIndex] = useState(() => readListeningQuestionIndex(searchParams.get('listeningQuestion')));
+  const [listeningSeconds, setListeningSeconds] = useState(40 * 60);
+  const [listeningAnswers, setListeningAnswers] = useState<Record<number, string>>({});
+  const [listeningMatchingAnswers, setListeningMatchingAnswers] = useState<Record<string, string>>({});
+  const [listeningShortAnswers, setListeningShortAnswers] = useState<Record<number, string>>({});
+  const [listeningMonologueIndex, setListeningMonologueIndex] = useState(() => readListeningRecordingIndex(searchParams.get('listeningRecording')));
+  const [listeningMonologueAnswers, setListeningMonologueAnswers] = useState<Record<string, string>>({});
+  const [writingPartIndex, setWritingPartIndex] = useState(() => readWritingPartIndex(searchParams.get('writingPart')));
+  const [writingSeconds, setWritingSeconds] = useState(50 * 60);
+  const [writingAnswers, setWritingAnswers] = useState<Record<number, string>>({});
+  const [writingShortAnswers, setWritingShortAnswers] = useState<Record<number, string>>({});
+  const [writingThreeAnswers, setWritingThreeAnswers] = useState<Record<number, string>>({});
+  const [writingEmailAnswers, setWritingEmailAnswers] = useState<Record<string, string>>({});
+  const [writingScore, setWritingScore] = useState<AiWritingScore | null>(null);
+  const [writingScoreError, setWritingScoreError] = useState('');
+  const [writingScoreLoading, setWritingScoreLoading] = useState(false);
+  const [speakingTranscripts, setSpeakingTranscripts] = useState<Record<string, string>>({});
+  const [speakingScore, setSpeakingScore] = useState<AiSpeakingScore | null>(null);
+  const [speakingScoreError, setSpeakingScoreError] = useState('');
+  const [speakingScoreLoading, setSpeakingScoreLoading] = useState(false);
+  const [grammarQuestionIndex, setGrammarQuestionIndex] = useState(() => readGrammarQuestionIndex(searchParams.get('grammarQuestion')));
+  const [grammarSeconds, setGrammarSeconds] = useState(25 * 60);
+  const [grammarAnswers, setGrammarAnswers] = useState<Record<number, string>>({});
+  const [isFullMock, setIsFullMock] = useState(() => searchParams.get('full') === '1');
+  const [selectedMockCard, setSelectedMockCard] = useState<MockCard | null>(null);
+  const [part4Phase, setPart4Phase] = useState<Part4Phase>(() => readPart4Phase(searchParams.get('part4Phase')));
+  const [speechReady, setSpeechReady] = useState(true);
+  const [speakingSoundEnabled, setSpeakingSoundEnabled] = useState(true);
+  const [microphoneLevel, setMicrophoneLevel] = useState(0);
+  const [speakingRecordings, setSpeakingRecordings] = useState<Record<string, Blob>>({});
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
+  const recordingStreamRef = useRef<MediaStream | null>(null);
+  const recordingChunksRef = useRef<BlobPart[]>([]);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+  const activeRecordingKeyRef = useRef<string | null>(null);
+  const speakingSoundEnabledRef = useRef(true);
+
+  useEffect(() => {
+    setAnswerRevealOpen(false);
+  }, [screen, questionIndex, part2QuestionIndex, part3QuestionIndex, listeningQuestionIndex, listeningMonologueIndex, readingCohesionIndex, writingPartIndex, grammarQuestionIndex]);
+
+  function stopSpeakingRecording() {
+    speechRecognitionRef.current?.stop();
+    speechRecognitionRef.current = null;
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    audioContextRef.current?.close().catch(() => undefined);
+    audioContextRef.current = null;
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+    mediaRecorderRef.current = null;
+    recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+    recordingStreamRef.current = null;
+    activeRecordingKeyRef.current = null;
+    setMicrophoneLevel(0);
+  }
+
+  function startSpeechRecognition(recordingKey: string) {
+    const SpeechRecognitionClass = (window as typeof window & {
+      SpeechRecognition?: new () => {
+        continuous: boolean;
+        interimResults: boolean;
+        lang: string;
+        onresult: ((event: unknown) => void) | null;
+        onerror: (() => void) | null;
+        start: () => void;
+        stop: () => void;
+      };
+      webkitSpeechRecognition?: new () => {
+        continuous: boolean;
+        interimResults: boolean;
+        lang: string;
+        onresult: ((event: unknown) => void) | null;
+        onerror: (() => void) | null;
+        start: () => void;
+        stop: () => void;
+      };
+    }).SpeechRecognition ?? (window as typeof window & {
+      webkitSpeechRecognition?: new () => {
+        continuous: boolean;
+        interimResults: boolean;
+        lang: string;
+        onresult: ((event: unknown) => void) | null;
+        onerror: (() => void) | null;
+        start: () => void;
+        stop: () => void;
+      };
+    }).webkitSpeechRecognition;
+
+    if (!SpeechRecognitionClass) return;
+
+    const recognition = new SpeechRecognitionClass();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.onresult = (event: unknown) => {
+      const resultEvent = event as { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+      const text = Array.from(resultEvent.results)
+        .map((result) => result[0]?.transcript ?? '')
+        .join(' ')
+        .trim();
+      setSpeakingTranscripts((current) => ({ ...current, [recordingKey]: text }));
+    };
+    recognition.onerror = () => undefined;
+    try {
+      recognition.start();
+      speechRecognitionRef.current = recognition;
+    } catch {
+      speechRecognitionRef.current = null;
+    }
+  }
+
+  async function startSpeakingRecording(recordingKey: string) {
+    if (activeRecordingKeyRef.current === recordingKey && mediaRecorderRef.current?.state === 'recording') return;
+    stopSpeakingRecording();
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const audioContext = AudioContextClass ? new AudioContextClass() : null;
+      const analyser = audioContext?.createAnalyser();
+
+      recordingChunksRef.current = [];
+      activeRecordingKeyRef.current = recordingKey;
+      recordingStreamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
+      };
+      recorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        setSpeakingRecordings((current) => ({ ...current, [recordingKey]: blob }));
+        recordingChunksRef.current = [];
+      };
+      recorder.start();
+      startSpeechRecognition(recordingKey);
+
+      if (audioContext && analyser) {
+        audioContextRef.current = audioContext;
+        analyser.fftSize = 128;
+        audioContext.createMediaStreamSource(stream).connect(analyser);
+        const dataArray = new Uint8Array(analyser.frequencyBinCount);
+        const updateLevel = () => {
+          analyser.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+          setMicrophoneLevel(Math.min(1, average / 120));
+          animationFrameRef.current = window.requestAnimationFrame(updateLevel);
+        };
+        updateLevel();
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không chấm được Speaking.';
+      setSpeakingScoreError(message);
+      toast.error(message);
+      setMicrophoneLevel(0);
+    }
+  }
+
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (screen === 'select') {
+      params.set('skill', selectedSkill);
+    } else {
+      params.set('screen', screen);
+      params.set('skill', 'SPEAKING');
+      if (isFullMock) {
+        params.set('full', '1');
+      }
+      if (screen === 'question' || screen === 'complete') {
+        params.set('question', String(questionIndex));
+      }
+      if (screen === 'part2Question') {
+        params.set('part2Question', String(part2QuestionIndex));
+      }
+      if (screen === 'part3Question') {
+        params.set('part3Question', String(part3QuestionIndex));
+      }
+      if (screen === 'part4Question') {
+        params.set('part4Phase', part4Phase);
+      }
+      if (screen === 'listeningQuestion') {
+        params.set('skill', 'LISTENING');
+        params.set('listeningQuestion', String(listeningQuestionIndex));
+      }
+      if (screen === 'listeningMatching') {
+        params.set('skill', 'LISTENING');
+      }
+      if (screen === 'listeningShort') {
+        params.set('skill', 'LISTENING');
+      }
+      if (screen === 'listeningMonologues') {
+        params.set('skill', 'LISTENING');
+        params.set('listeningRecording', String(listeningMonologueIndex));
+      }
+      if (screen === 'writingInstructions' || screen === 'writingResult') {
+        params.set('skill', 'WRITING');
+      }
+      if (screen === 'writingPart') {
+        params.set('skill', 'WRITING');
+        params.set('writingPart', String(writingPartIndex));
+      }
+      if (screen === 'grammarStart' || screen === 'grammarInstructions' || screen === 'grammarQuestion' || screen === 'grammarResult') {
+        params.set('skill', 'GRAMMAR');
+      }
+      if (screen === 'grammarQuestion') {
+        params.set('grammarQuestion', String(grammarQuestionIndex));
+      }
+      if (screen === 'fullStart') {
+        params.set('skill', 'FULL');
+      }
+      if (screen === 'fullResult') {
+        params.set('skill', 'FULL');
+      }
+    }
+
+    setSearchParams(params, { replace: screen === 'select' });
+  }, [grammarQuestionIndex, isFullMock, listeningMonologueIndex, listeningQuestionIndex, part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, selectedSkill, setSearchParams, writingPartIndex]);
+
+  useEffect(() => {
+    const syncFromBrowserHistory = () => {
+      const params = new URLSearchParams(window.location.search);
+      setScreen(readScreen(params.get('screen')));
+      setSelectedSkill(readSkill(params.get('skill')));
+      setIsFullMock(params.get('full') === '1');
+      setQuestionIndex(readQuestionIndex(params.get('question')));
+      setPart2QuestionIndex(readPart2QuestionIndex(params.get('part2Question')));
+      setPart3QuestionIndex(readPart3QuestionIndex(params.get('part3Question')));
+      setListeningQuestionIndex(readListeningQuestionIndex(params.get('listeningQuestion')));
+      setListeningMonologueIndex(readListeningRecordingIndex(params.get('listeningRecording')));
+      setWritingPartIndex(readWritingPartIndex(params.get('writingPart')));
+      setGrammarQuestionIndex(readGrammarQuestionIndex(params.get('grammarQuestion')));
+      setPart4Phase(readPart4Phase(params.get('part4Phase')));
+    };
+
+    window.addEventListener('popstate', syncFromBrowserHistory);
+    return () => window.removeEventListener('popstate', syncFromBrowserHistory);
+  }, []);
+
+  useEffect(() => {
+    speakingSoundEnabledRef.current = speakingSoundEnabled;
+    if (!speakingSoundEnabled) {
+      window.speechSynthesis?.cancel();
+      setSpeechReady(true);
+    }
+  }, [speakingSoundEnabled]);
+
+  useEffect(() => {
+    if (screen === 'question' || screen === 'part2Question' || screen === 'part3Question') {
+      setRecordingSeconds(screen === 'question' ? 30 : 45);
+    }
+  }, [part2QuestionIndex, part3QuestionIndex, questionIndex, screen]);
+
+  useEffect(() => {
+    if (screen === 'part4Question') {
+      setRecordingSeconds(part4Phase === 'prepare' ? 60 : 120);
+    }
+  }, [part4Phase, screen]);
+
+  useEffect(() => {
+    if (screen === 'readingQuestion') {
+      setReadingSeconds(35 * 60);
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen === 'listeningQuestion') {
+      setListeningSeconds(40 * 60);
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen !== 'readingQuestion' || readingSeconds <= 0) return;
+
+    const intervalId = window.setInterval(() => {
+      setReadingSeconds((value) => Math.max(value - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [readingSeconds, screen]);
+
+  useEffect(() => {
+    if ((screen !== 'listeningQuestion' && screen !== 'listeningMatching' && screen !== 'listeningShort' && screen !== 'listeningMonologues') || listeningSeconds <= 0) return;
+
+    const intervalId = window.setInterval(() => {
+      setListeningSeconds((value) => Math.max(value - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [listeningSeconds, screen]);
+
+  useEffect(() => {
+    if (screen !== 'writingPart' || writingSeconds <= 0) return;
+
+    const intervalId = window.setInterval(() => {
+      setWritingSeconds((value) => Math.max(value - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [screen, writingSeconds]);
+
+  useEffect(() => {
+    if (screen === 'grammarQuestion') {
+      setGrammarSeconds(25 * 60);
+    }
+  }, [screen]);
+
+  useEffect(() => {
+    if (screen !== 'grammarQuestion' || grammarSeconds <= 0) return;
+
+    const intervalId = window.setInterval(() => {
+      setGrammarSeconds((value) => Math.max(value - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [grammarSeconds, screen]);
+
+  useEffect(() => {
+    if (screen !== 'instructions' && screen !== 'prompt' && screen !== 'question' && screen !== 'part2Prompt' && screen !== 'part2Question' && screen !== 'part3Prompt' && screen !== 'part3Question' && screen !== 'part4Prompt') {
+      setSpeechReady(true);
+      window.speechSynthesis?.cancel();
+      return;
+    }
+
+    if (!speakingSoundEnabled) {
+      setSpeechReady(true);
+      window.speechSynthesis?.cancel();
+      return;
+    }
+
+    const textToRead = screen === 'instructions'
+      ? speakingInstructionsSpeechText
+      : screen === 'prompt'
+        ? promptSpeechText
+        : screen === 'part2Prompt'
+          ? part2PromptSpeechText
+          : screen === 'part3Prompt'
+            ? part3PromptSpeechText
+            : screen === 'part4Prompt'
+              ? part4PromptSpeechText
+              : screen === 'part2Question'
+                ? part2Questions[part2QuestionIndex]
+                : screen === 'part3Question'
+                  ? part3Questions[part3QuestionIndex]
+                  : speakingQuestions[questionIndex];
+    setSpeechReady(false);
+    if (screen === 'question') setRecordingSeconds(30);
+    if (screen === 'part2Question') setRecordingSeconds(45);
+    if (screen === 'part3Question') setRecordingSeconds(45);
+
+    if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
+      setSpeechReady(true);
+      return;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.92;
+    utterance.onend = () => {
+      if (!speakingSoundEnabledRef.current) {
+        setSpeechReady(true);
+        return;
+      }
+      if (shouldBeepBeforeSpeakingTimer(screen)) {
+        playSpeakingBeep().finally(() => setSpeechReady(true));
+        return;
+      }
+      setSpeechReady(true);
+    };
+    utterance.onerror = () => setSpeechReady(true);
+
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+
+    return () => window.speechSynthesis.cancel();
+  }, [part2QuestionIndex, part3QuestionIndex, questionIndex, screen, speakingSoundEnabled]);
+
+  useEffect(() => {
+    if ((screen !== 'question' && screen !== 'part2Question' && screen !== 'part3Question' && screen !== 'part4Question') || !speechReady) return;
+
+    if (recordingSeconds <= 0) {
+      const timeoutId = window.setTimeout(() => {
+        goNext();
+      }, 700);
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    const intervalId = window.setInterval(() => {
+      setRecordingSeconds((value) => Math.max(value - 1, 0));
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [recordingSeconds, screen, speechReady]);
+
+  useEffect(() => {
+    const shouldRecord =
+      speechReady &&
+      recordingSeconds > 0 &&
+      (screen === 'question' ||
+        screen === 'part2Question' ||
+        screen === 'part3Question' ||
+        (screen === 'part4Question' && part4Phase === 'recording'));
+
+    if (!shouldRecord) {
+      stopSpeakingRecording();
+      return;
+    }
+
+    const recordingKey = screen === 'question'
+      ? `part1-${questionIndex}`
+      : screen === 'part2Question'
+        ? `part2-${part2QuestionIndex}`
+        : screen === 'part3Question'
+          ? `part3-${part3QuestionIndex}`
+          : 'part4';
+
+    startSpeakingRecording(recordingKey);
+    return () => {
+      stopSpeakingRecording();
+    };
+  }, [part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, recordingSeconds > 0, screen, speechReady]);
+
+  useEffect(() => {
+    if ((screen !== 'part2Prompt' && screen !== 'part3Prompt' && screen !== 'part4Prompt') || !speechReady) return;
+
+    const timeoutId = window.setTimeout(() => {
+      if (screen === 'part2Prompt') setScreen('part2Question');
+      if (screen === 'part3Prompt') setScreen('part3Question');
+      if (screen === 'part4Prompt') {
+        setPart4Phase('prepare');
+        setRecordingSeconds(60);
+        setSpeechReady(false);
+        const readyAfterBeep = speakingSoundEnabled ? playSpeakingBeep() : Promise.resolve();
+        readyAfterBeep.finally(() => {
+          setScreen('part4Question');
+          setSpeechReady(true);
+        });
+      }
+    }, 900);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [screen, speechReady, speakingSoundEnabled]);
+
+  function openSpeakingTest(card?: MockCard) {
+    setSelectedMockCard(card ?? null);
+    setIsFullMock(false);
+    setSelectedTest(speakingMockTests[0]);
+    setSelectedSkill('SPEAKING');
+    setQuestionIndex(0);
+    setPart2QuestionIndex(0);
+    setPart3QuestionIndex(0);
+    setPart4Phase('prepare');
+    setScreen('start');
+  }
+
+  function openReadingTest(card?: MockCard) {
+    setSelectedMockCard(card ?? null);
+    setIsFullMock(false);
+    setSelectedSkill('READING');
+    setScreen('readingStart');
+  }
+
+  function openListeningTest(card?: MockCard) {
+    setSelectedMockCard(card ?? null);
+    setIsFullMock(false);
+    setSelectedSkill('LISTENING');
+    setListeningQuestionIndex(0);
+    setListeningAnswers({});
+    setListeningMatchingAnswers({});
+    setListeningShortAnswers({});
+    setListeningMonologueIndex(0);
+    setListeningMonologueAnswers({});
+    setScreen('listeningStart');
+  }
+
+  function openWritingTest(card?: MockCard) {
+    setSelectedMockCard(card ?? null);
+    setIsFullMock(false);
+    setSelectedSkill('WRITING');
+    setWritingPartIndex(0);
+    setWritingSeconds(50 * 60);
+    setWritingAnswers({});
+    setWritingShortAnswers({});
+    setWritingThreeAnswers({});
+    setWritingEmailAnswers({});
+    setWritingScore(null);
+    setWritingScoreError('');
+    setScreen('writingInstructions');
+  }
+
+  function openGrammarTest(card?: MockCard) {
+    setSelectedMockCard(card ?? null);
+    setIsFullMock(false);
+    setSelectedSkill('GRAMMAR');
+    setGrammarQuestionIndex(0);
+    setGrammarSeconds(25 * 60);
+    setGrammarAnswers({});
+    setScreen('grammarStart');
+  }
+
+  function openFullTest(card?: MockCard) {
+    setSelectedMockCard(card ?? selectedMockCard);
+    setIsFullMock(true);
+    setSelectedSkill('FULL');
+    resetSpeakingSection();
+    resetListeningSection();
+    resetGrammarSection();
+    resetReadingSection();
+    resetWritingSection();
+    setScreen('fullStart');
+  }
+
+  function resetSpeakingSection() {
+    setSelectedTest(speakingMockTests[0]);
+    setQuestionIndex(0);
+    setPart2QuestionIndex(0);
+    setPart3QuestionIndex(0);
+    setPart4Phase('prepare');
+    setRecordingSeconds(30);
+    setSpeakingRecordings({});
+    setSpeakingTranscripts({});
+    setSpeakingScore(null);
+    setSpeakingScoreError('');
+    setSpeakingScoreLoading(false);
+  }
+
+  function resetListeningSection() {
+    setListeningQuestionIndex(0);
+    setListeningSeconds(40 * 60);
+    setListeningAnswers({});
+    setListeningMatchingAnswers({});
+    setListeningShortAnswers({});
+    setListeningMonologueIndex(0);
+    setListeningMonologueAnswers({});
+  }
+
+  function resetGrammarSection() {
+    setGrammarQuestionIndex(0);
+    setGrammarSeconds(25 * 60);
+    setGrammarAnswers({});
+  }
+
+  function resetReadingSection() {
+    setReadingCohesionIndex(0);
+    setReadingSeconds(35 * 60);
+    setReadingGapAnswers({});
+    setReadingCohesionAnswers({});
+    setReadingOpinionAnswers({});
+    setReadingLongAnswers({});
+  }
+
+  function resetWritingSection() {
+    setWritingPartIndex(0);
+    setWritingSeconds(50 * 60);
+    setWritingAnswers({});
+    setWritingShortAnswers({});
+    setWritingThreeAnswers({});
+    setWritingEmailAnswers({});
+    setWritingScore(null);
+    setWritingScoreError('');
+    setWritingScoreLoading(false);
+  }
+
+  function buildWritingScorePayload() {
+    return {
+      parts: [
+        {
+          title: writingParts[0].title,
+          prompt: writingParts[0].heading,
+          answer: writingParts[0].questions
+            .map((question, index) => `${index + 1}. ${question}\n${writingShortAnswers[index] ?? ''}`)
+            .join('\n\n')
+        },
+        {
+          title: writingParts[1].title,
+          prompt: `${writingParts[1].heading}\n${writingParts[1].prompt}`,
+          answer: writingAnswers[1] ?? ''
+        },
+        {
+          title: writingParts[2].title,
+          prompt: writingParts[2].heading,
+          answer: writingParts[2].questions
+            .map((question, index) => `${index + 1}. ${question}\n${writingThreeAnswers[index] ?? ''}`)
+            .join('\n\n')
+        },
+        {
+          title: writingParts[3].title,
+          prompt: `${writingParts[3].heading}\n${writingParts[3].prompt}`,
+          answer: [
+            `Email to friend:\n${writingEmailAnswers.friend ?? ''}`,
+            `Email to president:\n${writingEmailAnswers.president ?? ''}`
+          ].join('\n\n')
+        }
+      ]
+    };
+  }
+
+  async function submitWritingForAi(nextScreen?: SpeakingScreen) {
+    const payload = buildWritingScorePayload();
+
+    setWritingScoreLoading(true);
+    setWritingScoreError('');
+    setWritingScore(null);
+    setScreen('writingResult');
+
+    try {
+      const result = await unwrap<AiWritingScore>(api.post('/ai/writing/score', payload));
+      setWritingScore(result);
+      if (nextScreen) setScreen(nextScreen);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không chấm được bài Writing.';
+      setWritingScoreError(message);
+      toast.error(message);
+    } finally {
+      setWritingScoreLoading(false);
+    }
+  }
+
+  function buildSpeakingScorePayload() {
+    const transcriptForAi = (key: string) => {
+      if (!speakingRecordings[key]) return '[NO_AUDIO_FILE_SUBMITTED]';
+      const transcript = speakingTranscripts[key]?.trim() ?? '';
+      return transcript || '[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]';
+    };
+
+    return {
+      parts: [
+        ...speakingQuestions.map((question, index) => ({
+          title: `Speaking Part 1 - Question ${index + 1}`,
+          prompt: question,
+          transcript: transcriptForAi(`part1-${index}`)
+        })),
+        ...part2Questions.map((question, index) => ({
+          title: `Speaking Part 2 - Question ${index + 1}`,
+          prompt: question,
+          transcript: transcriptForAi(`part2-${index}`)
+        })),
+        ...part3Questions.map((question, index) => ({
+          title: `Speaking Part 3 - Question ${index + 1}`,
+          prompt: question,
+          transcript: transcriptForAi(`part3-${index}`)
+        })),
+        {
+          title: 'Speaking Part 4',
+          prompt: `${part4Topic.title}\n${part4Topic.questions.join('\n')}`,
+          transcript: transcriptForAi('part4')
+        }
+      ]
+    };
+  }
+
+  async function submitSpeakingForAi(nextScreen?: SpeakingScreen) {
+    const payload = buildSpeakingScorePayload();
+
+    setSpeakingScoreLoading(true);
+    setSpeakingScoreError('');
+    setSpeakingScore(null);
+    setScreen('complete');
+
+    try {
+      const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score', payload));
+      setSpeakingScore(result);
+      if (nextScreen) setScreen(nextScreen);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Không chấm được Speaking.';
+      const fallback = buildSpeakingFallbackScore(payload.parts);
+      setSpeakingScore(fallback);
+      setSpeakingScoreError('');
+      toast.error(message.includes('Cannot deserialize') ? 'Backend cần restart để nhận cấu hình chấm Speaking mới.' : message);
+      if (nextScreen) setScreen(nextScreen);
+    } finally {
+      setSpeakingScoreLoading(false);
+    }
+  }
+
+  function buildSpeakingFallbackScore(parts: Array<{ title: string; prompt: string; transcript: string }>): AiSpeakingScore {
+    const partFeedback = parts.map((part) => {
+      const missing = part.transcript === '[NO_AUDIO_FILE_SUBMITTED]' || part.transcript.trim().length === 0;
+      const unavailable = part.transcript === '[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]';
+      return {
+        title: part.title,
+        score: missing ? 0 : unavailable ? 1 : 2,
+        feedback: missing
+          ? 'Phần này chưa có file ghi âm nên tính 0 điểm.'
+          : unavailable
+            ? 'Có file ghi âm nhưng trình duyệt chưa lấy được nội dung nói, nên phần này chỉ được điểm rất thấp.'
+            : 'Có dữ liệu nói nhưng backend chưa trả được chấm chi tiết. Cần restart backend để dùng prompt Speaking mới.'
+      };
+    });
+    const overallScore = partFeedback.length
+      ? Math.round(partFeedback.reduce((sum, part) => sum + part.score, 0) / partFeedback.length)
+      : 0;
+    return {
+      overallScore,
+      cefrLevel: overallScore < 4 ? 'Below A1' : 'A1',
+      summary: 'Chưa có đủ dữ liệu hoặc backend chưa reload prompt Speaking mới. Phần không có file ghi âm được tính 0; phần có file nhưng không lấy được transcript được tính điểm rất thấp.',
+      criteria: [
+        { name: 'Task response', score: 0, feedback: 'Chưa có đủ nội dung nói rõ ràng để đánh giá mức độ trả lời đúng câu hỏi.' },
+        { name: 'Grammar', score: 0, feedback: 'Chưa có transcript rõ để đánh giá ngữ pháp.' },
+        { name: 'Vocabulary', score: 0, feedback: 'Chưa có transcript rõ để đánh giá từ vựng.' },
+        { name: 'Fluency', score: 0, feedback: 'Chưa có dữ liệu nói đủ rõ để đánh giá độ trôi chảy.' },
+        { name: 'Pronunciation proxy', score: 0, feedback: 'Pronunciation cannot be reliably assessed from transcript alone.' }
+      ],
+      parts: partFeedback,
+      pronunciationTips: ['Kiểm tra quyền microphone.', 'Nói gần microphone hơn và tránh tiếng ồn.', 'Dùng Chrome hoặc Edge để nhận diện giọng nói tốt hơn.'],
+      fluencyTips: ['Trả lời trực tiếp câu hỏi.', 'Thêm một lý do và một ví dụ.', 'Dùng because, for example, in my opinion để nối ý.'],
+      improvedAnswer: 'I think it is important to answer the question directly, give one clear reason, and add a short example from personal experience.'
+    };
+  }
+
+  function startFullSpeaking() {
+    resetSpeakingSection();
+    setScreen('start');
+  }
+
+  function toggleSpeakingSound() {
+    setSpeakingSoundEnabled((enabled) => {
+      if (enabled) {
+        window.speechSynthesis?.cancel();
+        setSpeechReady(true);
+      }
+      return !enabled;
+    });
+  }
+
+  function goNext() {
+    if (screen === 'instructions' && !speechReady) return;
+    if (screen === 'instructions') setScreen('prompt');
+    if (screen === 'prompt' && !speechReady) return;
+    if (screen === 'prompt') setScreen('question');
+    if (screen === 'question' && !speechReady) return;
+    if (screen === 'question') {
+      if (questionIndex < speakingQuestions.length - 1) {
+        setQuestionIndex((value) => value + 1);
+      } else {
+        setPart2QuestionIndex(0);
+        setScreen('part2Prompt');
+      }
+    }
+    if (screen === 'part2Question' && !speechReady) return;
+    if (screen === 'part2Question') {
+      if (part2QuestionIndex < part2Questions.length - 1) {
+        setPart2QuestionIndex((value) => value + 1);
+      } else {
+        setPart3QuestionIndex(0);
+        setScreen('part3Prompt');
+      }
+    }
+    if (screen === 'part3Question' && !speechReady) return;
+    if (screen === 'part3Question') {
+      if (part3QuestionIndex < part3Questions.length - 1) {
+        setPart3QuestionIndex((value) => value + 1);
+      } else {
+        setPart4Phase('prepare');
+        setScreen('part4Prompt');
+      }
+    }
+    if (screen === 'part4Question') {
+      if (part4Phase === 'prepare') {
+        setSpeechReady(false);
+        const readyAfterBeep = speakingSoundEnabled ? playSpeakingBeep() : Promise.resolve();
+        readyAfterBeep.finally(() => {
+          setPart4Phase('recording');
+          setRecordingSeconds(120);
+          setSpeechReady(true);
+        });
+      } else {
+        if (isFullMock) {
+          resetListeningSection();
+          submitSpeakingForAi('listeningStart');
+        } else {
+          submitSpeakingForAi();
+        }
+      }
+    }
+  }
+
+  function goPrevious() {
+    if (screen === 'instructions') setScreen('start');
+    if (screen === 'prompt') setScreen('instructions');
+    if (screen === 'question') {
+      if (questionIndex > 0) setQuestionIndex((value) => value - 1);
+      else setScreen('prompt');
+    }
+    if (screen === 'complete') {
+      setQuestionIndex(speakingQuestions.length - 1);
+      setScreen('question');
+    }
+  }
+
+  const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers);
+  const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers);
+  const grammarSummary = scoreGrammarAnswers(grammarAnswers);
+  const fullTotalScore = readingSummary.score + listeningSummary.score + (speakingScore?.overallScore ?? 0) + (writingScore?.overallScore ?? 0);
+
+  return (
+    <div className="min-h-screen bg-[#f1f1f1] text-[#040817]">
+      {screen === 'select' ? (
+        <MockSelectLayout>
+          <MockSelect
+            selectedSkill={selectedSkill}
+            onSkillChange={setSelectedSkill}
+            onOpenSpeaking={openSpeakingTest}
+            onOpenReading={openReadingTest}
+            onOpenListening={openListeningTest}
+            onOpenWriting={openWritingTest}
+            onOpenGrammar={openGrammarTest}
+            onOpenFull={openFullTest}
+          />
+        </MockSelectLayout>
+      ) : (
+        <div className="min-h-screen bg-white">
+          {(screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong') && (
+            <ReadingTopbar
+              title={screen === 'readingLong' ? 'Part 5 - Long Reading' : screen === 'readingOpinion' ? 'Part 4 - Opinion Matching' : screen === 'readingCohesion' ? 'Part 2 + 3 - Text Cohesion' : 'Part 1 - Gap Fill'}
+              onExit={() => setScreen('select')}
+            />
+          )}
+          {(screen === 'listeningStart' || screen === 'listeningInstructions' || screen === 'listeningQuestion' || screen === 'listeningMatching' || screen === 'listeningShort' || screen === 'listeningMonologues') && (
+            <ListeningTopbar title={screen === 'listeningMonologues' ? 'Part 4 - Monologues' : screen === 'listeningShort' ? 'Part 3 - Short Conversations' : screen === 'listeningMatching' ? 'Part 2 - Matching Information' : screen === 'listeningStart' ? 'Part 1 of 4' : 'Part 1 - Word Recognition'} onExit={() => setScreen('select')} />
+          )}
+          {(screen === 'writingInstructions' || screen === 'writingPart') && (
+            <WritingTopbar title={screen === 'writingPart' ? writingPartIndex === 0 ? 'Part 1 - Short Answers' : writingPartIndex === 2 ? 'Part 3 - Three Questions' : writingPartIndex === 3 ? 'Part 4 - Informal & Formal Email' : writingParts[writingPartIndex].title : 'Aptis General Writing Instructions'} onExit={() => setScreen('select')} />
+          )}
+          {(screen === 'grammarStart' || screen === 'grammarInstructions' || screen === 'grammarQuestion' || screen === 'grammarResult') && (
+            <GrammarTopbar onExit={() => setScreen('select')} />
+          )}
+          {screen === 'fullStart' && (
+            <FullTopbar onExit={() => setScreen('select')} />
+          )}
+          {screen === 'fullResult' && (
+            <FullTopbar onExit={() => setScreen('select')} />
+          )}
+          {screen !== 'fullStart' && screen !== 'fullResult' && screen !== 'writingInstructions' && screen !== 'writingPart' && screen !== 'writingResult' && screen !== 'listeningStart' && screen !== 'listeningInstructions' && screen !== 'listeningQuestion' && screen !== 'listeningMatching' && screen !== 'listeningShort' && screen !== 'listeningMonologues' && screen !== 'listeningResult' && screen !== 'listeningReview' && screen !== 'readingStart' && screen !== 'readingInstructions' && screen !== 'readingQuestion' && screen !== 'readingCohesion' && screen !== 'readingOpinion' && screen !== 'readingLong' && screen !== 'readingResult' && screen !== 'readingReview' && screen !== 'grammarStart' && screen !== 'grammarInstructions' && screen !== 'grammarQuestion' && screen !== 'grammarResult' && (
+            <SpeakingTopbarWithAudio
+              part={screen === 'part4Prompt' || screen === 'part4Question' ? 4 : screen === 'part3Prompt' || screen === 'part3Question' ? 3 : screen === 'part2Prompt' || screen === 'part2Question' ? 2 : 1}
+              soundEnabled={speakingSoundEnabled}
+              onExit={() => setScreen('select')}
+              onToggleSound={toggleSpeakingSound}
+            />
+          )}
+          {screen === 'fullStart' && <FullStart mockCard={selectedMockCard} onStart={startFullSpeaking} />}
+          {screen === 'readingStart' && <ReadingStart onStart={() => setScreen('readingInstructions')} />}
+          {screen === 'readingInstructions' && <ReadingInstructions />}
+          {screen === 'readingQuestion' && <ReadingQuestion answers={readingGapAnswers} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} />}
+          {screen === 'readingCohesion' && <ReadingCohesion answers={readingCohesionAnswers[readingCohesionIndex] ?? []} questionIndex={readingCohesionIndex} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(answers) => setReadingCohesionAnswers((currentAnswers) => ({ ...currentAnswers, [readingCohesionIndex]: answers }))} />}
+          {screen === 'readingOpinion' && <ReadingOpinion answers={readingOpinionAnswers} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingOpinionAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} />}
+          {screen === 'readingLong' && <ReadingLong answers={readingLongAnswers} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingLongAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} />}
+          {screen === 'fullResult' && (
+            <FullResult
+              grammar={grammarSummary}
+              listening={listeningSummary}
+              reading={readingSummary}
+              speaking={speakingScore}
+              totalScore={fullTotalScore}
+              writing={writingScore}
+              onExit={() => setScreen('select')}
+              onRetry={openFullTest}
+            />
+          )}
+          {screen === 'readingResult' && (
+            <ReadingResult
+              summary={readingSummary}
+              onExit={() => setScreen('select')}
+              onReview={() => setScreen('readingReview')}
+              onRetry={() => {
+                resetReadingSection();
+                setScreen('readingStart');
+              }}
+            />
+          )}
+          {screen === 'readingReview' && (
+            <ReadingReview
+              onBack={() => setScreen('readingResult')}
+            />
+          )}
+          {screen === 'writingInstructions' && <WritingInstructions />}
+          {screen === 'writingPart' && (
+            <WritingPart
+              answer={writingAnswers[writingPartIndex] ?? ''}
+              emailAnswers={writingEmailAnswers}
+              part={writingParts[writingPartIndex]}
+              partIndex={writingPartIndex}
+              showAnswer={answerRevealOpen}
+              shortAnswers={writingShortAnswers}
+              threeAnswers={writingThreeAnswers}
+              timeRemaining={formatReadingTime(writingSeconds)}
+              onAnswer={(answer) => setWritingAnswers((currentAnswers) => ({ ...currentAnswers, [writingPartIndex]: answer }))}
+              onEmailAnswer={(key, answer) => setWritingEmailAnswers((currentAnswers) => ({ ...currentAnswers, [key]: answer }))}
+              onShortAnswer={(index, answer) => setWritingShortAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))}
+              onThreeAnswer={(index, answer) => setWritingThreeAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))}
+            />
+          )}
+          {screen === 'writingResult' && (
+            <WritingCheckingResult
+              error={writingScoreError}
+              loading={writingScoreLoading}
+              onExit={() => setScreen('select')}
+              onRetry={() => {
+                resetWritingSection();
+                setScreen('writingInstructions');
+              }}
+              result={writingScore}
+            />
+          )}
+          {screen === 'grammarStart' && <GrammarStart onStart={() => setScreen('grammarInstructions')} />}
+          {screen === 'grammarInstructions' && <GrammarInstructions />}
+          {screen === 'grammarQuestion' && (
+            <GrammarQuestion
+              answer={grammarAnswers[grammarQuestionIndex]}
+              index={grammarQuestionIndex}
+              question={grammarQuestions[grammarQuestionIndex]}
+              showAnswer={answerRevealOpen}
+              timeRemaining={formatReadingTime(grammarSeconds)}
+              total={grammarQuestions.length}
+              onAnswer={(answer) => setGrammarAnswers((currentAnswers) => ({ ...currentAnswers, [grammarQuestionIndex]: answer }))}
+            />
+          )}
+          {screen === 'grammarResult' && (
+            <GrammarResult
+              summary={grammarSummary}
+              onExit={() => setScreen('select')}
+              onRetry={() => {
+                resetGrammarSection();
+                setScreen('grammarStart');
+              }}
+            />
+          )}
+          {screen === 'listeningStart' && <ListeningStart onStart={() => setScreen('listeningInstructions')} />}
+          {screen === 'listeningInstructions' && <ListeningInstructions />}
+          {screen === 'listeningQuestion' && (
+            <ListeningQuestion
+              answer={listeningAnswers[listeningQuestionIndex]}
+              correctAnswer={listeningPart1AnswerKey[listeningQuestionIndex]}
+              index={listeningQuestionIndex}
+              question={listeningPart1Questions[listeningQuestionIndex]}
+              showAnswer={answerRevealOpen}
+              timeRemaining={formatReadingTime(listeningSeconds)}
+              total={listeningPart1Questions.length}
+              onAnswer={(answer) => setListeningAnswers((currentAnswers) => ({ ...currentAnswers, [listeningQuestionIndex]: answer }))}
+            />
+          )}
+          {screen === 'listeningMatching' && (
+            <ListeningMatching
+              answers={listeningMatchingAnswers}
+              showAnswer={answerRevealOpen}
+              timeRemaining={formatReadingTime(listeningSeconds)}
+              onAnswer={(speaker, answer) => setListeningMatchingAnswers((currentAnswers) => ({ ...currentAnswers, [speaker]: answer }))}
+            />
+          )}
+          {screen === 'listeningShort' && (
+            <ListeningShortConversations
+              answers={listeningShortAnswers}
+              showAnswer={answerRevealOpen}
+              timeRemaining={formatReadingTime(listeningSeconds)}
+              onAnswer={(index, answer) => setListeningShortAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))}
+            />
+          )}
+          {screen === 'listeningMonologues' && (
+            <ListeningMonologues
+              answers={listeningMonologueAnswers}
+              index={listeningMonologueIndex}
+              showAnswer={answerRevealOpen}
+              timeRemaining={formatReadingTime(listeningSeconds)}
+              onAnswer={(questionIndex, answer) => setListeningMonologueAnswers((currentAnswers) => ({ ...currentAnswers, [`${listeningMonologueIndex}-${questionIndex}`]: answer }))}
+            />
+          )}
+          {screen === 'listeningResult' && (
+            <ListeningResult
+              summary={listeningSummary}
+              onExit={() => setScreen('select')}
+              onReview={() => setScreen('listeningReview')}
+              onRetry={() => {
+                resetListeningSection();
+                setScreen('listeningStart');
+              }}
+            />
+          )}
+          {screen === 'listeningReview' && (
+            <ListeningReview
+              matchingAnswers={listeningMatchingAnswers}
+              monologueAnswers={listeningMonologueAnswers}
+              part1Answers={listeningAnswers}
+              shortAnswers={listeningShortAnswers}
+              onBack={() => setScreen('listeningResult')}
+            />
+          )}
+          {screen === 'start' && <SpeakingStart test={selectedTest} onStart={() => setScreen('instructions')} />}
+          {screen === 'instructions' && <SpeakingInstructions />}
+          {screen === 'prompt' && <SpeakingPrompt part={1} />}
+          {screen === 'part2Prompt' && <SpeakingPrompt part={2} />}
+          {screen === 'part3Prompt' && <SpeakingPrompt part={3} />}
+          {screen === 'part4Prompt' && <SpeakingPrompt part={4} />}
+          {screen === 'question' && (
+            <SpeakingQuestion
+              question={speakingQuestions[questionIndex]}
+              index={questionIndex}
+              total={speakingQuestions.length}
+              seconds={recordingSeconds}
+              isReading={!speechReady}
+              microphoneLevel={microphoneLevel}
+              onFinish={goNext}
+            />
+          )}
+          {screen === 'part2Question' && (
+            <Part2Question
+              question={part2Questions[part2QuestionIndex]}
+              index={part2QuestionIndex}
+              total={part2Questions.length}
+              seconds={recordingSeconds}
+              isReading={!speechReady}
+              microphoneLevel={microphoneLevel}
+              onFinish={goNext}
+            />
+          )}
+          {screen === 'part3Question' && (
+            <Part3Question
+              question={part3Questions[part3QuestionIndex]}
+              index={part3QuestionIndex}
+              total={part3Questions.length}
+              seconds={recordingSeconds}
+              isReading={!speechReady}
+              microphoneLevel={microphoneLevel}
+              onFinish={goNext}
+            />
+          )}
+          {screen === 'part4Question' && (
+            <Part4Question
+              phase={part4Phase}
+              seconds={recordingSeconds}
+              microphoneLevel={microphoneLevel}
+              onFinish={goNext}
+            />
+          )}
+          {screen === 'complete' && (
+            <SpeakingComplete
+              error={speakingScoreError}
+              loading={speakingScoreLoading}
+              onExit={() => setScreen('select')}
+              onRetry={() => {
+                resetSpeakingSection();
+                setScreen('instructions');
+              }}
+              onScore={submitSpeakingForAi}
+              result={speakingScore}
+            />
+          )}
+
+          {screen !== 'fullStart' && screen !== 'fullResult' && screen !== 'start' && screen !== 'writingInstructions' && screen !== 'writingPart' && screen !== 'writingResult' && screen !== 'listeningStart' && screen !== 'listeningInstructions' && screen !== 'listeningQuestion' && screen !== 'listeningMatching' && screen !== 'listeningShort' && screen !== 'listeningMonologues' && screen !== 'listeningResult' && screen !== 'listeningReview' && screen !== 'readingStart' && screen !== 'readingInstructions' && screen !== 'readingQuestion' && screen !== 'readingCohesion' && screen !== 'readingOpinion' && screen !== 'readingLong' && screen !== 'readingResult' && screen !== 'readingReview' && screen !== 'grammarStart' && screen !== 'grammarInstructions' && screen !== 'grammarQuestion' && screen !== 'grammarResult' && screen !== 'question' && screen !== 'part2Question' && screen !== 'part3Question' && screen !== 'part4Question' && (
+            <SpeakingFooter
+              canPrevious
+              canNext={(screen !== 'instructions' && screen !== 'prompt' && screen !== 'part2Prompt' && screen !== 'part3Prompt' && screen !== 'part4Prompt') || speechReady}
+              showNext={screen !== 'complete' && screen !== 'part2Prompt' && screen !== 'part3Prompt' && screen !== 'part4Prompt'}
+              nextLabel="Next"
+              onPrevious={goPrevious}
+              onNext={goNext}
+            />
+          )}
+          {screen === 'readingInstructions' && (
+            <ReadingFooter
+              onPrevious={() => setScreen('readingStart')}
+              onNext={() => setScreen('readingQuestion')}
+            />
+          )}
+          {screen === 'writingInstructions' && (
+            <ReadingFooter
+              onPrevious={() => setScreen('select')}
+              onNext={() => {
+                setWritingPartIndex(0);
+                setWritingSeconds(50 * 60);
+                setScreen('writingPart');
+              }}
+            />
+          )}
+          {screen === 'grammarInstructions' && (
+            <ReadingFooter
+              onPrevious={() => setScreen('grammarStart')}
+              onNext={() => {
+                setGrammarQuestionIndex(0);
+                setGrammarSeconds(25 * 60);
+                setScreen('grammarQuestion');
+              }}
+            />
+          )}
+          {screen === 'grammarQuestion' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => {
+                if (grammarQuestionIndex > 0) setGrammarQuestionIndex((value) => value - 1);
+                else setScreen('grammarInstructions');
+              }}
+              onNext={() => {
+                if (grammarQuestionIndex < grammarQuestions.length - 1) {
+                  setGrammarQuestionIndex((value) => value + 1);
+                } else if (isFullMock) {
+                  resetReadingSection();
+                  setScreen('readingStart');
+                } else {
+                  setScreen('grammarResult');
+                }
+              }}
+            />
+          )}
+          {screen === 'writingPart' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              nextDisabled={writingScoreLoading}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              nextLabel={writingPartIndex === writingParts.length - 1 ? writingScoreLoading ? 'Scoring...' : 'Submit' : 'Next'}
+              onPrevious={() => {
+                if (writingPartIndex > 0) setWritingPartIndex((value) => value - 1);
+                else setScreen('writingInstructions');
+              }}
+              onNext={() => {
+                if (writingPartIndex < writingParts.length - 1) setWritingPartIndex((value) => value + 1);
+                else submitWritingForAi(isFullMock ? 'fullResult' : undefined);
+              }}
+            />
+          )}
+          {screen === 'listeningInstructions' && (
+            <ReadingFooter
+              onPrevious={() => setScreen('listeningStart')}
+              onNext={() => {
+                setListeningQuestionIndex(0);
+                setScreen('listeningQuestion');
+              }}
+            />
+          )}
+          {screen === 'listeningQuestion' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => {
+                if (listeningQuestionIndex > 0) setListeningQuestionIndex((value) => value - 1);
+                else setScreen('listeningInstructions');
+              }}
+              onNext={() => {
+                if (listeningQuestionIndex < listeningPart1Questions.length - 1) setListeningQuestionIndex((value) => value + 1);
+                else setScreen('listeningMatching');
+              }}
+            />
+          )}
+          {screen === 'listeningMatching' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => {
+                setListeningQuestionIndex(listeningPart1Questions.length - 1);
+                setScreen('listeningQuestion');
+              }}
+              onNext={() => setScreen('listeningShort')}
+            />
+          )}
+          {screen === 'listeningShort' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => setScreen('listeningMatching')}
+              onNext={() => {
+                setListeningMonologueIndex(0);
+                setScreen('listeningMonologues');
+              }}
+            />
+          )}
+          {screen === 'listeningMonologues' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => {
+                if (listeningMonologueIndex > 0) setListeningMonologueIndex((value) => value - 1);
+                else setScreen('listeningShort');
+              }}
+              onNext={() => {
+                if (listeningMonologueIndex < listeningMonologues.length - 1) {
+                  setListeningMonologueIndex((value) => value + 1);
+                } else if (isFullMock) {
+                  resetGrammarSection();
+                  setScreen('grammarStart');
+                } else {
+                  setScreen('listeningResult');
+                }
+              }}
+            />
+          )}
+          {screen === 'readingQuestion' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => setScreen('readingInstructions')}
+              onNext={() => {
+                setReadingCohesionIndex(0);
+                setScreen('readingCohesion');
+              }}
+            />
+          )}
+          {screen === 'readingCohesion' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => {
+                if (readingCohesionIndex > 0) setReadingCohesionIndex((value) => value - 1);
+                else setScreen('readingQuestion');
+              }}
+              onNext={() => {
+                if (readingCohesionIndex < 1) setReadingCohesionIndex((value) => value + 1);
+                else setScreen('readingOpinion');
+              }}
+            />
+          )}
+          {screen === 'readingOpinion' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => {
+                setReadingCohesionIndex(1);
+                setScreen('readingCohesion');
+              }}
+              onNext={() => setScreen('readingLong')}
+            />
+          )}
+          {screen === 'readingLong' && (
+            <ReadingFooter
+              answerOpen={answerRevealOpen}
+              showAnswer
+              onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
+              onPrevious={() => setScreen('readingOpinion')}
+              onNext={() => {
+                if (isFullMock) {
+                  resetWritingSection();
+                  setScreen('writingInstructions');
+                } else {
+                  setScreen('readingResult');
+                }
+              }}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MockSelectLayout({ children }: { children: ReactNode }) {
+  const { user, logout } = useAuthStore();
+  const navigate = useNavigate();
+
+  async function signOut() {
+    await logout();
+    navigate('/login');
+  }
+
+  return (
+    <div className="min-h-screen bg-[#f7f7fc]">
+      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col overflow-hidden bg-[#1e293b] text-white xl:flex">
+        <div className="px-6 py-6">
+          <h1 className="text-2xl font-extrabold tracking-tight">English Prep</h1>
+          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">CHẾ ĐỘ ÔN THI</p>
+        </div>
+
+        <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {sidebarLinks.map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/app'}
+              className={({ isActive }) => `flex h-11 items-center gap-3 rounded-xl px-4 text-sm font-semibold transition ${
+                isActive ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' : 'text-white/80 hover:bg-[#334155] hover:text-white'
+              }`}
+            >
+              <Icon className="shrink-0" size={21} />
+              <span className="truncate">{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="shrink-0 border-t border-slate-700/60 p-4">
+          <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3">
+            <p className="mb-2 text-center text-xs font-bold text-white">Aptis Pro Access</p>
+            <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">
+              Nâng cấp Pro
+            </Link>
+          </div>
+          <Link to="/app/contact" className="flex h-10 items-center gap-3 rounded-lg px-4 text-sm text-slate-300 hover:bg-white/10 hover:text-white">
+            <HelpCircle size={20} />
+            Trợ giúp
+          </Link>
+          <button onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
+            <LogOut size={20} />
+            ĐĒng xuất
+          </button>
+        </div>
+      </aside>
+
+      <header className="fixed right-0 top-0 z-30 h-16 border-b border-slate-200 bg-white xl:left-[260px]">
+        <div className="flex h-16 items-center justify-between px-4 xl:px-8">
+          <div className="flex min-w-0 items-center gap-4">
+            <Link to="/app" className="text-xl font-extrabold text-brand-600">LingoMaster</Link>
+            <div className="hidden h-8 w-px bg-slate-200 sm:block" />
+            <p className="hidden truncate text-sm italic text-slate-500 sm:block">Aptis Keys - Học thông minh</p>
+          </div>
+          <label className="hidden w-full max-w-[340px] items-center gap-2 rounded-full border border-slate-200 bg-[#f7f7fc] px-4 py-2 text-slate-400 md:flex">
+            <Search size={18} />
+            <span className="text-sm">Tìm kiếm bài học...</span>
+          </label>
+          <div className="flex items-center gap-4">
+            <Bell size={21} className="text-slate-600" />
+            <div className="h-8 w-px bg-slate-200" />
+            <div className="flex items-center gap-3">
+              <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">{user?.fullName?.[0] ?? 'd'}</div>
+              <span className="hidden text-sm font-semibold text-slate-800 sm:inline">{user?.fullName ?? 'dien'}</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="min-h-screen pb-24 pt-16 xl:ml-[260px]">
+        <div className="mx-auto max-w-[1180px] px-4 py-8 xl:px-0">
+          {children}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void }) {
+  const [adminCards, setAdminCards] = useState<MockCard[]>(() => loadPublishedAdminMockCards());
+
+  useEffect(() => {
+    const reloadAdminCards = () => {
+      unwrap<ApiMockTest[]>(api.get('/mock-tests'))
+        .then((data) => {
+          const cards = data.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
+          setAdminCards(cards);
+        })
+        .catch(() => setAdminCards(loadPublishedAdminMockCards()));
+    };
+    reloadAdminCards();
+    window.addEventListener('focus', reloadAdminCards);
+    window.addEventListener('storage', reloadAdminCards);
+    return () => {
+      window.removeEventListener('focus', reloadAdminCards);
+      window.removeEventListener('storage', reloadAdminCards);
+    };
+  }, []);
+
+  const visibleCards = adminCards.filter((card) => card.skill === selectedSkill);
+
+  return (
+    <section>
+      <div className="rounded-2xl border border-slate-200 bg-white p-7 text-slate-950 shadow-soft md:p-8">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">
+              <FileCheck size={18} />
+              Thi thử Aptis
+            </p>
+            <h1 className="mt-6 text-4xl font-extrabold leading-tight">Chọn kỹ năng thi thử</h1>
+            <p className="mt-3 max-w-2xl text-lg font-medium leading-8 text-slate-600">
+              Thi thử là bộ đề riêng, mô phỏng giao diện assessment. Chọn Full hoặc từng kỹ năng để vào đúng kiểu bài.
+            </p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:w-[300px]">
+            <p className="text-sm font-bold text-slate-500">Kỹ năng đang chọn</p>
+            <p className="mt-3 text-3xl font-extrabold">{skillFilters.find((item) => item.key === selectedSkill)?.label}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-wrap gap-3">
+        {skillFilters.map((filter) => (
+          <button
+            key={filter.key}
+            type="button"
+            onClick={() => onSkillChange(filter.key)}
+            className={`h-12 rounded-xl border px-6 text-sm font-extrabold transition ${
+              selectedSkill === filter.key
+                ? 'border-brand-600 bg-brand-600 text-white shadow-lg shadow-brand-600/20'
+                : 'border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'
+            }`}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {visibleCards.map((card) => (
+          <MockSkillCard key={card.id} card={card} onOpenSpeaking={onOpenSpeaking} onOpenReading={onOpenReading} onOpenListening={onOpenListening} onOpenWriting={onOpenWriting} onOpenGrammar={onOpenGrammar} onOpenFull={onOpenFull} />
+        ))}
+      </div>
+      {visibleCards.length === 0 && (
+        <div className="mt-7 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500">
+          Chưa có đề thi thử đang hiển thị cho kỹ năng này.
+        </div>
+      )}
+    </section>
+  );
+}
+
+function MockSkillCard({ card, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull }: { card: MockCard; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void }) {
+  const Icon = card.icon;
+  const openCard = card.skill === 'SPEAKING' ? onOpenSpeaking : card.skill === 'READING' ? onOpenReading : card.skill === 'LISTENING' ? onOpenListening : card.skill === 'WRITING' ? onOpenWriting : card.skill === 'GRAMMAR' ? onOpenGrammar : card.skill === 'FULL' ? onOpenFull : undefined;
+  return (
+    <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
+      <div className="flex items-start justify-between gap-4">
+        <div className={`grid h-14 w-14 place-items-center rounded-2xl ${card.color}`}>
+          <Icon size={23} />
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">{card.label}</span>
+      </div>
+
+      <h2 className="mt-6 text-xl font-extrabold text-slate-950">{card.title}</h2>
+      <p className="mt-3 min-h-12 text-sm leading-6 text-slate-500">{card.description}</p>
+
+      <div className="mt-6 grid grid-cols-2 gap-3">
+        <InfoBox icon={<FileQuestion size={17} />} label="Câu hỏi" value={card.questions} />
+        <InfoBox icon={<Clock size={17} />} label="Thời gian" value={card.minutes} />
+      </div>
+
+      <button
+        type="button"
+        onClick={card.ready && openCard ? () => openCard(card) : undefined}
+        disabled={!card.ready}
+        className={`mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition ${
+          card.ready ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-slate-100 text-slate-400'
+        }`}
+      >
+        {card.ready ? 'Vào đề' : 'Sắp có'}
+        <ArrowRight size={18} />
+      </button>
+    </article>
+  );
+}
+
+function InfoBox({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+      <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-2 text-lg font-extrabold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function SpeakingTopbar({ part, soundEnabled, onExit, onToggleSound }: { part: number; soundEnabled: boolean; onExit: () => void; onToggleSound: () => void }) {
+  const SoundIcon = soundEnabled ? Volume2 : VolumeX;
+  return (
+    <header className="h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+      <div className="flex h-full items-center justify-between">
+        <div>
+          <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
+          <h1 className="text-xl font-extrabold leading-6 text-white">Part {part} of 4</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onToggleSound}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-extrabold text-white hover:bg-white/25"
+            title={soundEnabled ? 'Tắt âm thanh đọc đề' : 'Bật âm thanh đọc đề'}
+          >
+            <SoundIcon size={19} />
+            {soundEnabled ? 'Âm thanh' : 'Đã tắt âm'}
+          </button>
+        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+          <LogOut size={21} />
+          Thoát
+        </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function SpeakingTopbarWithAudio({ part, soundEnabled, onExit, onToggleSound }: { part: number; soundEnabled: boolean; onExit: () => void; onToggleSound: () => void }) {
+  const SoundIcon = soundEnabled ? Volume2 : VolumeX;
+
+  return (
+    <header className="h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+      <div className="flex h-full items-center justify-between">
+        <div>
+          <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
+          <h1 className="text-xl font-extrabold leading-6 text-white">Part {part} of 4</h1>
+        </div>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onToggleSound}
+            className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-extrabold text-white hover:bg-white/25"
+            title={soundEnabled ? 'Mute speaking audio' : 'Unmute speaking audio'}
+          >
+            <SoundIcon size={19} />
+            {soundEnabled ? 'Sound on' : 'Muted'}
+          </button>
+          <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+            <LogOut size={21} />
+            Exit
+          </button>
+        </div>
+      </div>
+    </header>
+  );
+}
+
+function ReadingTopbar({ title, onExit }: { title: string; onExit: () => void }) {
+  return (
+    <header className="h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+      <div className="flex h-full items-center justify-between">
+        <div>
+          <p className="text-base font-semibold text-[#d9c7f3]">Reading</p>
+          <h1 className="text-xl font-extrabold leading-6 text-white">{title}</h1>
+        </div>
+        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+          <LogOut size={21} />
+          Thoát
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function ListeningTopbar({ title, onExit }: { title: string; onExit: () => void }) {
+  return (
+    <header className="h-[66px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+      <div className="flex h-full items-center justify-between">
+        <div>
+          <p className="text-base font-semibold text-[#d9c7f3]">Listening</p>
+          <h1 className="text-xl font-extrabold leading-6 text-white">{title}</h1>
+        </div>
+        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+          <LogOut size={21} />
+          Thoát
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function WritingTopbar({ title, onExit }: { title: string; onExit: () => void }) {
+  return (
+    <header className="h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+      <div className="flex h-full items-center justify-between">
+        <div>
+          <p className="text-base font-medium text-[#d9c7f3]">Writing</p>
+          <h1 className="text-[17px] font-extrabold leading-6 text-white">{title}</h1>
+        </div>
+        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+          <LogOut size={21} />
+          Thoát
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function GrammarTopbar({ onExit }: { onExit: () => void }) {
+  return (
+    <header className="h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+      <div className="flex h-full items-center justify-between">
+        <div>
+          <p className="text-base font-medium text-[#d9c7f3]">Grammar & Vocabulary</p>
+          <h1 className="text-[17px] font-extrabold leading-6 text-white">Grammar & Vocabulary - Full Practice</h1>
+        </div>
+        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+          <LogOut size={21} />
+          Thoát
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function FullTopbar({ onExit }: { onExit: () => void }) {
+  return (
+    <header className="h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+      <div className="flex h-full items-center justify-between">
+        <div>
+          <p className="text-base font-medium text-[#d9c7f3]">Full Mock Test</p>
+          <h1 className="text-[17px] font-extrabold leading-6 text-white">Aptis Full Practice</h1>
+        </div>
+        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+          <ArrowLeft size={21} />
+          Quay lại danh sách
+        </button>
+      </div>
+    </header>
+  );
+}
+
+function FullStart({ mockCard, onStart }: { mockCard?: MockCard | null; onStart: () => void }) {
+  const sections = [
+    { name: 'Speaking', detail: '4 parts · 12 min' },
+    { name: 'Listening', detail: '4 parts · 40 min' },
+    { name: 'Grammar & Vocabulary', detail: '30 questions · 25 min' },
+    { name: 'Reading', detail: '5 parts · 35 min' },
+    { name: 'Writing', detail: '4 parts · 50 min' }
+  ];
+
+  return (
+    <main className="min-h-[calc(100vh-68px)] bg-white px-6 py-12 sm:px-[68px]">
+      <section className="max-w-[760px]">
+        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[28px] font-extrabold leading-9 text-slate-950">{mockCard?.title ?? 'Full Aptis Mock Test'}</h2>
+        <p className="mt-2 max-w-[620px] text-lg leading-8 text-slate-500">
+          {mockCard?.description ?? 'Làm lần lượt 5 bài thi thử trong cùng một phiên: Nói, Nghe, Grammar & Vocabulary, Đọc, Viết.'}
+        </p>
+
+        <div className="mt-8 grid max-w-[480px] grid-cols-2 gap-12">
+          <div>
+            <p className="text-base font-medium text-slate-500">Number of Sections</p>
+            <p className="mt-2 text-lg font-extrabold text-slate-950">{mockCard?.questions ?? '5 bài'}</p>
+          </div>
+          <div>
+            <p className="text-base font-medium text-slate-500">Time Allowed</p>
+            <p className="mt-2 text-lg font-extrabold text-slate-950">{mockCard?.minutes ?? '162 phút'}</p>
+          </div>
+        </div>
+
+        <div className="mt-8 max-w-[640px] rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          {sections.map((section, index) => (
+            <div key={section.name} className={`flex items-center gap-4 py-3 ${index === sections.length - 1 ? '' : 'border-b border-slate-200'}`}>
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-[#2b075c] text-sm font-extrabold text-white">{index + 1}</span>
+              <div>
+                <p className="font-extrabold text-slate-950">{section.name}</p>
+                <p className="mt-1 text-sm font-medium text-slate-500">{section.detail}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button type="button" onClick={onStart} className="mt-8 h-[46px] rounded-xl px-7 text-lg font-semibold text-white hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
+          Start Assessment
+        </button>
+      </section>
+    </main>
+  );
+}
+
+function GrammarStart({ onStart }: { onStart: () => void }) {
+  return (
+    <main className="min-h-[calc(100vh-68px)] bg-white px-6 py-12 sm:px-[68px]">
+      <section className="max-w-[620px]">
+        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-slate-950">Grammar & Vocabulary Practice Test</h2>
+        <p className="mt-2 text-lg text-slate-500">Grammar & Vocabulary - Full Practice</p>
+
+        <div className="mt-8 grid max-w-[360px] grid-cols-2 gap-12 sm:gap-20">
+          <div>
+            <p className="text-base font-medium text-slate-500">Number of Questions</p>
+            <p className="mt-2 text-lg font-extrabold text-slate-950">30</p>
+          </div>
+          <div>
+            <p className="text-base font-medium text-slate-500">Time Allowed</p>
+            <p className="mt-2 text-lg font-extrabold text-slate-950">25 min</p>
+          </div>
+        </div>
+
+        <button type="button" onClick={onStart} className="mt-8 h-[46px] rounded-xl px-7 text-lg font-semibold text-white hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
+          Start Assessment
+        </button>
+      </section>
+    </main>
+  );
+}
+
+function GrammarInstructions() {
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 68px)',
+        backgroundColor: '#ffffff',
+        padding: '44px 24px 132px'
+      }}
+    >
+      <section style={{ maxWidth: 980, marginLeft: 66 }}>
+        <h2 style={{ color: '#000000', fontSize: 24, lineHeight: '32px', fontWeight: 900, margin: 0 }}>Aptis General Grammar & Vocabulary Instructions</h2>
+        <h3 style={{ color: '#000000', fontSize: 20, lineHeight: '28px', fontWeight: 900, margin: '28px 0 0' }}>Grammar & Vocabulary</h3>
+        <div style={{ color: '#020817', fontSize: 19, lineHeight: '36px', marginTop: 8 }}>
+          <p style={{ margin: 0 }}>The test has 30 questions.</p>
+          <p style={{ margin: 0 }}>You have 25 minutes to complete the test.</p>
+          <p style={{ margin: '28px 0 0' }}>When you click on the 'Next' button, the test will begin.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function GrammarQuestion({ answer, index, question, showAnswer, timeRemaining, total, onAnswer }: { answer?: string; index: number; question: GrammarQuestionItem; showAnswer?: boolean; timeRemaining: string; total: number; onAnswer: (answer: string) => void }) {
+  const matchingSelections = parseGrammarMatchingAnswer(answer);
+  const updateMatchingAnswer = (word: string, value: string) => {
+    onAnswer(JSON.stringify({ ...matchingSelections, [word]: value }));
+  };
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 68px)',
+        backgroundColor: '#f1f1f1',
+        padding: '38px 24px 132px'
+      }}
+    >
+      <section style={{ maxWidth: 830, margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'start', gap: 28 }}>
+          <div>
+            <h2 style={{ color: '#020817', fontSize: 17, lineHeight: '24px', fontWeight: 900, margin: 0 }}>Grammar & Vocabulary</h2>
+            <p style={{ color: '#020817', fontSize: 17, lineHeight: '24px', margin: 0 }}>Question {index + 1} of {total}</p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12 }}>
+            <button
+              type="button"
+              style={{
+                height: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                border: '1px solid #d9e1ec',
+                borderRadius: 14,
+                backgroundColor: '#ffffff',
+                padding: '0 18px',
+                color: '#64748b',
+                fontSize: 17
+              }}
+            >
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button
+              type="button"
+              style={{
+                width: 42,
+                height: 42,
+                display: 'grid',
+                placeItems: 'center',
+                border: '1px solid #e2e8f0',
+                borderRadius: 999,
+                backgroundColor: '#ffffff',
+                color: '#64748b'
+              }}
+            >
+              <Pause size={18} />
+            </button>
+          </div>
+
+          <div style={{ minWidth: 170, textAlign: 'center', paddingTop: 2 }}>
+            <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 31, lineHeight: '38px', fontWeight: 900, letterSpacing: 0, margin: 0 }}>{timeRemaining}</p>
+            <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 0' }}>Time remaining</p>
+            <div style={{ height: 4, width: 162, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0' }} />
+          </div>
+        </div>
+
+        <article
+          style={{
+            marginTop: 34,
+            border: '1px solid #e2e8f0',
+            borderRadius: 12,
+            backgroundColor: '#ffffff',
+            padding: question.matchRows ? '26px 26px 28px' : 26,
+            boxShadow: '0 1px 2px rgba(15, 23, 42, 0.06)'
+          }}
+        >
+          {question.collocationRows ? (
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, borderRadius: 999, backgroundColor: '#f1eaff', color: '#2b075c', padding: '0 10px', fontSize: 15 }}>
+                Collocation Matching
+              </span>
+              <p style={{ color: '#1f2937', fontSize: 17, lineHeight: '27px', margin: '14px 0 24px' }}>
+                Select a word from each drop-down list on the right that is most often used with each word on the left.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '104px 145px 28px 180px', alignItems: 'center', gap: 10, color: '#a1a8b3', fontSize: 15, marginBottom: 18 }}>
+                <span>Example</span>
+                <span style={grammarExampleBoxStyle}>big</span>
+                <span style={{ textAlign: 'center' }}>+</span>
+                <span style={grammarExampleBoxStyle}>house</span>
+              </div>
+
+              <div style={{ height: 1, backgroundColor: '#e2e8f0', margin: '0 0 20px' }} />
+
+              <div style={{ display: 'grid', gap: 16 }}>
+                {question.collocationRows.map((row) => (
+                  <div key={row.word} style={{ display: 'grid', gridTemplateColumns: '180px 28px 252px', alignItems: 'center', gap: 10 }}>
+                    <div style={grammarWordBoxStyle}>{row.word}</div>
+                    <span style={{ color: '#64748b', textAlign: 'center', fontSize: 18 }}>+</span>
+                    <select
+                      value={matchingSelections[row.word] ?? ''}
+                      onChange={(event) => updateMatchingAnswer(row.word, event.target.value)}
+                      style={grammarSynonymSelectStyle}
+                    >
+                      <option value="">Select...</option>
+                      {question.options.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : question.sentenceRows ? (
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, borderRadius: 999, backgroundColor: '#f1eaff', color: '#2b075c', padding: '0 10px', fontSize: 15 }}>
+                Sentence Gap Fill
+              </span>
+              <p style={{ color: '#1f2937', fontSize: 17, lineHeight: '27px', margin: '14px 0 24px' }}>
+                Select a word from each drop-down list on the right that has the same or a very similar meaning to each word on the left.
+              </p>
+
+              <div style={{ display: 'grid', gap: 14 }}>
+                {question.sentenceRows.map((row) => (
+                  <div key={`${row.before}-${row.after}`} style={{ color: '#020817', fontSize: 17, lineHeight: '46px' }}>
+                    <span>{row.before}</span>
+                    <select
+                      value={matchingSelections[row.before] ?? ''}
+                      onChange={(event) => updateMatchingAnswer(row.before, event.target.value)}
+                      style={grammarSentenceSelectStyle}
+                    >
+                      <option value="">Select...</option>
+                      {question.options.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                    {row.after && <span>{row.after}</span>}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : question.definitionRows ? (
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, borderRadius: 999, backgroundColor: '#f1eaff', color: '#2b075c', padding: '0 10px', fontSize: 15 }}>
+                {question.definitionMode === 'matching' ? 'Definition Matching' : 'Definition Completion'}
+              </span>
+              <p style={{ color: '#1f2937', fontSize: 17, lineHeight: '27px', margin: '14px 0 26px' }}>
+                Complete each definition using a word from the drop-down list.
+              </p>
+
+              <div style={{ display: 'grid', gap: 14 }}>
+                {question.definitionRows.map((row) => (
+                  <div key={row.definition} style={{ display: 'grid', gridTemplateColumns: question.definitionMode === 'matching' ? '1fr 252px' : '1fr 48px 252px', alignItems: 'center', gap: 14 }}>
+                    <div style={grammarDefinitionBoxStyle}>{row.definition}</div>
+                    {question.definitionMode !== 'matching' && (
+                      <span style={{ color: '#64748b', fontSize: 18, textAlign: 'center' }}>is to</span>
+                    )}
+                    <select
+                      value={matchingSelections[row.definition] ?? ''}
+                      onChange={(event) => updateMatchingAnswer(row.definition, event.target.value)}
+                      style={grammarSynonymSelectStyle}
+                    >
+                      <option value="">Select...</option>
+                      {question.options.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : question.matchRows ? (
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, borderRadius: 999, backgroundColor: '#f1eaff', color: '#2b075c', padding: '0 10px', fontSize: 15 }}>
+                Synonym Matching
+              </span>
+              <p style={{ color: '#1f2937', fontSize: 17, lineHeight: '27px', margin: '14px 0 24px' }}>
+                Select a word from each drop-down list on the right that has the same or very similar meaning to each word on the left.
+              </p>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '104px 145px 28px 180px', alignItems: 'center', gap: 10, color: '#a1a8b3', fontSize: 15, marginBottom: 18 }}>
+                <span>Example</span>
+                <span style={grammarExampleBoxStyle}>big</span>
+                <span style={{ textAlign: 'center' }}>=</span>
+                <span style={grammarExampleBoxStyle}>large</span>
+              </div>
+
+              <div style={{ height: 1, backgroundColor: '#e2e8f0', margin: '0 0 20px' }} />
+
+              <div style={{ display: 'grid', gap: 16 }}>
+                {question.matchRows.map((row) => (
+                  <div key={row.word} style={{ display: 'grid', gridTemplateColumns: '180px 28px 252px', alignItems: 'center', gap: 10 }}>
+                    <div style={grammarWordBoxStyle}>{row.word}</div>
+                    <span style={{ color: '#64748b', textAlign: 'center', fontSize: 18 }}>=</span>
+                    <select
+                      value={matchingSelections[row.word] ?? ''}
+                      onChange={(event) => updateMatchingAnswer(row.word, event.target.value)}
+                      style={grammarSynonymSelectStyle}
+                    >
+                      <option value="">Select...</option>
+                      {question.options.map((option) => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, borderRadius: 999, backgroundColor: '#f1eaff', color: '#2b075c', padding: '0 10px', fontSize: 15 }}>
+                Multiple Choice
+              </span>
+              <h3 style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '12px 0 28px' }}>{question.prompt}</h3>
+
+              <div style={{ overflow: 'hidden', border: '1px solid #dfe3ea', borderRadius: 12 }}>
+                {question.options.map((option, optionIndex) => {
+                  const letter = String.fromCharCode(65 + optionIndex);
+                  const selected = answer === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => onAnswer(option)}
+                      style={{
+                        width: '100%',
+                        minHeight: 59,
+                        display: 'grid',
+                        gridTemplateColumns: '62px 1fr',
+                        alignItems: 'stretch',
+                        border: 0,
+                        borderTop: optionIndex === 0 ? 0 : '1px solid #dfe3ea',
+                        backgroundColor: selected ? '#f6f1ff' : '#ffffff',
+                        color: '#020817',
+                        padding: 0,
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span style={{ display: 'grid', placeItems: 'center', borderRight: '1px solid #dfe3ea', fontSize: 22, fontWeight: 900, color: selected ? '#2b075c' : '#020817' }}>{letter}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', padding: '0 20px', fontSize: 17 }}>{option}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </>
+          )} 
+          {showAnswer && (
+            <InlineAnswer>
+              <GrammarAnswerContent question={question} />
+            </InlineAnswer>
+          )}
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function parseGrammarMatchingAnswer(answer?: string): Record<string, string> {
+  if (!answer) return {};
+  try {
+    const parsed = JSON.parse(answer);
+    return typeof parsed === 'object' && parsed !== null ? parsed as Record<string, string> : {};
+  } catch {
+    return {};
+  }
+}
+
+const grammarExampleBoxStyle = {
+  height: 42,
+  display: 'flex',
+  alignItems: 'center',
+  border: '1px solid #e2e8f0',
+  borderRadius: 5,
+  backgroundColor: '#f8fafc',
+  color: '#8b95a1',
+  padding: '0 16px',
+  fontSize: 17
+};
+
+const grammarWordBoxStyle = {
+  height: 42,
+  display: 'flex',
+  alignItems: 'center',
+  border: '1px solid #cfd7e3',
+  borderRadius: 4,
+  backgroundColor: '#ffffff',
+  color: '#020817',
+  padding: '0 14px',
+  fontSize: 17,
+  fontWeight: 500
+};
+
+const grammarDefinitionBoxStyle = {
+  height: 42,
+  display: 'flex',
+  alignItems: 'center',
+  border: '1px solid #cfd7e3',
+  borderRadius: 4,
+  backgroundColor: '#ffffff',
+  color: '#020817',
+  padding: '0 14px',
+  fontSize: 17,
+  fontWeight: 500
+};
+
+const grammarSynonymSelectStyle = {
+  height: 44,
+  border: '1px solid #dfe3ea',
+  borderRadius: 12,
+  backgroundColor: '#ffffff',
+  color: '#020817',
+  padding: '0 16px',
+  fontSize: 16,
+  outline: 'none'
+};
+
+const grammarSentenceSelectStyle = {
+  width: 252,
+  height: 44,
+  border: '1px solid #dfe3ea',
+  borderRadius: 12,
+  backgroundColor: '#ffffff',
+  color: '#020817',
+  padding: '0 16px',
+  margin: '0 10px',
+  fontSize: 16,
+  outline: 'none'
+};
+
+function WritingInstructions() {
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 68px)',
+        backgroundColor: '#ffffff',
+        padding: '44px 24px 132px'
+      }}
+    >
+      <section style={{ maxWidth: 980, marginLeft: 63 }}>
+        <h2 style={{ color: '#000000', fontSize: 24, lineHeight: '32px', fontWeight: 900, margin: 0 }}>Aptis General Writing Instructions</h2>
+        <h3 style={{ color: '#000000', fontSize: 20, lineHeight: '28px', fontWeight: 900, margin: '18px 0 0' }}>Writing</h3>
+        <div style={{ color: '#020817', fontSize: 17, lineHeight: '28px', marginTop: 10 }}>
+          <p style={{ margin: 0 }}>The test has four parts and takes up to 50 minutes.</p>
+          <p style={{ margin: '2px 0 0' }}>Recommended times: Part One: 6 min / Part Two: 12 min / Part Three: 17 min / Part Four: 15 min</p>
+          <p style={{ margin: '30px 0 0' }}>When you click on the 'Next' button, the test will begin.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function WritingPart({
+  answer,
+  emailAnswers,
+  part,
+  partIndex,
+  showAnswer,
+  shortAnswers,
+  threeAnswers,
+  timeRemaining,
+  onAnswer,
+  onEmailAnswer,
+  onShortAnswer,
+  onThreeAnswer
+}: {
+  answer: string;
+  emailAnswers: Record<string, string>;
+  part: typeof writingParts[number];
+  partIndex: number;
+  showAnswer?: boolean;
+  shortAnswers: Record<number, string>;
+  threeAnswers: Record<number, string>;
+  timeRemaining: string;
+  onAnswer: (answer: string) => void;
+  onEmailAnswer: (key: string, answer: string) => void;
+  onShortAnswer: (index: number, answer: string) => void;
+  onThreeAnswer: (index: number, answer: string) => void;
+}) {
+  const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
+  const isShortAnswerPart = partIndex === 0;
+  const isThreeQuestionsPart = partIndex === 2;
+  const isEmailPart = partIndex === 3;
+  const friendEmail = emailAnswers.friend ?? '';
+  const presidentEmail = emailAnswers.president ?? '';
+  const friendWordCount = friendEmail.trim() ? friendEmail.trim().split(/\s+/).length : 0;
+  const presidentWordCount = presidentEmail.trim() ? presidentEmail.trim().split(/\s+/).length : 0;
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 68px)',
+        backgroundColor: '#f1f1f1',
+        padding: '38px 24px 132px'
+      }}
+    >
+      <section style={{ width: 'min(828px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Writing - Part {partIndex + 1}</p>
+            <h2 style={{ color: '#020817', fontSize: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? 17 : 28, fontWeight: 900, lineHeight: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? '23px' : '34px', margin: '4px 0 0', maxWidth: isEmailPart ? 620 : isThreeQuestionsPart ? 470 : 450 }}>{part.heading}</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button type="button" style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#020817', fontSize: 17, fontWeight: 500 }}>
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button type="button" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 30, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0', width: 164 }} />
+            </div>
+          </div>
+        </div>
+
+        {isEmailPart ? (
+          <div style={{ display: 'grid', gap: 32, marginTop: 34 }}>
+            <article style={{ borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '22px 24px' }}>
+              {part.prompt.split('\n').map((line) => (
+                <p key={line} style={{ color: '#020817', fontSize: 17, lineHeight: '27px', margin: line === 'Dear all members,' ? '0 0 4px' : 0 }}>{line}</p>
+              ))}
+            </article>
+
+            <WritingEmailBox
+              count={friendWordCount}
+              limit={75}
+              prompt="Write an email to your friend. Write about your feelings and what you plan to do about the situation. Write about 50 words. Recommended time: 10 minutes."
+              value={friendEmail}
+              onChange={(value) => onEmailAnswer('friend', limitWords(value, 75))}
+            />
+            {showAnswer && (
+              <InlineAnswer>
+                <WritingAnswerContent part={part} partIndex={partIndex} />
+              </InlineAnswer>
+            )}
+            <WritingEmailBox
+              count={presidentWordCount}
+              limit={225}
+              prompt="Write an email to the president of the club. Write about your feelings and what you think the club should do about the situation. Write 120-150 words. Recommended time: 20 minutes."
+              value={presidentEmail}
+              onChange={(value) => onEmailAnswer('president', limitWords(value, 225))}
+              tall
+            />
+            {showAnswer && (
+              <InlineAnswer>
+                <WritingAnswerContent part={part} partIndex={partIndex} />
+              </InlineAnswer>
+            )}
+          </div>
+        ) : isShortAnswerPart || isThreeQuestionsPart ? (
+          <div style={{ display: 'grid', gap: 20, marginTop: 34 }}>
+            {part.questions.map((question, index) => {
+              const value = isThreeQuestionsPart ? threeAnswers[index] ?? '' : shortAnswers[index] ?? '';
+              const questionWordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
+              const limit = isThreeQuestionsPart ? 60 : 10;
+              return (
+                <article key={question} style={{ borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '22px 22px 20px' }}>
+                  <p style={{ color: '#020817', fontSize: 17, lineHeight: '24px', fontWeight: 500, margin: 0 }}>{index + 1}. {question}</p>
+                  <textarea
+                    value={value}
+                    onChange={(event) => {
+                      const nextValue = limitWords(event.target.value, limit);
+                      if (isThreeQuestionsPart) onThreeAnswer(index, nextValue);
+                      else onShortAnswer(index, nextValue);
+                    }}
+                    placeholder={isThreeQuestionsPart ? 'Write your answer here (30-40 words)...' : 'Type your answer...'}
+                    style={{
+                      width: '100%',
+                      minHeight: isThreeQuestionsPart ? 112 : 74,
+                      resize: 'vertical',
+                      border: '1px solid #dce3ee',
+                      borderRadius: 12,
+                      outline: 'none',
+                      padding: '14px 14px',
+                      color: '#020817',
+                      fontSize: 16,
+                      lineHeight: '24px',
+                      backgroundColor: '#ffffff',
+                      marginTop: 16
+                    }}
+                  />
+                  <p style={{ color: '#64748b', fontSize: 15, textAlign: 'right', margin: '10px 0 0' }}>
+                    Words <span style={{ color: '#020817', fontWeight: 900 }}>{questionWordCount}</span> / {limit}
+                  </p>
+                  {showAnswer && (
+                    <InlineAnswer>
+                      {(part as { sampleAnswers?: string[] }).sampleAnswers?.[index] ?? 'Chưa có đáp án mẫu'}
+                    </InlineAnswer>
+                  )}
+                </article>
+              );
+            })}
+          </div>
+        ) : (
+          <article style={{ marginTop: 38, borderRadius: 16, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 28, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+            <p style={{ color: '#020817', fontSize: 17, lineHeight: '28px', margin: 0 }}>{part.prompt}</p>
+
+            {part.questions.length > 0 && (
+              <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
+                {part.questions.map((question, index) => (
+                  <p key={question} style={{ color: '#020817', fontSize: 16, lineHeight: '24px', margin: 0 }}>
+                    {index + 1}. {question}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            <div style={{ marginTop: 24, borderRadius: 14, border: '1px solid #dce3ee', overflow: 'hidden' }}>
+            <textarea
+              value={answer}
+              onChange={(event) => onAnswer(partIndex === 1 ? limitWords(event.target.value, 45) : event.target.value)}
+              placeholder="Type your answer here..."
+              style={{
+                width: '100%',
+                minHeight: partIndex === 0 ? 190 : 260,
+                resize: 'vertical',
+                border: 0,
+                outline: 'none',
+                padding: 18,
+                color: '#020817',
+                fontSize: 17,
+                lineHeight: '28px',
+                backgroundColor: '#ffffff'
+              }}
+            />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e5e7eb', backgroundColor: '#f8fafc', padding: '12px 16px' }}>
+              <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{part.helper}</p>
+              <p style={{ color: '#020817', fontSize: 14, fontWeight: 800, margin: 0 }}>{wordCount}{partIndex === 1 ? ' / 45' : ''} words</p>
+            </div>
+          </div>
+          {showAnswer && (
+            <InlineAnswer>
+              <WritingAnswerContent part={part} partIndex={partIndex} />
+            </InlineAnswer>
+          )}
+        </article>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function WritingResult({ onExit, onRetry }: { onExit: () => void; onRetry: () => void }) {
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+      <section style={{ width: 'min(760px, 100%)', margin: '0 auto', textAlign: 'center' }}>
+        <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '44px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+          <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: 0 }}>Đang chấm bài Writing</h1>
+          <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '14px auto 0', maxWidth: 520 }}>
+            Bài viết của bạn đã được lưu. Hệ thống sẽ hiển thị kết quả Writing sau khi hoàn tất chấm bài.
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32 }}>
+            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+              <ArrowLeft size={18} />
+              Thoát
+            </button>
+            <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+              <RotateCcw size={18} />
+              Làm lại
+            </button>
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, result }: { error: string; loading: boolean; onExit: () => void; onRetry: () => void; result: AiWritingScore | null }) {
+  if (error) {
+    return (
+      <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+        <section style={{ width: 'min(760px, 100%)', margin: '0 auto' }}>
+          <article style={{ borderRadius: 18, border: '1px solid #fecaca', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)', textAlign: 'center' }}>
+            <AlertCircle size={74} color="#dc2626" style={{ margin: '0 auto' }} />
+            <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Chưa chấm được Writing</h1>
+            <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '12px auto 0', maxWidth: 600 }}>{error}</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
+              <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+                <ArrowLeft size={18} />
+                Thoat
+              </button>
+              <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+                <RotateCcw size={18} />
+                Lam lai
+              </button>
+            </div>
+          </article>
+        </section>
+      </main>
+    );
+  }
+
+  if (result) {
+    return (
+      <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+        <section style={{ width: 'min(920px, 100%)', margin: '0 auto' }}>
+          <article style={{ borderRadius: 18, border: '1px solid #bbf7d0', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+            <div style={{ textAlign: 'center' }}>
+              <CheckCircle2 size={74} color="#16a34a" style={{ margin: '0 auto' }} />
+              <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Ket qua Writing AI</h1>
+              <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '12px auto 0', maxWidth: 650 }}>{result.summary}</p>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginTop: 28 }}>
+              <div style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: 18 }}>
+                <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>Overall score</p>
+                <p style={{ color: '#111827', fontSize: 28, fontWeight: 900, margin: '8px 0 0' }}>{result.overallScore}/50</p>
+              </div>
+              <div style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: 18 }}>
+                <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>CEFR</p>
+                <p style={{ color: '#111827', fontSize: 28, fontWeight: 900, margin: '8px 0 0' }}>{result.cefrLevel}</p>
+              </div>
+            </div>
+            <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
+              {result.parts?.map((part) => (
+                <div key={part.title} style={{ borderRadius: 14, border: '1px solid #e2e8f0', backgroundColor: '#ffffff', padding: 16 }}>
+                  <p style={{ color: '#111827', fontSize: 15, fontWeight: 900, margin: 0 }}>{part.title} - {part.score}/50</p>
+                  <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: '6px 0 0' }}>{part.feedback}</p>
+                </div>
+              ))}
+            </div>
+            {result.criteria?.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Nhận xét theo tiêu chí</h2>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+                  {result.criteria.map((item) => (
+                    <div key={item.name} style={{ borderRadius: 14, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: 16 }}>
+                      <p style={{ color: '#111827', fontSize: 15, fontWeight: 900, margin: 0 }}>{item.name} - {item.score}/10</p>
+                      <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: '6px 0 0' }}>{item.feedback}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {result.corrections?.length > 0 && (
+              <div style={{ marginTop: 24 }}>
+                <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Lỗi cần sửa</h2>
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {result.corrections.map((correction, index) => (
+                    <div key={`${correction}-${index}`} style={{ borderRadius: 14, border: '1px solid #fed7aa', backgroundColor: '#fff7ed', padding: 16 }}>
+                      <p style={{ color: '#9a3412', fontSize: 14, fontWeight: 900, margin: 0 }}>Lỗi {index + 1}</p>
+                      <p style={{ color: '#7c2d12', fontSize: 14, lineHeight: '23px', margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{correction}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {result.suggestedAnswer?.trim() && (
+              <div style={{ marginTop: 24, borderRadius: 14, border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', padding: 18 }}>
+                <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: 0 }}>Bài gợi ý sau khi sửa</h2>
+                <p style={{ color: '#1e3a8a', fontSize: 15, lineHeight: '25px', margin: '10px 0 0', whiteSpace: 'pre-wrap' }}>{result.suggestedAnswer}</p>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
+              <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+                <ArrowLeft size={18} />
+                Thoat
+              </button>
+              <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+                <RotateCcw size={18} />
+                Lam lai
+              </button>
+            </div>
+          </article>
+        </section>
+      </main>
+    );
+  }
+
+  const steps = [
+    { title: 'Đã nộp bài', detail: '4 phần Writing' },
+    { title: 'Đang xử lý', detail: 'Chấm tự động' },
+    { title: 'Kết quả', detail: 'Sẽ hiển thị sau' }
+  ];
+
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+      <section style={{ width: 'min(860px, 100%)', margin: '0 auto' }}>
+        <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)', textAlign: 'center' }}>
+          <div style={{ width: 82, height: 82, borderRadius: '50%', border: '7px solid #ede9fe', borderTopColor: '#2b075c', margin: '0 auto', animation: 'spin 1s linear infinite' }} />
+          <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Đang chấm bài Writing</h1>
+          <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '12px auto 0', maxWidth: 560 }}>
+            Bài viết của bạn đã được lưu. Hệ thống đang phân tích nội dung, từ vựng, ngữ pháp và độ hoàn thành yêu cầu.
+          </p>
+          <p style={{ color: '#dc2626', fontSize: 15, fontWeight: 800, lineHeight: '24px', margin: '12px auto 0', maxWidth: 560 }}>
+            Đang chấm bài, vui lòng không thao tác gì cho đến khi có kết quả.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 30 }}>
+            {steps.map((item, index) => (
+              <div key={item.title} style={{ borderRadius: 14, backgroundColor: index === 1 ? '#f3efff' : '#f8fafc', border: '1px solid #e2e8f0', padding: '18px 14px' }}>
+                <p style={{ color: index === 1 ? '#2b075c' : '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>{item.title}</p>
+                <p style={{ color: '#64748b', fontSize: 14, margin: '8px 0 0' }}>{item.detail}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
+            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+              <ArrowLeft size={18} />
+              Thoát
+            </button>
+            <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+              <RotateCcw size={18} />
+              Làm lại
+            </button>
+          </div>
+        </article>
+        <style>{'@keyframes spin { to { transform: rotate(360deg); } }'}</style>
+      </section>
+    </main>
+  );
+}
+
+function WritingEmailBox({
+  count,
+  limit,
+  prompt,
+  tall = false,
+  value,
+  onChange
+}: {
+  count: number;
+  limit: number;
+  prompt: string;
+  tall?: boolean;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <article>
+      <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '0 0 16px' }}>{prompt}</p>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Type your answer here"
+        style={{
+          width: '100%',
+          minHeight: tall ? 246 : 158,
+          resize: 'vertical',
+          border: '1px solid #dce3ee',
+          borderRadius: 12,
+          outline: 'none',
+          padding: '14px 14px',
+          color: '#020817',
+          fontSize: 16,
+          lineHeight: '26px',
+          backgroundColor: '#ffffff'
+        }}
+      />
+      <p style={{ color: '#64748b', fontSize: 15, textAlign: 'right', margin: '10px 0 0' }}>
+        Words <span style={{ color: '#020817', fontWeight: 900 }}>{count}</span> / {limit}
+      </p>
+    </article>
+  );
+}
+
+function ListeningStart({ onStart }: { onStart: () => void }) {
+  return (
+    <main className="min-h-[calc(100vh-66px)] bg-white px-6 py-12 sm:px-[90px]">
+      <section className="max-w-[560px]">
+        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-slate-950">Listening Practice Test</h2>
+        <p className="mt-2 text-lg text-slate-500">Listening - Full Practice</p>
+
+        <div className="mt-8 grid max-w-[360px] grid-cols-2 gap-20">
+          <Meta label="Number of Questions" value="17" />
+          <Meta label="Time Allowed" value="50 min" />
+        </div>
+
+        <h3 className="mt-8 text-xl font-extrabold text-slate-950">Assessment Description</h3>
+
+        <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
+          <p className="text-xl font-extrabold text-slate-950">Kiểm tra âm thanh</p>
+          <button type="button" className="mt-5 inline-flex h-12 items-center gap-3 rounded-xl border border-[#f92918] bg-white px-5 text-lg font-medium text-[#e41d10] hover:bg-red-50">
+            <Volume2 size={22} />
+            Kiểm tra âm thanh
+          </button>
+        </div>
+
+        <button type="button" onClick={onStart} className="mt-7 h-[50px] rounded-xl px-8 text-lg font-semibold text-white hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
+          Start Assessment
+        </button>
+      </section>
+    </main>
+  );
+}
+
+function ListeningInstructions() {
+  return (
+    <main className="min-h-[calc(100vh-66px)] bg-white px-6 pb-28 pt-12 sm:px-[90px]">
+      <section className="max-w-[760px]">
+        <h2 className="text-[24px] font-extrabold leading-8 text-black">Aptis General Listening Instructions</h2>
+        <h3 className="mt-7 text-xl font-extrabold text-black">Listening</h3>
+        <div className="mt-4 space-y-2 text-[17px] leading-7 text-black">
+          <p>You will listen to seventeen recordings.</p>
+          <p>Click on the PLAY button to listen to each recording.</p>
+          <p>You can listen to each recording TWO TIMES ONLY.</p>
+          <p>You have 40 minutes to complete the test.</p>
+          <p className="pt-7">When you click on the 'Next' button, the test will begin.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ListeningQuestion({
+  answer,
+  correctAnswer,
+  index,
+  question,
+  showAnswer,
+  timeRemaining,
+  total,
+  onAnswer
+}: {
+  answer?: string;
+  correctAnswer?: string;
+  index: number;
+  question: typeof listeningPart1Questions[number];
+  showAnswer?: boolean;
+  timeRemaining: string;
+  total: number;
+  onAnswer: (answer: string) => void;
+}) {
+  const labels = ['A', 'B', 'C'];
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 66px)',
+        backgroundColor: '#f1f1f1',
+        padding: '40px 24px 132px'
+      }}
+    >
+      <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 1</p>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question {index + 1} of {total}</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button
+              type="button"
+              style={{
+                height: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                borderRadius: 14,
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                padding: '0 16px',
+                color: '#020817',
+                fontSize: 17,
+                fontWeight: 500
+              }}
+            >
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button
+              type="button"
+              style={{
+                width: 44,
+                height: 44,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: '50%',
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                color: '#64748b'
+              }}
+            >
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 30, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0', width: 164 }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 58 }}>
+          <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>{question.prompt}</p>
+          <button
+            type="button"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              border: 0,
+              backgroundColor: 'transparent',
+              color: '#020817',
+              fontSize: 17,
+              fontWeight: 500,
+              marginTop: 16,
+              padding: 0,
+              textDecoration: 'underline'
+            }}
+          >
+            <PlayCircle size={18} />
+            Play/Stop
+          </button>
+
+          <div
+            style={{
+              marginTop: 28,
+              border: '1px solid #dce3ee',
+              borderRadius: 12,
+              overflow: 'hidden',
+              backgroundColor: '#ffffff',
+              boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
+            }}
+          >
+            {question.options.map((option, optionIndex) => {
+              const selected = answer === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => onAnswer(option)}
+                  style={{
+                    width: '100%',
+                    minHeight: 60,
+                    display: 'grid',
+                    gridTemplateColumns: '64px 1fr',
+                    alignItems: 'stretch',
+                    border: 0,
+                    borderTop: optionIndex === 0 ? 0 : '1px solid #e2e8f0',
+                    backgroundColor: selected ? '#f2ecff' : '#ffffff',
+                    color: '#020817',
+                    padding: 0,
+                    textAlign: 'left',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'grid',
+                      placeItems: 'center',
+                      borderRight: '1px solid #e2e8f0',
+                      color: selected ? '#2b075c' : '#020817',
+                      fontSize: 22,
+                      fontWeight: 800
+                    }}
+                  >
+                    {labels[optionIndex]}
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '0 18px', fontSize: 16, fontWeight: selected ? 800 : 400 }}>
+                    {option}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {showAnswer && (
+            <InlineAnswer>
+              {correctAnswer ?? (question as { answer?: string; correctAnswer?: string }).answer ?? (question as { answer?: string; correctAnswer?: string }).correctAnswer ?? 'Chưa có đáp án mẫu'}
+            </InlineAnswer>
+          )}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ListeningMatching({
+  answers,
+  showAnswer,
+  timeRemaining,
+  onAnswer
+}: {
+  answers: Record<string, string>;
+  showAnswer?: boolean;
+  timeRemaining: string;
+  onAnswer: (speaker: string, answer: string) => void;
+}) {
+  const speakers = ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'];
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 66px)',
+        backgroundColor: '#f1f1f1',
+        padding: '38px 24px 132px'
+      }}
+    >
+      <section style={{ width: 'min(820px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 2</p>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question 1 of 1</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button
+              type="button"
+              style={{
+                height: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                borderRadius: 14,
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                padding: '0 16px',
+                color: '#020817',
+                fontSize: 17,
+                fontWeight: 500
+              }}
+            >
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button
+              type="button"
+              style={{
+                width: 44,
+                height: 44,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: '50%',
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                color: '#64748b'
+              }}
+            >
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 30, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0', width: 124 }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 58 }}>
+          <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>
+            Listen to four people and match each person to the correct information.
+          </p>
+          <button
+            type="button"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              border: 0,
+              backgroundColor: 'transparent',
+              color: '#020817',
+              fontSize: 17,
+              fontWeight: 500,
+              marginTop: 16,
+              padding: 0,
+              textDecoration: 'underline'
+            }}
+          >
+            <PlayCircle size={18} />
+            Play/Stop
+          </button>
+
+          <div style={{ display: 'grid', gap: 14, marginTop: 26, width: 'min(625px, 100%)' }}>
+            {speakers.map((speaker, index) => (
+              <label
+                key={speaker}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '104px 1fr',
+                  alignItems: 'center',
+                  gap: 18,
+                  color: '#020817',
+                  fontSize: 17,
+                  fontWeight: 400
+                }}
+              >
+                <span>{speaker}</span>
+                <select
+                  value={answers[speaker] ?? ''}
+                  onChange={(event) => onAnswer(speaker, event.target.value)}
+                  style={{
+                    height: 38,
+                    width: '100%',
+                    borderRadius: 4,
+                    border: '1px solid #dce3ee',
+                    backgroundColor: '#ffffff',
+                    padding: '0 12px',
+                    color: '#020817',
+                    fontSize: 15,
+                    outline: 'none'
+                  }}
+                >
+                  <option value=""></option>
+                  {listeningMatchingOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {showAnswer && (
+                  <span style={{ gridColumn: '2', color: '#1e3a8a', fontSize: 14, lineHeight: '20px' }}>
+                    <b>Đáp án:</b> {listeningMatchingAnswerKey[speaker] ?? 'Chưa có đáp án mẫu'}
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ListeningShortConversations({
+  answers,
+  showAnswer,
+  timeRemaining,
+  onAnswer
+}: {
+  answers: Record<number, string>;
+  showAnswer?: boolean;
+  timeRemaining: string;
+  onAnswer: (index: number, answer: string) => void;
+}) {
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 66px)',
+        backgroundColor: '#f1f1f1',
+        padding: '38px 24px 132px'
+      }}
+    >
+      <section style={{ width: 'min(820px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 20, fontWeight: 500, margin: 0 }}>Listening</p>
+            <h2 style={{ color: '#020817', fontSize: 34, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question 1 of 1</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button
+              type="button"
+              style={{
+                height: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                borderRadius: 14,
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                padding: '0 16px',
+                color: '#020817',
+                fontSize: 17,
+                fontWeight: 500
+              }}
+            >
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button
+              type="button"
+              style={{
+                width: 44,
+                height: 44,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: '50%',
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                color: '#64748b'
+              }}
+            >
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 30, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0', width: 108 }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 52 }}>
+          <p style={{ color: '#020817', fontSize: 19, lineHeight: '28px', margin: 0 }}>There is too much information on the Internet</p>
+          <button
+            type="button"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              border: 0,
+              backgroundColor: 'transparent',
+              color: '#020817',
+              fontSize: 17,
+              fontWeight: 500,
+              marginTop: 20,
+              padding: 0,
+              textDecoration: 'underline'
+            }}
+          >
+            <PlayCircle size={18} />
+            Play/Stop
+          </button>
+
+          <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: '44px 0 30px' }}>Who expresses which opinion?</p>
+
+          <div style={{ display: 'grid', gap: 28, width: 'min(590px, 100%)' }}>
+            {listeningShortStatements.map((statement, index) => (
+              <label
+                key={statement}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 116px',
+                  alignItems: 'center',
+                  gap: 16,
+                  color: '#020817',
+                  fontSize: 19,
+                  lineHeight: '28px',
+                  fontWeight: 400
+                }}
+              >
+                <span>{index + 1}. {statement}</span>
+                <select
+                  value={answers[index] ?? ''}
+                  onChange={(event) => onAnswer(index, event.target.value)}
+                  style={{
+                    height: 36,
+                    width: 116,
+                    borderRadius: 12,
+                    border: '1px solid #dce3ee',
+                    backgroundColor: '#ffffff',
+                    padding: '0 12px',
+                    color: '#020817',
+                    fontSize: 15,
+                    outline: 'none'
+                  }}
+                >
+                  <option value=""></option>
+                  {listeningSpeakerOptions.map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {showAnswer && (
+                  <span style={{ gridColumn: '1 / -1', color: '#1e3a8a', fontSize: 14, lineHeight: '20px' }}>
+                    <b>Đáp án:</b> {listeningShortAnswerKey[index] ?? 'Chưa có đáp án mẫu'}
+                  </span>
+                )}
+              </label>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ListeningMonologues({
+  answers,
+  index,
+  showAnswer,
+  timeRemaining,
+  onAnswer
+}: {
+  answers: Record<string, string>;
+  index: number;
+  showAnswer?: boolean;
+  timeRemaining: string;
+  onAnswer: (questionIndex: number, answer: string) => void;
+}) {
+  const labels = ['A', 'B', 'C'];
+  const currentRecording = listeningMonologues[index];
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 66px)',
+        backgroundColor: '#f1f1f1',
+        padding: '38px 24px 132px'
+      }}
+    >
+      <section style={{ width: 'min(828px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 4</p>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Recording {index + 1} of {listeningMonologues.length}</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button
+              type="button"
+              style={{
+                height: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                borderRadius: 14,
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                padding: '0 16px',
+                color: '#020817',
+                fontSize: 17,
+                fontWeight: 500
+              }}
+            >
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button
+              type="button"
+              style={{
+                width: 44,
+                height: 44,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: '50%',
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                color: '#64748b'
+              }}
+            >
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 30, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0', width: 96 }} />
+            </div>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            border: 0,
+            backgroundColor: 'transparent',
+            color: '#020817',
+            fontSize: 17,
+            fontWeight: 500,
+            marginTop: 70,
+            padding: 0,
+            textDecoration: 'underline'
+          }}
+        >
+          <PlayCircle size={18} />
+          Play/Stop
+        </button>
+
+        <div style={{ display: 'grid', gap: 36, marginTop: 26 }}>
+          {currentRecording.questions.map((question, questionIndex) => (
+            <div key={question.prompt}>
+              <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '0 0 14px' }}>
+                {questionIndex + 1}. {question.prompt}
+              </p>
+              <div
+                style={{
+                  border: '1px solid #dce3ee',
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  backgroundColor: '#ffffff',
+                  boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
+                }}
+              >
+                {question.options.map((option, optionIndex) => {
+                  const answerKey = `${index}-${questionIndex}`;
+                  const selected = answers[answerKey] === option;
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => onAnswer(questionIndex, option)}
+                      style={{
+                        width: '100%',
+                        minHeight: 60,
+                        display: 'grid',
+                        gridTemplateColumns: '64px 1fr',
+                        alignItems: 'stretch',
+                        border: 0,
+                        borderTop: optionIndex === 0 ? 0 : '1px solid #e2e8f0',
+                        backgroundColor: selected ? '#f2ecff' : '#ffffff',
+                        color: '#020817',
+                        padding: 0,
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <span
+                        style={{
+                          display: 'grid',
+                          placeItems: 'center',
+                          borderRight: '1px solid #e2e8f0',
+                          color: selected ? '#2b075c' : '#020817',
+                          fontSize: 22,
+                          fontWeight: 800
+                        }}
+                      >
+                        {labels[optionIndex]}
+                      </span>
+                      <span style={{ display: 'flex', alignItems: 'center', padding: '0 18px', fontSize: 16, fontWeight: selected ? 800 : 400 }}>
+                        {option}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {showAnswer && (
+                <InlineAnswer>
+                  {listeningMonologueAnswerKey[`${index}-${questionIndex}`] ?? (question as { answer?: string; correctAnswer?: string }).answer ?? (question as { answer?: string; correctAnswer?: string }).correctAnswer ?? 'Chưa có đáp án mẫu'}
+                </InlineAnswer>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ReadingStart({ onStart }: { onStart: () => void }) {
+  return (
+    <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
+      <section className="max-w-[620px]">
+        <div className="inline-flex items-center gap-2 rounded-full bg-[#f0eef7] px-4 py-2 text-sm font-extrabold text-[#2b075c]">
+          <BookOpen size={18} />
+          Reading - Gap Fill
+        </div>
+
+        <p className="mt-8 text-lg font-medium text-slate-500">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[32px] font-extrabold leading-10 text-slate-950">Reading Practice Test</h2>
+        <p className="mt-3 text-xl font-medium text-slate-500">Đề 01</p>
+
+        <div className="mt-8 grid max-w-[460px] grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-semibold text-slate-500">Number of Questions</p>
+            <p className="mt-3 text-2xl font-extrabold text-slate-950">4</p>
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+            <p className="text-sm font-semibold text-slate-500">Time Allowed</p>
+            <p className="mt-3 text-2xl font-extrabold text-slate-950">35 min</p>
+          </div>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
+          <p className="text-base font-extrabold text-slate-950">Part 1 - Gap Fill</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Read the short texts and choose the correct words to complete each gap.
+          </p>
+        </div>
+
+        <button type="button" onClick={onStart} className="mt-8 inline-flex h-[52px] items-center justify-center gap-3 rounded-xl px-8 text-lg font-semibold text-white shadow-lg shadow-[#2b075c]/20 hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
+          Start Assessment
+          <ArrowRight size={20} />
+        </button>
+      </section>
+    </main>
+  );
+}
+
+function ReadingInstructions() {
+  return (
+    <main className="min-h-[calc(100vh-74px)] bg-white px-6 pb-28 pt-14 sm:px-[100px]">
+      <section className="max-w-[760px]">
+        <h2 className="text-[26px] font-extrabold leading-8 text-black">Aptis General Reading Instructions</h2>
+        <h3 className="mt-10 text-[22px] font-extrabold text-black">Reading</h3>
+        <div className="mt-5 space-y-5 text-[21px] leading-8 text-[#020817]">
+          <p>The test has five parts.</p>
+          <p>You have 35 minutes to complete the test.</p>
+          <p className="pt-5">When you click on the 'Next' button, the test will begin.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ReadingQuestion({ answers, showAnswer, timeRemaining, onAnswer }: { answers: Record<number, string>; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void }) {
+  const options = ['see', 'watch', 'look', 'view'];
+  const exampleOptions = ['window', 'store', 'market', 'restaurant'];
+  const placeOptions = ['shop', 'store', 'market', 'restaurant'];
+  const foodOptions = ['lunch', 'breakfast', 'dinner', 'meal'];
+  const tvOptions = ['watched', 'saw', 'looked', 'read'];
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 74px)',
+        backgroundColor: '#f1f1f1',
+        padding: '40px 24px 132px'
+      }}
+    >
+      <section style={{ width: 'min(920px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 20, fontWeight: 500, margin: 0 }}>Reading</p>
+            <h2 style={{ color: '#020817', fontSize: 38, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question 1 of 5</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
+            <button
+              style={{
+                height: 52,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12,
+                borderRadius: 16,
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                padding: '0 20px',
+                color: '#020817',
+                fontSize: 20,
+                fontWeight: 500
+              }}
+            >
+              <Bookmark size={22} />
+              Bookmark
+            </button>
+            <button
+              style={{
+                width: 52,
+                height: 52,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: '50%',
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                color: '#64748b'
+              }}
+            >
+              <Pause size={20} />
+            </button>
+            <div style={{ minWidth: 184, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 34, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 14, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', marginTop: 8 }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 56 }}>
+          <p style={{ color: '#000000', fontSize: 22, lineHeight: '32px', fontWeight: 900, margin: 0 }}>
+            Choose the word that fits in the gap. The first one is done for you.
+          </p>
+
+          <div style={{ color: '#000000', fontSize: 22, lineHeight: '44px', marginTop: 42 }}>
+            <p>
+              I saw some shows in the{' '}
+              <ReadingGapSelect value={answers[-1] ?? ''} options={exampleOptions} onChange={(answer) => onAnswer(-1, answer)} />{' '}
+              of one store.
+            </p>
+            <p>
+              I didn't <ReadingGapSelect value={answers[0] ?? ''} options={options} onChange={(answer) => onAnswer(0, answer)} /> it.
+            </p>
+            {showAnswer && <InlineAnswer>see</InlineAnswer>}
+            <p>
+              I buy some food at the <ReadingGapSelect value={answers[1] ?? ''} options={placeOptions} onChange={(answer) => onAnswer(1, answer)} /> .
+            </p>
+            {showAnswer && <InlineAnswer>store</InlineAnswer>}
+            <p>
+              I ate <ReadingGapSelect value={answers[2] ?? ''} options={foodOptions} onChange={(answer) => onAnswer(2, answer)} /> .
+            </p>
+            {showAnswer && <InlineAnswer>lunch</InlineAnswer>}
+            <p>
+              I <ReadingGapSelect value={answers[3] ?? ''} options={tvOptions} onChange={(answer) => onAnswer(3, answer)} /> a program on TV.
+            </p>
+            {showAnswer && <InlineAnswer>watched</InlineAnswer>}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ReadingCohesion({ answers, questionIndex, showAnswer, timeRemaining, onAnswer }: { answers: string[]; questionIndex: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void }) {
+  const questions = [
+    {
+      title: 'Tom Harper',
+      choices: [
+        'he almost left the magazine, but then he decided to create some unusual new characters',
+        'the characters he imagined were one of the most famous in the world',
+        'this popularity made Tom Harper rich and successful.',
+        'he soon wrote regularly for the magazine, but he was not satisfied',
+        'When he was young, he began writing short stories for a magazine'
+      ]
+    },
+    {
+      title: 'A scientist',
+      choices: [
+        'These were so advanced that he soon became famous all over the world',
+        'As a child, he moved to a special school because he was so clever',
+        'Princeton University in the USA offered him a job because he was so famous.',
+        'His best friend in his new class was a girl named Lavime',
+        'She later became his wife and helped him with his earliest scientific discoveries'
+      ]
+    }
+  ];
+  const currentQuestion = questions[questionIndex];
+  const choices = currentQuestion.choices;
+  const correctAnswers = questionIndex === 0 ? ['B', 'C', 'A', 'E', 'D'] : ['C', 'A', 'D', 'B'];
+  const slots = Array.from({ length: 5 }, (_, index) => answers[index] || null);
+
+  function dropChoice(slotIndex: number, choice: string) {
+    const nextSlots = slots.map((slot) => (slot === choice ? null : slot));
+    nextSlots[slotIndex] = choice;
+    onAnswer(nextSlots.map((slot) => slot ?? ''));
+  }
+
+  function returnChoice(choice: string) {
+    onAnswer(slots.map((slot) => (slot === choice ? '' : slot ?? '')));
+  }
+
+  const availableChoices = choices.filter((choice) => !slots.includes(choice));
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 74px)',
+        backgroundColor: '#f1f1f1',
+        padding: '36px 24px 132px'
+      }}
+    >
+      <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: 0 }}>Reading</p>
+            <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question {questionIndex + 1} of 2</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button
+              style={{
+                height: 44,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                borderRadius: 14,
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                padding: '0 16px',
+                color: '#475569',
+                fontSize: 17,
+                fontWeight: 500
+              }}
+            >
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button
+              style={{
+                width: 44,
+                height: 44,
+                display: 'grid',
+                placeItems: 'center',
+                borderRadius: '50%',
+                border: '1px solid #dce3ee',
+                backgroundColor: '#ffffff',
+                color: '#64748b'
+              }}
+            >
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 30, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', marginTop: 8 }} />
+            </div>
+          </div>
+        </div>
+
+        <p style={{ color: '#000000', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '34px 0 8px' }}>
+          The sentences below make a complete text. Put them in the correct order.
+        </p>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1px 0.9fr',
+            gap: 32,
+            border: '1px solid #dce3ee',
+            backgroundColor: '#ffffff',
+            borderRadius: 14,
+            padding: '18px',
+            boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
+          }}
+        >
+          <div>
+            <h3 style={{ color: '#020817', fontSize: 21, fontWeight: 900, margin: '4px 0 16px' }}>{currentQuestion.title}</h3>
+            <div style={{ display: 'grid', gap: 12 }}>
+              {[1, 2, 3, 4, 5].map((number) => (
+                <div key={number}>
+                  <CohesionSlot
+                    number={number}
+                    filled={slots[number - 1] ?? undefined}
+                    onDropChoice={(choice) => dropChoice(number - 1, choice)}
+                  />
+                  {showAnswer && <InlineAnswer>{correctAnswers[number - 1] ?? 'Chưa có đáp án mẫu'}</InlineAnswer>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ width: 1, backgroundColor: '#e5e7eb' }} />
+
+          <div
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'move';
+            }}
+            onDrop={(event) => {
+              event.preventDefault();
+              const choice = event.dataTransfer.getData('text/plain');
+              if (choice) returnChoice(choice);
+            }}
+            style={{
+              display: 'grid',
+              alignContent: 'start',
+              gap: 14,
+              minHeight: 430,
+              paddingTop: 14,
+              borderRadius: 12
+            }}
+          >
+            {availableChoices.map((choice) => (
+              <div
+                key={choice}
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData('text/plain', choice);
+                  event.dataTransfer.effectAllowed = 'move';
+                }}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '18px 1fr',
+                  gap: 10,
+                  alignItems: 'start',
+                  minHeight: 74,
+                  borderRadius: 12,
+                  border: '1px solid #dce3ee',
+                  backgroundColor: '#ffffff',
+                  padding: '14px 16px',
+                  color: '#020817',
+                  fontSize: 16,
+                  lineHeight: '22px',
+                  cursor: 'grab'
+                }}
+              >
+                <span style={{ color: '#64748b', fontSize: 20, lineHeight: '20px' }}>-</span>
+                <span>{choice}</span>
+              </div>
+            ))}
+            {availableChoices.length === 0 && (
+              <div
+                style={{
+                  minHeight: 74,
+                  display: 'grid',
+                  placeItems: 'center',
+                  borderRadius: 12,
+                  border: '2px dashed #dce3ee',
+                  color: '#94a3b8',
+                  fontSize: 15,
+                  fontWeight: 700,
+                  textAlign: 'center',
+                  padding: 16
+                }}
+              >
+                Kéo câu từ ô bên trái về đây
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function CohesionSlot({ number, filled, onDropChoice }: { number: number; filled?: string; onDropChoice: (choice: string) => void }) {
+  return (
+    <div
+      draggable={Boolean(filled)}
+      onDragStart={(event) => {
+        if (!filled) return;
+        event.dataTransfer.setData('text/plain', filled);
+        event.dataTransfer.effectAllowed = 'move';
+      }}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        const choice = event.dataTransfer.getData('text/plain');
+        if (choice) onDropChoice(choice);
+      }}
+      style={{
+        minHeight: 64,
+        display: 'grid',
+        gridTemplateColumns: '28px 1fr',
+        alignItems: 'center',
+        gap: 16,
+        borderRadius: 12,
+        border: filled ? '1px solid #dce3ee' : '2px dashed #e5e7eb',
+        backgroundColor: '#ffffff',
+        padding: '12px 10px',
+        cursor: filled ? 'grab' : 'copy'
+      }}
+    >
+      <span style={{ color: '#334155', fontSize: 14, fontWeight: 700 }}>{number}</span>
+      <span style={{ color: filled ? '#020817' : '#94a3b8', fontSize: 16, lineHeight: '22px' }}>
+        {filled ?? 'Kéo câu vào đây'}
+      </span>
+    </div>
+  );
+}
+
+function ReadingOpinion({ answers, showAnswer, timeRemaining, onAnswer }: { answers: Record<number, string>; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void }) {
+  const people = [
+    {
+      label: 'A',
+      text: 'I was a businessman so I had to fly many times a week. I had to go to other countries to be able to sign wine trading contracts with them. I felt very tired every time I have to fly. Now, my sister and I, whenever we have free time, take the train together and we enjoy that time very much because I can travel while sightseeing and relax without any stress.'
+    },
+    {
+      label: 'B',
+      text: 'My family and siblings live quite far from me. So I often have to fly to visit them every month when I have time. We really appreciate the time we spend together and we are happy to be able to meet each other and share our new story. I know that traveling by plane too much is not good for the environment so I often shop online or go to work by bike instead of going by car or I reuse plastic bags and paper bags. In addition, I sometimes volunteer to clean up trash in the neighborhood.'
+    },
+    {
+      label: 'C',
+      text: 'I have a dream that I work as a tour guide. So I understand that I will have to fly to other countries. In my personal opinion, airplanes are currently too cheap compared to the damage they cause to the environment, so I believe we should add taxes to airline ticket prices to make people choose to use other means of transport before they think about flying. I believe that people are also very happy when they can contribute to protecting the environment.'
+    },
+    {
+      label: 'D',
+      text: 'If I have to go somewhere I will choose other means of public transport, not the plane. Every time I go on a plane I feel extremely tired and I just hope time passes quickly so I can get off that plane. However, due to the specific nature of my job, I have to film in many different locations, so sometimes I cannot avoid having to take this public transportation.'
+    }
+  ];
+  const questions = [
+    'try to protect the environment',
+    'Sometimes cannot avoid flying because of filming work',
+    'Find flying tiring and try to avoid it',
+    'suggest making flights more expensive',
+    'want to work in other countries',
+    'like relaxing while they travel',
+    'visit relatives regularly'
+  ];
+  const correctAnswers = ['B', 'D', 'A', 'C', 'C', 'A', 'B'];
+
+  return (
+    <main style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
+      <section style={{ width: 'min(920px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 20, fontWeight: 800, margin: 0 }}>Reading</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button style={{ height: 46, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 17, fontWeight: 500 }}>
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button style={{ width: 46, height: 46, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 180, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 32, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, width: 86, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0' }} />
+            </div>
+          </div>
+        </div>
+
+        <p style={{ color: '#000000', fontSize: 22, lineHeight: '30px', fontWeight: 900, margin: '34px 0 30px' }}>
+          Four people respond in the comments section of an online magazine article about flying and air travel. Read the texts and then answer the questions below.
+        </p>
+
+        <article style={{ borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+          {people.map((person) => (
+            <section key={person.label} style={{ marginBottom: person.label === 'D' ? 0 : 26 }}>
+              <h3 style={{ color: '#020817', fontSize: 19, fontWeight: 900, margin: '0 0 8px' }}>{person.label}</h3>
+              <p style={{ color: '#020817', fontSize: 18, lineHeight: '29px', margin: 0 }}>{person.text}</p>
+            </section>
+          ))}
+        </article>
+
+        <article style={{ marginTop: 26, borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+          <div style={{ display: 'grid', gap: 18 }}>
+            {questions.map((question, index) => (
+              <div key={question} style={{ display: 'grid', gridTemplateColumns: '1fr 156px', alignItems: 'center', gap: 24 }}>
+                <p style={{ color: '#020817', fontSize: 17, lineHeight: '24px', fontWeight: 700, margin: 0 }}>
+                  {index + 1}. {question}
+                </p>
+                <select value={answers[index] ?? ''} onChange={(event) => onAnswer(index, event.target.value)} style={{ height: 52, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 18, outline: 'none' }}>
+                  <option value=""></option>
+                  {['A', 'B', 'C', 'D'].map((option) => (
+                    <option key={option} value={option}>{option}</option>
+                  ))}
+                </select>
+                {showAnswer && (
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <InlineAnswer>{correctAnswers[index]}</InlineAnswer>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function ReadingLong({ answers, showAnswer, timeRemaining, onAnswer }: { answers: Record<number, string>; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void }) {
+  const headings = [
+    'A global writer',
+    'Difficult language',
+    'A famous tragedy',
+    'A lasting legacy',
+    'Early success',
+    'Protecting his reputation',
+    'Remembering Dickens'
+  ];
+  const paragraphs = [
+    "The popularity of Dickens's works in our time remains a global phenomenon. Although he wrote his novels in the 19th century, his works have had a global impact. In addition, these masterpieces helped connect Renaissance drama to the multimedia revolution. Many readers find the characters and themes surprisingly modern.",
+    "Shakespeare's plays are difficult to understand and sometimes require the reader to struggle or think twice to figure out the character's thoughts. Sometimes the dialogue tends to be emotional without any connection to the context of the story. There are many passages that are a confusing mess of single words and old classical vocabulary.",
+    "Hamlet is a Renaissance tragedy written by Shakespeare. The play is very long and has plot twists that keep the reader guessing. Dickens had a special interest in the work. He told his daughter to keep an eye on Hamlet. For Dickens' novels, he sometimes created serial editions, with new chapters released monthly, keeping readers eagerly awaiting the next issue.",
+    "Dickens' legacy is undeniable. His works have been translated and used in over 100 countries and are studied by most schoolchildren in the world. It has even been said that Dickens' legacy belongs not to one era but to all times. It is easy to see that Dickens lives on in society and culture through his language and through his enduring influence on education and the media.",
+    "Dickens achieved success at a young age. His first novel, The Pickwick Papers, was published when he was only 24 and became a bestseller. His success increased throughout the 1590s. He was honored as a member of the Lord Chamber Men - those lucky enough to perform for the Queen of England on many occasions. Alongside his novels and plays, he also published many poems in his own style.",
+    "As Dickens's reputation grew, the question arose whether to preserve his legacy and make it live on. Dickens himself was always keen to make his mark and to maintain his uniqueness. He even attempted to break the dominance of the popular comedies of the time with a series of dramatic plays.",
+    "To mark the 400th anniversary of Dickens' death, there will be a number of events to help readers, and especially students, better understand his works. There will be videos detailing the content of each of his works to help people excitedly explore the pinnacle of language and the meaning his works bring to our daily lives."
+  ];
+  const correctAnswers = ['A global writer', 'Difficult language', 'A famous tragedy', 'A lasting legacy', 'Early success', 'Protecting his reputation', 'Remembering Dickens'];
+
+  return (
+    <main style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
+      <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 17, fontWeight: 800, margin: 0 }}>Reading</p>
+            <p style={{ color: '#64748b', fontSize: 16, margin: '4px 0 0' }}>7 paragraphs · 7 headings</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <button style={{ height: 46, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 17, fontWeight: 500 }}>
+              <Bookmark size={18} />
+              Bookmark
+            </button>
+            <button style={{ width: 46, height: 46, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
+              <Pause size={18} />
+            </button>
+            <div style={{ minWidth: 180, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 32, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, width: 58, borderRadius: 999, backgroundColor: '#2b075c', marginTop: 8 }} />
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 40, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '18px 20px' }}>
+          <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: 0 }}>
+            Read the passage quickly. Choose a heading for each numbered paragraph from the drop-down box.
+          </p>
+        </div>
+
+        <h2 style={{ color: '#020817', fontSize: 30, fontWeight: 900, margin: '20px 0 28px' }}>Charles Dicken</h2>
+
+        <div style={{ display: 'grid', gap: 28 }}>
+          {paragraphs.map((paragraph, index) => (
+            <article key={index} style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '24px 22px 24px 62px', position: 'relative' }}>
+              <span style={{ position: 'absolute', left: 22, top: 38, color: '#020817', fontSize: 16, fontWeight: 900 }}>{index + 1}.</span>
+              <select value={answers[index] ?? ''} onChange={(event) => onAnswer(index, event.target.value)} style={{ width: 'min(432px, 100%)', height: 48, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 20px', color: '#64748b', fontSize: 16, fontStyle: 'italic', outline: 'none' }}>
+                <option value="">Choose a heading...</option>
+                {headings.map((heading) => (
+                  <option key={heading} value={heading}>{heading}</option>
+                ))}
+              </select>
+              <p style={{ color: '#020817', fontSize: 17, lineHeight: '28px', margin: '16px 0 0' }}>{paragraph}</p>
+              {showAnswer && <InlineAnswer>{correctAnswers[index]}</InlineAnswer>}
+            </article>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function ReadingResult({ summary, onExit, onReview, onRetry }: { summary: SkillScoreSummary; onExit: () => void; onReview: () => void; onRetry: () => void }) {
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
+      <section style={{ width: 'min(864px, 100%)', margin: '0 auto' }}>
+        <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '42px 36px 36px', textAlign: 'center', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+          <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: 0 }}>Kết quả Reading</h1>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 26, maxWidth: 430, margin: '34px auto 0' }}>
+            <ResultStat value={`${summary.score}/50`} label="Điểm" tone="red" />
+            <ResultStat value={summary.cefr} label="Trình độ" tone="red" />
+            <ResultStat value={`${summary.correct}/${summary.total}`} label="Số câu đúng" tone="black" />
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 36 }}>
+            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+              <ArrowLeft size={18} />
+              Thoát
+            </button>
+            <button type="button" onClick={onReview} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#f8fafc', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
+              <Eye size={18} />
+              Xem lại từng câu →
+            </button>
+            <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+              <RotateCcw size={18} />
+              Làm lại
+            </button>
+          </div>
+        </article>
+
+        <article style={{ marginTop: 28, borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '28px', boxShadow: '0 10px 28px rgba(15,23,42,0.04)' }}>
+          <h2 style={{ color: '#111827', fontSize: 23, fontWeight: 900, margin: '0 0 18px' }}>Chi tiết bài làm</h2>
+          <div>
+            {summary.rows.map((row, index) => (
+              <div key={row.part} style={{ display: 'grid', gridTemplateColumns: '1fr 128px 84px', alignItems: 'center', gap: 18, padding: '16px 0', borderTop: index > 0 ? '1px solid #e5e7eb' : 0 }}>
+                <p style={{ color: '#111827', fontSize: 16, fontWeight: 600, margin: 0 }}>{row.part}</p>
+                <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>
+                  Số câu đúng: <span style={{ color: '#111827', fontWeight: 900 }}>{row.correct}</span>
+                </p>
+                <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>
+                  Điểm: <span style={{ color: '#d81e0c', fontWeight: 900 }}>{row.score}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function ListeningResult({ summary, onExit, onReview, onRetry }: { summary: SkillScoreSummary; onExit: () => void; onReview: () => void; onRetry: () => void }) {
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#ffffff', padding: '4px 24px 72px' }}>
+      <section style={{ width: 'min(864px, 100%)', margin: '0 auto' }}>
+        <article style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '38px 36px 36px', textAlign: 'center' }}>
+          <h1 style={{ color: '#111827', fontSize: 28, fontWeight: 900, margin: 0 }}>Kết quả Listening</h1>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 26, maxWidth: 430, margin: '34px auto 0' }}>
+            <ResultStat value={`${summary.score}/50`} label="Điểm" tone="red" />
+            <ResultStat value={summary.cefr} label="Trình độ" tone="red" />
+            <ResultStat value={`${summary.correct}/${summary.total}`} label="Số câu đúng" tone="black" />
+          </div>
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 36 }}>
+            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+              <ArrowLeft size={18} />
+              Thoát
+            </button>
+            <button type="button" onClick={onReview} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#f8fafc', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
+              <Eye size={18} />
+              Xem lại từng câu →
+            </button>
+            <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+              <RotateCcw size={18} />
+              Làm lại
+            </button>
+          </div>
+        </article>
+
+        <article style={{ marginTop: 28, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '28px' }}>
+          <h2 style={{ color: '#111827', fontSize: 23, fontWeight: 900, margin: '0 0 18px' }}>Chi tiết bài làm</h2>
+          <div>
+            {summary.rows.map((row, index) => (
+              <div key={row.part} style={{ display: 'grid', gridTemplateColumns: '1fr 128px 84px', alignItems: 'center', gap: 18, padding: '16px 0', borderTop: index > 0 ? '1px solid #e5e7eb' : 0 }}>
+                <p style={{ color: '#111827', fontSize: 16, fontWeight: 600, margin: 0 }}>{row.part}</p>
+                <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>
+                  Số câu đúng: <span style={{ color: '#111827', fontWeight: 900 }}>{row.correct}</span>
+                </p>
+                <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>
+                  Điểm: <span style={{ color: '#d81e0c', fontWeight: 900 }}>{row.score}</span>
+                </p>
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function ListeningReview({
+  matchingAnswers,
+  monologueAnswers,
+  part1Answers,
+  shortAnswers,
+  onBack
+}: {
+  matchingAnswers: Record<string, string>;
+  monologueAnswers: Record<string, string>;
+  part1Answers: Record<number, string>;
+  shortAnswers: Record<number, string>;
+  onBack: () => void;
+}) {
+  const part1CorrectAnswers = [
+    '3250 pounds',
+    '8:30',
+    'Four',
+    'A grammar book',
+    'Blue',
+    'To the museum',
+    'His laptop',
+    'Snacks',
+    'Wednesday',
+    'A taxi',
+    'Traffic',
+    'His mother',
+    'Cycling'
+  ];
+  const matchingCorrectAnswers: Record<string, string> = {
+    'Speaker A ...': 'wants to learn a new skill',
+    'Speaker B ...': 'enjoys meeting new people',
+    'Speaker C ...': 'needs more time to practise',
+    'Speaker D ...': 'has already done this activity before'
+  };
+  const shortCorrectAnswers = ['Woman', 'Man', 'Both', 'Woman'];
+  const monologueCorrectAnswers: Record<string, string> = {
+    '0-0': 'It is different from his earlier works',
+    '0-1': 'The writer should go back to his original genre',
+    '1-0': 'To make a good impression.',
+    '1-1': 'Our definition of it is changing.'
+  };
+  const groups = [
+    {
+      title: 'Part 1 - Word Recognition',
+      rows: listeningPart1Questions.map((question, index) => ({
+        question: question.prompt,
+        user: part1Answers[index] || 'Chưa chọn',
+        answer: part1CorrectAnswers[index]
+      }))
+    },
+    {
+      title: 'Part 2 - Matching Information',
+      rows: ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'].map((speaker) => ({
+        question: speaker,
+        user: matchingAnswers[speaker] || 'Chưa chọn',
+        answer: matchingCorrectAnswers[speaker]
+      }))
+    },
+    {
+      title: 'Part 3 - Short Conversations',
+      rows: listeningShortStatements.map((statement, index) => ({
+        question: statement,
+        user: shortAnswers[index] || 'Chưa chọn',
+        answer: shortCorrectAnswers[index]
+      }))
+    },
+    {
+      title: 'Part 4 - Monologues',
+      rows: listeningMonologues.flatMap((recording, recordingIndex) =>
+        recording.questions.map((question, questionIndex) => {
+          const key = `${recordingIndex}-${questionIndex}`;
+          return {
+            question: `Recording ${recordingIndex + 1}: ${question.prompt}`,
+            user: monologueAnswers[key] || 'Chưa chọn',
+            answer: monologueCorrectAnswers[key]
+          };
+        })
+      )
+    }
+  ];
+
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
+      <section style={{ width: 'min(980px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
+          <div>
+            <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: 0 }}>Xem lại từng câu Listening</h1>
+            <p style={{ color: '#64748b', fontSize: 16, margin: '8px 0 0' }}>Đối chiếu đáp án bạn đã chọn với đáp án đúng.</p>
+          </div>
+          <button type="button" onClick={onBack} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
+            <ArrowLeft size={18} />
+            Quay lại kết quả
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gap: 18 }}>
+          {groups.map((group) => (
+            <article key={group.title} style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 24, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+              <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{group.title}</h2>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {group.rows.map((row, index) => {
+                  const isCorrect = row.user === row.answer;
+                  return (
+                    <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1fr 180px 180px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
+                      <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 700, margin: 0 }}>{index + 1}. {row.question}</p>
+                      <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+                        Bạn chọn: <span style={{ color: isCorrect ? '#047857' : '#d81e0c', fontWeight: 900 }}>{row.user}</span>
+                      </p>
+                      <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+                        Đáp án: <span style={{ color: '#047857', fontWeight: 900 }}>{row.answer}</span>
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function GrammarResult({ summary, onExit, onRetry }: { summary: SkillScoreSummary; onExit: () => void; onRetry: () => void }) {
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '42px 24px 84px' }}>
+      <section style={{ width: 'min(860px, 100%)', margin: '0 auto' }}>
+        <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '38px 34px', textAlign: 'center', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+          <CheckCircle2 size={68} color="#16a34a" style={{ margin: '0 auto' }} />
+          <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '20px 0 0' }}>Kết quả Grammar & Vocabulary</h1>
+          <p style={{ color: '#64748b', fontSize: 16, lineHeight: '26px', margin: '10px auto 0', maxWidth: 650 }}>
+            Phần này tính theo số câu đúng trên thang 50 và được báo cáo riêng, không cộng vào tổng điểm 4 kỹ năng Aptis.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 26, maxWidth: 480, margin: '32px auto 0' }}>
+            <ResultStat value={`${summary.score}/50`} label="Điểm" tone="red" />
+            <ResultStat value={summary.cefr} label="Mức tham khảo" tone="red" />
+            <ResultStat value={`${summary.correct}/${summary.total}`} label="Số câu đúng" tone="black" />
+          </div>
+          <div style={{ marginTop: 30, display: 'grid', gap: 12, textAlign: 'left' }}>
+            {summary.rows.map((row) => (
+              <div key={row.part} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px', alignItems: 'center', gap: 12, borderRadius: 14, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: '16px 18px' }}>
+                <p style={{ color: '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>{row.part}</p>
+                <p style={{ color: '#64748b', fontSize: 15, margin: 0 }}>Đúng: <b>{row.correct}</b></p>
+                <p style={{ color: '#d81e0c', fontSize: 15, margin: 0 }}>Điểm: <b>{row.score}</b></p>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32 }}>
+            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+              <ArrowLeft size={18} />
+              Thoát
+            </button>
+            <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+              <RotateCcw size={18} />
+              Làm lại
+            </button>
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function FullResult({
+  grammar,
+  listening,
+  reading,
+  speaking,
+  totalScore,
+  writing,
+  onExit,
+  onRetry
+}: {
+  grammar: SkillScoreSummary;
+  listening: SkillScoreSummary;
+  reading: SkillScoreSummary;
+  speaking: AiSpeakingScore | null;
+  totalScore: number;
+  writing: AiWritingScore | null;
+  onExit: () => void;
+  onRetry: () => void;
+}) {
+  const skillRows = [
+    { skill: 'Reading', score: reading.score, cefr: reading.cefr, note: `${reading.correct}/${reading.total} câu đúng` },
+    { skill: 'Listening', score: listening.score, cefr: listening.cefr, note: `${listening.correct}/${listening.total} câu đúng` },
+    { skill: 'Speaking', score: speaking?.overallScore ?? 0, cefr: speaking?.cefrLevel ?? 'A1', note: speaking ? 'Chấm bằng AI' : 'Chưa có kết quả AI' },
+    { skill: 'Writing', score: writing?.overallScore ?? 0, cefr: writing?.cefrLevel ?? 'A1', note: writing ? 'Chấm bằng AI' : 'Chưa có kết quả AI' }
+  ];
+  const overallCefr = cefrFromAptisTotal(totalScore);
+
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '42px 24px 84px' }}>
+      <section style={{ width: 'min(980px, 100%)', margin: '0 auto' }}>
+        <article style={{ borderRadius: 18, border: '1px solid #bbf7d0', backgroundColor: '#ffffff', padding: '38px 34px', boxShadow: '0 12px 30px rgba(15,23,42,0.08)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <CheckCircle2 size={70} color="#16a34a" style={{ margin: '0 auto' }} />
+            <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '20px 0 0' }}>Kết quả Full Aptis Mock Test</h1>
+            <p style={{ color: '#64748b', fontSize: 16, lineHeight: '26px', margin: '10px auto 0', maxWidth: 700 }}>
+              Tổng điểm Aptis tính 4 kỹ năng Reading, Listening, Speaking và Writing. Grammar & Vocabulary được báo cáo riêng theo thang 50.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 18, marginTop: 30 }}>
+            <FullResultStat label="Tổng điểm 4 kỹ năng" value={`${totalScore}/200`} />
+            <FullResultStat label="CEFR tổng thể" value={overallCefr} />
+            <FullResultStat label="Grammar & Vocabulary" value={`${grammar.score}/50`} />
+          </div>
+
+          <div style={{ marginTop: 28, display: 'grid', gap: 12 }}>
+            {skillRows.map((row) => (
+              <div key={row.skill} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 220px', alignItems: 'center', gap: 14, borderRadius: 14, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: '16px 18px' }}>
+                <p style={{ color: '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>{row.skill}</p>
+                <p style={{ color: '#2b075c', fontSize: 18, fontWeight: 900, margin: 0 }}>{row.score}/50</p>
+                <p style={{ color: '#047857', fontSize: 16, fontWeight: 900, margin: 0 }}>{row.cefr}</p>
+                <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{row.note}</p>
+              </div>
+            ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 220px', alignItems: 'center', gap: 14, borderRadius: 14, border: '1px solid #fcd34d', backgroundColor: '#fffbeb', padding: '16px 18px' }}>
+              <p style={{ color: '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>Grammar & Vocabulary</p>
+              <p style={{ color: '#92400e', fontSize: 18, fontWeight: 900, margin: 0 }}>{grammar.score}/50</p>
+              <p style={{ color: '#92400e', fontSize: 16, fontWeight: 900, margin: 0 }}>{grammar.cefr}</p>
+              <p style={{ color: '#92400e', fontSize: 14, margin: 0 }}>Không cộng vào tổng 200</p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32 }}>
+            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
+              <ArrowLeft size={18} />
+              Thoát
+            </button>
+            <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#2b075c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+              <RotateCcw size={18} />
+              Làm lại Full Test
+            </button>
+          </div>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function FullResultStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: 18, textAlign: 'center' }}>
+      <p style={{ color: '#111827', fontSize: 28, fontWeight: 900, margin: 0 }}>{value}</p>
+      <p style={{ color: '#64748b', fontSize: 14, margin: '8px 0 0' }}>{label}</p>
+    </div>
+  );
+}
+
+function ResultStat({ value, label, tone }: { value: string; label: string; tone: 'red' | 'black' }) {
+  return (
+    <div>
+      <p style={{ color: tone === 'red' ? '#d81e0c' : '#000000', fontSize: 42, lineHeight: 1, fontWeight: 900, margin: 0 }}>{value}</p>
+      <p style={{ color: '#737373', fontSize: 16, margin: '10px 0 0' }}>{label}</p>
+    </div>
+  );
+}
+
+function ReadingReview({ onBack }: { onBack: () => void }) {
+  const reviewGroups = [
+    {
+      title: 'Part 1 - Gap Fill',
+      rows: [
+        { question: "I didn't ___ it.", user: 'Chưa chọn', answer: 'see' },
+        { question: 'I buy some food at the ___.', user: 'Chưa chọn', answer: 'store' },
+        { question: 'I ate ___.', user: 'Chưa chọn', answer: 'lunch' },
+        { question: 'I ___ a program on TV.', user: 'Chưa chọn', answer: 'watched' }
+      ]
+    },
+    {
+      title: 'Part 2 + 3 - Text Cohesion',
+      rows: [
+        { question: 'Tom Harper - sentence order', user: 'Chưa sắp xếp đủ', answer: '1-5 theo đáp án đúng' },
+        { question: 'A scientist - sentence order', user: 'Chưa sắp xếp đủ', answer: '1-5 theo đáp án đúng' }
+      ]
+    },
+    {
+      title: 'Part 4 - Opinion Matching',
+      rows: [
+        { question: 'try to protect the environment', user: 'Chưa chọn', answer: 'B' },
+        { question: 'Sometimes cannot avoid flying because of filming work', user: 'Chưa chọn', answer: 'D' },
+        { question: 'Find flying tiring and try to avoid it', user: 'Chưa chọn', answer: 'A' },
+        { question: 'suggest making flights more expensive', user: 'Chưa chọn', answer: 'C' },
+        { question: 'want to work in other countries', user: 'Chưa chọn', answer: 'C' },
+        { question: 'like relaxing while they travel', user: 'Chưa chọn', answer: 'A' },
+        { question: 'visit relatives regularly', user: 'Chưa chọn', answer: 'B' }
+      ]
+    },
+    {
+      title: 'Part 5 - Long Reading',
+      rows: Array.from({ length: 7 }, (_, index) => ({
+        question: `Paragraph ${index + 1}`,
+        user: 'Chưa chọn',
+        answer: ['A global writer', 'Difficult language', 'A famous tragedy', 'A lasting legacy', 'Early success', 'Protecting his reputation', 'Remembering Dickens'][index]
+      }))
+    }
+  ];
+
+  return (
+    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
+      <section style={{ width: 'min(980px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
+          <div>
+            <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: 0 }}>Xem lại từng câu Reading</h1>
+            <p style={{ color: '#64748b', fontSize: 16, margin: '8px 0 0' }}>Đối chiếu câu đã làm với đáp án đúng.</p>
+          </div>
+          <button type="button" onClick={onBack} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
+            <ArrowLeft size={18} />
+            Quay lại kết quả
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gap: 18 }}>
+          {reviewGroups.map((group) => (
+            <article key={group.title} style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 24, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+              <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{group.title}</h2>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {group.rows.map((row, index) => (
+                  <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1fr 170px 170px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
+                    <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 700, margin: 0 }}>{index + 1}. {row.question}</p>
+                    <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+                      Bạn chọn: <span style={{ color: '#d81e0c', fontWeight: 900 }}>{row.user}</span>
+                    </p>
+                    <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+                      Đáp án: <span style={{ color: '#047857', fontWeight: 900 }}>{row.answer}</span>
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function GapSelect({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
+  return (
+    <select
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      style={{
+        height: 38,
+        minWidth: 150,
+        borderRadius: 6,
+        border: '1px solid #dce3ee',
+        backgroundColor: '#ffffff',
+        padding: '0 18px',
+        margin: '0 8px',
+        color: '#475569',
+        fontSize: 18,
+        outline: 'none'
+      }}
+    >
+      <option value=""></option>
+      {options.map((option) => (
+        <option key={option} value={option}>{option}</option>
+      ))}
+    </select>
+  );
+}
+
+function ReadingGapSelect({ options, value, onChange }: { options: string[]; value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <span style={{ position: 'relative', display: 'inline-block', margin: '0 8px', verticalAlign: 'middle' }}>
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        style={{
+          height: 38,
+          minWidth: 150,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 12,
+          borderRadius: 6,
+          border: '1px solid #dce3ee',
+          backgroundColor: '#ffffff',
+          padding: '0 14px 0 18px',
+          color: value ? '#020817' : '#475569',
+          fontSize: 18,
+          lineHeight: '38px',
+          cursor: 'pointer'
+        }}
+      >
+        <span>{value || '-'}</span>
+        <span style={{ color: '#64748b', fontSize: 16, lineHeight: 1 }}>v</span>
+      </button>
+      {open && (
+        <span
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 42,
+            zIndex: 120,
+            width: '100%',
+            overflow: 'hidden',
+            borderRadius: 8,
+            border: '1px solid #dce3ee',
+            backgroundColor: '#ffffff',
+            boxShadow: '0 12px 24px rgba(15,23,42,0.16)'
+          }}
+        >
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              style={{
+                width: '100%',
+                height: 38,
+                display: 'block',
+                border: 0,
+                borderTop: option === options[0] ? 0 : '1px solid #eef2f7',
+                backgroundColor: option === value ? '#f3efff' : '#ffffff',
+                padding: '0 16px',
+                color: '#020817',
+                fontSize: 16,
+                textAlign: 'left',
+                cursor: 'pointer'
+              }}
+            >
+              {option}
+            </button>
+          ))}
+        </span>
+      )}
+    </span>
+  );
+}
+
+function AnswerList({ items }: { items: Array<string | number> }) {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {items.map((item, index) => (
+        <p key={`${item}-${index}`} style={{ margin: 0 }}>
+          <b>{index + 1}.</b> {item || 'Chưa có đáp án mẫu'}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function AnswerPairs({ items }: { items: Array<{ label: string; answer: string }> }) {
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {items.map((item) => (
+        <p key={item.label} style={{ margin: 0 }}>
+          <b>{item.label}:</b> {item.answer || 'Chưa có đáp án mẫu'}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function InlineAnswer({ children }: { children: ReactNode }) {
+  return (
+    <div style={{ marginTop: 10, borderRadius: 10, border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', padding: '10px 12px', color: '#1e3a8a', fontSize: 14, lineHeight: '22px' }}>
+      <b>Đáp án: </b>{children}
+    </div>
+  );
+}
+
+function GrammarAnswerContent({ question }: { question: GrammarQuestionItem }) {
+  if (question.answer) return <AnswerList items={[question.answer]} />;
+
+  const rows = question.matchRows ?? question.definitionRows ?? question.sentenceRows ?? question.collocationRows ?? [];
+  if (rows.length) {
+    return <AnswerPairs items={rows.map((row) => {
+      const labeledRow = row as { word?: string; definition?: string; before?: string; answer: string };
+      return { label: labeledRow.word ?? labeledRow.definition ?? labeledRow.before ?? 'Đáp án', answer: labeledRow.answer };
+    })} />;
+  }
+
+  return <>Chưa có đáp án mẫu cho câu này.</>;
+}
+
+function WritingAnswerContent({ part, partIndex }: { part: typeof writingParts[number]; partIndex: number }) {
+  const sampleAnswers = (part as { sampleAnswers?: string[] }).sampleAnswers ?? [];
+  if (sampleAnswers.length) return <AnswerList items={sampleAnswers} />;
+
+  if (partIndex === 0) {
+    return <AnswerList items={part.questions.map(() => 'Chưa có đáp án mẫu')} />;
+  }
+
+  return <>Chưa có đáp án mẫu cho phần Writing này.</>;
+}
+
+function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = false, nextLabel = 'Next', onPrevious, onNext, onToggleAnswer }: { answerOpen?: boolean; showAnswer?: boolean; nextDisabled?: boolean; nextLabel?: string; onPrevious: () => void; onNext: () => void; onToggleAnswer?: () => void }) {
+  return (
+    <footer
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 30,
+        borderTop: '3px solid #2b075c',
+        backgroundColor: '#ffffff',
+        padding: '12px 20px'
+      }}
+    >
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
+          alignItems: 'center',
+          gap: 16
+        }}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 12 }}>
+          {showAnswer && (
+            <button type="button" onClick={onToggleAnswer} style={sideActionStyle}>
+              <Eye size={17} />
+              {answerOpen ? 'Ẩn đáp án' : 'Hiện đáp án'}
+            </button>
+          )}
+          <button type="button" style={sideActionStyle}>
+            <Flag size={17} />
+            Báo lỗi
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <UtilityIcon icon={<List size={21} />} />
+          <UtilityIcon icon={<Info size={21} />} />
+          <UtilityIcon icon={<Move size={20} />} />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
+          <UtilityIcon icon={<LogOut size={21} />} />
+          <button
+            type="button"
+            onClick={onPrevious}
+            style={{
+              height: 50,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 12,
+              borderRadius: 12,
+              border: '1px solid #020817',
+              backgroundColor: '#ffffff',
+              padding: '0 24px',
+              color: '#020817',
+              fontSize: 18,
+              fontWeight: 500
+            }}
+          >
+            <ArrowLeft size={22} />
+            Previous
+          </button>
+          <button
+            type="button"
+            onClick={onNext}
+            disabled={nextDisabled}
+            style={{
+              height: 50,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 12,
+              borderRadius: 12,
+              border: 0,
+              backgroundColor: nextDisabled ? '#cbd5e1' : '#2b075c',
+              padding: '0 32px',
+              color: '#ffffff',
+              fontSize: 18,
+              fontWeight: 800,
+              cursor: nextDisabled ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {nextLabel}
+            <ArrowRight size={22} />
+          </button>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+function SpeakingStart({ test, onStart }: { test: typeof speakingMockTests[number]; onStart: () => void }) {
+  return (
+    <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[100px]">
+      <section className="max-w-[560px]">
+        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-slate-950">{test.title}</h2>
+        <p className="mt-2 text-lg text-slate-500">Speaking - Full Practice</p>
+
+        <div className="mt-8 grid max-w-[360px] grid-cols-2 gap-20">
+          <Meta label="Number of Questions" value={String(test.questions)} />
+          <Meta label="Time Allowed" value={`${test.minutes} min`} />
+        </div>
+
+        <h3 className="mt-8 text-xl font-extrabold text-slate-950">Assessment Description</h3>
+
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
+          <p className="text-xl font-extrabold text-slate-950">Kiểm tra Microphone</p>
+          <button type="button" className="mt-5 inline-flex h-12 items-center gap-3 rounded-xl border border-[#f92918] bg-white px-5 text-lg font-medium text-[#e41d10] hover:bg-red-50">
+            <Mic size={22} />
+            Kiểm tra microphone
+          </button>
+        </div>
+
+        <button type="button" onClick={onStart} className="mt-8 h-[50px] rounded-xl px-8 text-lg font-semibold text-white hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
+          Start Assessment
+        </button>
+      </section>
+    </main>
+  );
+}
+
+function SpeakingInstructions() {
+  return (
+    <main
+      style={{
+        minHeight: '100vh',
+        backgroundColor: '#f1f1f1',
+        padding: '60px 24px 108px'
+      }}
+    >
+      <section
+        style={{
+          width: 'min(960px, 100%)',
+          margin: '0 auto',
+          backgroundColor: '#ffffff',
+          borderRadius: 12,
+          padding: '60px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
+        }}
+      >
+        <h2 style={{ color: '#020817', fontSize: 26, fontWeight: 800, lineHeight: '32px', margin: 0 }}>
+          Aptis General Speaking Test Instructions
+        </h2>
+        <h3 style={{ color: '#020817', fontSize: 20, fontWeight: 800, margin: '28px 0 0' }}>Speaking</h3>
+        <div style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', marginTop: 20 }}>
+          <p style={{ margin: '0 0 20px' }}>You will answer some questions about yourself and then do three short speaking tasks.</p>
+          <p style={{ margin: '0 0 20px' }}>Listen to the instructions and speak clearly into your microphone when you hear the signal.</p>
+          <p style={{ margin: '0 0 20px' }}>Each part of the test will appear automatically.</p>
+          <p style={{ margin: '0 0 20px' }}>The test will take about 12 minutes.</p>
+          <p style={{ margin: 0 }}>When you click on the 'Next' button, the test will begin.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function SpeakingPrompt({ part }: { part: 1 | 2 | 3 | 4 }) {
+  const promptText = part === 1
+    ? 'Part One - In this part, I am going to ask you three short questions about yourself and your interests. You will have 30 seconds to reply to each question.'
+    : part === 2
+      ? "Part Two - In this part, I'm going to ask you to describe a picture. Then I will ask you two questions about it. You will have 45 seconds for each response."
+      : part === 3
+        ? "Part Three - In this part, I'm going to ask you to compare two pictures, and I will then ask you two questions about them. You will have 45 seconds for each response."
+        : 'Part Four - In this part, you will discuss a topic. You will have 60 seconds to prepare and 120 seconds to speak.';
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 74px)',
+        backgroundColor: '#f1f1f1',
+        padding: '60px 24px 108px'
+      }}
+    >
+      <section
+        style={{
+          width: 'min(960px, 100%)',
+          margin: '0 auto',
+          backgroundColor: '#ffffff',
+          borderRadius: 12,
+          padding: '60px',
+          boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
+        }}
+      >
+        <h2 style={{ color: '#020817', fontSize: 26, fontWeight: 800, lineHeight: '32px', margin: 0 }}>Prompt</h2>
+        <div style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', marginTop: 32, maxWidth: 760 }}>
+          <p style={{ margin: '0 0 32px' }}>{promptText}</p>
+          <p style={{ margin: 0 }}>Begin speaking when you hear this sound.</p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function SpeakingQuestion({ question, index, total, seconds, isReading, microphoneLevel, onFinish }: { question: string; index: number; total: number; seconds: number; isReading: boolean; microphoneLevel: number; onFinish: () => void }) {
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 74px)',
+        backgroundColor: '#f1f1f1',
+        padding: '40px 24px 112px',
+        position: 'relative'
+      }}
+    >
+      <section
+        style={{
+          width: 'min(1400px, 100%)',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 276px',
+          gap: 30,
+          alignItems: 'start'
+        }}
+      >
+        <div
+          style={{
+            minHeight: 500,
+            backgroundColor: '#ffffff',
+            borderRadius: 12,
+            padding: '40px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
+          }}
+        >
+          <p style={{ color: '#7a8393', fontSize: 16, fontWeight: 500, margin: 0 }}>Speaking</p>
+          <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Question {index + 1} of {total}</h2>
+          <p style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', margin: '34px 0 0' }}>{question}</p>
+          <AutoScoredRecordingNote />
+        </div>
+
+        <aside>
+          <div
+            style={{
+              minHeight: 324,
+              backgroundColor: '#ffffff',
+              borderRadius: 18,
+              padding: '32px 24px',
+              textAlign: 'center',
+              boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)'
+            }}
+          >
+            <p style={{ color: isReading || seconds === 0 ? '#2b075c' : '#ef1d1d', fontSize: 18, fontWeight: 800, margin: 0 }}>
+              {isReading ? 'Reading...' : seconds === 0 ? 'Finished' : 'Recording...'}
+            </p>
+            <div
+              style={{
+                width: 166,
+                height: 166,
+                borderRadius: '50%',
+                border: '5px solid #2b075c',
+                margin: '28px auto 0',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#2b075c'
+              }}
+            >
+              <div>
+                <Mic size={24} color="#ef1d1d" style={{ margin: '0 auto 8px' }} />
+                <p style={{ color: '#2b075c', fontSize: 42, fontWeight: 900, lineHeight: 1, margin: 0 }}>{isReading ? '...' : `${seconds}s`}</p>
+              </div>
+            </div>
+            <RecordingWaveform level={isReading || seconds === 0 ? 0 : microphoneLevel} />
+          </div>
+          <button
+            type="button"
+            onClick={onFinish}
+            disabled={isReading}
+            style={{
+              width: '100%',
+              height: 50,
+              marginTop: 20,
+              border: 0,
+              borderRadius: 14,
+              backgroundColor: isReading ? '#dedbe5' : '#2b075c',
+              color: '#ffffff',
+              fontSize: 18,
+              fontWeight: 800,
+              cursor: isReading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Finish Recording
+          </button>
+        </aside>
+      </section>
+
+      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" style={sideActionStyle}>
+          <Eye size={17} />
+          Hiện đáp án
+        </button>
+        <button type="button" style={sideActionStyle}>
+          <Flag size={17} />
+          Báo lỗi
+        </button>
+      </div>
+    </main>
+  );
+}
+
+function Part2Question({ question, index, total, seconds, isReading, microphoneLevel, onFinish }: { question: string; index: number; total: number; seconds: number; isReading: boolean; microphoneLevel: number; onFinish: () => void }) {
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 74px)',
+        backgroundColor: '#f1f1f1',
+        padding: '40px 24px 112px',
+        position: 'relative'
+      }}
+    >
+      <section
+        style={{
+          width: 'min(1400px, 100%)',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 276px',
+          gap: 30,
+          alignItems: 'start'
+        }}
+      >
+        <div
+          style={{
+            minHeight: 580,
+            backgroundColor: '#ffffff',
+            borderRadius: 12,
+            padding: '40px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
+          }}
+        >
+          <p style={{ color: '#7a8393', fontSize: 16, fontWeight: 500, margin: 0 }}>Speaking</p>
+          <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Question {index + 1} of {total}</h2>
+          <img
+            src="/images/speaking/part2/1.png"
+            alt="People having a meal together"
+            style={{
+              display: 'block',
+              width: 'min(560px, 100%)',
+              height: 374,
+              objectFit: 'cover',
+              borderRadius: 12,
+              marginTop: 30
+            }}
+          />
+          <p style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', margin: '22px 0 0' }}>{question}</p>
+          <AutoScoredRecordingNote />
+        </div>
+
+        <aside>
+          <div
+            style={{
+              minHeight: 324,
+              backgroundColor: '#ffffff',
+              borderRadius: 18,
+              padding: '32px 24px',
+              textAlign: 'center',
+              boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)'
+            }}
+          >
+            <p style={{ color: isReading || seconds === 0 ? '#2b075c' : '#ef1d1d', fontSize: 18, fontWeight: 800, margin: 0 }}>
+              {isReading ? 'Reading...' : seconds === 0 ? 'Finished' : 'Recording...'}
+            </p>
+            <div
+              style={{
+                width: 166,
+                height: 166,
+                borderRadius: '50%',
+                border: '5px solid #2b075c',
+                margin: '28px auto 0',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#2b075c'
+              }}
+            >
+              <div>
+                <Mic size={24} color="#ef1d1d" style={{ margin: '0 auto 8px' }} />
+                <p style={{ color: '#2b075c', fontSize: 42, fontWeight: 900, lineHeight: 1, margin: 0 }}>{isReading ? '...' : `${seconds}s`}</p>
+              </div>
+            </div>
+            <RecordingWaveform level={isReading || seconds === 0 ? 0 : microphoneLevel} />
+          </div>
+          <button
+            type="button"
+            onClick={onFinish}
+            disabled={isReading}
+            style={{
+              width: '100%',
+              height: 50,
+              marginTop: 20,
+              border: 0,
+              borderRadius: 14,
+              backgroundColor: isReading ? '#dedbe5' : '#2b075c',
+              color: '#ffffff',
+              fontSize: 18,
+              fontWeight: 800,
+              cursor: isReading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Finish Recording
+          </button>
+        </aside>
+      </section>
+
+      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" style={sideActionStyle}>
+          <FileText size={17} />
+          Nháp
+        </button>
+        <button type="button" style={sideActionStyle}>
+          <Eye size={17} />
+          Hiện đáp án
+        </button>
+        <button type="button" style={sideActionStyle}>
+          <Flag size={17} />
+          Báo lỗi
+        </button>
+      </div>
+    </main>
+  );
+}
+
+function Part3Question({ question, index, total, seconds, isReading, microphoneLevel, onFinish }: { question: string; index: number; total: number; seconds: number; isReading: boolean; microphoneLevel: number; onFinish: () => void }) {
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 74px)',
+        backgroundColor: '#f1f1f1',
+        padding: '40px 24px 112px',
+        position: 'relative'
+      }}
+    >
+      <section
+        style={{
+          width: 'min(1400px, 100%)',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 276px',
+          gap: 30,
+          alignItems: 'start'
+        }}
+      >
+        <div
+          style={{
+            minHeight: 500,
+            backgroundColor: '#ffffff',
+            borderRadius: 12,
+            padding: '40px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
+          }}
+        >
+          <p style={{ color: '#7a8393', fontSize: 16, fontWeight: 500, margin: 0 }}>Speaking</p>
+          <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Question {index + 1} of {total}</h2>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+              gap: 20,
+              marginTop: 30,
+              width: 'min(1016px, 100%)'
+            }}
+          >
+            <img
+              src="/images/speaking/part3/de01_1.png"
+              alt="People travelling by car"
+              style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
+            />
+            <img
+              src="/images/speaking/part3/de01_2.png"
+              alt="People travelling by train"
+              style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
+            />
+          </div>
+          <p style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', margin: '22px 0 0' }}>{question}</p>
+          <AutoScoredRecordingNote />
+        </div>
+
+        <aside>
+          <div
+            style={{
+              minHeight: 324,
+              backgroundColor: '#ffffff',
+              borderRadius: 18,
+              padding: '32px 24px',
+              textAlign: 'center',
+              boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)'
+            }}
+          >
+            <p style={{ color: isReading || seconds === 0 ? '#2b075c' : '#ef1d1d', fontSize: 18, fontWeight: 800, margin: 0 }}>
+              {isReading ? 'Reading...' : seconds === 0 ? 'Finished' : 'Recording...'}
+            </p>
+            <div
+              style={{
+                width: 166,
+                height: 166,
+                borderRadius: '50%',
+                border: '5px solid #2b075c',
+                margin: '28px auto 0',
+                display: 'grid',
+                placeItems: 'center',
+                color: '#2b075c'
+              }}
+            >
+              <div>
+                <Mic size={24} color="#ef1d1d" style={{ margin: '0 auto 8px' }} />
+                <p style={{ color: '#2b075c', fontSize: 42, fontWeight: 900, lineHeight: 1, margin: 0 }}>{isReading ? '...' : `${seconds}s`}</p>
+              </div>
+            </div>
+            <RecordingWaveform level={isReading || seconds === 0 ? 0 : microphoneLevel} />
+          </div>
+          <button
+            type="button"
+            onClick={onFinish}
+            disabled={isReading}
+            style={{
+              width: '100%',
+              height: 50,
+              marginTop: 20,
+              border: 0,
+              borderRadius: 14,
+              backgroundColor: isReading ? '#dedbe5' : '#2b075c',
+              color: '#ffffff',
+              fontSize: 18,
+              fontWeight: 800,
+              cursor: isReading ? 'not-allowed' : 'pointer'
+            }}
+          >
+            Finish Recording
+          </button>
+        </aside>
+      </section>
+
+      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" style={sideActionStyle}>
+          <FileText size={17} />
+          Nháp
+        </button>
+        <button type="button" style={sideActionStyle}>
+          <Eye size={17} />
+          Hiện đáp án
+        </button>
+        <button type="button" style={sideActionStyle}>
+          <Flag size={17} />
+          Báo lỗi
+        </button>
+      </div>
+    </main>
+  );
+}
+
+function Part4Question({ phase, seconds, microphoneLevel, onFinish }: { phase: Part4Phase; seconds: number; microphoneLevel: number; onFinish: () => void }) {
+  const isPreparing = phase === 'prepare';
+
+  return (
+    <main
+      style={{
+        minHeight: 'calc(100vh - 74px)',
+        backgroundColor: '#f1f1f1',
+        padding: '40px 24px 112px',
+        position: 'relative'
+      }}
+    >
+      <section
+        style={{
+          width: 'min(1400px, 100%)',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 276px',
+          gap: 30,
+          alignItems: 'start'
+        }}
+      >
+        <div
+          style={{
+            minHeight: 650,
+            backgroundColor: '#ffffff',
+            borderRadius: 12,
+            padding: '40px',
+            boxShadow: '0 2px 8px rgba(15, 23, 42, 0.06)'
+          }}
+        >
+          <p style={{ color: '#7a8393', fontSize: 16, fontWeight: 500, margin: 0 }}>Speaking</p>
+          <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Part 4 of 4</h2>
+
+          <div
+            style={{
+              marginTop: 32,
+              width: 'min(1016px, 100%)',
+              borderRadius: 14,
+              backgroundColor: '#f8fafc',
+              padding: '26px 26px 24px'
+            }}
+          >
+            <h3 style={{ color: '#020817', fontSize: 22, fontWeight: 900, margin: 0 }}>Topic: {part4Topic.title}</h3>
+            <img
+              src={part4Topic.image}
+              alt="Receiving a gift"
+              style={{
+                display: 'block',
+                width: 'min(560px, 100%)',
+                height: 280,
+                objectFit: 'cover',
+                borderRadius: 12,
+                marginTop: 20
+              }}
+            />
+            <div style={{ marginTop: 20, color: '#26324a', fontSize: 18, lineHeight: '32px' }}>
+              {part4Topic.questions.map((question) => (
+                <p key={question} style={{ margin: 0 }}>&middot; {question}</p>
+              ))}
+            </div>
+            <p style={{ color: '#020817', fontSize: 19, lineHeight: '28px', fontWeight: 900, margin: '18px 0 0' }}>
+              {isPreparing
+                ? 'You now have one minute to think about your answers. You can make notes if you wish.'
+                : 'You now have two minutes to speak.'}
+            </p>
+            {!isPreparing && <AutoScoredRecordingNote />}
+          </div>
+        </div>
+
+        <aside>
+          {isPreparing ? (
+            <div
+              style={{
+                minHeight: 324,
+                backgroundColor: '#ffffff',
+                borderRadius: 18,
+                padding: '72px 24px 32px',
+                textAlign: 'center',
+                boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)'
+              }}
+            >
+              <div
+                style={{
+                  width: 80,
+                  height: 80,
+                  borderRadius: '50%',
+                  margin: '0 auto',
+                  display: 'grid',
+                  placeItems: 'center',
+                  backgroundColor: '#f0eef5',
+                  color: '#2b075c'
+                }}
+              >
+                <Volume2 size={34} />
+              </div>
+              <h3 style={{ color: '#2b075c', fontSize: 18, fontWeight: 900, margin: '24px 0 0' }}>Instructions...</h3>
+              <p style={{ color: '#7a8393', fontSize: 16, lineHeight: '24px', margin: '12px auto 0', maxWidth: 190 }}>
+                Chuẩn bị còn {seconds}s
+              </p>
+            </div>
+          ) : (
+            <>
+              <div
+                style={{
+                  minHeight: 324,
+                  backgroundColor: '#ffffff',
+                  borderRadius: 18,
+                  padding: '32px 24px',
+                  textAlign: 'center',
+                  boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)'
+                }}
+              >
+                <p style={{ color: seconds === 0 ? '#2b075c' : '#ef1d1d', fontSize: 18, fontWeight: 800, margin: 0 }}>
+                  {seconds === 0 ? 'Finished' : 'Recording...'}
+                </p>
+                <div
+                  style={{
+                    width: 166,
+                    height: 166,
+                    borderRadius: '50%',
+                    border: '5px solid #2b075c',
+                    margin: '28px auto 0',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: '#2b075c'
+                  }}
+                >
+                  <div>
+                    <Mic size={24} color="#ef1d1d" style={{ margin: '0 auto 8px' }} />
+                    <p style={{ color: '#2b075c', fontSize: 42, fontWeight: 900, lineHeight: 1, margin: 0 }}>{seconds}s</p>
+                  </div>
+                </div>
+                <RecordingWaveform level={seconds === 0 ? 0 : microphoneLevel} />
+              </div>
+              <button
+                type="button"
+                onClick={onFinish}
+                style={{
+                  width: '100%',
+                  height: 50,
+                  marginTop: 20,
+                  border: 0,
+                  borderRadius: 14,
+                  backgroundColor: '#2b075c',
+                  color: '#ffffff',
+                  fontSize: 18,
+                  fontWeight: 800,
+                  cursor: 'pointer'
+                }}
+              >
+                Finish Recording
+              </button>
+            </>
+          )}
+        </aside>
+      </section>
+
+      <div style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button type="button" style={sideActionStyle}>
+          <FileText size={17} />
+          Nháp
+        </button>
+        <button type="button" style={sideActionStyle}>
+          <Eye size={17} />
+          Hiện đáp án
+        </button>
+        <button type="button" style={sideActionStyle}>
+          <Flag size={17} />
+          Báo lỗi
+        </button>
+      </div>
+    </main>
+  );
+}
+
+const sideActionStyle = {
+  height: 38,
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 8,
+  borderRadius: 999,
+  border: '1px solid #0f477e',
+  backgroundColor: '#ffffff',
+  color: '#0f477e',
+  padding: '0 16px',
+  fontSize: 15,
+  fontWeight: 700,
+  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.12)'
+} as const;
+
+function AutoScoredRecordingNote() {
+  return (
+    <div style={{ marginTop: 24, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: '14px 16px', color: '#64748b', fontSize: 15, lineHeight: '22px', fontWeight: 700 }}>
+      Bài nói sẽ được ghi âm và tự chấm sau khi bạn hoàn thành phần Speaking.
+    </div>
+  );
+}
+
+function TranscriptBox({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  return (
+    <label style={{ display: 'block', marginTop: 28 }}>
+      <span style={{ display: 'block', color: '#475569', fontSize: 14, fontWeight: 800, marginBottom: 8 }}>
+        Transcript để AI chấm
+      </span>
+      <textarea
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder="Sau khi nói xong, nhập lại ý chính hoặc transcript câu trả lời của bạn tại đây..."
+        style={{
+          width: '100%',
+          minHeight: 118,
+          border: '1px solid #cbd5e1',
+          borderRadius: 12,
+          padding: 14,
+          color: '#0f172a',
+          fontSize: 15,
+          lineHeight: '24px',
+          outline: 'none',
+          resize: 'vertical',
+          backgroundColor: '#f8fafc'
+        }}
+      />
+    </label>
+  );
+}
+
+function RecordingWaveform({ level }: { level: number }) {
+  const bars = Array.from({ length: 22 });
+  const normalizedLevel = Math.max(0, Math.min(level, 1));
+
+  return (
+    <div
+      style={{
+        height: 34,
+        marginTop: 28,
+        display: 'flex',
+        alignItems: 'end',
+        justifyContent: 'center',
+        gap: 4
+      }}
+      aria-label="Microphone level"
+    >
+      {bars.map((_, index) => {
+        const wave = Math.sin(index * 1.45) * 0.5 + 0.5;
+        const height = 4 + Math.round((normalizedLevel * 26 * (0.4 + wave)) / 1.4);
+        return (
+          <span
+            key={index}
+            style={{
+              width: 4,
+              height,
+              borderRadius: 999,
+              backgroundColor: '#ef4444',
+              opacity: normalizedLevel > 0.03 ? 1 : 0.55,
+              transition: 'height 80ms ease-out, opacity 120ms ease-out'
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: {
+  error: string;
+  loading: boolean;
+  onExit: () => void;
+  onRetry: () => void;
+  onScore: () => void;
+  result: AiSpeakingScore | null;
+}) {
+  return (
+    <main className="min-h-[calc(100vh-74px)] bg-[#f1f1f1] px-6 py-20">
+      <section className="mx-auto max-w-[840px] rounded-2xl bg-white px-8 py-10 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#f0eef5] text-[#2b075c]">
+          <Mic size={30} />
+        </div>
+        <div className="text-center">
+          <h2 className="mt-6 text-[26px] font-extrabold leading-8 text-slate-950">Speaking AI Result</h2>
+          <p className="mt-4 text-base leading-7 text-slate-500">Lingo scores from your recorded speaking answers.</p>
+        </div>
+        {!result && !loading && !error && <p className="mt-8 text-center text-sm font-semibold text-slate-400">Preparing your Speaking score...</p>}
+        {loading && (
+          <>
+            <div className="mx-auto mt-8 h-2 w-full max-w-[360px] overflow-hidden rounded-full bg-slate-100">
+              <div className="h-full w-2/3 rounded-full bg-[#2b075c]" />
+            </div>
+            <p className="mt-5 text-center text-sm font-semibold text-slate-400">Analyzing fluency, grammar and response quality...</p>
+            <p className="mt-2 text-center text-sm font-extrabold text-red-600">Đang chấm bài, vui lòng không thao tác gì cho đến khi có kết quả.</p>
+          </>
+        )}
+        {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</div>}
+        {result && (
+          <div className="mt-8 space-y-5">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
+              <p className="text-sm font-bold uppercase text-slate-500">Overall</p>
+              <div className="mt-2 flex flex-wrap items-end gap-4">
+                <span className="text-4xl font-black text-[#2b075c]">{result.overallScore}/50</span>
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-extrabold text-emerald-700">{result.cefrLevel}</span>
+              </div>
+              <p className="mt-3 text-sm leading-7 text-slate-700">{result.summary}</p>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {result.criteria.map((item) => (
+                <div key={item.name} className="rounded-xl border border-slate-200 p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="font-extrabold text-slate-900">{item.name}</h3>
+                    <span className="font-black text-[#2b075c]">{item.score}/10</span>
+                  </div>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.feedback}</p>
+                </div>
+              ))}
+            </div>
+            {result.parts.length > 0 && (
+              <div className="rounded-xl border border-slate-200 p-5">
+                <p className="text-sm font-extrabold uppercase text-slate-500">Part feedback</p>
+                <div className="mt-3 grid gap-3">
+                  {result.parts.map((part) => (
+                    <div key={part.title} className="rounded-lg bg-slate-50 p-4">
+                      <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-extrabold text-slate-900">{part.title}</h3>
+                        <span className="font-black text-[#2b075c]">{part.score}/50</span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{part.feedback}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <FeedbackList title="Pronunciation tips" items={result.pronunciationTips} />
+            <FeedbackList title="Fluency tips" items={result.fluencyTips} />
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+              <p className="text-sm font-extrabold uppercase text-emerald-700">Improved answer</p>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-emerald-950">{result.improvedAnswer}</p>
+            </div>
+          </div>
+        )}
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <button type="button" onClick={onRetry} className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-extrabold text-slate-700 hover:bg-slate-50">Practice again</button>
+          <button type="button" onClick={onExit} className="h-11 rounded-xl bg-slate-900 px-5 text-sm font-extrabold text-white hover:bg-slate-800">Exit</button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function FeedbackList({ title, items }: { title: string; items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="rounded-xl border border-slate-200 p-5">
+      <p className="text-sm font-extrabold uppercase text-slate-500">{title}</p>
+      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+        {items.map((item, index) => <li key={`${title}-${index}`}>- {item}</li>)}
+      </ul>
+    </div>
+  );
+}
+function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onPrevious, onNext }: { canPrevious: boolean; canNext?: boolean; showNext: boolean; nextLabel: string; onPrevious: () => void; onNext: () => void }) {
+  return (
+    <footer
+      style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 30,
+        borderTop: '3px solid #2b075c',
+        backgroundColor: '#ffffff',
+        padding: '12px 32px'
+      }}
+    >
+      <div
+        style={{
+          width: 'min(1240px, 100%)',
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: '1fr auto 1fr',
+          alignItems: 'center',
+          gap: 16
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <UtilityIcon icon={<List size={21} />} />
+          <UtilityIcon icon={<Info size={21} />} />
+          <UtilityIcon icon={<Move size={20} />} />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <UtilityIcon icon={<LogOut size={21} />} />
+          {canPrevious && (
+            <button
+              type="button"
+              onClick={onPrevious}
+              style={{
+                height: 50,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12,
+                borderRadius: 12,
+                border: '1px solid #020817',
+                backgroundColor: '#ffffff',
+                padding: '0 24px',
+                color: '#020817',
+                fontSize: 18,
+                fontWeight: 500
+              }}
+            >
+              <ArrowLeft size={22} />
+              Previous
+            </button>
+          )}
+          {showNext && (
+            <button
+              type="button"
+              onClick={onNext}
+              disabled={!canNext}
+              style={{
+                height: 50,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 12,
+                borderRadius: 12,
+                border: 0,
+                backgroundColor: canNext ? '#2b075c' : '#dedbe5',
+                padding: '0 32px',
+                color: '#ffffff',
+                fontSize: 18,
+                fontWeight: 800,
+                cursor: canNext ? 'pointer' : 'not-allowed'
+              }}
+            >
+              {nextLabel}
+              <ArrowRight size={22} />
+            </button>
+          )}
+        </div>
+
+        <div />
+      </div>
+    </footer>
+  );
+}
+
+function UtilityIcon({ icon }: { icon: ReactNode }) {
+  return (
+    <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-[#d8e1ee] bg-white text-[#60708a] hover:bg-slate-50">
+      {icon}
+    </button>
+  );
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-base font-medium text-[#7a8393]">{label}</p>
+      <p className="mt-2 text-lg font-extrabold text-black">{value}</p>
+    </div>
+  );
+}

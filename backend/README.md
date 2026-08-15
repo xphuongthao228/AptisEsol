@@ -38,6 +38,39 @@ The script loads `backend/.env` into PowerShell process variables before startin
 
 Swagger UI: `http://localhost:8080/swagger-ui.html`
 
+## DeepSeek AI
+
+Run this once, paste your DeepSeek API key, then press Enter:
+
+```powershell
+.\setup-ai.ps1
+```
+
+After that, start the backend with:
+
+```powershell
+.\run-backend.ps1
+```
+
+The script saves the key in `backend/.env`, which is ignored by git. Do not put the API key in frontend files.
+
+AI prompts are stored here so you can edit them without changing Java code:
+
+```text
+src/main/resources/prompts/aptis-writing-score.md
+src/main/resources/prompts/aptis-speaking-score.md
+src/main/resources/prompts/lingo-system.md
+```
+
+The Writing and Speaking prompt files include the Aptis General score-to-level table:
+
+```text
+Listening: A1 8, A2 16, B1 24, B2 34, C1 42
+Reading:   A1 8, A2 16, B1 26, B2 38, C1 46
+Writing:   A1 6, A2 18, B1 26, B2 40, C1 48
+Speaking:  A1 4, A2 16, B1 26, B2 41, C1 48
+```
+
 ## Gmail OTP verification
 
 Registration now sends a 6-digit OTP to the user's Gmail/email. The account is activated only after the user enters the correct OTP. For Gmail SMTP, create a Google App Password, then run the backend with these variables:

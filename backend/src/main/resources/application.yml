@@ -55,6 +55,13 @@ app:
     account-name: ${PAYMENT_ACCOUNT_NAME:}
     sepay-webhook-token: ${SEPAY_WEBHOOK_TOKEN:}
 
+  ai:
+    deepseek-api-key: ${DEEPSEEK_API_KEY:${OPENAI_API_KEY:}}
+    deepseek-model: ${DEEPSEEK_MODEL:deepseek-chat}
+    deepseek-base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    openai-api-key: ${OPENAI_API_KEY:}
+    openai-model: ${OPENAI_MODEL:gpt-4o-mini}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

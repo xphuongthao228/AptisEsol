@@ -146,7 +146,7 @@ export function Exams() {
           </div>
           <h2 className="mt-5 text-2xl font-extrabold text-slate-950">Chưa có bộ đề phù hợp</h2>
           <p className="mx-auto mt-3 max-w-lg text-slate-500">
-            Nếu muốn hiện ở mục Grammar, hãy đặt tên hoặc mô tả bộ đề có chữ “Grammar” hoặc “Ngữ pháp”.
+            Nếu muốn hiện ở mục Grammar, hãy đặt tên hoặc mô tả bộ đề có chữ "Grammar" hoặc "Ngữ pháp".
           </p>
         </section>
       )}

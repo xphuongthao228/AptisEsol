@@ -82,11 +82,13 @@ export function getSeoByPath(pathname: string, isAdmin = false): SEOProps {
     if (pathname.includes('/admin/users')) return { title: 'Quan ly nguoi dung', description: 'Quan ly hoc vien, trang thai truy cap, han hoc va tai khoan trong he thong LingoMaster Aptis.', robots: 'noindex, nofollow' };
     if (pathname.includes('/admin/content')) return { title: 'Quan ly noi dung', description: 'Tao va cap nhat cau hoi, bai luyen, topic, dap an va noi dung on thi Aptis.', robots: 'noindex, nofollow' };
     if (pathname.includes('/admin/lessons')) return { title: 'Quan ly bai hoc', description: 'Quan ly video, tai lieu va meo hoc Aptis cho hoc vien.', robots: 'noindex, nofollow' };
+    if (pathname.includes('/admin/mock-tests')) return { title: 'Quan ly de thi thu', description: 'Tao va quan ly cac bo de thi thu Aptis theo tung ky nang.', robots: 'noindex, nofollow' };
     return { title: 'Bang quan tri', description: 'Khu vuc quan tri noi dung va nguoi dung cua LingoMaster Aptis.', robots: 'noindex, nofollow' };
   }
 
   if (pathname.includes('/app/lessons')) return { title: 'Tai lieu va meo hoc Aptis', description: 'Hoc meo Listening, Reading, Speaking va Writing kem tai lieu on tap Aptis theo tung ky nang.' };
   if (pathname.includes('/app/tests')) return { title: 'Luyen tap Aptis online', description: 'Luyen cau hoi Aptis theo ky nang, xem dap an va theo doi tien do hoc tap.' };
+  if (pathname.includes('/app/mock-tests')) return { title: 'Thi thu Aptis Full', description: 'Lam bai thi thu Aptis Full gom nhieu ky nang trong cung mot phien assessment.' };
   if (pathname.includes('/app/exams')) return { title: 'De thi Aptis', description: 'Lam de thi Aptis theo bo de, cham diem va on luyen nhu phong thi that.' };
   if (pathname.includes('/app/predictions')) return { title: 'Du doan de Aptis', description: 'Cap nhat du doan de va chu de Aptis de hoc vien on tap co trong tam.' };
   if (pathname.includes('/app/renewal')) return { title: 'Gia han tai khoan Aptis', description: 'Gia han quyen truy cap LingoMaster Aptis va tiep tuc hoc tai lieu on thi.' };

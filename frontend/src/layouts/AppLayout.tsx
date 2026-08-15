@@ -3,6 +3,7 @@ import {
   BookOpen,
   CalendarPlus,
   DollarSign,
+  FileCheck,
   FileSearch,
   FileText,
   GraduationCap,
@@ -22,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { LingoWidget } from '../components/LingoWidget';
 import { SEO, getSeoByPath } from '../components/SEO';
 import { useAuthStore } from '../store/authStore';
 
@@ -35,7 +37,8 @@ const studentLinks: LayoutLink[] = [
   { to: '/app', label: 'Tổng quan', icon: LayoutDashboard },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/tests', label: 'Luyện tập', icon: BookOpen },
-  { to: '/app/exams', label: 'Thi thử', icon: FileText },
+  { to: '/app/exams', label: 'Đề thi', icon: FileText },
+  { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
   { to: '/app/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/app/renewal', label: 'Gia hạn', icon: CalendarPlus },
   { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },
@@ -48,6 +51,7 @@ const adminLinks: LayoutLink[] = [
   { to: '/admin/users', label: 'Người dùng', icon: Users },
   { to: '/admin/content', label: 'Nội dung', icon: BookOpen },
   { to: '/admin/lessons', label: 'Bài học', icon: GraduationCap },
+  { to: '/admin/mock-tests', label: 'Thi thử', icon: FileCheck },
   { to: '/admin/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
   { to: '/admin/notifications', label: 'Thông báo', icon: Bell },
@@ -61,7 +65,7 @@ export function AppLayout() {
   const location = useLocation();
   const isAdmin = user?.roles.includes('ADMIN');
   const links = isAdmin ? adminLinks : studentLinks;
-  const isExamMode = !isAdmin && /^\/app\/(tests|exams)\/\d+/.test(location.pathname);
+  const isExamMode = !isAdmin && (/^\/app\/(tests|exams)\/\d+/.test(location.pathname) || location.pathname.startsWith('/app/mock-tests'));
   const seo = getSeoByPath(location.pathname, Boolean(isAdmin));
 
   const signOut = async () => {
@@ -75,6 +79,7 @@ export function AppLayout() {
       <>
         <SEO {...seo} />
         <Outlet />
+        <LingoWidget />
       </>
     );
   }
@@ -149,6 +154,7 @@ export function AppLayout() {
             </NavLink>
           ))}
         </nav>
+        <LingoWidget />
       </div>
     );
   }

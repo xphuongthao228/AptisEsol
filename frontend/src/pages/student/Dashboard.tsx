@@ -1,5 +1,5 @@
-import { ArrowRight, Bell, BookOpen, FileText, Headphones, Lightbulb, Megaphone, Mic, PenLine, SpellCheck } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { ArrowRight, Bell, BookOpen, FileText, Headphones, Lightbulb, Megaphone, MessageCircle, Mic, PenLine, Sparkles, SpellCheck, Users, X } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
@@ -68,6 +68,7 @@ export function Dashboard() {
 
   return (
     <div className="space-y-9">
+      <CommunityInviteModal />
       <section className="overflow-hidden rounded-[18px] border border-brand-100 bg-white p-5 shadow-soft sm:p-6">
         <div className="mb-4">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-extrabold text-brand-700">
@@ -148,6 +149,75 @@ export function Dashboard() {
         })}
       </section>
 
+    </div>
+  );
+}
+
+function CommunityInviteModal() {
+  const [open, setOpen] = useState(true);
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] grid place-items-center bg-slate-950/60 px-4 backdrop-blur-sm">
+      <section className="relative w-full max-w-[474px] overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0757d8] via-[#0787ff] to-[#63d7ff] px-9 pb-9 pt-8 text-center text-white shadow-[0_24px_80px_rgba(15,23,42,0.38)]">
+        <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle,rgba(255,255,255,0.5)_1px,transparent_1px)] [background-size:22px_22px]" />
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full border-2 border-white/70 text-white transition hover:bg-white/15"
+          aria-label="Đóng popup cộng đồng"
+        >
+          <X size={26} />
+        </button>
+
+        <div className="relative z-10">
+          <div className="mx-auto grid h-[74px] w-[74px] place-items-center rounded-full bg-white/16 shadow-[0_0_0_6px_rgba(255,255,255,0.08)]">
+            <Users size={36} strokeWidth={2.2} />
+          </div>
+          <p className="mx-auto mt-5 inline-flex items-center gap-2 rounded-full bg-white/24 px-4 py-1.5 text-sm font-extrabold uppercase tracking-wide">
+            <Sparkles size={15} />
+            AptisLingo
+          </p>
+          <h2 className="mt-6 text-[28px] font-black leading-tight">
+            Tham gia nhóm học tập & Review đề
+          </h2>
+          <p className="mx-auto mt-5 max-w-[360px] text-[19px] font-semibold leading-8 text-white/92">
+            Tham gia cộng đồng tự học & giải đáp Aptis để nhanh đạt mục tiêu.
+          </p>
+
+          <div className="mt-8 space-y-4">
+            <a
+              href="https://www.facebook.com/groups/1017783430680359"
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-14 items-center justify-center gap-3 rounded-full bg-white px-5 text-[17px] font-extrabold text-[#0757d8] shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <span className="grid h-5 w-5 place-items-center rounded-full bg-[#1877f2] text-sm font-black leading-none text-white">f</span>
+              Cộng đồng Facebook
+              <ArrowRight size={18} />
+            </a>
+            <a
+              href="https://zalo.me/g/n1f3m9mamomr1vnhs6lw"
+              target="_blank"
+              rel="noreferrer"
+              className="flex h-14 items-center justify-center gap-3 rounded-full bg-[#087cff] px-5 text-[17px] font-extrabold text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <MessageCircle size={20} fill="currentColor" />
+              Cộng đồng Zalo
+              <ArrowRight size={18} />
+            </a>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="mt-6 text-base font-bold text-white/88 transition hover:text-white"
+          >
+            Để sau
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
