@@ -24,38 +24,46 @@ api.interceptors.response.use(
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
     const status = error.response?.status;
-    const { accessToken, refreshToken } = useAuthStore.getState();
+    const { refreshToken } = useAuthStore.getState();
     const url = originalRequest?.url ?? '';
+
+    // 403 = không có quyền / hết hạn gói học. Không refresh và tuyệt đối không logout.
+    // Chỉ thử refresh khi access token thực sự bị 401.
     const canRefresh =
-      originalRequest &&
-      !originalRequest._retry &&
-      refreshToken &&
+      status === 401 &&
+      Boolean(originalRequest) &&
+      !originalRequest?._retry &&
+      Boolean(refreshToken) &&
       !url.includes('/auth/login') &&
       !url.includes('/auth/register') &&
       !url.includes('/auth/logout') &&
       !url.includes('/auth/refresh-token');
 
-    if (
-      !canRefresh ||
-      (status !== 401 && !(status === 403 && accessToken))
-    ) {
+    if (!canRefresh || !originalRequest || !refreshToken) {
       return Promise.reject(error);
     }
 
     originalRequest._retry = true;
 
     try {
+      // Gom các request 401 chạy đồng thời vào cùng một lần refresh.
       refreshPromise ??= refreshAccessToken(refreshToken);
       const data = await refreshPromise;
+
+      // Chỉ cập nhật phiên khi refresh thành công.
       useAuthStore.setState({
         user: data.user,
         accessToken: data.accessToken,
         refreshToken: data.refreshToken
       });
+
       originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
       return api(originalRequest);
     } catch (refreshError) {
-      useAuthStore.setState({ user: null, accessToken: null, refreshToken: null });
+      // QUAN TRỌNG:
+      // Không tự xóa user/token tại interceptor. Một lỗi API hoặc lỗi refresh tạm thời
+      // không được phép làm người dùng bị văng về /login. Phiên chỉ bị xóa khi người
+      // dùng bấm Đăng xuất trong authStore.logout().
       return Promise.reject(refreshError);
     } finally {
       refreshPromise = null;
@@ -75,14 +83,18 @@ export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Pro
   } catch (error) {
     if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
       const message = error.response?.data?.message;
-      if (message) throw new Error(message);
-      if (error.response?.status === 401) {
-        throw new Error('Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại rồi chấm Writing.');
+
+      if (message) {
+        error.message = message;
+      } else if (error.response?.status === 401) {
+        error.message = 'Không xác thực được yêu cầu. Phiên hiện tại vẫn được giữ; vui lòng thử tải lại trang.';
+      } else if (error.response?.status === 403) {
+        error.message = 'Phiên học đã hết hạn hoặc tài khoản chưa có quyền truy cập.';
       }
-      if (error.response?.status === 403) {
-        throw new Error('Tài khoản chưa có quyền truy cập AI hoặc gói dùng thử/Pro đã hết hạn.');
-      }
+
+      throw error;
     }
+
     throw error;
   }
 }
