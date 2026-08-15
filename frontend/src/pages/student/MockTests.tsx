@@ -307,8 +307,16 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
     .filter((item): item is Record<string, unknown> => item && typeof item === 'object')
     .filter((item) => {
       const skill = String(item.skill ?? '').toUpperCase();
-      const part = String(item.part ?? item.section ?? '').trim();
-      return (!skill || skill === 'LISTENING') && (!part || part === '1' || part.toLowerCase() === 'part1');
+      const part = String(item.part ?? '').trim().toLowerCase();
+      const section = String(item.section ?? '').trim().toLowerCase();
+
+      // Support both the normalized schema (part: 1) and the imported Aptis
+      // Listening schema where questions 1-13 are marked as section: q1_13.
+      const isPart1 = part
+        ? part === '1' || part === 'part1'
+        : !section || section === 'q1_13';
+
+      return (!skill || skill === 'LISTENING') && isPart1;
     })
     .reduce<ListeningPart1Question[]>((questions, item) => {
       const options = Array.isArray(item.options) ? item.options.map(String).filter(Boolean) : [];
@@ -329,12 +337,42 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
   const rows = parseQuestionDataArray(card?.questionData);
   return rows.reduce<Record<string, string>>((result, item) => {
     if (!item || typeof item !== 'object') return result;
+
     const row = item as Record<string, unknown>;
     const skill = String(row.skill ?? '').toUpperCase();
     if (skill && skill !== 'LISTENING') return result;
-    const audioUrl = String(row.audioUrl ?? row.audio ?? row.url ?? '').trim();
-    const part = String(row.part ?? row.section ?? '').trim().toLowerCase();
-    if (audioUrl && part) result[part.replace('part', '')] = audioUrl;
+
+    // q14-q17 store their audio inside row.data.audioUrl in the imported CSV.
+    const nestedData = row.data && typeof row.data === 'object'
+      ? row.data as Record<string, unknown>
+      : undefined;
+
+    const audioUrl = String(
+      row.audioUrl ?? nestedData?.audioUrl ??
+      row.audio ?? nestedData?.audio ??
+      row.url ?? nestedData?.url ?? ''
+    ).trim();
+
+    if (!audioUrl) return result;
+
+    const rawPart = String(row.part ?? '').trim().toLowerCase();
+    const section = String(row.section ?? '').trim().toLowerCase();
+    let key = rawPart ? rawPart.replace('part', '') : '';
+
+    // Map the source Listening sections to the four Aptis UI parts.
+    if (!key) {
+      if (section === 'q14') key = '2';
+      else if (section === 'q15') key = '3';
+      else if (section === 'q16') key = '4-0';
+      else if (section === 'q17') key = '4-1';
+      else if (section === 'q1_13') key = '1';
+    }
+
+    if (key) result[key] = audioUrl;
+
+    // Backward compatibility for older Part 4 data that expected a single key.
+    if (section === 'q16' && !result['4']) result['4'] = audioUrl;
+
     return result;
   }, {});
 }
@@ -1853,7 +1891,7 @@ export function MockTests() {
           )}
           {screen === 'listeningMonologues' && (
             <ListeningMonologues
-              audioUrl={activeListeningAudioByPart['4']}
+              audioUrl={activeListeningAudioByPart[`4-${listeningMonologueIndex}`] ?? activeListeningAudioByPart['4']}
               answers={listeningMonologueAnswers}
               index={listeningMonologueIndex}
               showAnswer={answerRevealOpen}
