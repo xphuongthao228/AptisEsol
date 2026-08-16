@@ -86,8 +86,12 @@ export function PracticeRunner() {
       ?? buildListeningPart4FallbackTemplate(activeQuestion, test, totalQuestions)
     : null;
   const renderTemplateData = templateData ?? fallbackTemplateData;
-  const classicTemplate = isClassicAptisTemplate(renderTemplateData);
-  const selfCheckingTemplate = isSelfCheckingTemplate(renderTemplateData);
+  const mergedTemplateData = useMemo(
+    () => mergeSameSpeakingTemplateData(renderTemplateData, questions ?? [], test),
+    [renderTemplateData, questions, test]
+  );
+  const classicTemplate = isClassicAptisTemplate(mergedTemplateData);
+  const selfCheckingTemplate = isSelfCheckingTemplate(mergedTemplateData);
   const fullListeningExam = useMemo(() => isFullListeningExam(test, questions ?? []), [test, questions]);
   const listeningReview = useMemo(() => buildListeningExamReview(test, questions ?? [], answers), [test, questions, answers]);
   const fullReadingExam = useMemo(() => isExamSetMode && isFullReadingExam(test, questions ?? []), [isExamSetMode, test, questions]);
@@ -96,8 +100,8 @@ export function PracticeRunner() {
   const showClassicCheckButton = (!fullListeningExam && !fullReadingExam) || currentIndex >= totalQuestions - 1;
   const activeChecked = activeQuestion ? checkedAnswers[activeQuestion.id] : undefined;
   const sharedAudioUrl = useMemo(() => getSharedAudioUrl(questions ?? []), [questions]);
-  const audioUrl = activeQuestion ? getQuestionAudioUrl(activeQuestion, renderTemplateData, sharedAudioUrl) : '';
-  const scriptText = activeQuestion ? getQuestionScriptText(activeQuestion, renderTemplateData) : '';
+  const audioUrl = activeQuestion ? getQuestionAudioUrl(activeQuestion, mergedTemplateData, sharedAudioUrl) : '';
+  const scriptText = activeQuestion ? getQuestionScriptText(activeQuestion, mergedTemplateData) : '';
   const topicTitle = repairMojibake(activeQuestion?.topic || test?.title || 'Luyện thi Aptis');
   const progress = useMemo(() => totalQuestions ? Math.round(((currentIndex + 1) / totalQuestions) * 100) : 0, [currentIndex, totalQuestions]);
   const requestedQuestionId = Number(searchParams.get('questionId'));
@@ -110,24 +114,24 @@ export function PracticeRunner() {
       return {};
     }
   }, [activeQuestion, answers]);
-  const isWritingClubQuestion = renderTemplateData?.template === 'WRITING_CLUB_COLLECTION';
-  const isSpeakingPart1Question = renderTemplateData?.template === 'SPEAKING_PART1';
-  const isSpeakingPart2Question = renderTemplateData?.template === 'SPEAKING_PART2';
-  const isSpeakingPart3Question = renderTemplateData?.template === 'SPEAKING_PART3';
-  const isSpeakingPart4Question = renderTemplateData?.template === 'SPEAKING_PART4';
+  const isWritingClubQuestion = mergedTemplateData?.template === 'WRITING_CLUB_COLLECTION';
+  const isSpeakingPart1Question = mergedTemplateData?.template === 'SPEAKING_PART1';
+  const isSpeakingPart2Question = mergedTemplateData?.template === 'SPEAKING_PART2';
+  const isSpeakingPart3Question = mergedTemplateData?.template === 'SPEAKING_PART3';
+  const isSpeakingPart4Question = mergedTemplateData?.template === 'SPEAKING_PART4';
   const writingPartIndex = Math.min(3, Math.max(0, Number(activeSavedAnswer.writingPartIndex ?? 0)));
   const speakingPart1Mode = activeSavedAnswer.speakingPart1Mode ?? 'intro';
   const speakingPart1Index = Math.max(0, Number(activeSavedAnswer.speakingPart1Index ?? 0));
-  const speakingPart1Total = Array.isArray(renderTemplateData?.questions) ? renderTemplateData.questions.length : 0;
+  const speakingPart1Total = Array.isArray(mergedTemplateData?.questions) ? mergedTemplateData.questions.length : 0;
   const speakingPart2Mode = activeSavedAnswer.speakingPart2Mode ?? 'intro';
   const speakingPart2Index = Math.max(0, Number(activeSavedAnswer.speakingPart2Index ?? 0));
-  const speakingPart2Total = Array.isArray(renderTemplateData?.questions) ? renderTemplateData.questions.length : 0;
+  const speakingPart2Total = Array.isArray(mergedTemplateData?.questions) ? mergedTemplateData.questions.length : 0;
   const speakingPart3Mode = activeSavedAnswer.speakingPart3Mode ?? 'intro';
   const speakingPart3Index = Math.max(0, Number(activeSavedAnswer.speakingPart3Index ?? 0));
-  const speakingPart3Total = Array.isArray(renderTemplateData?.questions) ? renderTemplateData.questions.length : 0;
+  const speakingPart3Total = Array.isArray(mergedTemplateData?.questions) ? mergedTemplateData.questions.length : 0;
   const speakingPart4Mode = activeSavedAnswer.speakingPart4Mode ?? 'intro';
   const speakingPart4Index = Math.max(0, Number(activeSavedAnswer.speakingPart4Index ?? 0));
-  const speakingPart4Total = Array.isArray(renderTemplateData?.questions) ? renderTemplateData.questions.length : 0;
+  const speakingPart4Total = Array.isArray(mergedTemplateData?.questions) ? mergedTemplateData.questions.length : 0;
   const canGoBack = isWritingClubQuestion
     ? writingPartIndex > 0
     : isSpeakingPart1Question && speakingPart1Mode === 'practice'
@@ -367,7 +371,7 @@ export function PracticeRunner() {
       return;
     }
 
-    const templateResult = evaluateTemplateAnswer(renderTemplateData, value);
+    const templateResult = evaluateTemplateAnswer(mergedTemplateData, value);
     if (templateResult !== null) {
       setCheckedAnswers({ ...checkedAnswers, [activeQuestion.id]: templateResult });
       toast[templateResult ? 'success' : 'error'](templateResult ? 'Chính xác!' : 'Chưa đúng, xem lại các lựa chọn.');
@@ -403,9 +407,9 @@ export function PracticeRunner() {
         <form onSubmit={submit} className="pb-24">
           {loading && <div className="mx-auto max-w-[1460px] p-8">Đang tải câu hỏi...</div>}
           {activeQuestion?.featured && <FeaturedQuestionCallout />}
-          {activeQuestion && renderTemplateData && (
+          {activeQuestion && mergedTemplateData && (
             <AptisTemplateRenderer
-              data={renderTemplateData}
+              data={mergedTemplateData}
               questionId={activeQuestion.id}
               currentNumber={currentIndex + 1}
               featured={activeQuestion.featured}
@@ -507,7 +511,7 @@ export function PracticeRunner() {
             </div>
             )}
 
-            {test?.skillName?.toLowerCase().includes('speaking') && !renderTemplateData?.template?.startsWith('SPEAKING') && (
+            {test?.skillName?.toLowerCase().includes('speaking') && !mergedTemplateData?.template?.startsWith('SPEAKING') && (
               <div className="mb-8 rounded-[18px] border border-red-100 bg-red-50 p-4 shadow-soft">
                 <SpeakingRecordButton />
               </div>
@@ -524,11 +528,11 @@ export function PracticeRunner() {
               />
             )}
 
-            {audioUrl && !renderTemplateData && (
+            {audioUrl && !mergedTemplateData && (
               <QuestionAudioPlayer audioUrl={audioUrl} scriptText={scriptText} />
             )}
 
-            {scriptText && renderTemplateData && !classicTemplate && (
+            {scriptText && mergedTemplateData && !classicTemplate && (
               <QuestionScriptBox scriptText={scriptText} />
             )}
 
@@ -536,9 +540,9 @@ export function PracticeRunner() {
 
             {activeQuestion?.featured && <FeaturedQuestionCallout />}
 
-            {activeQuestion && renderTemplateData && (
+            {activeQuestion && mergedTemplateData && (
               <AptisTemplateRenderer
-                data={renderTemplateData}
+                data={mergedTemplateData}
                 questionId={activeQuestion.id}
                 currentNumber={currentIndex + 1}
                 featured={activeQuestion.featured}
@@ -549,11 +553,11 @@ export function PracticeRunner() {
               />
             )}
 
-            {activeQuestion && renderTemplateData && activeChecked !== undefined && !selfCheckingTemplate && (
+            {activeQuestion && mergedTemplateData && activeChecked !== undefined && !selfCheckingTemplate && (
               <QuestionFeedback isCorrect={activeChecked} textOnly={!activeQuestion.answers.length} />
             )}
 
-            {activeQuestion && !renderTemplateData && (
+            {activeQuestion && !mergedTemplateData && (
               <section className="mx-auto max-w-[1180px] space-y-2">
                   <div className="rounded-xl border border-slate-300 bg-white p-3 shadow-soft">
                     <div className="flex gap-3">
@@ -954,6 +958,23 @@ function getRenderableTemplateData(question: Question, test: Test | null, totalQ
     ?? buildListeningPart2FallbackTemplate(question, test, totalQuestions)
     ?? buildListeningPart3FallbackTemplate(question, test, totalQuestions)
     ?? buildListeningPart4FallbackTemplate(question, test, totalQuestions);
+}
+
+function mergeSameSpeakingTemplateData(data: TemplateData | null, questions: Question[], test: Test | null): TemplateData | null {
+  if (!data?.template?.startsWith('SPEAKING_PART')) return data;
+
+  const mergedQuestions = questions.flatMap((question) => {
+    const itemData = getRenderableTemplateData(question, test, questions.length);
+    if (itemData?.template !== data.template) return [];
+    return Array.isArray(itemData.questions) ? itemData.questions : [];
+  });
+
+  if (mergedQuestions.length <= (Array.isArray(data.questions) ? data.questions.length : 0)) return data;
+  return {
+    ...data,
+    total: mergedQuestions.length,
+    questions: mergedQuestions
+  };
 }
 
 function isFullListeningExam(test: Test | null, questions: Question[]) {
@@ -2558,53 +2579,42 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
   if (mode === 'summary') {
     return (
       <AptisPaper narrow compact>
-        <div className="mx-auto max-w-[1180px]">
+        <div className="mx-auto max-w-[1180px] space-y-5">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <h1 className="flex items-center gap-2 text-2xl font-extrabold">
-              <ListChecks className="text-brand-600" /> Speaking Question 1 - Danh sách câu hỏi
-            </h1>
+            <div>
+              <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+                <ListChecks className="text-brand-600" /> Speaking Part 1 - Danh sách câu hỏi
+              </h1>
+              <p className="mt-1 text-sm font-semibold text-slate-500">Tổng hợp {questions.length} câu hỏi trong file import.</p>
+            </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyện tập</button>
-              <button type="button" onClick={() => patchAnswers({ speakingPart1Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Gioi thieu</button>
+              <button type="button" onClick={() => patchAnswers({ speakingPart1Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Giới thiệu</button>
             </div>
           </div>
-          <div className="overflow-hidden rounded-xl border border-slate-300 bg-white">
-            <div className="grid grid-cols-[52px_1fr_140px_140px] bg-slate-50 text-sm font-extrabold">
-              <div className="border-r border-slate-300 p-3">#</div>
-              <div className="border-r border-slate-300 p-3">Câu hỏi</div>
-              <div className="border-r border-slate-300 p-3">Đáp án 1</div>
-              <div className="p-3">Đáp án 2</div>
-            </div>
-            {questions.map((item: any, itemIndex: number) => {
-              const key1 = `${itemIndex}-1`;
-              const key2 = `${itemIndex}-2`;
-              return (
-                <div key={`${item.question}-${itemIndex}`}>
-                  <div className="grid grid-cols-[52px_1fr_140px_140px] border-t border-slate-200 text-sm">
-                    <div className="border-r border-slate-200 p-3 font-bold text-slate-600">{itemIndex + 1}</div>
-                    <button type="button" onClick={() => openPractice(itemIndex)} className="border-r border-slate-200 p-3 text-left hover:bg-blue-50">{item.question}</button>
-                    <div className="border-r border-slate-200 p-2">
-                      <button type="button" onClick={() => toggleAnswer(key1)} className="h-9 rounded border border-brand-600 px-3 text-sm font-semibold text-brand-600">
-                        {openAnswer === key1 ? 'Ẩn đáp án 1' : 'Xem đáp án 1'}
-                      </button>
-                    </div>
-                    <div className="p-2">
-                      <button type="button" onClick={() => toggleAnswer(key2)} className="h-9 rounded border border-emerald-600 px-3 text-sm font-semibold text-emerald-700">
-                        {openAnswer === key2 ? 'Ẩn đáp án 2' : 'Xem đáp án 2'}
-                      </button>
-                    </div>
-                  </div>
-                  {(openAnswer === key1 || openAnswer === key2) && (
-                    <div className="border-l-4 border-brand-600 bg-blue-50 px-5 py-4 text-sm leading-7 text-slate-800">
-                      <p className="mb-1 text-xs font-extrabold uppercase tracking-widest text-slate-500">
-                        {openAnswer === key1 ? 'Đáp án mẫu 1' : 'Đáp án mẫu 2'}
-                      </p>
-                      <p>{openAnswer === key1 ? item.answer1 : item.answer2}</p>
-                    </div>
-                  )}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {questions.map((item: any, itemIndex: number) => (
+              <article key={`${item.question}-${itemIndex}`} className="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                  <button type="button" onClick={() => openPractice(itemIndex)} className="text-left text-lg font-extrabold text-slate-950 hover:text-brand-600">
+                    Câu {itemIndex + 1}: {item.question}
+                  </button>
+                  <button type="button" onClick={() => openPractice(itemIndex)} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700">
+                    Luyện câu này
+                  </button>
                 </div>
-              );
-            })}
+                <div className="grid gap-3 text-sm leading-7 md:grid-cols-2">
+                  <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
+                    <p className="mb-1 text-xs font-extrabold uppercase tracking-widest text-brand-600">Đáp án mẫu 1</p>
+                    <p>{item.answer1 || 'Chưa có đáp án mẫu 1.'}</p>
+                  </div>
+                  <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="mb-1 text-xs font-extrabold uppercase tracking-widest text-emerald-700">Đáp án mẫu 2</p>
+                    <p>{item.answer2 || 'Chưa có đáp án mẫu 2.'}</p>
+                  </div>
+                </div>
+              </article>
+            ))}
           </div>
         </div>
       </AptisPaper>
@@ -2741,8 +2751,53 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
     });
   }
 
+  function openSummary() {
+    patchAnswers({ speakingPart2Mode: 'summary' });
+  }
+
   function setTab(nextTab: number) {
     patchAnswers({ speakingPart2Tab: String(nextTab), speakingPart2ShowSample: 'false' });
+  }
+
+  if (mode === 'summary') {
+    return (
+      <AptisPaper narrow compact>
+        <div className="mx-auto max-w-[1180px] space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+              <ListChecks className="text-brand-600" /> Speaking Part 2 - Danh sách câu hỏi
+            </h1>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyện tập</button>
+              <button type="button" onClick={() => patchAnswers({ speakingPart2Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Giới thiệu</button>
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            {questions.map((item: any, itemIndex: number) => {
+              const summaryImageUrl = resolveLocalSpeakingImage(item.urlpic1, localSpeakingImage('part2', `${itemIndex + 1}.png`));
+              return (
+                <button
+                  type="button"
+                  key={`${item.urlpic1 ?? itemIndex}-${item.question1 ?? itemIndex}`}
+                  onClick={() => openPractice(itemIndex)}
+                  className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-soft transition hover:border-brand-300 hover:bg-blue-50 sm:grid-cols-[180px_1fr]"
+                >
+                  <img className="h-32 w-full rounded-lg bg-slate-100 object-cover" src={summaryImageUrl} alt={`Speaking Part 2 question ${itemIndex + 1}`} />
+                  <div className="min-w-0">
+                    <p className="mb-2 text-sm font-extrabold text-brand-600">Câu {itemIndex + 1}</p>
+                    <div className="space-y-2 text-sm leading-6 text-slate-700">
+                      <p><b>Q1:</b> {item.question1 ?? 'Describe the picture?'}</p>
+                      <p><b>Q2:</b> {item.question2 ?? 'Answer the related question.'}</p>
+                      <p><b>Q3:</b> {item.question3 ?? 'Give your opinion.'}</p>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </AptisPaper>
+    );
   }
 
   if (mode !== 'practice') {
@@ -2780,9 +2835,14 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <div className="rounded-2xl bg-white p-6 text-center shadow-soft">
             <p className="mb-4 text-sm font-semibold text-slate-500">Chọn chế độ học</p>
-            <button type="button" onClick={() => openPractice(0)} className="mx-auto h-12 w-full max-w-[300px] rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
-              <Mic className="mr-2 inline" size={16} /> Trang luyện tập
-            </button>
+            <div className="mx-auto grid max-w-[620px] gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => openPractice(0)} className="h-12 rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
+                <Mic className="mr-2 inline" size={16} /> Trang luyện tập
+              </button>
+              <button type="button" onClick={openSummary} className="h-12 rounded-full border border-slate-400 text-sm font-extrabold text-slate-700 hover:bg-slate-50">
+                <ListChecks className="mr-2 inline" size={16} /> Trang tổng hợp
+              </button>
+            </div>
           </div>
         </div>
       </AptisPaper>
@@ -2798,6 +2858,9 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <div className="flex items-center gap-3 text-base font-extrabold text-slate-700">
             Speak question <InlineNumber value={index + 1} /> / {questions.length}
+            <button type="button" onClick={openSummary} className="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
+              Trang tổng hợp
+            </button>
           </div>
         </div>
         <div className="p-7">
@@ -2929,6 +2992,10 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
     });
   }
 
+  function openSummary() {
+    patchAnswers({ speakingPart3Mode: 'summary' });
+  }
+
   function setTab(nextTab: number) {
     patchAnswers({ speakingPart3Tab: String(nextTab), speakingPart3ShowSample: 'false' });
   }
@@ -2953,6 +3020,52 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
           onError={() => setFailedImages((currentFailed) => ({ ...currentFailed, [keyName]: true }))}
         />
       </div>
+    );
+  }
+
+  if (mode === 'summary') {
+    return (
+      <AptisPaper narrow compact>
+        <div className="mx-auto max-w-[1180px] space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <h1 className="flex items-center gap-2 text-2xl font-extrabold">
+              <ListChecks className="text-brand-600" /> Speaking Part 3 - Danh sách câu hỏi
+            </h1>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyện tập</button>
+              <button type="button" onClick={() => patchAnswers({ speakingPart3Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Giới thiệu</button>
+            </div>
+          </div>
+          <div className="grid gap-4 xl:grid-cols-2">
+            {questions.map((item: any, itemIndex: number) => {
+              const image1 = getSpeakingImageUrl(item, 1, itemIndex);
+              const image2 = getSpeakingImageUrl(item, 2, itemIndex);
+              const question1 = pickTextValue(item, ['question1', 'question_1', 'q1', 'prompt1', 'prompt_1', 'compareQuestion'], 'Describe the picture?');
+              const question2 = pickTextValue(item, ['question2', 'question_2', 'q2', 'prompt2', 'prompt_2', 'relatedQuestion'], 'Answer the related question.');
+              const question3 = pickTextValue(item, ['question3', 'question_3', 'q3', 'prompt3', 'prompt_3', 'opinionQuestion'], 'Give your opinion.');
+              return (
+                <button
+                  type="button"
+                  key={`${image1}-${image2}-${itemIndex}`}
+                  onClick={() => openPractice(itemIndex)}
+                  className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-soft transition hover:border-brand-300 hover:bg-blue-50"
+                >
+                  <p className="mb-3 text-sm font-extrabold text-brand-600">Câu {itemIndex + 1}</p>
+                  <div className="mb-4 grid gap-3 sm:grid-cols-2">
+                    <img className="h-32 w-full rounded-lg bg-slate-100 object-cover" src={image1} alt={`Speaking Part 3 question ${itemIndex + 1} image 1`} />
+                    <img className="h-32 w-full rounded-lg bg-slate-100 object-cover" src={image2} alt={`Speaking Part 3 question ${itemIndex + 1} image 2`} />
+                  </div>
+                  <div className="space-y-2 text-sm leading-6 text-slate-700">
+                    <p><b>Q1:</b> {question1}</p>
+                    <p><b>Q2:</b> {question2}</p>
+                    <p><b>Q3:</b> {question3}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </AptisPaper>
     );
   }
 
@@ -2991,9 +3104,14 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <div className="rounded-2xl bg-white p-6 text-center shadow-soft">
             <p className="mb-4 text-sm font-semibold text-slate-500">Chọn chế độ học</p>
-            <button type="button" onClick={() => openPractice(0)} className="mx-auto h-12 w-full max-w-[300px] rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
-              <Mic className="mr-2 inline" size={16} /> Trang luyện tập
-            </button>
+            <div className="mx-auto grid max-w-[620px] gap-3 sm:grid-cols-2">
+              <button type="button" onClick={() => openPractice(0)} className="h-12 rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
+                <Mic className="mr-2 inline" size={16} /> Trang luyện tập
+              </button>
+              <button type="button" onClick={openSummary} className="h-12 rounded-full border border-slate-400 text-sm font-extrabold text-slate-700 hover:bg-slate-50">
+                <ListChecks className="mr-2 inline" size={16} /> Trang tổng hợp
+              </button>
+            </div>
           </div>
         </div>
       </AptisPaper>
@@ -3009,6 +3127,9 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <div className="flex items-center gap-3 text-base font-extrabold text-slate-700">
             Speak question <InlineNumber value={index + 1} /> / {questions.length}
+            <button type="button" onClick={openSummary} className="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
+              Trang tổng hợp
+            </button>
           </div>
         </div>
         <div className="p-7">
@@ -3703,5 +3824,3 @@ function TemplateSelect({ value, options, onChange, wide, compact, status }: {
 function ShowParagraphButton() {
   return <button type="button" className="h-10 rounded-lg bg-brand-600 px-4 text-sm font-extrabold text-white shadow-sm hover:bg-brand-700">Show paragraph</button>;
 }
-
-
