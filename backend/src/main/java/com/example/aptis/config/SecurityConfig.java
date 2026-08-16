@@ -54,6 +54,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/sepay/webhook").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/skills", "/api/tests", "/api/lessons", "/api/predictions").permitAll()
                         .anyRequest().authenticated())
                 .headers(headers -> headers
                         .contentSecurityPolicy(
