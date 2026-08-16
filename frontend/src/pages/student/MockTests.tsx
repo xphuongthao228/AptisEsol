@@ -126,6 +126,7 @@ type ApiMockTest = {
 };
 
 const FEATURED_MARKER = '[[APTIS_FEATURED_MOCK_TEST]]';
+const BOOKMARK_STORAGE_KEY = 'aptis-mock-test-bookmarks';
 
 type ListeningPart1Question = {
   prompt: string;
@@ -153,6 +154,15 @@ type SkillScoreSummary = {
   maxScore: number;
   cefr: string;
   rows: { part: string; correct: string; score: string }[];
+};
+
+type QuestionListItem = {
+  key: string;
+  label: string;
+  detail: string;
+  active: boolean;
+  bookmarked: boolean;
+  onSelect: () => void;
 };
 
 const sidebarLinks: SidebarLink[] = [
@@ -304,6 +314,17 @@ function loadStoredFeaturedMap() {
     return parsed && typeof parsed === 'object' ? parsed as Record<string, boolean> : {};
   } catch {
     return {};
+  }
+}
+
+function loadMockBookmarks() {
+  if (typeof window === 'undefined') return [];
+  try {
+    const saved = window.localStorage.getItem(BOOKMARK_STORAGE_KEY);
+    const parsed = saved ? JSON.parse(saved) : [];
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
+  } catch {
+    return [];
   }
 }
 
@@ -922,6 +943,10 @@ function clampScore50(score: number) {
   return Math.min(50, Math.max(0, Math.round(Number.isFinite(score) ? score : 0)));
 }
 
+function wordCount(value: string) {
+  return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
 function correctToAptis25(correct: number, total: number) {
   if (total <= 0) return 0;
   return Math.min(25, Math.max(0, Math.round((correct / total) * 25)));
@@ -1076,6 +1101,8 @@ export function MockTests() {
   const [speakingDraftOpen, setSpeakingDraftOpen] = useState(false);
   const [speakingDraftText, setSpeakingDraftText] = useState('');
   const [speakingDraftLevel, setSpeakingDraftLevel] = useState<DraftLevel>('B1');
+  const [bookmarks, setBookmarks] = useState<string[]>(() => loadMockBookmarks());
+  const [questionListOpen, setQuestionListOpen] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
@@ -1089,6 +1116,32 @@ export function MockTests() {
     setAnswerRevealOpen(false);
     setSpeakingDraftOpen(false);
   }, [screen, questionIndex, part2QuestionIndex, part3QuestionIndex, listeningQuestionIndex, listeningMonologueIndex, readingCohesionIndex, writingPartIndex, grammarQuestionIndex]);
+
+  useEffect(() => {
+    window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarks));
+  }, [bookmarks]);
+
+  useEffect(() => {
+    const openQuestionList = () => setQuestionListOpen(true);
+    window.addEventListener('aptis-open-question-list', openQuestionList);
+    return () => window.removeEventListener('aptis-open-question-list', openQuestionList);
+  }, []);
+
+  function bookmarkKey(section: string, question: string | number) {
+    return `${selectedMockCard?.id ?? 'built-in'}:${section}:${question}`;
+  }
+
+  function isBookmarked(key: string) {
+    return bookmarks.includes(key);
+  }
+
+  function toggleBookmark(key: string) {
+    const active = bookmarks.includes(key);
+    toast.success(active ? 'Đã bỏ bookmark câu này.' : 'Đã bookmark câu này.');
+    setBookmarks((currentBookmarks) => currentBookmarks.includes(key)
+      ? currentBookmarks.filter((item) => item !== key)
+      : [...currentBookmarks, key]);
+  }
 
   function insertSpeakingDraft(text: string) {
     setSpeakingDraftText((current) => {
@@ -1686,11 +1739,48 @@ export function MockTests() {
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không chấm được bài Writing.';
-      setWritingScoreError(message);
+      const fallback = buildWritingFallbackScore(payload.parts, message);
+      setWritingScore(fallback);
+      setWritingScoreError('');
       toast.error(message);
+      if (nextScreen) setScreen(nextScreen);
     } finally {
       setWritingScoreLoading(false);
     }
+  }
+
+  function buildWritingFallbackScore(parts: Array<{ title: string; prompt: string; answer: string }>, reason: string): AiWritingScore {
+    const partFeedback = parts.map((part) => {
+      const words = wordCount(part.answer);
+      const score = words === 0 ? 0 : words < 20 ? 8 : words < 60 ? 16 : words < 120 ? 24 : words < 200 ? 30 : 34;
+      return {
+        title: part.title,
+        score,
+        feedback: words === 0
+          ? 'Chưa có câu trả lời nên phần này tạm tính 0 điểm.'
+          : `Có ${words} từ. Backend AI chưa trả kết quả chi tiết, nên đây chỉ là điểm tạm theo độ đầy đủ của câu trả lời.`
+      };
+    });
+    const answeredParts = partFeedback.filter((part) => part.score > 0).length;
+    const overallScore = partFeedback.length
+      ? clampScore50(partFeedback.reduce((sum, part) => sum + part.score, 0) / partFeedback.length)
+      : 0;
+
+    return {
+      overallScore,
+      cefrLevel: overallScore >= 40 ? 'B2' : overallScore >= 28 ? 'B1' : overallScore >= 16 ? 'A2' : 'A1',
+      summary: `AI Writing chưa chấm được từ backend (${reason}). Kết quả này là điểm tạm để bài thi full không bị dừng; cần cấu hình hoặc kiểm tra DeepSeek để có nhận xét AI thật.`,
+      criteria: [
+        { name: 'Task achievement', score: answeredParts === parts.length ? 5 : answeredParts > 0 ? 3 : 0, feedback: `${answeredParts}/${parts.length} phần có nội dung trả lời.` },
+        { name: 'Grammar', score: 0, feedback: 'Chưa đánh giá được ngữ pháp vì AI backend chưa trả kết quả.' },
+        { name: 'Vocabulary', score: 0, feedback: 'Chưa đánh giá được từ vựng vì AI backend chưa trả kết quả.' },
+        { name: 'Coherence', score: 0, feedback: 'Chưa đánh giá được mạch lạc vì AI backend chưa trả kết quả.' },
+        { name: 'Tone/register', score: 0, feedback: 'Chưa đánh giá được văn phong vì AI backend chưa trả kết quả.' }
+      ],
+      parts: partFeedback,
+      corrections: ['Kiểm tra DEEPSEEK_API_KEY, quyền truy cập gói học, kết nối backend tới DeepSeek và log backend để lấy lỗi thật.'],
+      suggestedAnswer: 'Sau khi backend AI hoạt động, nộp lại bài Writing để nhận nhận xét chi tiết, lỗi cần sửa và bài gợi ý.'
+    };
   }
 
   function buildSpeakingScorePayload() {
@@ -1875,6 +1965,110 @@ export function MockTests() {
   const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey);
   const grammarSummary = scoreGrammarAnswers(grammarAnswers);
   const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
+  const questionListItems = buildCurrentQuestionListItems();
+
+  function questionItem(key: string, label: string, detail: string, active: boolean, onSelect: () => void): QuestionListItem {
+    return {
+      key,
+      label,
+      detail,
+      active,
+      bookmarked: isBookmarked(key),
+      onSelect
+    };
+  }
+
+  function buildCurrentQuestionListItems(): QuestionListItem[] {
+    if (screen.startsWith('listening')) {
+      return [
+        ...activeListeningPart1Questions.map((_, index) => questionItem(
+          bookmarkKey('listening-part1', index + 1),
+          `Part 1 - Question ${index + 1}`,
+          'Word Recognition',
+          screen === 'listeningQuestion' && listeningQuestionIndex === index,
+          () => {
+            setListeningQuestionIndex(index);
+            setScreen('listeningQuestion');
+          }
+        )),
+        questionItem(bookmarkKey('listening-part2', 1), 'Part 2', 'Matching Information', screen === 'listeningMatching', () => setScreen('listeningMatching')),
+        questionItem(bookmarkKey('listening-part3', 1), 'Part 3', 'Short Conversations', screen === 'listeningShort', () => setScreen('listeningShort')),
+        ...listeningMonologues.map((_, index) => questionItem(
+          bookmarkKey('listening-part4', index + 1),
+          `Part 4 - Recording ${index + 1}`,
+          'Monologues',
+          screen === 'listeningMonologues' && listeningMonologueIndex === index,
+          () => {
+            setListeningMonologueIndex(index);
+            setScreen('listeningMonologues');
+          }
+        ))
+      ];
+    }
+
+    if (screen.startsWith('reading')) {
+      return [
+        questionItem(bookmarkKey('reading-part1', 1), 'Part 1', 'Gap Fill', screen === 'readingQuestion', () => setScreen('readingQuestion')),
+        ...[0, 1].map((index) => questionItem(
+          bookmarkKey('reading-part2-3', index + 1),
+          `Part 2 + 3 - Question ${index + 1}`,
+          'Text Cohesion',
+          screen === 'readingCohesion' && readingCohesionIndex === index,
+          () => {
+            setReadingCohesionIndex(index);
+            setScreen('readingCohesion');
+          }
+        )),
+        questionItem(bookmarkKey('reading-part4', 1), 'Part 4', 'Opinion Matching', screen === 'readingOpinion', () => setScreen('readingOpinion')),
+        questionItem(bookmarkKey('reading-part5', 1), 'Part 5', 'Long Reading', screen === 'readingLong', () => setScreen('readingLong'))
+      ];
+    }
+
+    if (screen.startsWith('writing')) {
+      return writingParts.map((part, index) => questionItem(
+        bookmarkKey('writing', index + 1),
+        `Part ${index + 1}`,
+        part.title,
+        screen === 'writingPart' && writingPartIndex === index,
+        () => {
+          setWritingPartIndex(index);
+          setScreen('writingPart');
+        }
+      ));
+    }
+
+    if (screen.startsWith('grammar')) {
+      return grammarQuestions.map((_, index) => questionItem(
+        bookmarkKey('grammar', index + 1),
+        `Question ${index + 1}`,
+        'Grammar & Vocabulary',
+        screen === 'grammarQuestion' && grammarQuestionIndex === index,
+        () => {
+          setGrammarQuestionIndex(index);
+          setScreen('grammarQuestion');
+        }
+      ));
+    }
+
+    return [
+      ...speakingQuestions.map((question, index) => questionItem(`speaking:part1:${index + 1}`, `Part 1 - Question ${index + 1}`, question, screen === 'question' && questionIndex === index, () => {
+        setQuestionIndex(index);
+        setScreen('question');
+      })),
+      ...part2Questions.map((question, index) => questionItem(`speaking:part2:${index + 1}`, `Part 2 - Question ${index + 1}`, question, screen === 'part2Question' && part2QuestionIndex === index, () => {
+        setPart2QuestionIndex(index);
+        setScreen('part2Question');
+      })),
+      ...part3Questions.map((question, index) => questionItem(`speaking:part3:${index + 1}`, `Part 3 - Question ${index + 1}`, question, screen === 'part3Question' && part3QuestionIndex === index, () => {
+        setPart3QuestionIndex(index);
+        setScreen('part3Question');
+      })),
+      questionItem('speaking:part4:1', 'Part 4', part4Topic.title, screen === 'part4Question' || screen === 'part4Prompt', () => {
+        setPart4Phase('prepare');
+        setScreen('part4Question');
+      })
+    ];
+  }
 
   return (
     <div className="min-h-screen bg-[#f1f1f1] text-[#040817]">
@@ -1925,10 +2119,10 @@ export function MockTests() {
           {screen === 'fullStart' && <FullStart mockCard={selectedMockCard} onStart={startFullSpeaking} />}
           {screen === 'readingStart' && <ReadingStart onStart={() => setScreen('readingInstructions')} />}
           {screen === 'readingInstructions' && <ReadingInstructions />}
-          {screen === 'readingQuestion' && <ReadingQuestion answers={readingGapAnswers} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} />}
-          {screen === 'readingCohesion' && <ReadingCohesion answers={readingCohesionAnswers[readingCohesionIndex] ?? []} questionIndex={readingCohesionIndex} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(answers) => setReadingCohesionAnswers((currentAnswers) => ({ ...currentAnswers, [readingCohesionIndex]: answers }))} />}
-          {screen === 'readingOpinion' && <ReadingOpinion answers={readingOpinionAnswers} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingOpinionAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} />}
-          {screen === 'readingLong' && <ReadingLong answers={readingLongAnswers} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingLongAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} />}
+          {screen === 'readingQuestion' && <ReadingQuestion answers={readingGapAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part1', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part1', 1))} />}
+          {screen === 'readingCohesion' && <ReadingCohesion answers={readingCohesionAnswers[readingCohesionIndex] ?? []} bookmarkActive={isBookmarked(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} questionIndex={readingCohesionIndex} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(answers) => setReadingCohesionAnswers((currentAnswers) => ({ ...currentAnswers, [readingCohesionIndex]: answers }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} />}
+          {screen === 'readingOpinion' && <ReadingOpinion answers={readingOpinionAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part4', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingOpinionAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part4', 1))} />}
+          {screen === 'readingLong' && <ReadingLong answers={readingLongAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part5', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingLongAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part5', 1))} />}
           {screen === 'fullResult' && (
             <FullResult
               grammar={grammarSummary}
@@ -1961,6 +2155,7 @@ export function MockTests() {
           {screen === 'writingPart' && (
             <WritingPart
               answer={writingAnswers[writingPartIndex] ?? ''}
+              bookmarkActive={isBookmarked(bookmarkKey('writing', writingPartIndex + 1))}
               emailAnswers={writingEmailAnswers}
               part={writingParts[writingPartIndex]}
               partIndex={writingPartIndex}
@@ -1969,6 +2164,7 @@ export function MockTests() {
               threeAnswers={writingThreeAnswers}
               timeRemaining={formatReadingTime(writingSeconds)}
               onAnswer={(answer) => setWritingAnswers((currentAnswers) => ({ ...currentAnswers, [writingPartIndex]: answer }))}
+              onToggleBookmark={() => toggleBookmark(bookmarkKey('writing', writingPartIndex + 1))}
               onEmailAnswer={(key, answer) => setWritingEmailAnswers((currentAnswers) => ({ ...currentAnswers, [key]: answer }))}
               onShortAnswer={(index, answer) => setWritingShortAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))}
               onThreeAnswer={(index, answer) => setWritingThreeAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))}
@@ -1991,12 +2187,14 @@ export function MockTests() {
           {screen === 'grammarQuestion' && (
             <GrammarQuestion
               answer={grammarAnswers[grammarQuestionIndex]}
+              bookmarkActive={isBookmarked(bookmarkKey('grammar', grammarQuestionIndex + 1))}
               index={grammarQuestionIndex}
               question={grammarQuestions[grammarQuestionIndex]}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(grammarSeconds)}
               total={grammarQuestions.length}
               onAnswer={(answer) => setGrammarAnswers((currentAnswers) => ({ ...currentAnswers, [grammarQuestionIndex]: answer }))}
+              onToggleBookmark={() => toggleBookmark(bookmarkKey('grammar', grammarQuestionIndex + 1))}
             />
           )}
           {screen === 'grammarResult' && (
@@ -2014,6 +2212,7 @@ export function MockTests() {
           {screen === 'listeningQuestion' && (
             <ListeningQuestion
               answer={listeningAnswers[listeningQuestionIndex]}
+              bookmarkActive={isBookmarked(bookmarkKey('listening-part1', listeningQuestionIndex + 1))}
               correctAnswer={activeListeningPart1AnswerKey[listeningQuestionIndex]}
               index={listeningQuestionIndex}
               question={activeListeningPart1Questions[listeningQuestionIndex]}
@@ -2021,34 +2220,41 @@ export function MockTests() {
               timeRemaining={formatReadingTime(listeningSeconds)}
               total={activeListeningPart1Questions.length}
               onAnswer={(answer) => setListeningAnswers((currentAnswers) => ({ ...currentAnswers, [listeningQuestionIndex]: answer }))}
+              onToggleBookmark={() => toggleBookmark(bookmarkKey('listening-part1', listeningQuestionIndex + 1))}
             />
           )}
           {screen === 'listeningMatching' && (
             <ListeningMatching
               audioUrl={activeListeningAudioByPart['2']}
               answers={listeningMatchingAnswers}
+              bookmarkActive={isBookmarked(bookmarkKey('listening-part2', 1))}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
               onAnswer={(speaker, answer) => setListeningMatchingAnswers((currentAnswers) => ({ ...currentAnswers, [speaker]: answer }))}
+              onToggleBookmark={() => toggleBookmark(bookmarkKey('listening-part2', 1))}
             />
           )}
           {screen === 'listeningShort' && (
             <ListeningShortConversations
               audioUrl={activeListeningAudioByPart['3']}
               answers={listeningShortAnswers}
+              bookmarkActive={isBookmarked(bookmarkKey('listening-part3', 1))}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
               onAnswer={(index, answer) => setListeningShortAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))}
+              onToggleBookmark={() => toggleBookmark(bookmarkKey('listening-part3', 1))}
             />
           )}
           {screen === 'listeningMonologues' && (
             <ListeningMonologues
               audioUrl={activeListeningAudioByPart[`4-${listeningMonologueIndex}`] ?? activeListeningAudioByPart['4']}
               answers={listeningMonologueAnswers}
+              bookmarkActive={isBookmarked(bookmarkKey('listening-part4', listeningMonologueIndex + 1))}
               index={listeningMonologueIndex}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
               onAnswer={(questionIndex, answer) => setListeningMonologueAnswers((currentAnswers) => ({ ...currentAnswers, [`${listeningMonologueIndex}-${questionIndex}`]: answer }))}
+              onToggleBookmark={() => toggleBookmark(bookmarkKey('listening-part4', listeningMonologueIndex + 1))}
             />
           )}
           {screen === 'listeningResult' && (
@@ -2358,6 +2564,12 @@ export function MockTests() {
           )}
         </div>
       )}
+      {questionListOpen && (
+        <QuestionListPanel
+          items={questionListItems}
+          onClose={() => setQuestionListOpen(false)}
+        />
+      )}
     </div>
   );
 }
@@ -2582,6 +2794,135 @@ function InfoBox({ icon, label, value }: { icon: ReactNode; label: string; value
         {label}
       </div>
       <p className="mt-2 text-lg font-extrabold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function BookmarkButton({
+  active,
+  height = 44,
+  iconSize = 18,
+  fontSize = 17,
+  padding = '0 16px',
+  onToggle
+}: {
+  active: boolean;
+  height?: number;
+  iconSize?: number;
+  fontSize?: number;
+  padding?: string;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={active}
+      title={active ? 'Bỏ bookmark câu này' : 'Bookmark câu này'}
+      style={{
+        height,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: iconSize >= 22 ? 12 : 10,
+        borderRadius: iconSize >= 22 ? 16 : 14,
+        border: active ? '1px solid #7c3aed' : '1px solid #dce3ee',
+        backgroundColor: active ? '#f3efff' : '#ffffff',
+        padding,
+        color: active ? '#2b075c' : '#020817',
+        fontSize,
+        fontWeight: active ? 800 : 500
+      }}
+    >
+      <Bookmark size={iconSize} fill={active ? '#2b075c' : 'none'} />
+      {active ? 'Bookmarked' : 'Bookmark'}
+    </button>
+  );
+}
+
+function QuestionListPanel({ items, onClose }: { items: QuestionListItem[]; onClose: () => void }) {
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 60,
+        backgroundColor: 'rgba(15, 23, 42, 0.32)',
+        display: 'flex',
+        justifyContent: 'flex-start'
+      }}
+      onClick={onClose}
+    >
+      <aside
+        style={{
+          width: 'min(420px, 100%)',
+          height: '100%',
+          backgroundColor: '#ffffff',
+          boxShadow: '18px 0 36px rgba(15, 23, 42, 0.18)',
+          padding: '24px',
+          overflowY: 'auto'
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <div>
+            <p style={{ margin: 0, color: '#64748b', fontSize: 13, fontWeight: 800, textTransform: 'uppercase' }}>Question navigator</p>
+            <h2 style={{ margin: '5px 0 0', color: '#020817', fontSize: 24, fontWeight: 900 }}>Danh sách câu hỏi</h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              width: 42,
+              height: 42,
+              display: 'grid',
+              placeItems: 'center',
+              borderRadius: '50%',
+              border: '1px solid #dce3ee',
+              backgroundColor: '#ffffff',
+              color: '#475569'
+            }}
+            aria-label="Đóng danh sách câu hỏi"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
+          {items.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => {
+                item.onSelect();
+                onClose();
+              }}
+              style={{
+                width: '100%',
+                minHeight: 66,
+                display: 'grid',
+                gridTemplateColumns: '1fr auto',
+                alignItems: 'center',
+                gap: 14,
+                borderRadius: 14,
+                border: item.active ? '2px solid #2b075c' : '1px solid #dce3ee',
+                backgroundColor: item.active ? '#f3efff' : '#ffffff',
+                padding: '12px 14px',
+                textAlign: 'left',
+                color: '#020817'
+              }}
+            >
+              <span>
+                <span style={{ display: 'block', fontSize: 16, fontWeight: 900 }}>{item.label}</span>
+                <span style={{ display: 'block', marginTop: 4, color: '#64748b', fontSize: 13, fontWeight: 600, lineHeight: '18px' }}>{item.detail}</span>
+              </span>
+              <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {item.bookmarked && <Bookmark size={18} fill="#2b075c" color="#2b075c" />}
+                {item.active && <span style={{ borderRadius: 999, backgroundColor: '#2b075c', padding: '5px 9px', color: '#ffffff', fontSize: 12, fontWeight: 900 }}>Đang làm</span>}
+              </span>
+            </button>
+          ))}
+        </div>
+      </aside>
     </div>
   );
 }
@@ -2828,7 +3169,7 @@ function GrammarInstructions() {
   );
 }
 
-function GrammarQuestion({ answer, index, question, showAnswer, timeRemaining, total, onAnswer }: { answer?: string; index: number; question: GrammarQuestionItem; showAnswer?: boolean; timeRemaining: string; total: number; onAnswer: (answer: string) => void }) {
+function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, timeRemaining, total, onAnswer, onToggleBookmark }: { answer?: string; bookmarkActive: boolean; index: number; question: GrammarQuestionItem; showAnswer?: boolean; timeRemaining: string; total: number; onAnswer: (answer: string) => void; onToggleBookmark: () => void }) {
   const matchingSelections = parseGrammarMatchingAnswer(answer);
   const updateMatchingAnswer = (word: string, value: string) => {
     onAnswer(JSON.stringify({ ...matchingSelections, [word]: value }));
@@ -2850,24 +3191,7 @@ function GrammarQuestion({ answer, index, question, showAnswer, timeRemaining, t
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12 }}>
-            <button
-              type="button"
-              style={{
-                height: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                border: '1px solid #d9e1ec',
-                borderRadius: 14,
-                backgroundColor: '#ffffff',
-                padding: '0 18px',
-                color: '#64748b',
-                fontSize: 17
-              }}
-            >
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} padding="0 18px" />
             <button
               type="button"
               style={{
@@ -3180,6 +3504,7 @@ function WritingInstructions() {
 
 function WritingPart({
   answer,
+  bookmarkActive,
   emailAnswers,
   part,
   partIndex,
@@ -3190,9 +3515,11 @@ function WritingPart({
   onAnswer,
   onEmailAnswer,
   onShortAnswer,
-  onThreeAnswer
+  onThreeAnswer,
+  onToggleBookmark
 }: {
   answer: string;
+  bookmarkActive: boolean;
   emailAnswers: Record<string, string>;
   part: typeof writingParts[number];
   partIndex: number;
@@ -3204,6 +3531,7 @@ function WritingPart({
   onEmailAnswer: (key: string, answer: string) => void;
   onShortAnswer: (index: number, answer: string) => void;
   onThreeAnswer: (index: number, answer: string) => void;
+  onToggleBookmark: () => void;
 }) {
   const wordCount = answer.trim() ? answer.trim().split(/\s+/).length : 0;
   const isShortAnswerPart = partIndex === 0;
@@ -3229,10 +3557,7 @@ function WritingPart({
             <h2 style={{ color: '#020817', fontSize: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? 17 : 28, fontWeight: 900, lineHeight: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? '23px' : '34px', margin: '4px 0 0', maxWidth: isEmailPart ? 620 : isThreeQuestionsPart ? 470 : 450 }}>{part.heading}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button type="button" style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#020817', fontSize: 17, fontWeight: 500 }}>
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button type="button" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
               <Pause size={18} />
             </button>
@@ -3636,15 +3961,18 @@ function ListeningInstructions() {
 
 function ListeningQuestion({
   answer,
+  bookmarkActive,
   correctAnswer,
   index,
   question,
   showAnswer,
   timeRemaining,
   total,
-  onAnswer
+  onAnswer,
+  onToggleBookmark
 }: {
   answer?: string;
+  bookmarkActive: boolean;
   correctAnswer?: string;
   index: number;
   question: ListeningPart1Question;
@@ -3652,6 +3980,7 @@ function ListeningQuestion({
   timeRemaining: string;
   total: number;
   onAnswer: (answer: string) => void;
+  onToggleBookmark: () => void;
 }) {
   const labels = ['A', 'B', 'C'];
   const { playing, playsLeft, toggleAudio } = useAudioPlayer(question.audioUrl);
@@ -3671,25 +4000,7 @@ function ListeningQuestion({
             <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question {index + 1} of {total}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button
-              type="button"
-              style={{
-                height: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                borderRadius: 14,
-                border: '1px solid #dce3ee',
-                backgroundColor: '#ffffff',
-                padding: '0 16px',
-                color: '#020817',
-                fontSize: 17,
-                fontWeight: 500
-              }}
-            >
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
               style={{
@@ -3802,15 +4113,19 @@ function ListeningQuestion({
 function ListeningMatching({
   audioUrl,
   answers,
+  bookmarkActive,
   showAnswer,
   timeRemaining,
-  onAnswer
+  onAnswer,
+  onToggleBookmark
 }: {
   audioUrl?: string;
   answers: Record<string, string>;
+  bookmarkActive: boolean;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (speaker: string, answer: string) => void;
+  onToggleBookmark: () => void;
 }) {
   const speakers = ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'];
   const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
@@ -3830,25 +4145,7 @@ function ListeningMatching({
             <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question 1 of 1</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button
-              type="button"
-              style={{
-                height: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                borderRadius: 14,
-                border: '1px solid #dce3ee',
-                backgroundColor: '#ffffff',
-                padding: '0 16px',
-                color: '#020817',
-                fontSize: 17,
-                fontWeight: 500
-              }}
-            >
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
               style={{
@@ -3950,15 +4247,19 @@ function ListeningMatching({
 function ListeningShortConversations({
   audioUrl,
   answers,
+  bookmarkActive,
   showAnswer,
   timeRemaining,
-  onAnswer
+  onAnswer,
+  onToggleBookmark
 }: {
   audioUrl?: string;
   answers: Record<number, string>;
+  bookmarkActive: boolean;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (index: number, answer: string) => void;
+  onToggleBookmark: () => void;
 }) {
   const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
 
@@ -3977,25 +4278,7 @@ function ListeningShortConversations({
             <h2 style={{ color: '#020817', fontSize: 34, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question 1 of 1</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button
-              type="button"
-              style={{
-                height: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                borderRadius: 14,
-                border: '1px solid #dce3ee',
-                backgroundColor: '#ffffff',
-                padding: '0 16px',
-                color: '#020817',
-                fontSize: 17,
-                fontWeight: 500
-              }}
-            >
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
               style={{
@@ -4098,17 +4381,21 @@ function ListeningShortConversations({
 function ListeningMonologues({
   audioUrl,
   answers,
+  bookmarkActive,
   index,
   showAnswer,
   timeRemaining,
-  onAnswer
+  onAnswer,
+  onToggleBookmark
 }: {
   audioUrl?: string;
   answers: Record<string, string>;
+  bookmarkActive: boolean;
   index: number;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (questionIndex: number, answer: string) => void;
+  onToggleBookmark: () => void;
 }) {
   const labels = ['A', 'B', 'C'];
   const currentRecording = listeningMonologues[index];
@@ -4129,25 +4416,7 @@ function ListeningMonologues({
             <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Recording {index + 1} of {listeningMonologues.length}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button
-              type="button"
-              style={{
-                height: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                borderRadius: 14,
-                border: '1px solid #dce3ee',
-                backgroundColor: '#ffffff',
-                padding: '0 16px',
-                color: '#020817',
-                fontSize: 17,
-                fontWeight: 500
-              }}
-            >
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
               style={{
@@ -4319,7 +4588,7 @@ function ReadingInstructions() {
   );
 }
 
-function ReadingQuestion({ answers, showAnswer, timeRemaining, onAnswer }: { answers: Record<number, string>; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void }) {
+function ReadingQuestion({ answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
   const options = ['see', 'watch', 'look', 'view'];
   const exampleOptions = ['window', 'store', 'market', 'restaurant'];
   const placeOptions = ['shop', 'store', 'market', 'restaurant'];
@@ -4341,24 +4610,7 @@ function ReadingQuestion({ answers, showAnswer, timeRemaining, onAnswer }: { ans
             <h2 style={{ color: '#020817', fontSize: 38, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question 1 of 5</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 20 }}>
-            <button
-              style={{
-                height: 52,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 12,
-                borderRadius: 16,
-                border: '1px solid #dce3ee',
-                backgroundColor: '#ffffff',
-                padding: '0 20px',
-                color: '#020817',
-                fontSize: 20,
-                fontWeight: 500
-              }}
-            >
-              <Bookmark size={22} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} height={52} iconSize={22} fontSize={20} padding="0 20px" onToggle={onToggleBookmark} />
             <button
               style={{
                 width: 52,
@@ -4415,7 +4667,7 @@ function ReadingQuestion({ answers, showAnswer, timeRemaining, onAnswer }: { ans
   );
 }
 
-function ReadingCohesion({ answers, questionIndex, showAnswer, timeRemaining, onAnswer }: { answers: string[]; questionIndex: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void }) {
+function ReadingCohesion({ answers, bookmarkActive, questionIndex, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: string[]; bookmarkActive: boolean; questionIndex: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void; onToggleBookmark: () => void }) {
   const questions = [
     {
       title: 'Tom Harper',
@@ -4470,24 +4722,7 @@ function ReadingCohesion({ answers, questionIndex, showAnswer, timeRemaining, on
             <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question {questionIndex + 1} of 2</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button
-              style={{
-                height: 44,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 10,
-                borderRadius: 14,
-                border: '1px solid #dce3ee',
-                backgroundColor: '#ffffff',
-                padding: '0 16px',
-                color: '#475569',
-                fontSize: 17,
-                fontWeight: 500
-              }}
-            >
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               style={{
                 width: 44,
@@ -4655,7 +4890,7 @@ function CohesionSlot({ number, filled, onDropChoice }: { number: number; filled
   );
 }
 
-function ReadingOpinion({ answers, showAnswer, timeRemaining, onAnswer }: { answers: Record<number, string>; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void }) {
+function ReadingOpinion({ answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
   const people = [
     {
       label: 'A',
@@ -4693,10 +4928,7 @@ function ReadingOpinion({ answers, showAnswer, timeRemaining, onAnswer }: { answ
             <p style={{ color: '#020817', fontSize: 20, fontWeight: 800, margin: 0 }}>Reading</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button style={{ height: 46, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 17, fontWeight: 500 }}>
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} height={46} onToggle={onToggleBookmark} />
             <button style={{ width: 46, height: 46, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
               <Pause size={18} />
             </button>
@@ -4748,7 +4980,7 @@ function ReadingOpinion({ answers, showAnswer, timeRemaining, onAnswer }: { answ
   );
 }
 
-function ReadingLong({ answers, showAnswer, timeRemaining, onAnswer }: { answers: Record<number, string>; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void }) {
+function ReadingLong({ answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
   const headings = [
     'A global writer',
     'Difficult language',
@@ -4778,10 +5010,7 @@ function ReadingLong({ answers, showAnswer, timeRemaining, onAnswer }: { answers
             <p style={{ color: '#64748b', fontSize: 16, margin: '4px 0 0' }}>7 paragraphs · 7 headings</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
-            <button style={{ height: 46, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 17, fontWeight: 500 }}>
-              <Bookmark size={18} />
-              Bookmark
-            </button>
+            <BookmarkButton active={bookmarkActive} height={46} onToggle={onToggleBookmark} />
             <button style={{ width: 46, height: 46, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
               <Pause size={18} />
             </button>
@@ -5411,7 +5640,7 @@ function WritingAnswerContent({ part, partIndex }: { part: typeof writingParts[n
   return <>Chưa có đáp án mẫu cho phần Writing này.</>;
 }
 
-function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = false, nextLabel = 'Next', onPrevious, onNext, onToggleAnswer }: { answerOpen?: boolean; showAnswer?: boolean; nextDisabled?: boolean; nextLabel?: string; onPrevious: () => void; onNext: () => void; onToggleAnswer?: () => void }) {
+function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = false, nextLabel = 'Next', onOpenQuestionList, onPrevious, onNext, onToggleAnswer }: { answerOpen?: boolean; showAnswer?: boolean; nextDisabled?: boolean; nextLabel?: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void; onToggleAnswer?: () => void }) {
   return (
     <footer
       className="mock-reading-footer"
@@ -5449,7 +5678,7 @@ function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = 
         </div>
 
         <div className="mock-reading-footer-tools" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <UtilityIcon icon={<List size={21} />} />
+          <UtilityIcon icon={<List size={21} />} label="Danh sách câu hỏi" onClick={onOpenQuestionList} />
           <UtilityIcon icon={<Info size={21} />} />
           <UtilityIcon icon={<Move size={20} />} />
         </div>
@@ -5701,7 +5930,7 @@ function SpeakingQuestion({ question, index, total, seconds, showAnswer, isReadi
         </aside>
       </section>
 
-      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="mock-speaking-side-actions" style={speakingSideActionsStyle}>
         <button type="button" onClick={onToggleAnswer} style={sideActionStyle}>
           <Eye size={17} />
           {showAnswer ? 'Ẩn đáp án' : 'Hiện đáp án'}
@@ -5821,7 +6050,7 @@ function Part2Question({ question, index, total, seconds, showAnswer, isReading,
         </aside>
       </section>
 
-      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="mock-speaking-side-actions" style={speakingSideActionsStyle}>
         <button type="button" onClick={onOpenDraft} style={sideActionStyle}>
           <FileText size={17} />
           Nháp
@@ -5954,7 +6183,7 @@ function Part3Question({ question, index, total, seconds, showAnswer, isReading,
         </aside>
       </section>
 
-      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="mock-speaking-side-actions" style={speakingSideActionsStyle}>
         <button type="button" onClick={onOpenDraft} style={sideActionStyle}>
           <FileText size={17} />
           Nháp
@@ -6134,7 +6363,7 @@ function Part4Question({ phase, seconds, showAnswer, microphoneLevel, onToggleAn
         </aside>
       </section>
 
-      <div className="mock-speaking-side-actions" style={{ position: 'fixed', left: 20, bottom: 88, display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div className="mock-speaking-side-actions" style={speakingSideActionsStyle}>
         <button type="button" onClick={onOpenDraft} style={sideActionStyle}>
           <FileText size={17} />
           Nháp
@@ -6398,6 +6627,17 @@ const sideActionStyle = {
   boxShadow: '0 2px 6px rgba(15, 23, 42, 0.12)'
 } as const;
 
+const speakingSideActionsStyle = {
+  position: 'fixed',
+  left: 'max(72px, calc((100vw - 1400px) / 2 + 24px))',
+  bottom: 62,
+  display: 'flex',
+  flexDirection: 'row',
+  alignItems: 'center',
+  flexWrap: 'wrap',
+  gap: 12
+} as const;
+
 function AutoScoredRecordingNote() {
   return (
     <div style={{ marginTop: 24, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: '14px 16px', color: '#64748b', fontSize: 15, lineHeight: '22px', fontWeight: 700 }}>
@@ -6574,7 +6814,7 @@ function FeedbackList({ title, items }: { title: string; items: string[] }) {
     </div>
   );
 }
-function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onPrevious, onNext }: { canPrevious: boolean; canNext?: boolean; showNext: boolean; nextLabel: string; onPrevious: () => void; onNext: () => void }) {
+function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onOpenQuestionList, onPrevious, onNext }: { canPrevious: boolean; canNext?: boolean; showNext: boolean; nextLabel: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void }) {
   return (
     <footer
       style={{
@@ -6599,7 +6839,7 @@ function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onPr
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <UtilityIcon icon={<List size={21} />} />
+          <UtilityIcon icon={<List size={21} />} label="Danh sách câu hỏi" onClick={onOpenQuestionList} />
           <UtilityIcon icon={<Info size={21} />} />
           <UtilityIcon icon={<Move size={20} />} />
         </div>
@@ -6660,9 +6900,13 @@ function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onPr
   );
 }
 
-function UtilityIcon({ icon }: { icon: ReactNode }) {
+function UtilityIcon({ icon, label, onClick }: { icon: ReactNode; label?: string; onClick?: () => void }) {
+  const handleClick = onClick ?? (label === 'Danh sách câu hỏi'
+    ? () => window.dispatchEvent(new Event('aptis-open-question-list'))
+    : undefined);
+
   return (
-    <button type="button" className="grid h-11 w-11 place-items-center rounded-full border border-[#d8e1ee] bg-white text-[#60708a] hover:bg-slate-50">
+    <button type="button" aria-label={label} title={label} onClick={handleClick} className="grid h-11 w-11 place-items-center rounded-full border border-[#d8e1ee] bg-white text-[#60708a] hover:bg-slate-50">
       {icon}
     </button>
   );
