@@ -1,10 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []) {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reloadIndex, setReloadIndex] = useState(0);
+
+  const reload = useCallback(() => {
+    setReloadIndex((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -24,7 +29,7 @@ export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []) {
         const message = status === 401
           ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
           : status === 403
-            ? 'Phiên học đã hết hạn hoặc tài khoản chưa được gia hạn.'
+            ? 'Bạn không có quyền truy cập dữ liệu này.'
             : apiMessage
               ? `${apiMessage}${detail}`
               : status
@@ -43,7 +48,7 @@ export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []) {
     return () => {
       mounted = false;
     };
-  }, deps);
+  }, [...deps, reloadIndex]);
 
-  return { data, loading, error, setData };
+  return { data, loading, error, reload, setData };
 }

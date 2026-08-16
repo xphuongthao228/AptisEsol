@@ -2620,7 +2620,7 @@ function MockSelectLayout({ children }: { children: ReactNode }) {
           </Link>
           <button onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
             <LogOut size={20} />
-            ĐĒng xuất
+            Đăng xuất
           </button>
         </div>
       </aside>

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { CalendarPlus, Lock, Pencil, Search, Trash2, Unlock, UserCheck, UserX, Wifi } from 'lucide-react';
+import { AlertCircle, CalendarPlus, Lock, Pencil, RefreshCw, Search, Trash2, Unlock, UserCheck, UserX, Wifi } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { RoleName, User } from '../../types';
@@ -10,7 +10,7 @@ type RoleFilter = 'ALL' | RoleName;
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
 
 export function AdminUsers() {
-  const { data, loading, setData } = useApi<User[]>(() => unwrap(api.get('/users')), []);
+  const { data, error, loading, reload, setData } = useApi<User[]>(() => unwrap(api.get('/users')), []);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [role, setRole] = useState<RoleFilter>('ALL');
@@ -40,11 +40,31 @@ export function AdminUsers() {
     const intervalId = window.setInterval(() => {
       refreshOnlineData().catch(() => undefined);
     }, 10_000);
+    window.addEventListener('focus', reload);
 
-    return () => window.clearInterval(intervalId);
-  }, [setData]);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', reload);
+    };
+  }, [reload, setData]);
 
-  if (loading) return <div className="card p-6">Đang tải người dùng...</div>;
+  if (loading && !data) return <div className="card p-6">Đang tải người dùng...</div>;
+
+  if (error && !data) {
+    return (
+      <div className="card flex items-start gap-3 p-6">
+        <AlertCircle className="mt-0.5 shrink-0 text-red-600" size={22} />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-extrabold text-slate-950">Không tải được dữ liệu người dùng</h1>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{error}</p>
+          <button type="button" onClick={reload} className="btn-primary mt-4 h-10 px-4">
+            <RefreshCw size={17} />
+            Tải lại
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   async function toggleUser(user: User) {
     const updated = await unwrap<User>(api.put(`/users/${user.id}`, { fullName: user.fullName, enabled: !user.enabled }));
@@ -95,7 +115,13 @@ export function AdminUsers() {
           <h1 className="text-2xl font-extrabold">Quản lý người dùng</h1>
           <p className="mt-1 text-sm text-slate-500">Tìm kiếm, lọc, khóa/mở khóa, sửa tên và xóa mềm tài khoản.</p>
         </div>
-        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:flex">
+        <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:flex lg:items-center">
+          {error && (
+            <button type="button" onClick={reload} className="btn-secondary h-12 px-4 text-red-600">
+              <RefreshCw size={17} />
+              Tải lại
+            </button>
+          )}
           <Summary label="Hoạt động" value={activeUsers.length} icon={<UserCheck size={18} />} />
           <Summary label="Đang truy cập" value={onlineUsers.length} icon={<Wifi size={18} />} />
           <Summary label="Hết hạn" value={expiredUsers.length} icon={<UserX size={18} />} />
@@ -107,14 +133,14 @@ export function AdminUsers() {
         <div className="grid gap-3 lg:grid-cols-[1fr_180px_180px]">
           <div className="flex h-11 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3">
             <Search size={18} className="text-slate-400" />
-            <input className="w-full border-0 bg-transparent text-sm outline-none" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Tìm theo tên hoặc email..." />
+            <input className="w-full border-0 bg-transparent text-sm outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc email..." />
           </div>
-          <select className="input" value={role} onChange={(e) => setRole(e.target.value as RoleFilter)}>
+          <select className="input" value={role} onChange={(event) => setRole(event.target.value as RoleFilter)}>
             <option value="ALL">Tất cả role</option>
             <option value="ADMIN">ADMIN</option>
             <option value="STUDENT">STUDENT</option>
           </select>
-          <select className="input" value={status} onChange={(e) => setStatus(e.target.value as StatusFilter)}>
+          <select className="input" value={status} onChange={(event) => setStatus(event.target.value as StatusFilter)}>
             <option value="ALL">Tất cả trạng thái</option>
             <option value="ACTIVE">Hoạt động</option>
             <option value="ONLINE">Đang truy cập</option>
@@ -127,7 +153,15 @@ export function AdminUsers() {
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs uppercase text-slate-500">
-              <tr><th className="p-4">Người dùng</th><th className="p-4">Email</th><th className="p-4">Role</th><th className="p-4">Hạn học</th><th className="p-4">Truy cập</th><th className="p-4">Trạng thái</th><th className="p-4 text-right">Thao tác</th></tr>
+              <tr>
+                <th className="p-4">Người dùng</th>
+                <th className="p-4">Email</th>
+                <th className="p-4">Role</th>
+                <th className="p-4">Hạn học</th>
+                <th className="p-4">Truy cập</th>
+                <th className="p-4">Trạng thái</th>
+                <th className="p-4 text-right">Thao tác</th>
+              </tr>
             </thead>
             <tbody>
               {filtered.map((user) => (
@@ -156,7 +190,8 @@ export function AdminUsers() {
             </tbody>
           </table>
         </div>
-        {!filtered.length && <div className="p-6 text-center text-sm text-slate-500">Không tìm thấy người dùng phù hợp.</div>}
+        {!filtered.length && !error && <div className="p-6 text-center text-sm text-slate-500">Không tìm thấy người dùng phù hợp.</div>}
+        {error && data && <div className="border-t border-amber-100 bg-amber-50 p-4 text-center text-sm font-semibold text-amber-700">{error} Dữ liệu cũ vẫn được giữ lại, bấm Tải lại để thử lại.</div>}
       </div>
     </div>
   );
