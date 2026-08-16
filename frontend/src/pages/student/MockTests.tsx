@@ -857,11 +857,13 @@ function limitWords(value: string, maxWords: number) {
 function useAudioPlayer(audioUrl?: string) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [playCount, setPlayCount] = useState(0);
 
   useEffect(() => {
     audioRef.current?.pause();
     audioRef.current = null;
     setPlaying(false);
+    setPlayCount(0);
   }, [audioUrl]);
 
   useEffect(() => () => {
@@ -890,7 +892,12 @@ function useAudioPlayer(audioUrl?: string) {
         audioRef.current.pause();
         setPlaying(false);
       } else {
+        if (playCount >= 2) {
+          toast.error('Bạn chỉ được nghe tối đa 2 lần cho mỗi file nghe.');
+          return;
+        }
         await audioRef.current.play();
+        setPlayCount((count) => count + 1);
         setPlaying(true);
       }
     } catch {
@@ -899,7 +906,7 @@ function useAudioPlayer(audioUrl?: string) {
     }
   }
 
-  return { playing, toggleAudio };
+  return { playing, playCount, playsLeft: Math.max(0, 2 - playCount), toggleAudio };
 }
 
 function sameAnswer(user?: string, answer?: string) {
@@ -3647,7 +3654,7 @@ function ListeningQuestion({
   onAnswer: (answer: string) => void;
 }) {
   const labels = ['A', 'B', 'C'];
-  const { playing, toggleAudio } = useAudioPlayer(question.audioUrl);
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(question.audioUrl);
 
   return (
     <main
@@ -3727,6 +3734,7 @@ function ListeningQuestion({
           >
             <PlayCircle size={18} />
             {playing ? 'Stop' : 'Play'}
+            {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
           </button>
 
           <div
@@ -3805,7 +3813,7 @@ function ListeningMatching({
   onAnswer: (speaker: string, answer: string) => void;
 }) {
   const speakers = ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'];
-  const { playing, toggleAudio } = useAudioPlayer(audioUrl);
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
 
   return (
     <main
@@ -3887,6 +3895,7 @@ function ListeningMatching({
           >
             <PlayCircle size={18} />
             {playing ? 'Stop' : 'Play'}
+            {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
           </button>
 
           <div style={{ display: 'grid', gap: 14, marginTop: 26, width: 'min(625px, 100%)' }}>
@@ -3951,7 +3960,7 @@ function ListeningShortConversations({
   timeRemaining: string;
   onAnswer: (index: number, answer: string) => void;
 }) {
-  const { playing, toggleAudio } = useAudioPlayer(audioUrl);
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
 
   return (
     <main
@@ -4031,6 +4040,7 @@ function ListeningShortConversations({
           >
             <PlayCircle size={18} />
             {playing ? 'Stop' : 'Play'}
+            {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
           </button>
 
           <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: '44px 0 30px' }}>Who expresses which opinion?</p>
@@ -4102,7 +4112,7 @@ function ListeningMonologues({
 }) {
   const labels = ['A', 'B', 'C'];
   const currentRecording = listeningMonologues[index];
-  const { playing, toggleAudio } = useAudioPlayer(audioUrl);
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
 
   return (
     <main
@@ -4180,6 +4190,7 @@ function ListeningMonologues({
         >
           <PlayCircle size={18} />
           {playing ? 'Stop' : 'Play'}
+          {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
         </button>
 
         <div style={{ display: 'grid', gap: 36, marginTop: 26 }}>
