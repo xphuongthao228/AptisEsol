@@ -966,7 +966,9 @@ function mergeSameSpeakingTemplateData(data: TemplateData | null, questions: Que
   const mergedQuestions = questions.flatMap((question) => {
     const itemData = getRenderableTemplateData(question, test, questions.length);
     if (itemData?.template !== data.template) return [];
-    return Array.isArray(itemData.questions) ? itemData.questions : [];
+    if (Array.isArray(itemData.questions) && itemData.questions.length) return itemData.questions;
+    const singleQuestion = speakingSingleQuestionFromTemplate(itemData);
+    return singleQuestion ? [singleQuestion] : [];
   });
 
   if (mergedQuestions.length <= (Array.isArray(data.questions) ? data.questions.length : 0)) return data;
@@ -975,6 +977,15 @@ function mergeSameSpeakingTemplateData(data: TemplateData | null, questions: Que
     total: mergedQuestions.length,
     questions: mergedQuestions
   };
+}
+
+function speakingSingleQuestionFromTemplate(data: TemplateData | null) {
+  if (!data?.template?.startsWith('SPEAKING_PART')) return null;
+  const { template: _template, total: _total, title: _title, part: _part, ...rest } = data;
+  const hasSpeakingPrompt = Object.keys(rest).some((key) =>
+    /^(question|q|prompt|urlpic|urlPic|image|picture|answer|sample)/i.test(key)
+  );
+  return hasSpeakingPrompt ? rest : null;
 }
 
 function isFullListeningExam(test: Test | null, questions: Question[]) {
@@ -2856,8 +2867,10 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
           <div className="mb-4 h-1.5 rounded-full bg-slate-200">
             <div className="h-full rounded-full bg-sky-500 transition-all" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex items-center gap-3 text-base font-extrabold text-slate-700">
-            Speak question <InlineNumber value={index + 1} /> / {questions.length}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-base font-extrabold text-slate-700">
+              Speak question <InlineNumber value={index + 1} /> / {questions.length}
+            </div>
             <button type="button" onClick={openSummary} className="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
               Trang tổng hợp
             </button>
@@ -3125,8 +3138,10 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
           <div className="mb-4 h-1.5 rounded-full bg-slate-200">
             <div className="h-full rounded-full bg-sky-500 transition-all" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex items-center gap-3 text-base font-extrabold text-slate-700">
-            Speak question <InlineNumber value={index + 1} /> / {questions.length}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3 text-base font-extrabold text-slate-700">
+              Speak question <InlineNumber value={index + 1} /> / {questions.length}
+            </div>
             <button type="button" onClick={openSummary} className="ml-auto rounded-lg border border-slate-300 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-50">
               Trang tổng hợp
             </button>
