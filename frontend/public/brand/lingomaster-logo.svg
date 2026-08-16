@@ -1,0 +1,29 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="112" fill="#FFFFFF"/>
+  <rect x="10" y="10" width="492" height="492" rx="102" stroke="#E5E7EB" stroke-width="20"/>
+  <circle cx="256" cy="242" r="172" fill="#FFFFFF"/>
+  <g filter="url(#shadow)">
+    <path d="M156 168C156 156.954 164.954 148 176 148H190C227.75 148 256 161.5 256 186V330C239.5 306 213.5 292 177 292H176C164.954 292 156 283.046 156 272V168Z" fill="url(#leftBook)"/>
+    <path d="M356 168C356 156.954 347.046 148 336 148H322C284.25 148 256 161.5 256 186V330C272.5 306 298.5 292 335 292H336C347.046 292 356 283.046 356 272V168Z" fill="url(#rightBook)"/>
+    <path d="M134 202C126.268 211.762 122 224.023 122 236.712V285C122 313.719 145.281 337 174 337H198C224.827 337 241.563 347.33 250 365V330C238.018 317.278 219.262 311 198 311H174C159.641 311 148 299.359 148 285V213C148 208.671 142.675 206.423 139.414 209.271C137.508 210.936 135.696 212.804 134 202Z" fill="#5B2DD1"/>
+    <path d="M378 202C385.732 211.762 390 224.023 390 236.712V285C390 313.719 366.719 337 338 337H314C287.173 337 270.437 347.33 262 365V330C273.982 317.278 292.738 311 314 311H338C352.359 311 364 299.359 364 285V213C364 208.671 369.325 206.423 372.586 209.271C374.492 210.936 376.304 212.804 378 202Z" fill="#6B35DA"/>
+    <path d="M256 186V296" stroke="white" stroke-width="9" stroke-linecap="round"/>
+    <path d="M191 210L225 218" stroke="white" stroke-width="14" stroke-linecap="round"/>
+    <path d="M191 246L225 254" stroke="white" stroke-width="14" stroke-linecap="round"/>
+    <path d="M191 282L225 292" stroke="white" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="318" cy="218" r="22" fill="#FFC425"/>
+  </g>
+  <defs>
+    <filter id="shadow" x="82" y="108" width="348" height="308" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#2B186E" flood-opacity="0.28"/>
+    </filter>
+    <linearGradient id="leftBook" x1="181" y1="146" x2="263" y2="321" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B257FF"/>
+      <stop offset="1" stop-color="#4B26C8"/>
+    </linearGradient>
+    <linearGradient id="rightBook" x1="337" y1="148" x2="259" y2="319" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A64BFF"/>
+      <stop offset="1" stop-color="#5230C8"/>
+    </linearGradient>
+  </defs>
+</svg>

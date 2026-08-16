@@ -1,4 +1,4 @@
-import { BookOpenCheck, CheckCircle2, Headphones, Mic, PenLine, SpellCheck, Timer } from 'lucide-react';
+import { CheckCircle2, Headphones, Mic, PenLine, SpellCheck, Timer } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { SEO } from '../../components/SEO';
 
@@ -19,9 +19,7 @@ export function AuthShell({ children, title, subtitle }: { children: ReactNode; 
         <div className="absolute -bottom-20 left-20 h-64 w-64 rounded-full bg-cyan-400/10 blur-3xl" />
 
         <div className="relative flex items-center gap-4">
-          <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-600 shadow-lg shadow-brand-900/30">
-            <BookOpenCheck size={28} />
-          </div>
+          <img src="/brand/lingomaster-logo.svg" alt="LingoMaster" className="h-14 w-14 rounded-2xl shadow-lg shadow-brand-900/30" />
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-white/55">Aptis ESOL</p>
             <h1 className="text-2xl font-extrabold">Learning System</h1>
@@ -66,9 +64,7 @@ export function AuthShell({ children, title, subtitle }: { children: ReactNode; 
       <section className="flex min-h-screen items-center justify-center px-5 py-10">
         <div className="w-full max-w-[480px]">
           <div className="mb-8 flex items-center gap-3 lg:hidden">
-            <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-600 text-white shadow-lg shadow-brand-200">
-              <BookOpenCheck />
-            </div>
+            <img src="/brand/lingomaster-logo.svg" alt="LingoMaster" className="h-12 w-12 rounded-2xl shadow-lg shadow-brand-200" />
             <div>
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">Aptis ESOL</p>
               <h1 className="text-xl font-extrabold text-slate-950">Learning System</h1>

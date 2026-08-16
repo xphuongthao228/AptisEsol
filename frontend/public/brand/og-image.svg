@@ -1,0 +1,30 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" rx="88" fill="#FFFFFF"/>
+  <rect x="1" y="1" width="1198" height="628" rx="87" stroke="#E5E7EB" stroke-width="2"/>
+  <circle cx="600" cy="284" r="190" fill="#FFFFFF"/>
+  <g filter="url(#shadow)">
+    <path d="M489 208C489 196.954 497.954 188 509 188H524C566 188 600 204 600 232V396C580 365 550 349 508 349C497.507 349 489 340.493 489 330V208Z" fill="url(#leftBook)"/>
+    <path d="M711 208C711 196.954 702.046 188 691 188H676C634 188 600 204 600 232V396C620 365 650 349 692 349C702.493 349 711 340.493 711 330V208Z" fill="url(#rightBook)"/>
+    <path d="M460 248C450 260 445 276 445 292V348C445 381.137 471.863 408 505 408H533C563 408 584 420 594 442V396C580 381 558 373 533 373H505C491.193 373 480 361.807 480 348V260C480 254.953 473.861 252.502 470.393 256.168C466.589 260.189 463.113 264.582 460 248Z" fill="#5B2DD1"/>
+    <path d="M740 248C750 260 755 276 755 292V348C755 381.137 728.137 408 695 408H667C637 408 616 420 606 442V396C620 381 642 373 667 373H695C708.807 373 720 361.807 720 348V260C720 254.953 726.139 252.502 729.607 256.168C733.411 260.189 736.887 264.582 740 248Z" fill="#6B35DA"/>
+    <path d="M600 232V358" stroke="white" stroke-width="10" stroke-linecap="round"/>
+    <path d="M529 262L568 271" stroke="white" stroke-width="16" stroke-linecap="round"/>
+    <path d="M529 304L568 313" stroke="white" stroke-width="16" stroke-linecap="round"/>
+    <path d="M529 346L568 357" stroke="white" stroke-width="16" stroke-linecap="round"/>
+    <circle cx="671" cy="270" r="25" fill="#FFC425"/>
+  </g>
+  <text x="600" y="540" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="56" font-weight="800" fill="#111827">LingoMaster Aptis</text>
+  <defs>
+    <filter id="shadow" x="405" y="148" width="390" height="354" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="24" flood-color="#2B186E" flood-opacity="0.32"/>
+    </filter>
+    <linearGradient id="leftBook" x1="520" y1="188" x2="610" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#B257FF"/>
+      <stop offset="1" stop-color="#4B26C8"/>
+    </linearGradient>
+    <linearGradient id="rightBook" x1="690" y1="188" x2="600" y2="390" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A64BFF"/>
+      <stop offset="1" stop-color="#5230C8"/>
+    </linearGradient>
+  </defs>
+</svg>

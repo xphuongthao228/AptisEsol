@@ -96,8 +96,13 @@ export function AppLayout() {
         <SEO {...seo} />
         <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col overflow-hidden bg-[#1e293b] text-white xl:flex">
           <div className="px-6 py-6">
-            <h1 className="text-2xl font-extrabold tracking-tight">English Prep</h1>
-            <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Chế độ ôn thi</p>
+            <div className="flex items-center gap-3">
+              <img src="/brand/lingomaster-logo.svg" alt="LingoMaster" className="h-11 w-11 rounded-xl" />
+              <div>
+                <h1 className="text-2xl font-extrabold tracking-tight">English Prep</h1>
+                <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">Chế độ ôn thi</p>
+              </div>
+            </div>
           </div>
           <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {studentLinks.map(({ to, label, icon: Icon }, index) => (
@@ -141,7 +146,10 @@ export function AppLayout() {
           <div className="flex h-16 items-center justify-between px-4 xl:px-8">
             <div className="flex min-w-0 items-center gap-4">
               <button className="grid h-10 w-10 place-items-center rounded-lg text-slate-700 hover:bg-slate-100 xl:hidden" onClick={() => setMobileMenuOpen(true)} aria-label="Mở menu"><Menu size={22} /></button>
-              <div className="text-xl font-extrabold text-brand-600">LingoMaster</div>
+              <Link to="/" className="flex items-center gap-2 text-xl font-extrabold text-brand-600">
+                <img src="/brand/lingomaster-logo.svg" alt="LingoMaster" className="h-9 w-9 rounded-xl" />
+                <span>LingoMaster</span>
+              </Link>
               <div className="hidden h-8 w-px bg-slate-200 sm:block" />
               <p className="hidden truncate text-sm italic text-slate-500 sm:block">Aptis Keys - Học thông minh</p>
             </div>
@@ -192,7 +200,7 @@ export function AppLayout() {
       <SEO {...seo} />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 bg-slatePanel px-4 py-5 text-white lg:block">
         <div className="mb-8 flex items-center gap-3 px-2">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-brand-600 font-bold">A</div>
+          <img src="/brand/lingomaster-logo.svg" alt="LingoMaster" className="h-10 w-10 rounded-lg" />
           <div>
             <p className="text-sm text-white/70">Aptis ESOL</p>
             <h1 className="text-lg font-semibold">Practice Hub</h1>
@@ -257,8 +265,13 @@ function MobileDrawer({ links, open, onClose, onSignOut, isAdmin, isAuthenticate
       <aside className={`absolute inset-y-0 left-0 flex w-[min(86vw,320px)] flex-col bg-[#1e293b] p-4 text-white shadow-2xl transition-transform duration-200 ${open ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="mb-4 flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase text-white/55">{isAdmin ? 'Admin' : 'English Prep'}</p>
-            <h2 className="text-lg font-extrabold">LingoMaster</h2>
+            <div className="flex items-center gap-2">
+              <img src="/brand/lingomaster-logo.svg" alt="LingoMaster" className="h-9 w-9 rounded-lg" />
+              <div>
+                <p className="text-xs font-semibold uppercase text-white/55">{isAdmin ? 'Admin' : 'English Prep'}</p>
+                <h2 className="text-lg font-extrabold">LingoMaster</h2>
+              </div>
+            </div>
           </div>
           <button className="grid h-10 w-10 place-items-center rounded-lg text-white/80 hover:bg-white/10" onClick={onClose} aria-label="Đóng menu">
             <X size={21} />

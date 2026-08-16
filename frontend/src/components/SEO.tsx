@@ -9,7 +9,7 @@ type SEOProps = {
 };
 
 const SITE_NAME = 'LingoMaster Aptis';
-const DEFAULT_IMAGE = '/images/speaking/part2/1.png';
+const DEFAULT_IMAGE = '/brand/og-image.svg';
 
 function upsertMeta(selector: string, attribute: 'name' | 'property', key: string, content: string) {
   let tag = document.head.querySelector<HTMLMetaElement>(selector);
