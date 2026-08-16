@@ -406,7 +406,7 @@ export function PracticeRunner() {
           <AppTopbar />
         <form onSubmit={submit} className="pb-24">
           {loading && <div className="mx-auto max-w-[1460px] p-8">Đang tải câu hỏi...</div>}
-          {activeQuestion?.featured && <FeaturedQuestionCallout />}
+          {activeQuestion?.featured && !templateOwnsHeader && <FeaturedQuestionCallout />}
           {activeQuestion && mergedTemplateData && (
             <AptisTemplateRenderer
               data={mergedTemplateData}
@@ -538,7 +538,7 @@ export function PracticeRunner() {
 
             {loading && <div className="rounded-[18px] border border-slate-200 bg-white p-7">Đang tải câu hỏi...</div>}
 
-            {activeQuestion?.featured && <FeaturedQuestionCallout />}
+            {activeQuestion?.featured && !templateOwnsHeader && <FeaturedQuestionCallout />}
 
             {activeQuestion && mergedTemplateData && (
               <AptisTemplateRenderer
@@ -841,6 +841,16 @@ function FeaturedQuestionBadge() {
   );
 }
 
+function isFeaturedTemplateItem(item: Record<string, unknown>) {
+  const value = item.featured ?? item.important ?? item.isFeatured ?? item.isImportant;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'number') return value === 1;
+  if (typeof value === 'string') {
+    return ['true', '1', 'yes', 'y', 'featured', 'important', 'quan trong', 'quan trọng'].includes(value.trim().toLowerCase());
+  }
+  return false;
+}
+
 function FeaturedQuestionCallout() {
   return (
     <div className="mx-auto mb-3 max-w-[1180px] rounded-xl border-2 border-amber-300 bg-gradient-to-r from-amber-100 via-yellow-50 to-white px-4 py-3 text-amber-900 shadow-[0_10px_24px_rgba(245,158,11,0.18)]">
@@ -966,12 +976,17 @@ function mergeSameSpeakingTemplateData(data: TemplateData | null, questions: Que
   const mergedQuestions = questions.flatMap((question) => {
     const itemData = getRenderableTemplateData(question, test, questions.length);
     if (itemData?.template !== data.template) return [];
-    if (Array.isArray(itemData.questions) && itemData.questions.length) return itemData.questions;
+    if (Array.isArray(itemData.questions) && itemData.questions.length) {
+      return itemData.questions.map((item: Record<string, unknown>, itemIndex: number) => ({
+        ...item,
+        featured: Boolean(isFeaturedTemplateItem(item) || (question.featured && itemIndex === 0))
+      }));
+    }
     const singleQuestion = speakingSingleQuestionFromTemplate(itemData);
-    return singleQuestion ? [singleQuestion] : [];
+    return singleQuestion ? [{ ...singleQuestion, featured: Boolean(isFeaturedTemplateItem(singleQuestion) || question.featured) }] : [];
   });
 
-  if (mergedQuestions.length <= (Array.isArray(data.questions) ? data.questions.length : 0)) return data;
+  if (!mergedQuestions.length) return data;
   return {
     ...data,
     total: mergedQuestions.length,
@@ -2572,6 +2587,7 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
   const mode = saved.speakingPart1Mode ?? 'intro';
   const index = Math.min(Math.max(Number(saved.speakingPart1Index ?? 0), 0), Math.max(questions.length - 1, 0));
   const current = questions[index] ?? {};
+  const currentFeatured = isFeaturedTemplateItem(current);
   const openAnswer = saved.speakingPart1OpenAnswer ?? '';
   const progress = questions.length ? Math.max(4, Math.round(((index + 1) / questions.length) * 100)) : 0;
 
@@ -2605,11 +2621,14 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <div className="grid gap-4 lg:grid-cols-2">
             {questions.map((item: any, itemIndex: number) => (
-              <article key={`${item.question}-${itemIndex}`} className="rounded-xl border border-slate-200 bg-white p-5 shadow-soft">
+              <article key={`${item.question}-${itemIndex}`} className={`rounded-xl border bg-white p-5 shadow-soft ${isFeaturedTemplateItem(item) ? 'border-amber-400 ring-4 ring-amber-100' : 'border-slate-200'}`}>
                 <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
-                  <button type="button" onClick={() => openPractice(itemIndex)} className="text-left text-lg font-extrabold text-slate-950 hover:text-brand-600">
-                    Câu {itemIndex + 1}: {item.question}
-                  </button>
+                  <div className="space-y-2">
+                    {isFeaturedTemplateItem(item) && <FeaturedQuestionBadge />}
+                    <button type="button" onClick={() => openPractice(itemIndex)} className="block text-left text-lg font-extrabold text-slate-950 hover:text-brand-600">
+                      Câu {itemIndex + 1}: {item.question}
+                    </button>
+                  </div>
                   <button type="button" onClick={() => openPractice(itemIndex)} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700">
                     Luyện câu này
                   </button>
@@ -2695,7 +2714,10 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
           </button>
         </div>
         <div className="mt-6 flex items-start justify-between gap-4">
-          <h2 className="text-xl font-extrabold text-slate-950">{current.question}</h2>
+          <div>
+            {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
+            <h2 className="text-xl font-extrabold text-slate-950">{current.question}</h2>
+          </div>
           <SpeakingRecordButton compact />
         </div>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-widest text-slate-500">Your answer</p>
@@ -2736,6 +2758,7 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
   const index = Math.min(Math.max(Number(saved.speakingPart2Index ?? 0), 0), Math.max(questions.length - 1, 0));
   const tab = Math.min(Math.max(Number(saved.speakingPart2Tab ?? 0), 0), 2);
   const current = questions[index] ?? {};
+  const currentFeatured = isFeaturedTemplateItem(current);
   const [imageFailed, setImageFailed] = useState(false);
   const prompt = current[`question${tab + 1}`] ?? 'Describe the picture?';
   const sample = current[`question${tab + 1}_answer`] ?? '';
@@ -2791,11 +2814,14 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
                   type="button"
                   key={`${item.urlpic1 ?? itemIndex}-${item.question1 ?? itemIndex}`}
                   onClick={() => openPractice(itemIndex)}
-                  className="grid gap-4 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-soft transition hover:border-brand-300 hover:bg-blue-50 sm:grid-cols-[180px_1fr]"
+                  className={`grid gap-4 rounded-xl border bg-white p-4 text-left shadow-soft transition hover:border-brand-300 hover:bg-blue-50 sm:grid-cols-[180px_1fr] ${isFeaturedTemplateItem(item) ? 'border-amber-400 ring-4 ring-amber-100' : 'border-slate-200'}`}
                 >
                   <img className="h-32 w-full rounded-lg bg-slate-100 object-cover" src={summaryImageUrl} alt={`Speaking Part 2 question ${itemIndex + 1}`} />
                   <div className="min-w-0">
-                    <p className="mb-2 text-sm font-extrabold text-brand-600">Câu {itemIndex + 1}</p>
+                    <div className="mb-2 flex flex-wrap items-center gap-2">
+                      <p className="text-sm font-extrabold text-brand-600">Câu {itemIndex + 1}</p>
+                      {isFeaturedTemplateItem(item) && <FeaturedQuestionBadge />}
+                    </div>
                     <div className="space-y-2 text-sm leading-6 text-slate-700">
                       <p><b>Q1:</b> {item.question1 ?? 'Describe the picture?'}</p>
                       <p><b>Q2:</b> {item.question2 ?? 'Answer the related question.'}</p>
@@ -2907,7 +2933,10 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
             })}
           </div>
           <div className="mt-6 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-bold">{prompt}</h2>
+            <div>
+              {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
+              <h2 className="text-xl font-bold">{prompt}</h2>
+            </div>
             <SpeakingRecordButton compact />
           </div>
           <p className="mt-6 text-xs font-bold uppercase tracking-widest text-slate-500">Your answer</p>
@@ -2948,6 +2977,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
   const index = Math.min(Math.max(Number(saved.speakingPart3Index ?? 0), 0), Math.max(questions.length - 1, 0));
   const tab = Math.min(Math.max(Number(saved.speakingPart3Tab ?? 0), 0), 2);
   const current = questions[index] ?? {};
+  const currentFeatured = isFeaturedTemplateItem(current);
   const [failedImages, setFailedImages] = useState<Record<string, boolean>>({});
   const prompt = pickTextValue(
     current,
@@ -3061,9 +3091,12 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
                   type="button"
                   key={`${image1}-${image2}-${itemIndex}`}
                   onClick={() => openPractice(itemIndex)}
-                  className="rounded-xl border border-slate-200 bg-white p-4 text-left shadow-soft transition hover:border-brand-300 hover:bg-blue-50"
+                  className={`rounded-xl border bg-white p-4 text-left shadow-soft transition hover:border-brand-300 hover:bg-blue-50 ${isFeaturedTemplateItem(item) ? 'border-amber-400 ring-4 ring-amber-100' : 'border-slate-200'}`}
                 >
-                  <p className="mb-3 text-sm font-extrabold text-brand-600">Câu {itemIndex + 1}</p>
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-extrabold text-brand-600">Câu {itemIndex + 1}</p>
+                    {isFeaturedTemplateItem(item) && <FeaturedQuestionBadge />}
+                  </div>
                   <div className="mb-4 grid gap-3 sm:grid-cols-2">
                     <img className="h-32 w-full rounded-lg bg-slate-100 object-cover" src={image1} alt={`Speaking Part 3 question ${itemIndex + 1} image 1`} />
                     <img className="h-32 w-full rounded-lg bg-slate-100 object-cover" src={image2} alt={`Speaking Part 3 question ${itemIndex + 1} image 2`} />
@@ -3168,7 +3201,10 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
             })}
           </div>
           <div className="mt-6 flex items-center justify-between gap-4">
-            <h2 className="text-xl font-bold">{prompt}</h2>
+            <div>
+              {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
+              <h2 className="text-xl font-bold">{prompt}</h2>
+            </div>
             <SpeakingRecordButton compact />
           </div>
           <p className="mt-6 text-xs font-bold uppercase tracking-widest text-slate-500">Your answer</p>
@@ -3209,6 +3245,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
   const openAnswer = saved.speakingPart4OpenAnswer ?? '';
   const index = Math.min(Math.max(Number(saved.speakingPart4Index ?? 0), 0), Math.max(questions.length - 1, 0));
   const current = questions[index] ?? {};
+  const currentFeatured = isFeaturedTemplateItem(current);
   const showSample = saved.speakingPart4ShowSample === 'true';
   const progress = questions.length ? Math.max(2, Math.round(((index + 1) / questions.length) * 100)) : 0;
 
@@ -3304,7 +3341,10 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <div className="p-7">
             <div className="flex items-center justify-between gap-4">
-              <h2 className="text-xl font-bold">{current.question ?? 'Speaking Part 4 question'}</h2>
+              <div>
+                {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
+                <h2 className="text-xl font-bold">{current.question ?? 'Speaking Part 4 question'}</h2>
+              </div>
               <SpeakingRecordButton compact durationSeconds={120} />
             </div>
             <p className="mt-8 text-xs font-bold uppercase tracking-widest text-slate-500">Your answer</p>
@@ -3356,9 +3396,12 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
                 const isOpen = openAnswer === String(index);
                 return (
                   <Fragment key={`${question.question}-${index}`}>
-                    <tr className="border-b border-slate-200">
+                    <tr className={`border-b border-slate-200 ${isFeaturedTemplateItem(question) ? 'bg-amber-50' : ''}`}>
                       <td className="border-r border-slate-200 px-3 py-3 font-bold text-slate-600">{index + 1}</td>
-                      <td className="border-r border-slate-200 px-3 py-3">{question.question}</td>
+                      <td className="border-r border-slate-200 px-3 py-3">
+                        <span>{question.question}</span>
+                        {isFeaturedTemplateItem(question) && <span className="mt-2 block"><FeaturedQuestionBadge /></span>}
+                      </td>
                       <td className="px-3 py-2 text-center">
                         <button
                           type="button"
