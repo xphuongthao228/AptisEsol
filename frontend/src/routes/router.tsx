@@ -28,33 +28,37 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { SubscriptionGate } from './SubscriptionGate';
 
 export const router = createBrowserRouter([
-  { path: '/', element: <Navigate to="/login" replace /> },
+  { path: '/', element: <AppLayout />, children: [
+    { index: true, element: <Dashboard /> }
+  ] },
   { path: '/login', element: <Login /> },
   { path: '/forgot-password', element: <ForgotPassword /> },
   { path: '/register', element: <Register /> },
   { path: '/verify-email', element: <VerifyEmail /> },
-  {
-    element: <ProtectedRoute role="STUDENT" />,
-    children: [{ path: '/app', element: <AppLayout />, children: [
-      { index: true, element: <Dashboard /> },
-      { path: 'lessons', element: <SubscriptionGate><Lessons /></SubscriptionGate> },
-      { path: 'lessons/:skillType', element: <SubscriptionGate><Lessons /></SubscriptionGate> },
-      { path: 'lessons/:skillType/:tipSlug', element: <SubscriptionGate><Lessons /></SubscriptionGate> },
-      { path: 'tests', element: <SubscriptionGate><Tests /></SubscriptionGate> },
-      { path: 'tests/questions/:skillType', element: <SubscriptionGate><SkillQuestionParts /></SubscriptionGate> },
-      { path: 'tests/questions/:skillType/part/:part', element: <SubscriptionGate><SkillPartQuestions /></SubscriptionGate> },
-      { path: 'tests/sets/:skillType', element: <SubscriptionGate><SkillTestSets /></SubscriptionGate> },
-      { path: 'mock-tests', element: <SubscriptionGate><MockTests /></SubscriptionGate> },
-      { path: 'exams', element: <SubscriptionGate><Exams /></SubscriptionGate> },
-      { path: 'exams/:id', element: <SubscriptionGate><PracticeRunner /></SubscriptionGate> },
-      { path: 'predictions', element: <SubscriptionGate><Predictions /></SubscriptionGate> },
-      { path: 'tests/:id', element: <SubscriptionGate><PracticeRunner /></SubscriptionGate> },
-      { path: 'renewal', element: <Renewal /> },
-      { path: 'donate', element: <Donate /> },
-      { path: 'contact', element: <Contact /> },
-      { path: 'settings', element: <Settings /> }
-    ] }]
-  },
+  { path: '/app', element: <AppLayout />, children: [
+    { index: true, element: <Navigate to="/" replace /> },
+    { path: 'lessons', element: <Lessons /> },
+    { path: 'lessons/:skillType', element: <Lessons /> },
+    { path: 'lessons/:skillType/:tipSlug', element: <Lessons /> },
+    { path: 'tests', element: <Tests /> },
+    { path: 'mock-tests', element: <MockTests /> },
+    { path: 'exams', element: <Exams /> },
+    { path: 'predictions', element: <Predictions /> },
+    { path: 'renewal', element: <Renewal /> },
+    { path: 'donate', element: <Donate /> },
+    { path: 'contact', element: <Contact /> },
+    {
+      element: <ProtectedRoute role="STUDENT" />,
+      children: [
+        { path: 'tests/questions/:skillType', element: <SubscriptionGate><SkillQuestionParts /></SubscriptionGate> },
+        { path: 'tests/questions/:skillType/part/:part', element: <SubscriptionGate><SkillPartQuestions /></SubscriptionGate> },
+        { path: 'tests/sets/:skillType', element: <SubscriptionGate><SkillTestSets /></SubscriptionGate> },
+        { path: 'exams/:id', element: <SubscriptionGate><PracticeRunner /></SubscriptionGate> },
+        { path: 'tests/:id', element: <SubscriptionGate><PracticeRunner /></SubscriptionGate> },
+        { path: 'settings', element: <Settings /> }
+      ]
+    }
+  ] },
   {
     element: <ProtectedRoute role="ADMIN" />,
     children: [{ path: '/admin', element: <AppLayout />, children: [

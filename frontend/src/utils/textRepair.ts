@@ -29,7 +29,7 @@ const cp1252Reverse = new Map<number, number>([
 ]);
 
 function badScore(value: string) {
-  const matches = value.match(/[ÃƒÃ‚Ã„Ã…Ã†]|Ã¡[ÂºÂ»]|\uFFFD|Ã¢[\u0080-\u009f]/g);
+  const matches = value.match(/[ÃÂÄÅÆ]|á[º»]|\uFFFD|â[\u0080-\u009f]/g);
   return matches ? matches.length : 0;
 }
 
@@ -49,7 +49,7 @@ function cp1252Bytes(value: string) {
 }
 
 function decodeOnce(value: string) {
-  if (!/[ÃƒÃ‚Ã„Ã…Ã†Ã¡Ã¢]/.test(value)) return value;
+  if (!/[ÃÂÄÅÆáâ]/.test(value)) return value;
   const bytes = cp1252Bytes(value);
   if (!bytes) return value;
   const decoded = new TextDecoder('utf-8', { fatal: false }).decode(new Uint8Array(bytes));

@@ -1,9 +1,11 @@
 import { ArrowLeft, ArrowRight, BookOpen, FileText, Headphones, Lightbulb, Mic, PenLine, Search, SpellCheck, Timer } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../store/authStore';
 import type { Question, SkillType, Test } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
 
@@ -55,13 +57,25 @@ const skillCards: Array<{
 
 const parts = [1, 2, 3, 4];
 
+function useRequireLogin() {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (accessToken) return;
+
+    event.preventDefault();
+    toast.error('Bạn cần đăng nhập để học bài.', { id: 'login-required' });
+  };
+}
+
 export function Tests() {
+  const accessToken = useAuthStore((state) => state.accessToken);
   const { data, loading, error } = useApi<Test[]>(() => unwrap(api.get('/tests')), []);
   const [query, setQuery] = useState('');
   const tests = data ?? [];
 
   if (loading) return <InfoCard>Đang tải danh sách bài luyện...</InfoCard>;
-  if (error) return <InfoCard error>{error}</InfoCard>;
+  if (error && accessToken) return <InfoCard error>{error}</InfoCard>;
 
   return (
     <div className="space-y-8">
@@ -111,6 +125,7 @@ export function Tests() {
 }
 
 export function SkillQuestionParts() {
+  const requireLogin = useRequireLogin();
   const { skillType } = useParams();
   const selectedSkill = normalizeParam(skillType);
   const skill = skillCards.find((item) => item.type === selectedSkill);
@@ -153,6 +168,7 @@ export function SkillQuestionParts() {
             {writingTopics.map((topic) => (
               <Link
                 to={`/app/tests/${topic.testId}?questionId=${topic.questionId}&clubIndex=${topic.clubIndex}`}
+                onClick={requireLogin}
                 className={`flex h-14 items-center justify-center rounded-lg px-5 text-lg font-semibold shadow-sm transition hover:-translate-y-0.5 hover:shadow-md ${getWritingTopicColor(topic.clubIndex)}`}
                 key={`${topic.testId}-${topic.questionId}-${topic.clubIndex}`}
               >
@@ -189,7 +205,7 @@ export function SkillQuestionParts() {
               <h2 className="mt-1 text-2xl font-extrabold text-slate-950">Part {part}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">{displayTests.length} bài luyện</p>
               {firstTest ? (
-                <Link to={`/app/tests/questions/${skill.type}/part/${part}`} className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white">
+                <Link to={`/app/tests/questions/${skill.type}/part/${part}`} onClick={requireLogin} className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white">
                   Bắt đầu <ArrowRight size={17} />
                 </Link>
               ) : (
@@ -206,6 +222,7 @@ export function SkillQuestionParts() {
 }
 
 export function SkillTestSets() {
+  const requireLogin = useRequireLogin();
   const { skillType } = useParams();
   const selectedSkill = normalizeParam(skillType);
   const skill = skillCards.find((item) => item.type === selectedSkill);
@@ -252,6 +269,7 @@ export function SkillTestSets() {
             <Link
               key={test.id}
               to={`/app/tests/${test.id}`}
+              onClick={requireLogin}
               className="group flex min-h-[190px] flex-col rounded-[20px] border border-slate-200 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg"
             >
               <div className="mb-4 flex items-center justify-between gap-3">
@@ -280,6 +298,7 @@ export function SkillTestSets() {
 }
 
 export function SkillPartQuestions() {
+  const requireLogin = useRequireLogin();
   const { skillType, part } = useParams();
   const selectedSkill = normalizeParam(skillType);
   const selectedPart = Number(part);
@@ -332,13 +351,14 @@ export function SkillPartQuestions() {
                   <h2 className="mt-1 text-2xl font-extrabold text-slate-950">{test.title}</h2>
                   <p className="mt-2 text-sm leading-6 text-slate-500">{questions.length} câu hỏi</p>
                 </div>
-                <Link to={`/app/tests/${test.id}`} className="btn-primary h-11 px-5">Làm cả bài <ArrowRight size={17} /></Link>
+                <Link to={`/app/tests/${test.id}`} onClick={requireLogin} className="btn-primary h-11 px-5">Làm cả bài <ArrowRight size={17} /></Link>
               </div>
 
               <div className="mt-5 grid gap-3">
                 {questions.map((question, index) => (
                   <Link
                     to={`/app/tests/${test.id}?questionId=${question.id}`}
+                    onClick={requireLogin}
                     className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 transition hover:border-brand-300 hover:bg-brand-50"
                     key={question.id}
                   >
@@ -367,6 +387,7 @@ function SkillPracticeCard({ skill, tests }: {
   skill: (typeof skillCards)[number];
   tests: Test[];
 }) {
+  const accessToken = useAuthStore((state) => state.accessToken);
   const practiceTests = tests.filter(isPracticeTest);
   const examTests = tests.filter(isExamTest);
   const firstPracticeTest = practiceTests[0];
@@ -387,8 +408,8 @@ function SkillPracticeCard({ skill, tests }: {
       </div>
 
       <div className="mt-6 grid gap-3 md:grid-cols-3">
-        <ModeButton to={`/app/tests/questions/${skill.type}`} icon={<FileText size={18} />} title="Học theo câu hỏi" disabled={!firstPracticeTest} />
-        <ModeButton to={`/app/tests/sets/${skill.type}`} icon={<Timer size={18} />} title="Xem bộ đề" disabled={!firstExamTest} primary />
+        <ModeButton to={`/app/tests/questions/${skill.type}`} icon={<FileText size={18} />} title="Học theo câu hỏi" disabled={Boolean(accessToken) && !firstPracticeTest} />
+        <ModeButton to={`/app/tests/sets/${skill.type}`} icon={<Timer size={18} />} title="Xem bộ đề" disabled={Boolean(accessToken) && !firstExamTest} primary />
         <ModeButton to={`/app/lessons/${skill.type}`} icon={<Lightbulb size={18} />} title="Mẹo học" />
       </div>
 
@@ -408,6 +429,8 @@ function ModeButton({ to, icon, title, primary, disabled }: {
   primary?: boolean;
   disabled?: boolean;
 }) {
+  const requireLogin = useRequireLogin();
+
   if (disabled) {
     return (
       <button className="flex h-12 cursor-not-allowed items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-100 text-sm font-extrabold text-slate-400" type="button">
@@ -417,7 +440,7 @@ function ModeButton({ to, icon, title, primary, disabled }: {
   }
 
   return (
-    <Link className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-extrabold ${primary ? 'border-brand-600 bg-brand-600 text-white' : 'border-brand-600 bg-white text-brand-600 hover:bg-brand-50'}`} to={to}>
+    <Link className={`flex h-12 items-center justify-center gap-2 rounded-xl border text-sm font-extrabold ${primary ? 'border-brand-600 bg-brand-600 text-white' : 'border-brand-600 bg-white text-brand-600 hover:bg-brand-50'}`} to={to} onClick={requireLogin}>
       {icon}{title}
     </Link>
   );

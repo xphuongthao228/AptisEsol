@@ -1,8 +1,10 @@
 import { ArrowRight, Bell, BookOpen, FileText, Headphones, Lightbulb, Megaphone, MessageCircle, Mic, PenLine, Sparkles, SpellCheck, Users, X } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useState, type MouseEvent, type ReactNode } from 'react';
+import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../store/authStore';
 import type { AppNotification, Skill, SubscriptionResponse, Test } from '../../types';
 import { formatSubscriptionDate, getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 
@@ -12,6 +14,13 @@ const skillStyles = {
   Speaking: { icon: Mic, color: 'bg-slate-700', soft: 'bg-slate-100 text-slate-600', subtitle: 'Phát âm và diễn đạt' },
   Writing: { icon: PenLine, color: 'bg-red-600', soft: 'bg-red-50 text-red-600', subtitle: 'Cấu trúc câu và văn phong' }
 };
+
+const publicSkills: Skill[] = [
+  { id: 1, type: 'READING', name: 'Reading', description: 'Reading practice' },
+  { id: 2, type: 'LISTENING', name: 'Listening', description: 'Listening practice' },
+  { id: 3, type: 'SPEAKING', name: 'Speaking', description: 'Speaking practice' },
+  { id: 4, type: 'WRITING', name: 'Writing', description: 'Writing practice' }
+];
 
 const notificationStyles = {
   INFO: {
@@ -41,18 +50,21 @@ const notificationStyles = {
 };
 
 export function Dashboard() {
+  const accessToken = useAuthStore((s) => s.accessToken);
   const { data: skills } = useApi<Skill[]>(() => unwrap(api.get('/skills')), []);
   const { data: tests } = useApi<Test[]>(() => unwrap(api.get('/tests')), []);
   const { data: notifications } = useApi<AppNotification[]>(() => unwrap(api.get('/notifications/public')), []);
-  const localSubscription = getSubscriptionStatus();
+  const localSubscription = accessToken ? getSubscriptionStatus() : { active: false, expired: false, expireDate: null, daysLeft: 0 };
   const { data: serverSubscription } = useApi<SubscriptionResponse>(async () => {
+    if (!accessToken) return { active: false, expiresAt: null, daysLeft: 0 };
     const subscription = await unwrap<SubscriptionResponse>(api.get('/payments/subscription/me'));
     if (subscription.active) saveSubscriptionUntil(subscription.expiresAt);
     return subscription;
-  }, []);
+  }, [accessToken]);
 
+  const displaySkills = skills?.length ? skills : publicSkills;
   const ordered = ['Reading', 'Listening', 'Speaking', 'Writing', 'Grammar']
-    .map((name) => skills?.find((skill) => skill.name === name))
+    .map((name) => displaySkills.find((skill) => skill.name === name))
     .filter(Boolean) as Skill[];
 
   const visibleNotifications = (notifications ?? [])
@@ -153,18 +165,25 @@ export function Dashboard() {
   );
 }
 
+export const communityInviteDismissedKey = 'aptis-community-invite-dismissed';
+
 function CommunityInviteModal() {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(() => sessionStorage.getItem(communityInviteDismissedKey) !== 'true');
+
+  const dismiss = () => {
+    sessionStorage.setItem(communityInviteDismissedKey, 'true');
+    setOpen(false);
+  };
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] grid place-items-center bg-slate-950/60 px-4 backdrop-blur-sm" onClick={() => setOpen(false)}>
+    <div className="fixed inset-0 z-[9999] grid place-items-center bg-slate-950/60 px-4 backdrop-blur-sm" onClick={dismiss}>
       <section className="relative w-full max-w-[474px] overflow-hidden rounded-[28px] bg-gradient-to-br from-[#0757d8] via-[#0787ff] to-[#63d7ff] px-9 pb-9 pt-8 text-center text-white shadow-[0_24px_80px_rgba(15,23,42,0.38)]" onClick={(event) => event.stopPropagation()}>
         <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(circle,rgba(255,255,255,0.5)_1px,transparent_1px)] [background-size:22px_22px]" />
-        <button
+          <button
           type="button"
-          onClick={() => setOpen(false)}
+          onClick={dismiss}
           className="absolute right-4 top-4 z-10 grid h-11 w-11 place-items-center rounded-full border-2 border-white/70 text-white transition hover:bg-white/15"
           aria-label={'\u0110\u00f3ng popup c\u1ed9ng \u0111\u1ed3ng'}
         >
@@ -211,7 +230,7 @@ function CommunityInviteModal() {
 
           <button
             type="button"
-            onClick={() => setOpen(false)}
+            onClick={dismiss}
             className="mt-6 text-base font-bold text-white/88 transition hover:text-white"
           >
             {'\u0110\u1ec3 sau'}
@@ -264,8 +283,17 @@ function formatNoticeDate(value: string) {
 }
 
 function ActionRow({ to, icon, label, primary, color }: { to: string; icon: ReactNode; label: string; primary?: boolean; color?: string }) {
+  const accessToken = useAuthStore((s) => s.accessToken);
+
+  const requireLogin = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (accessToken) return;
+
+    event.preventDefault();
+    toast.error('Bạn cần đăng nhập để sử dụng chức năng này.', { id: 'login-required' });
+  };
+
   return (
-    <Link to={to} className={`flex h-[58px] items-center justify-between rounded-xl px-5 text-base font-bold transition ${primary ? `${color} text-white shadow-soft` : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
+    <Link to={to} onClick={requireLogin} className={`flex h-[58px] items-center justify-between rounded-xl px-5 text-base font-bold transition ${primary ? `${color} text-white shadow-soft` : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'}`}>
       <span className="flex items-center gap-4">{icon}{label}</span>
       {primary ? <ArrowRight size={20} /> : <ArrowRight size={18} className="text-slate-400" />}
     </Link>

@@ -931,6 +931,7 @@ function scoreReadingAnswers(
 }
 
 export function MockTests() {
+  const accessToken = useAuthStore((state) => state.accessToken);
   const [searchParams, setSearchParams] = useSearchParams();
   const [screen, setScreen] = useState<SpeakingScreen>(() => readScreen(searchParams.get('screen')));
   const [answerRevealOpen, setAnswerRevealOpen] = useState(false);
@@ -1408,7 +1409,15 @@ export function MockTests() {
     return () => window.clearTimeout(timeoutId);
   }, [screen, speechReady, speakingSoundEnabled]);
 
+  function requireLoginToStart() {
+    if (accessToken) return true;
+
+    toast.error('Bạn cần đăng nhập để học bài.', { id: 'login-required' });
+    return false;
+  }
+
   function openSpeakingTest(card?: MockCard) {
+    if (!requireLoginToStart()) return;
     setSelectedMockCard(card ?? null);
     setIsFullMock(false);
     setSelectedTest(speakingMockTests[0]);
@@ -1421,6 +1430,7 @@ export function MockTests() {
   }
 
   function openReadingTest(card?: MockCard) {
+    if (!requireLoginToStart()) return;
     setSelectedMockCard(card ?? null);
     setIsFullMock(false);
     setSelectedSkill('READING');
@@ -1428,6 +1438,7 @@ export function MockTests() {
   }
 
   function openListeningTest(card?: MockCard) {
+    if (!requireLoginToStart()) return;
     setSelectedMockCard(card ?? null);
     setIsFullMock(false);
     setSelectedSkill('LISTENING');
@@ -1441,6 +1452,7 @@ export function MockTests() {
   }
 
   function openWritingTest(card?: MockCard) {
+    if (!requireLoginToStart()) return;
     setSelectedMockCard(card ?? null);
     setIsFullMock(false);
     setSelectedSkill('WRITING');
@@ -1456,6 +1468,7 @@ export function MockTests() {
   }
 
   function openGrammarTest(card?: MockCard) {
+    if (!requireLoginToStart()) return;
     setSelectedMockCard(card ?? null);
     setIsFullMock(false);
     setSelectedSkill('GRAMMAR');
@@ -1466,6 +1479,7 @@ export function MockTests() {
   }
 
   function openFullTest(card?: MockCard) {
+    if (!requireLoginToStart()) return;
     setSelectedMockCard(card ?? selectedMockCard);
     setIsFullMock(true);
     setSelectedSkill('FULL');

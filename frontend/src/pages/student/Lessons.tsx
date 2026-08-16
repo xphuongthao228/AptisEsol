@@ -1,8 +1,10 @@
 ﻿import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, ShieldCheck, X } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type MouseEvent } from 'react';
+import toast from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../store/authStore';
 import type { Lesson, SubscriptionResponse } from '../../types';
 import { formatSubscriptionDate, getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 
@@ -39,6 +41,17 @@ type TipLandingSection = {
   description: string;
   actions: TipAction[];
 };
+
+function useRequireLogin() {
+  const accessToken = useAuthStore((state) => state.accessToken);
+
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (accessToken) return;
+
+    event.preventDefault();
+    toast.error('Bạn cần đăng nhập để học bài.', { id: 'login-required' });
+  };
+}
 
 type TipLanding = {
   title: string;
@@ -319,6 +332,7 @@ const tipLanding: Record<SkillKey, TipLanding> = {
 const writingLetterPdfUrl = '/docs/aptis-keys-meo-viet-thu.pdf';
 
 export function Lessons() {
+  const requireLogin = useRequireLogin();
   const { skillType, tipSlug } = useParams();
   const [activeSkill, setActiveSkill] = useState<SkillKey>('READING');
   const [resourceKind, setResourceKind] = useState<ResourceKind>('DOCUMENT');
@@ -466,7 +480,7 @@ export function Lessons() {
             <h2 className="mt-3 text-2xl font-extrabold text-slate-950 sm:text-3xl">{current.title}</h2>
             <p className="mt-2 max-w-3xl leading-7 text-slate-500">{current.subtitle}</p>
           </div>
-          <Link to={current.practicePath} className="btn-secondary h-11 px-5">
+          <Link to={current.practicePath} onClick={requireLogin} className="btn-secondary h-11 px-5">
             Vào luyện tập <ArrowRight size={18} />
           </Link>
         </div>
@@ -485,7 +499,7 @@ export function Lessons() {
                     <span>{point}</span>
                   </div>
                 ))}
-                <Link to={`/app/lessons/${current.key}`} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
+                <Link to={`/app/lessons/${current.key}`} onClick={requireLogin} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
                   <BookOpen size={16} /> {section.button}
                 </Link>
               </div>
@@ -512,6 +526,7 @@ export function Lessons() {
 }
 
 function TipLandingPage({ skill }: { skill: SkillKey }) {
+  const requireLogin = useRequireLogin();
   const data = tipLanding[skill];
   const isWriting = skill === 'WRITING';
 
@@ -532,6 +547,7 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
                 <Link
                   key={action.label}
                   to={action.to}
+                  onClick={requireLogin}
                   className={`flex min-h-12 items-center justify-center gap-3 rounded-lg px-5 text-lg font-medium transition hover:-translate-y-0.5 hover:shadow-lg ${tipActionTone(action.tone)}`}
                 >
                   {tipActionIcon(action.icon)}

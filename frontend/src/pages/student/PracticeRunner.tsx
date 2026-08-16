@@ -98,7 +98,7 @@ export function PracticeRunner() {
   const sharedAudioUrl = useMemo(() => getSharedAudioUrl(questions ?? []), [questions]);
   const audioUrl = activeQuestion ? getQuestionAudioUrl(activeQuestion, renderTemplateData, sharedAudioUrl) : '';
   const scriptText = activeQuestion ? getQuestionScriptText(activeQuestion, renderTemplateData) : '';
-  const topicTitle = repairMojibake(activeQuestion?.topic || test?.title || 'Luyá»‡n thi Aptis');
+  const topicTitle = repairMojibake(activeQuestion?.topic || test?.title || 'Luyện thi Aptis');
   const progress = useMemo(() => totalQuestions ? Math.round(((currentIndex + 1) / totalQuestions) * 100) : 0, [currentIndex, totalQuestions]);
   const requestedQuestionId = Number(searchParams.get('questionId'));
   const requestedClubIndex = Number(searchParams.get('clubIndex'));
@@ -173,7 +173,7 @@ export function PracticeRunner() {
       }))
     };
     const result = await unwrap<Submission>(api.post('/submissions', payload));
-    toast.success(`ÄÃ£ ná»™p bÃ i: ${result.totalScore}/${result.maxScore}`);
+    toast.success(`Đã nộp bài: ${result.totalScore}/${result.maxScore}`);
     navigate('/app/tests');
   }
 
@@ -334,7 +334,7 @@ export function PracticeRunner() {
 
     if (fullListeningExam) {
       if (currentIndex < totalQuestions - 1) {
-        toast.error('Báº¡n lÃ m tá»›i cÃ¢u 17 rá»“i báº¥m Kiá»ƒm tra Ä‘á»ƒ xem Ä‘iá»ƒm cáº£ bá»™ Ä‘á».');
+        toast.error('Bạn làm tới câu 17 rồi bấm Kiểm tra để xem điểm cả bộ đề.');
         return;
       }
       const nextChecked = { ...checkedAnswers };
@@ -349,7 +349,7 @@ export function PracticeRunner() {
 
     if (fullReadingExam) {
       if (currentIndex < totalQuestions - 1) {
-        toast.error(`Báº¡n lÃ m tá»›i cÃ¢u ${totalQuestions} rá»“i báº¥m Kiá»ƒm tra Ä‘á»ƒ xem káº¿t quáº£ cáº£ bá»™ Ä‘á».`);
+        toast.error(`Bạn làm tới câu ${totalQuestions} rồi bấm Kiểm tra để xem kết quả cả bộ đề.`);
         return;
       }
       const nextChecked = { ...checkedAnswers };
@@ -363,27 +363,27 @@ export function PracticeRunner() {
 
     const value = answers[activeQuestion.id];
     if (!value) {
-      toast.error('Báº¡n hÃ£y chá»n hoáº·c nháº­p cÃ¢u tráº£ lá»i trÆ°á»›c.');
+      toast.error('Bạn hãy chọn hoặc nhập câu trả lời trước.');
       return;
     }
 
     const templateResult = evaluateTemplateAnswer(renderTemplateData, value);
     if (templateResult !== null) {
       setCheckedAnswers({ ...checkedAnswers, [activeQuestion.id]: templateResult });
-      toast[templateResult ? 'success' : 'error'](templateResult ? 'ChÃ­nh xÃ¡c!' : 'ChÆ°a Ä‘Ãºng, xem láº¡i cÃ¡c lá»±a chá»n.');
+      toast[templateResult ? 'success' : 'error'](templateResult ? 'Chính xác!' : 'Chưa đúng, xem lại các lựa chọn.');
       return;
     }
 
     if (!activeQuestion.answers.length) {
       setCheckedAnswers({ ...checkedAnswers, [activeQuestion.id]: true });
-      toast.success('ÄÃ£ lÆ°u cÃ¢u tráº£ lá»i. CÃ¢u tá»± luáº­n cáº§n giÃ¡o viÃªn hoáº·c Ä‘Ã¡p Ã¡n máº«u Ä‘á»ƒ Ä‘á»‘i chiáº¿u.');
+      toast.success('Đã lưu câu trả lời. Câu tự luận cần giáo viên hoặc đáp án mẫu để đối chiếu.');
       return;
     }
 
     const selectedAnswer = activeQuestion.answers.find((answer) => String(answer.id) === value);
     const isCorrect = Boolean(selectedAnswer?.correct);
     setCheckedAnswers({ ...checkedAnswers, [activeQuestion.id]: isCorrect });
-    toast[isCorrect ? 'success' : 'error'](isCorrect ? 'ChÃ­nh xÃ¡c!' : 'ChÆ°a Ä‘Ãºng, xem láº¡i Ä‘Ã¡p Ã¡n Ä‘Ãºng.');
+    toast[isCorrect ? 'success' : 'error'](isCorrect ? 'Chính xác!' : 'Chưa đúng, xem lại đáp án đúng.');
   }
 
   function resetCurrentQuestion() {
@@ -683,7 +683,7 @@ function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onChec
     <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <button type="button" onClick={onBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={currentIndex === 0}>
-          <ArrowLeft />Quay láº¡i
+          <ArrowLeft />Quay lại
         </button>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={onReset}>
@@ -693,7 +693,7 @@ function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onChec
               <CheckSquare size={18} />Kiểm tra</button>
           )}
           <button type="button" className="btn-primary h-10 px-5 text-sm outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50" onClick={onNext} disabled={currentIndex >= totalQuestions - 1}>
-            Káº¿ tiáº¿p <ArrowRight size={18} />
+            Kế tiếp <ArrowRight size={18} />
           </button>
         </div>
       </div>
@@ -726,10 +726,10 @@ function AnswerStatusBadge({ answer, selectedValue, checked }: {
 
   const selected = selectedValue === String(answer.id);
   if (answer.correct) {
-    return <span className="rounded-full bg-green-700 px-4 py-2 text-sm font-extrabold text-white">ÄÃ¡p Ã¡n Ä‘Ãºng</span>;
+    return <span className="rounded-full bg-green-700 px-4 py-2 text-sm font-extrabold text-white">Đáp án đúng</span>;
   }
   if (selected) {
-    return <span className="rounded-full bg-red-600 px-4 py-2 text-sm font-extrabold text-white">Báº¡n chá»n sai</span>;
+    return <span className="rounded-full bg-red-600 px-4 py-2 text-sm font-extrabold text-white">Bạn chọn sai</span>;
   }
   return null;
 }
@@ -738,16 +738,16 @@ function QuestionFeedback({ isCorrect, textOnly }: { isCorrect: boolean; textOnl
   if (textOnly) {
     return (
       <div className="rounded-[16px] border border-blue-200 bg-blue-50 px-6 py-4 text-blue-800 shadow-soft">
-        <p className="font-extrabold">ÄÃ£ ghi nháº­n cÃ¢u tráº£ lá»i</p>
-        <p className="mt-1 text-sm">CÃ¢u tá»± luáº­n hoáº·c speaking cáº§n Ä‘á»‘i chiáº¿u vá»›i Ä‘Ã¡p Ã¡n máº«u/giÃ¡o viÃªn, nÃªn há»‡ thá»‘ng chÆ°a tá»± cháº¥m Ä‘Ãºng sai.</p>
+        <p className="font-extrabold">Đã ghi nhận câu trả lời</p>
+        <p className="mt-1 text-sm">Câu tự luận hoặc speaking cần đối chiếu với đáp án mẫu/giáo viên, nên hệ thống chưa tự chấm đúng sai.</p>
       </div>
     );
   }
 
   return (
     <div className={`rounded-[18px] border-2 px-7 py-5 shadow-soft ${isCorrect ? 'border-green-600 bg-green-100 text-green-950' : 'border-red-600 bg-red-100 text-red-950'}`}>
-      <p className="text-xl font-extrabold">{isCorrect ? 'ÄÃºng rá»“i!' : 'ChÆ°a Ä‘Ãºng'}</p>
-      <p className="mt-1 text-sm">{isCorrect ? 'Báº¡n cÃ³ thá»ƒ báº¥m Káº¿ tiáº¿p Ä‘á»ƒ lÃ m cÃ¢u sau.' : 'ÄÃ¡p Ã¡n Ä‘Ãºng Ä‘Ã£ Ä‘Æ°á»£c tÃ´ mÃ u xanh, Ä‘Ã¡p Ã¡n báº¡n chá»n sai Ä‘Æ°á»£c tÃ´ mÃ u Ä‘á».'}</p>
+      <p className="text-xl font-extrabold">{isCorrect ? 'Đúng rồi!' : 'Chưa đúng'}</p>
+      <p className="mt-1 text-sm">{isCorrect ? 'Bạn có thể bấm Kế tiếp để làm câu sau.' : 'Đáp án đúng đã được tô màu xanh, đáp án bạn chọn sai được tô màu đỏ.'}</p>
     </div>
   );
 }
@@ -804,7 +804,7 @@ function QuestionScriptBox({ scriptText, compact }: { scriptText: string; compac
         onClick={() => setOpen((value) => !value)}
         className="inline-flex h-9 items-center gap-2 rounded-lg border border-brand-200 bg-blue-50 px-3 text-xs font-extrabold text-brand-700 hover:bg-blue-100"
       >
-        <BookOpen size={18} />{open ? 'áº¨n script' : 'Xem script'}
+        <BookOpen size={18} />{open ? 'Ẩn script' : 'Xem script'}
       </button>
       {open && (
         <div className="mt-3 whitespace-pre-line rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-700">
@@ -832,7 +832,7 @@ function FeaturedQuestionBadge() {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-gradient-to-r from-amber-100 to-yellow-50 px-3 py-1.5 text-xs font-black text-amber-800 shadow-sm ring-2 ring-amber-100">
       <Star size={15} className="fill-amber-400 text-amber-500" />
-      CÃ¢u ná»•i báº­t
+      Câu nổi bật
     </span>
   );
 }
@@ -845,8 +845,8 @@ function FeaturedQuestionCallout() {
           <Star size={22} className="fill-white" />
         </div>
         <div>
-          <p className="text-sm font-black uppercase tracking-wide">CÃ¢u ná»•i báº­t</p>
-          <p className="text-sm font-semibold text-amber-800">Admin Ä‘Ã£ Ä‘Ã¡nh dáº¥u cÃ¢u nÃ y cáº§n chÃº Ã½ hÆ¡n.</p>
+          <p className="text-sm font-black uppercase tracking-wide">Câu nổi bật</p>
+          <p className="text-sm font-semibold text-amber-800">Admin đã đánh dấu câu này cần chú ý hơn.</p>
         </div>
       </div>
     </div>
@@ -969,7 +969,7 @@ function isFullReadingExam(test: Test | null, questions: Question[]) {
   if (questions.length !== 5) return false;
   const skillText = `${test?.skillName ?? ''} ${test?.title ?? ''}`.toLowerCase();
   const readingTemplates = ['READING_GAP_FILL', 'READING_SENTENCE_ORDER', 'READING_FORUM_MATCH', 'READING_HEADING_MATCH'];
-  const looksReading = /reading|read|Ä‘á»c|doc/.test(skillText)
+  const looksReading = /reading|read|đọc|doc/.test(skillText)
     || questions.some((question) => {
       const data = getRenderableTemplateData(question, test, questions.length);
       return readingTemplates.includes(data?.template ?? '');
@@ -1192,7 +1192,7 @@ function ListeningExamReviewModal({ review, activeGroup, onGroupChange, onClose 
                 ))}
                 {!groupItems.length && (
                   <tr>
-                    <td className="px-4 py-6 text-center text-slate-500" colSpan={3}>ChÆ°a cÃ³ dá»¯ liá»‡u cÃ¢u há»i trong nhÃ³m nÃ y.</td>
+                    <td className="px-4 py-6 text-center text-slate-500" colSpan={3}>Chưa có dữ liệu câu hỏi trong nhóm này.</td>
                   </tr>
                 )}
               </tbody>
@@ -1253,7 +1253,7 @@ function ReadingExamReviewModal({ review, onClose }: {
               <p className="mt-1 text-sm text-slate-600">Score: {partScore} / {partMaxScore}</p>
             </div>
             <span className="rounded-full bg-blue-50 px-3 py-1 text-sm font-bold text-brand-700">
-              {partItems.length} cÃ¢u
+              {partItems.length} câu
             </span>
           </div>
           <div className="overflow-hidden rounded-lg border border-slate-200">
@@ -1275,7 +1275,7 @@ function ReadingExamReviewModal({ review, onClose }: {
                 ))}
                 {!partItems.length && (
                   <tr>
-                    <td className="px-4 py-6 text-center text-slate-500" colSpan={3}>ChÆ°a cÃ³ dá»¯ liá»‡u Ä‘Ã¡p Ã¡n Ä‘á»ƒ cháº¥m.</td>
+                    <td className="px-4 py-6 text-center text-slate-500" colSpan={3}>Chưa có dữ liệu đáp án để chấm.</td>
                   </tr>
                 )}
               </tbody>
@@ -1369,7 +1369,7 @@ function buildListeningPart4FallbackTemplate(question: Question, test: Test | nu
   const groups = options.length
     ? [{ prompt: stripPart4Content(repairMojibake(question.content)), options, correctAnswer: repairMojibake(question.answers.find((answer) => answer.correct)?.content ?? '') }]
     : [{
-        prompt: 'ChÆ°a cÃ³ cÃ¢u há»i con. HÃ£y Ä‘iá»n question1, q1_answer1-3, question2, q2_answer1-3 trong file CSV rá»“i import láº¡i.',
+        prompt: 'Chưa có câu hỏi con. Hãy điền question1, q1_answer1-3, question2, q2_answer1-3 trong file CSV rồi import lại.',
         options: [],
         correctAnswer: ''
       }];
@@ -1771,7 +1771,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                   <TemplateSelect value={selected} options={data.options ?? []} onChange={(next) => setAnswer(`grammar${index}`, next)} status={status} />
                   {revealAnswers && correct && (
                     <span className={`rounded-lg px-3 py-2 text-sm font-extrabold ${selected === correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {selected === correct ? 'ÄÃºng' : `ÄÃ¡p Ã¡n: ${correct}`}
+                      {selected === correct ? 'Đúng' : `Đáp án: ${correct}`}
                     </span>
                   )}
                 </div>
@@ -1795,7 +1795,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                   <span>{row.end}</span>
                   {revealAnswers && correct && (
                     <span className={`rounded-lg px-3 py-1.5 text-sm font-extrabold ${selected === correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {selected === correct ? 'ÄÃºng' : `ÄÃ¡p Ã¡n: ${correct}`}
+                      {selected === correct ? 'Đúng' : `Đáp án: ${correct}`}
                     </span>
                   )}
                 </div>
@@ -1806,7 +1806,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
 
         <div className="mt-6 flex flex-wrap gap-2">
           <button type="button" className="rounded-lg bg-green-700 px-4 py-2 text-sm font-extrabold text-white shadow-sm hover:bg-green-800" onClick={() => setShowAnswers((value) => !value)}>
-            {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n' : 'Xem Ä‘Ã¡p Ã¡n'}
+            {showAnswers ? 'Ẩn đáp án' : 'Xem đáp án'}
           </button>
         </div>
       </AptisPaper>
@@ -1828,7 +1828,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                 <p className="mb-1.5 text-[14px]">{group.prompt}</p>
                 {(group.options ?? []).length === 0 ? (
                   <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
-                    File CSV hiá»‡n chÆ°a cÃ³ Ä‘Ã¡p Ã¡n cho cÃ¢u nÃ y, nÃªn chÆ°a thá»ƒ hiá»‡n radio giá»‘ng máº«u.
+                    File CSV hiện chưa có đáp án cho câu này, nên chưa thể hiện radio giống mẫu.
                   </div>
                 ) : (
                 <div className="space-y-2 sm:space-y-1.5">
@@ -1846,14 +1846,14 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                     <label className={`flex min-h-10 w-full items-center gap-3 rounded-lg border px-3 py-1.5 text-[15px] sm:min-h-0 sm:w-fit sm:gap-2.5 sm:rounded-md sm:px-2 sm:py-0.5 sm:text-[14px] ${statusClass}`} key={option}>
                       <input className="h-4 w-4 shrink-0" type="radio" name={`${questionId}-${groupIndex}`} checked={saved[`g${groupIndex}`] === option} onChange={() => setAnswer(`g${groupIndex}`, option)} />
                       <span>{option}</span>
-                      {showAnswers && isCorrect && <span className="text-xs font-bold text-green-700">ÄÃ¡p Ã¡n</span>}
+                      {showAnswers && isCorrect && <span className="text-xs font-bold text-green-700">Đáp án</span>}
                     </label>
                   );})}
                 </div>
                 )}
                 {showAnswers && group.correctAnswer && (
                   <div className="mt-2 inline-flex rounded-lg bg-green-100 px-3 py-1.5 text-xs font-extrabold text-green-700">
-                    {groupIndex + 1} lÃ  {group.correctAnswer}
+                    {groupIndex + 1} là {group.correctAnswer}
                   </div>
                 )}
               </div>
@@ -1862,11 +1862,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
           <button type="button" className="h-11 rounded-xl bg-green-700 px-3 text-sm font-extrabold text-white shadow-sm hover:bg-green-800 sm:h-9 sm:rounded-lg sm:px-4" onClick={() => setShowAnswers((value) => !value)}>
-            {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n' : 'Xem Ä‘Ã¡p Ã¡n'}
+            {showAnswers ? 'Ẩn đáp án' : 'Xem đáp án'}
           </button>
           {data.scriptText && (
             <button type="button" className="h-11 rounded-xl bg-slate-700 px-3 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800 sm:h-9 sm:rounded-lg sm:px-4" onClick={() => setShowScript((value) => !value)}>
-              {showScript ? 'áº¨n script' : 'Show script'}
+              {showScript ? 'Ẩn script' : 'Show script'}
             </button>
           )}
         </div>
@@ -1903,7 +1903,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                   <TemplateSelect value={selected} options={data.options ?? []} onChange={(next) => setAnswer(`r${index}`, next)} wide={data.template === 'LISTENING_PEOPLE_MATCH'} status={status} />
                   {revealAnswers && correct && (
                     <div className={`rounded-lg px-3 py-2 text-xs font-extrabold ${selected === correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                      {selected === correct ? 'ÄÃºng' : 'Sai'} Â· {correct}
+                      {selected === correct ? 'Đúng' : 'Sai'} · {correct}
                     </div>
                   )}
                 </div>
@@ -1913,21 +1913,21 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         </div>
         <div className="mt-4 flex flex-wrap items-center gap-2">
           <button type="button" className="h-10 rounded-lg bg-green-700 px-4 text-sm font-extrabold text-white shadow-sm hover:bg-green-800" onClick={() => setShowAnswers((value) => !value)}>
-            {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n' : 'Xem Ä‘Ã¡p Ã¡n'}
+            {showAnswers ? 'Ẩn đáp án' : 'Xem đáp án'}
           </button>
           {data.scriptText && (
             <button type="button" className="h-10 rounded-lg bg-slate-700 px-4 text-sm font-extrabold text-white shadow-sm hover:bg-slate-800" onClick={() => setShowScript((value) => !value)}>
-              {showScript ? 'áº¨n script' : 'Show script'}
+              {showScript ? 'Ẩn script' : 'Show script'}
             </button>
           )}
         </div>
         {showAnswers && data.correctAnswers?.length > 0 && (
           <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
-            <h3 className="mb-3 font-extrabold text-green-800">ÄÃ¡p Ã¡n cá»§a cÃ¢u</h3>
+            <h3 className="mb-3 font-extrabold text-green-800">Đáp án của câu</h3>
             <div className="grid gap-2 sm:grid-cols-2">
               {data.correctAnswers.map((answer: string, index: number) => (
                 <div className="rounded-md bg-white px-3 py-2 text-sm font-bold text-slate-800 shadow-sm" key={`${answer}-${index}`}>
-                  {index + 1} lÃ  <span className="text-green-700">{answer}</span>
+                  {index + 1} là <span className="text-green-700">{answer}</span>
                 </div>
               ))}
             </div>
@@ -1973,7 +1973,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         {data.after && <p className="mt-5 whitespace-pre-line text-sm">{data.after}</p>}
         {showAnswers && correctAnswers.length > 0 && (
           <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3">
-            <h3 className="mb-2 font-extrabold text-green-800">ÄÃ¡p Ã¡n</h3>
+            <h3 className="mb-2 font-extrabold text-green-800">Đáp án</h3>
             <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
               {correctAnswers.map((answer, index) => (
                 <div className="rounded-md bg-white px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm" key={`${answer}-${index}`}>
@@ -1985,7 +1985,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         )}
         {correctAnswers.length > 0 && (
           <button type="button" className="mt-4 rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowAnswers((value) => !value)}>
-            {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n' : 'Xem Ä‘Ã¡p Ã¡n'}
+            {showAnswers ? 'Ẩn đáp án' : 'Xem đáp án'}
           </button>
         )}
       </AptisPaper>
@@ -2087,10 +2087,10 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         </div>
         <div className="mt-4 flex flex-wrap gap-2">
           <button type="button" className="rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowAnswers((value) => !value)}>
-            {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n' : 'Xem Ä‘Ã¡p Ã¡n'}
+            {showAnswers ? 'Ẩn đáp án' : 'Xem đáp án'}
           </button>
           <button type="button" className="rounded bg-slate-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => onChange(JSON.stringify({ ...saved, order: [] }))}>
-            Chá»n láº¡i thá»© tá»±
+            Chọn lại thứ tự
           </button>
         </div>
         {showAnswers && (
@@ -2098,7 +2098,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
             <div className="max-h-[86vh] w-full max-w-5xl overflow-auto rounded-lg bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <h3 className="text-lg font-bold">Test and Answer Review Question {currentNumber ?? 1}</h3>
-                <button type="button" className="text-3xl leading-none text-slate-500 hover:text-slate-900" onClick={() => setShowAnswers(false)}>Ã—</button>
+                <button type="button" className="text-3xl leading-none text-slate-500 hover:text-slate-900" onClick={() => setShowAnswers(false)}>×</button>
               </div>
               <div className="p-5">
                 <p className="mb-5 text-center text-2xl font-extrabold text-green-700">Your score: {score} / {maxScore}</p>
@@ -2107,7 +2107,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                   <div className="border-b border-slate-300 p-3 font-extrabold">Correct Answer</div>
                   {correctOrder.map((sentence, index) => (
                     <div className="contents" key={`${sentence}-${index}`}>
-                      <div className="border-b border-slate-200 p-3 text-red-600 md:border-r">{selectedOrder[index] ?? 'ChÆ°a chá»n'}</div>
+                      <div className="border-b border-slate-200 p-3 text-red-600 md:border-r">{selectedOrder[index] ?? 'Chưa chọn'}</div>
                       <div className="border-b border-slate-200 p-3 text-green-700">{sentence}</div>
                     </div>
                   ))}
@@ -2154,7 +2154,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         </div>
         <div className="mt-4">
           <button type="button" className="rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowAnswers((value) => !value)}>
-            {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n' : 'Xem Ä‘Ã¡p Ã¡n'}
+            {showAnswers ? 'Ẩn đáp án' : 'Xem đáp án'}
           </button>
         </div>
         {showAnswers && (
@@ -2162,7 +2162,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
             <div className="max-h-[86vh] w-full max-w-4xl overflow-auto rounded-lg bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <h3 className="text-lg font-bold">Test and Answer Review Question 4</h3>
-                <button type="button" className="text-3xl leading-none text-slate-500 hover:text-slate-900" onClick={() => setShowAnswers(false)}>Ã—</button>
+                <button type="button" className="text-3xl leading-none text-slate-500 hover:text-slate-900" onClick={() => setShowAnswers(false)}>×</button>
               </div>
               <div className="p-5">
                 <h4 className="mb-6 text-center text-3xl font-extrabold text-slate-800">Correct answer compare</h4>
@@ -2171,7 +2171,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                   <div className="border-b border-slate-300 p-3 font-extrabold">Your Answer</div>
                   <div className="border-b border-slate-300 p-3 font-extrabold">Correct Answer</div>
                   {(data.questions ?? []).map((question: string, index: number) => {
-                    const selected = saved[`forum${index}`] || '(khÃ´ng chá»n)';
+                    const selected = saved[`forum${index}`] || '(không chọn)';
                     const correct = correctAnswers[index] ?? '';
                     const ok = selected === correct;
                     return (
@@ -2204,11 +2204,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         {topic && <h2 className="mb-5 text-2xl font-bold text-red-600">TOPIC: {topic}</h2>}
         <div className="mb-6 flex flex-wrap gap-2">
           <button type="button" className="rounded bg-slate-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowScript((value) => !value)}>
-            {showScript ? 'áº¨n ná»™i dung' : 'Xem ná»™i dung'}
+            {showScript ? 'Ẩn nội dung' : 'Xem nội dung'}
           </button>
           {data.tips && (
             <button type="button" className="rounded bg-slate-600 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowTips((value) => !value)}>
-              {showTips ? 'áº¨n máº¹o' : 'Xem máº¹o'}
+              {showTips ? 'Ẩn mẹo' : 'Xem mẹo'}
             </button>
           )}
         </div>
@@ -2252,7 +2252,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         </div>
         <div className="mt-5">
           <button type="button" className="rounded bg-green-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowAnswers((value) => !value)}>
-            Xem Ä‘Ã¡p Ã¡n
+            Xem đáp án
           </button>
         </div>
         {showAnswers && (
@@ -2260,7 +2260,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
             <div className="max-h-[86vh] w-full max-w-4xl overflow-auto rounded-lg bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
                 <h3 className="text-lg font-bold">Test and Answer Review Question 5</h3>
-                <button type="button" className="text-3xl leading-none text-slate-500 hover:text-slate-900" onClick={() => setShowAnswers(false)}>Ã—</button>
+                <button type="button" className="text-3xl leading-none text-slate-500 hover:text-slate-900" onClick={() => setShowAnswers(false)}>×</button>
               </div>
               <div className="p-5">
                 <h4 className="mb-3 text-center text-3xl font-extrabold text-slate-800">Correct answer compare</h4>
@@ -2270,7 +2270,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                   <div className="border-b border-slate-300 p-3 font-extrabold">Your Answer</div>
                   <div className="border-b border-slate-300 p-3 font-extrabold">Correct Answer</div>
                   {correctAnswers.map((answer: string, index: number) => {
-                    const selected = saved[`heading${index}`] || '(khÃ´ng chá»n)';
+                    const selected = saved[`heading${index}`] || '(không chọn)';
                     const ok = selected === answer;
                     return (
                       <div className="contents" key={`${answer}-${index}`}>
@@ -2325,17 +2325,17 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         </div>
         <div className="overflow-hidden rounded border border-slate-300 bg-white">
           <div className="grid grid-cols-[50px_1fr_170px] bg-slate-50 font-bold">
-            <div className="border-r p-3">#</div><div className="border-r p-3">CÃ¢u há»i</div><div className="p-3">ÄÃ¡p Ã¡n máº«u</div>
+            <div className="border-r p-3">#</div><div className="border-r p-3">Câu hỏi</div><div className="p-3">Đáp án mẫu</div>
           </div>
           <div className="grid grid-cols-[50px_1fr_170px] border-t">
             <div className="border-r p-3 font-bold">1</div>
             <div className="border-r p-3">{data.question}</div>
-            <div className="p-3"><button type="button" className="rounded bg-brand-600 px-4 py-2 text-sm font-bold text-white">Xem Ä‘Ã¡p Ã¡n</button></div>
+            <div className="p-3"><button type="button" className="rounded bg-brand-600 px-4 py-2 text-sm font-bold text-white">Xem đáp án</button></div>
           </div>
           <div className="border-l-4 border-brand-600 bg-blue-50 p-5 leading-7">
-            <p className="mb-5 text-xs font-bold uppercase tracking-widest text-slate-500">ÄÃ¡p Ã¡n máº«u</p>
+            <p className="mb-5 text-xs font-bold uppercase tracking-widest text-slate-500">Đáp án mẫu</p>
             <p>{data.sample}</p>
-            <b className="mt-6 block">Giáº£i thÃ­ch:</b>
+            <b className="mt-6 block">Giải thích:</b>
             <ul className="mt-2 list-disc pl-6">
               {(data.explanation ?? []).map((item: string) => <li key={item}>{item}</li>)}
             </ul>
@@ -2407,7 +2407,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
     return (
       <AptisPaper narrow>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-          <button type="button" className="rounded bg-slate-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => patchAnswers({ selectedClubIndex: '-1', writingPartIndex: '0' })}>Quay láº¡i danh sÃ¡ch</button>
+          <button type="button" className="rounded bg-slate-700 px-4 py-2 text-sm font-semibold text-white" onClick={() => patchAnswers({ selectedClubIndex: '-1', writingPartIndex: '0' })}>Quay lại danh sách</button>
           <div className="flex gap-2">
             {[0, 1, 2, 3].map((index) => (
               <button
@@ -2416,7 +2416,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                 key={index}
                 onClick={() => setAnswer('writingPartIndex', String(index))}
               >
-                CÃ¢u {index + 1}
+                Câu {index + 1}
               </button>
             ))}
           </div>
@@ -2486,10 +2486,10 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
 
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button type="button" className="rounded bg-cyan-500 px-5 py-3 font-semibold text-white" onClick={() => setShowAnswers((value) => !value)}>
-            {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n máº«u' : 'ÄÃ¡p Ã¡n máº«u'}
+            {showAnswers ? 'Ẩn đáp án mẫu' : 'Đáp án mẫu'}
           </button>
-          <button type="button" className="rounded bg-slate-200 px-5 py-3 font-semibold text-slate-700 disabled:opacity-50" disabled={partIndex === 0} onClick={() => setAnswer('writingPartIndex', String(Math.max(0, partIndex - 1)))}>CÃ¢u trÆ°á»›c</button>
-          <button type="button" className="rounded bg-brand-600 px-5 py-3 font-semibold text-white disabled:opacity-50" disabled={partIndex === 3} onClick={() => setAnswer('writingPartIndex', String(Math.min(3, partIndex + 1)))}>CÃ¢u tiáº¿p</button>
+          <button type="button" className="rounded bg-slate-200 px-5 py-3 font-semibold text-slate-700 disabled:opacity-50" disabled={partIndex === 0} onClick={() => setAnswer('writingPartIndex', String(Math.max(0, partIndex - 1)))}>Câu trước</button>
+          <button type="button" className="rounded bg-brand-600 px-5 py-3 font-semibold text-white disabled:opacity-50" disabled={partIndex === 3} onClick={() => setAnswer('writingPartIndex', String(Math.min(3, partIndex + 1)))}>Câu tiếp</button>
         </div>
 
         {showAnswers && (
@@ -2522,12 +2522,12 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
             );
           })}
         </div>
-        <button type="button" className="mt-6 rounded bg-cyan-500 px-5 py-3 font-semibold text-white">Xem Ä‘Ã¡p Ã¡n</button>
+        <button type="button" className="mt-6 rounded bg-cyan-500 px-5 py-3 font-semibold text-white">Xem đáp án</button>
       </AptisPaper>
     );
   }
 
-  return <div className="rounded-xl border border-slate-200 bg-white p-6">Template chÆ°a Ä‘Æ°á»£c há»— trá»£.</div>;
+  return <div className="rounded-xl border border-slate-200 bg-white p-6">Template chưa được hỗ trợ.</div>;
 }
 
 function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
@@ -2561,19 +2561,19 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
         <div className="mx-auto max-w-[1180px]">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h1 className="flex items-center gap-2 text-2xl font-extrabold">
-              <ListChecks className="text-brand-600" /> Speaking Question 1 - Danh sÃ¡ch cÃ¢u há»i
+              <ListChecks className="text-brand-600" /> Speaking Question 1 - Danh sách câu hỏi
             </h1>
             <div className="flex gap-2">
-              <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyá»‡n táº­p</button>
+              <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyện tập</button>
               <button type="button" onClick={() => patchAnswers({ speakingPart1Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Gioi thieu</button>
             </div>
           </div>
           <div className="overflow-hidden rounded-xl border border-slate-300 bg-white">
             <div className="grid grid-cols-[52px_1fr_140px_140px] bg-slate-50 text-sm font-extrabold">
               <div className="border-r border-slate-300 p-3">#</div>
-              <div className="border-r border-slate-300 p-3">CÃ¢u há»i</div>
-              <div className="border-r border-slate-300 p-3">ÄÃ¡p Ã¡n 1</div>
-              <div className="p-3">ÄÃ¡p Ã¡n 2</div>
+              <div className="border-r border-slate-300 p-3">Câu hỏi</div>
+              <div className="border-r border-slate-300 p-3">Đáp án 1</div>
+              <div className="p-3">Đáp án 2</div>
             </div>
             {questions.map((item: any, itemIndex: number) => {
               const key1 = `${itemIndex}-1`;
@@ -2585,19 +2585,19 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
                     <button type="button" onClick={() => openPractice(itemIndex)} className="border-r border-slate-200 p-3 text-left hover:bg-blue-50">{item.question}</button>
                     <div className="border-r border-slate-200 p-2">
                       <button type="button" onClick={() => toggleAnswer(key1)} className="h-9 rounded border border-brand-600 px-3 text-sm font-semibold text-brand-600">
-                        {openAnswer === key1 ? 'áº¨n Ä‘Ã¡p Ã¡n 1' : 'Xem Ä‘Ã¡p Ã¡n 1'}
+                        {openAnswer === key1 ? 'Ẩn đáp án 1' : 'Xem đáp án 1'}
                       </button>
                     </div>
                     <div className="p-2">
                       <button type="button" onClick={() => toggleAnswer(key2)} className="h-9 rounded border border-emerald-600 px-3 text-sm font-semibold text-emerald-700">
-                        {openAnswer === key2 ? 'áº¨n Ä‘Ã¡p Ã¡n 2' : 'Xem Ä‘Ã¡p Ã¡n 2'}
+                        {openAnswer === key2 ? 'Ẩn đáp án 2' : 'Xem đáp án 2'}
                       </button>
                     </div>
                   </div>
                   {(openAnswer === key1 || openAnswer === key2) && (
                     <div className="border-l-4 border-brand-600 bg-blue-50 px-5 py-4 text-sm leading-7 text-slate-800">
                       <p className="mb-1 text-xs font-extrabold uppercase tracking-widest text-slate-500">
-                        {openAnswer === key1 ? 'ÄÃ¡p Ã¡n máº«u 1' : 'ÄÃ¡p Ã¡n máº«u 2'}
+                        {openAnswer === key1 ? 'Đáp án mẫu 1' : 'Đáp án mẫu 2'}
                       </p>
                       <p>{openAnswer === key1 ? item.answer1 : item.answer2}</p>
                     </div>
@@ -2621,33 +2621,33 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
           </h1>
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
             <div className="grid grid-cols-[190px_1fr_1.35fr] bg-blue-50 text-center text-sm font-extrabold text-blue-950">
-              <div className="border-r border-slate-200 p-4">Pháº§n thi</div>
-              <div className="border-r border-slate-200 p-4">MÃ´ táº£</div>
-              <div className="p-4">HÆ°á»›ng dáº«n Ã´n táº­p</div>
+              <div className="border-r border-slate-200 p-4">Phần thi</div>
+              <div className="border-r border-slate-200 p-4">Mô tả</div>
+              <div className="p-4">Hướng dẫn ôn tập</div>
             </div>
             <div className="grid grid-cols-[190px_1fr_1.35fr] text-sm leading-7">
               <div className="border-r border-slate-200 bg-slate-50 p-5 font-bold">
                 <p>Part 1:</p>
-                <p>ThÃ´ng tin báº£n thÃ¢n</p>
+                <p>Thông tin bản thân</p>
               </div>
               <div className="border-r border-slate-200 p-5">
-                Báº¡n sáº½ Ä‘Æ°á»£c há»i <b>3 cÃ¢u</b> xoay quanh cÃ¡c chá»§ Ä‘á» quen thuá»™c vá» cuá»™c sá»‘ng cÃ¡ nhÃ¢n.
-                Má»—i cÃ¢u cÃ³ <b>45 giÃ¢y</b> Ä‘á»ƒ tráº£ lá»i. CÃ¢u tráº£ lá»i nÃªn ngáº¯n gá»n, rÃµ rÃ ng vÃ  Ä‘Ãºng trá»ng tÃ¢m.
+                Bạn sẽ được hỏi <b>3 câu</b> xoay quanh các chủ đề quen thuộc về cuộc sống cá nhân.
+                Mỗi câu có <b>45 giây</b> để trả lời. Câu trả lời nên ngắn gọn, rõ ràng và đúng trọng tâm.
               </div>
               <div className="space-y-3 p-5">
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">âœ“</span>Luyá»‡n cÃ¡ch giá»›i thiá»‡u báº£n thÃ¢n, gia Ä‘Ã¬nh, sá»Ÿ thÃ­ch, hoáº¡t Ä‘á»™ng cuá»‘i tuáº§n.</p>
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">âœ“</span>Háº¡n cháº¿ liá»‡t kÃª Ä‘Æ¡n Ä‘iá»‡u, dÃ¹ng tá»« ná»‘i vÃ  cÃ¢u ghÃ©p Ä‘á»ƒ cÃ¢u tráº£ lá»i tá»± nhiÃªn hÆ¡n.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Luyện cách giới thiệu bản thân, gia đình, sở thích, hoạt động cuối tuần.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Hạn chế liệt kê đơn điệu, dùng từ nối và câu ghép để câu trả lời tự nhiên hơn.</p>
               </div>
             </div>
           </div>
           <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
-            <b>Thang Ä‘iá»ƒm APTIS:</b> tá»« A0 Ä‘áº¿n C1. Part 1 Ä‘Ã¡nh giÃ¡ kháº£ nÄƒng tráº£ lá»i ngáº¯n gá»n, rÃµ rÃ ng vÃ  phÃ¹ há»£p chá»§ Ä‘á».
+            <b>Thang điểm APTIS:</b> từ A0 đến C1. Part 1 đánh giá khả năng trả lời ngắn gọn, rõ ràng và phù hợp chủ đề.
           </div>
           <div className="rounded-2xl bg-white p-6 text-center shadow-soft">
-            <p className="mb-4 text-sm font-semibold text-slate-500">Chá»n cháº¿ Ä‘á»™ há»c</p>
+            <p className="mb-4 text-sm font-semibold text-slate-500">Chọn chế độ học</p>
             <div className="mx-auto grid max-w-[620px] gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => openPractice(0)} className="h-12 rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
-                <Mic className="mr-2 inline" size={16} /> Trang luyá»‡n táº­p
+                <Mic className="mr-2 inline" size={16} /> Trang luyện tập
               </button>
               <button type="button" onClick={() => patchAnswers({ speakingPart1Mode: 'summary', speakingPart1OpenAnswer: '' })} className="h-12 rounded-full border border-slate-400 text-sm font-extrabold text-slate-700 hover:bg-slate-50">
                 <ListChecks className="mr-2 inline" size={16} /> Trang tong hop
@@ -2721,9 +2721,9 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
   const showSample = saved.speakingPart2ShowSample === 'true';
   const progress = questions.length ? Math.max(4, Math.round(((index + 1) / questions.length) * 100)) : 0;
   const tabs = [
-    { label: 'Q1 - MÃ´ táº£', icon: BookOpen },
-    { label: 'Q2 - LiÃªn quan', icon: MessageCircle },
-    { label: 'Q3 - Ã kiáº¿n', icon: HelpCircle }
+    { label: 'Q1 - Mô tả', icon: BookOpen },
+    { label: 'Q2 - Liên quan', icon: MessageCircle },
+    { label: 'Q3 - Ý kiến', icon: HelpCircle }
   ];
 
   const imageUrl = resolveLocalSpeakingImage(current.urlpic1, localSpeakingImage('part2', `${index + 1}.png`));
@@ -2751,37 +2751,37 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
         <div className="mx-auto max-w-[880px] space-y-5">
           <h1 className="flex items-center gap-2 text-2xl font-extrabold">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-sm text-white">i</span>
-            Giá»›i thiá»‡u - Speaking Part 2
+            Giới thiệu - Speaking Part 2
           </h1>
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
             <div className="grid grid-cols-[1.35fr_1fr_1.35fr] bg-blue-50 text-center text-sm font-extrabold text-blue-950">
-              <div className="border-r border-slate-200 p-4">Pháº§n thi</div>
-              <div className="border-r border-slate-200 p-4">MÃ´ táº£</div>
-              <div className="p-4">HÆ°á»›ng dáº«n Ã´n táº­p</div>
+              <div className="border-r border-slate-200 p-4">Phần thi</div>
+              <div className="border-r border-slate-200 p-4">Mô tả</div>
+              <div className="p-4">Hướng dẫn ôn tập</div>
             </div>
             <div className="grid min-h-[250px] grid-cols-[1.35fr_1fr_1.35fr] text-sm leading-7">
               <div className="border-r border-slate-200 bg-slate-50 p-6 font-bold">
                 <p>Part 2:</p>
-                <p>MÃ´ táº£, bÃ y tá» Ã½ kiáº¿n, nÃªu lÃ½ do vÃ  giáº£i thÃ­ch.</p>
+                <p>Mô tả, bày tỏ ý kiến, nêu lý do và giải thích.</p>
               </div>
               <div className="border-r border-slate-200 p-6">
-                Trong pháº§n nÃ y, báº¡n cáº§n <b>mÃ´ táº£ má»™t hÃ¬nh áº£nh</b> vÃ  tráº£ lá»i thÃªm <b>hai cÃ¢u há»i</b> liÃªn quan.
-                Má»—i cÃ¢u há»i cÃ³ <b>45 giÃ¢y</b> Ä‘á»ƒ tráº£ lá»i.
+                Trong phần này, bạn cần <b>mô tả một hình ảnh</b> và trả lời thêm <b>hai câu hỏi</b> liên quan.
+                Mỗi câu hỏi có <b>45 giây</b> để trả lời.
               </div>
               <div className="space-y-4 p-6">
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">âœ“</span>Luyá»‡n nÃ³i trÃ´i cháº£y vÃ  tá»± nhiÃªn, tráº£ lá»i Ä‘á»§ cáº£ ba cÃ¢u.</p>
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">âœ“</span>Khi mÃ´ táº£ áº£nh, hÃ£y nÃ³i rÃµ vá»‹ trÃ­, hÃ nh Ä‘á»™ng, cáº£m xÃºc vÃ  bá»‘i cáº£nh.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Luyện nói trôi chảy và tự nhiên, trả lời đủ cả ba câu.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Khi mô tả ảnh, hãy nói rõ vị trí, hành động, cảm xúc và bối cảnh.</p>
               </div>
             </div>
           </div>
           <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
             <TrendingUp className="mr-3 inline text-cyan-700" size={22} />
-            <b>Thang Ä‘iá»ƒm APTIS:</b> tá»« A0 Ä‘áº¿n C1. Part 2 Ä‘Ã¡nh giÃ¡ kháº£ nÄƒng mÃ´ táº£, lÃ½ giáº£i vÃ  bÃ y tá» Ã½ kiáº¿n báº±ng tiáº¿ng Anh.
+            <b>Thang điểm APTIS:</b> từ A0 đến C1. Part 2 đánh giá khả năng mô tả, lý giải và bày tỏ ý kiến bằng tiếng Anh.
           </div>
           <div className="rounded-2xl bg-white p-6 text-center shadow-soft">
-            <p className="mb-4 text-sm font-semibold text-slate-500">Chá»n cháº¿ Ä‘á»™ há»c</p>
+            <p className="mb-4 text-sm font-semibold text-slate-500">Chọn chế độ học</p>
             <button type="button" onClick={() => openPractice(0)} className="mx-auto h-12 w-full max-w-[300px] rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
-              <Mic className="mr-2 inline" size={16} /> Trang luyá»‡n táº­p
+              <Mic className="mr-2 inline" size={16} /> Trang luyện tập
             </button>
           </div>
         </div>
@@ -2811,7 +2811,7 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
               />
             ) : (
               <div className="flex h-[300px] items-center justify-center rounded-lg bg-slate-100 text-center text-sm font-semibold text-slate-500">
-                ChÆ°a táº£i Ä‘Æ°á»£c áº£nh. Kiá»ƒm tra file trong public/images/speaking/part2.
+                Chưa tải được ảnh. Kiểm tra file trong public/images/speaking/part2.
               </div>
             )}
           </div>
@@ -2847,11 +2847,11 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
               onClick={() => patchAnswers({ speakingPart2ShowSample: showSample ? 'false' : 'true' })}
               className="h-10 w-full rounded-lg border border-brand-600 text-sm font-semibold text-brand-600 hover:bg-blue-50"
             >
-              <MessageCircle className="mr-2 inline" size={15} />{showSample ? 'áº¨n Sample Answer' : 'Sample Answer'}
+              <MessageCircle className="mr-2 inline" size={15} />{showSample ? 'Ẩn Sample Answer' : 'Sample Answer'}
             </button>
             {showSample && (
               <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-slate-800">
-                {sample || 'ChÆ°a cÃ³ Ä‘Ã¡p Ã¡n máº«u cho cÃ¢u nÃ y.'}
+                {sample || 'Chưa có đáp án mẫu cho câu này.'}
               </div>
             )}
           </div>
@@ -2900,9 +2900,9 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
   const image1Url = getSpeakingImageUrl(current, 1, index);
   const image2Url = getSpeakingImageUrl(current, 2, index);
   const tabs = [
-    { label: 'Q1 - So sÃ¡nh', icon: BookOpen },
-    { label: 'Q2 - LiÃªn quan', icon: MessageCircle },
-    { label: 'Q3 - Ã kiáº¿n', icon: HelpCircle }
+    { label: 'Q1 - So sánh', icon: BookOpen },
+    { label: 'Q2 - Liên quan', icon: MessageCircle },
+    { label: 'Q3 - Ý kiến', icon: HelpCircle }
   ];
 
   useEffect(() => {
@@ -2938,7 +2938,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
       return (
         <div className="relative flex h-[198px] items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-center text-xs font-semibold text-slate-500">
           <span className="absolute left-2 top-2 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-white">{label}</span>
-          ChÆ°a táº£i Ä‘Æ°á»£c áº£nh. Kiá»ƒm tra file trong public/images/speaking/part3.
+          Chưa tải được ảnh. Kiểm tra file trong public/images/speaking/part3.
         </div>
       );
     }
@@ -2962,37 +2962,37 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
         <div className="mx-auto max-w-[880px] space-y-5">
           <h1 className="flex items-center gap-3 text-2xl font-extrabold">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-sm text-white">i</span>
-            Giá»›i thiá»‡u - Speaking Part 3
+            Giới thiệu - Speaking Part 3
           </h1>
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
             <div className="grid grid-cols-[1.4fr_1fr_1fr] bg-blue-50 text-center text-sm font-extrabold text-blue-950">
-              <div className="border-r border-slate-200 p-4">Pháº§n thi</div>
-              <div className="border-r border-slate-200 p-4">MÃ´ táº£</div>
-              <div className="p-4">HÆ°á»›ng dáº«n Ã´n táº­p</div>
+              <div className="border-r border-slate-200 p-4">Phần thi</div>
+              <div className="border-r border-slate-200 p-4">Mô tả</div>
+              <div className="p-4">Hướng dẫn ôn tập</div>
             </div>
             <div className="grid min-h-[300px] grid-cols-[1.4fr_1fr_1fr] text-sm leading-7">
               <div className="border-r border-slate-200 bg-slate-50 p-6 font-bold">
                 <p>Part 3:</p>
-                <p>MÃ´ táº£, so sÃ¡nh, cung cáº¥p lÃ½ do vÃ  giáº£i thÃ­ch.</p>
+                <p>Mô tả, so sánh, cung cấp lý do và giải thích.</p>
               </div>
               <div className="border-r border-slate-200 p-6">
-                Trong pháº§n nÃ y, báº¡n sáº½ Ä‘Æ°á»£c yÃªu cáº§u <b>so sÃ¡nh hai bá»©c áº£nh</b> vÃ  sau Ä‘Ã³ tráº£ lá»i <b>hai cÃ¢u há»i</b> liÃªn quan Ä‘áº¿n chá»§ Ä‘á». Äá»™ khÃ³ sáº½ tÄƒng dáº§n tá»« mÃ´ táº£ Ä‘áº¿n suy Ä‘oÃ¡n.
-                <br /><br />Thá»i gian nÃ³i: <b>45 giÃ¢y / cÃ¢u há»i.</b>
+                Trong phần này, bạn sẽ được yêu cầu <b>so sánh hai bức ảnh</b> và sau đó trả lời <b>hai câu hỏi</b> liên quan đến chủ đề. Độ khó sẽ tăng dần từ mô tả đến suy đoán.
+                <br /><br />Thời gian nói: <b>45 giây / câu hỏi.</b>
               </div>
               <div className="space-y-4 p-6">
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">âœ“</span>Äá»ƒ chuáº©n bá»‹ cho bÃ i táº­p nÃ y, hÃ£y luyá»‡n nÃ³i so sÃ¡nh hai váº­t thá»ƒ khÃ¡c nhau vÃ  táº­p trung mÃ´ táº£ Æ°u, nhÆ°á»£c Ä‘iá»ƒm.</p>
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">âœ“</span>Vá»›i pháº§n suy Ä‘oÃ¡n, dÃ¹ng cáº¥u trÃºc nhÆ° <i>might, could, seem to, appear to</i>.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Để chuẩn bị cho bài tập này, hãy luyện nói so sánh hai vật thể khác nhau và tập trung mô tả ưu, nhược điểm.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Với phần suy đoán, dùng cấu trúc như <i>might, could, seem to, appear to</i>.</p>
               </div>
             </div>
           </div>
           <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
             <TrendingUp className="mr-3 inline text-cyan-700" size={22} />
-            <b>Thang Ä‘iá»ƒm APTIS:</b> tá»« A0 Ä‘áº¿n C1. Part 3 Ä‘Ã¡nh giÃ¡ kháº£ nÄƒng so sÃ¡nh, láº­p luáº­n vÃ  suy Ä‘oÃ¡n báº±ng tiáº¿ng Anh.
+            <b>Thang điểm APTIS:</b> từ A0 đến C1. Part 3 đánh giá khả năng so sánh, lập luận và suy đoán bằng tiếng Anh.
           </div>
           <div className="rounded-2xl bg-white p-6 text-center shadow-soft">
-            <p className="mb-4 text-sm font-semibold text-slate-500">Chá»n cháº¿ Ä‘á»™ há»c</p>
+            <p className="mb-4 text-sm font-semibold text-slate-500">Chọn chế độ học</p>
             <button type="button" onClick={() => openPractice(0)} className="mx-auto h-12 w-full max-w-[300px] rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
-              <Mic className="mr-2 inline" size={16} /> Trang luyá»‡n táº­p
+              <Mic className="mr-2 inline" size={16} /> Trang luyện tập
             </button>
           </div>
         </div>
@@ -3013,8 +3013,8 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
         </div>
         <div className="p-7">
           <div className="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 sm:grid-cols-2">
-            {renderPromptImage(image1Url, 'áº¢nh 1', `urlpic1-${index}`)}
-            {renderPromptImage(image2Url, 'áº¢nh 2', `urlpic2-${index}`)}
+            {renderPromptImage(image1Url, 'Ảnh 1', `urlpic1-${index}`)}
+            {renderPromptImage(image2Url, 'Ảnh 2', `urlpic2-${index}`)}
           </div>
           <div className="mt-5 grid grid-cols-3 gap-2">
             {tabs.map((item, itemIndex) => {
@@ -3048,11 +3048,11 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
               onClick={() => patchAnswers({ speakingPart3ShowSample: showSample ? 'false' : 'true' })}
               className="h-10 w-full rounded-lg border border-brand-600 text-sm font-semibold text-brand-600 hover:bg-blue-50"
             >
-              <MessageCircle className="mr-2 inline" size={15} />{showSample ? 'áº¨n Sample Answer' : 'Sample Answer'}
+              <MessageCircle className="mr-2 inline" size={15} />{showSample ? 'Ẩn Sample Answer' : 'Sample Answer'}
             </button>
             {showSample && (
               <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-slate-800">
-                {sample || 'ChÆ°a cÃ³ Ä‘Ã¡p Ã¡n máº«u cho cÃ¢u nÃ y.'}
+                {sample || 'Chưa có đáp án mẫu cho câu này.'}
               </div>
             )}
           </div>
@@ -3099,45 +3099,45 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
         <div className="mx-auto max-w-[820px] space-y-5">
           <h1 className="flex items-center gap-3 text-2xl font-extrabold">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-brand-600 text-sm text-white">i</span>
-            Giá»›i thiá»‡u - Speaking Part 4
+            Giới thiệu - Speaking Part 4
           </h1>
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-soft">
             <div className="grid grid-cols-[100px_1fr_1fr] bg-blue-50 text-center text-sm font-extrabold text-blue-950">
-              <div className="border-r border-slate-200 p-4">Pháº§n thi</div>
-              <div className="border-r border-slate-200 p-4">MÃ´ táº£</div>
-              <div className="p-4">HÆ°á»›ng dáº«n Ã´n táº­p</div>
+              <div className="border-r border-slate-200 p-4">Phần thi</div>
+              <div className="border-r border-slate-200 p-4">Mô tả</div>
+              <div className="p-4">Hướng dẫn ôn tập</div>
             </div>
             <div className="grid min-h-[390px] grid-cols-[100px_1fr_1fr] text-sm leading-7">
               <div className="border-r border-slate-200 bg-slate-50 p-5 font-bold">
                 <p>Part 4:</p>
-                <p>Tháº£o luáº­n kinh nghiá»‡m cÃ¡ nhÃ¢n vÃ  Ä‘Æ°a ra Ã½ kiáº¿n cho má»—i chá»§ Ä‘á» trá»«u tÆ°á»£ng.</p>
+                <p>Thảo luận kinh nghiệm cá nhân và đưa ra ý kiến cho mỗi chủ đề trừu tượng.</p>
               </div>
               <div className="border-r border-slate-200 p-6">
-                Trong pháº§n cuá»‘i, báº¡n sáº½ quan sÃ¡t má»™t bá»©c áº£nh vÃ  <b>tráº£ lá»i ba cÃ¢u há»i</b> vá» má»™t chá»§ Ä‘á» trá»«u tÆ°á»£ng.
+                Trong phần cuối, bạn sẽ quan sát một bức ảnh và <b>trả lời ba câu hỏi</b> về một chủ đề trừu tượng.
                 <br /><br />
-                ThÃ­ sinh cÃ³ <b>1 phÃºt</b> Ä‘á»ƒ chuáº©n bá»‹ cÃ¢u tráº£ lá»i vÃ  cÃ³ thá»ƒ ghi chÃº.
+                Thí sinh có <b>1 phút</b> để chuẩn bị câu trả lời và có thể ghi chú.
                 <br /><br />
-                Thá»i gian nÃ³i: <b>2 phÃºt.</b>
+                Thời gian nói: <b>2 phút.</b>
               </div>
               <div className="space-y-4 p-6">
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-xs text-white">!</span>Má»™t lá»—i phá»• biáº¿n lÃ  mÃ´ táº£ bá»©c áº£nh. Part 4 cáº§n tráº£ lá»i sÃ¢u hÆ¡n vá» chá»§ Ä‘á».</p>
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-xs text-white">!</span>TrÃ¡nh Ä‘i lá»‡ch Ä‘á». HÃ£y tráº£ lá»i rÃµ rÃ ng, máº¡ch láº¡c vÃ  dÃ¹ng cáº¥u trÃºc chÃ­nh xÃ¡c.</p>
-                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">âœ“</span>Luyá»‡n nÃ³i trong hai phÃºt vá» má»™t chá»§ Ä‘á» trá»«u tÆ°á»£ng Ä‘á»ƒ quen thá»i lÆ°á»£ng thi.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-xs text-white">!</span>Một lỗi phổ biến là mô tả bức ảnh. Part 4 cần trả lời sâu hơn về chủ đề.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-xs text-white">!</span>Tránh đi lệch đề. Hãy trả lời rõ ràng, mạch lạc và dùng cấu trúc chính xác.</p>
+                <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">✓</span>Luyện nói trong hai phút về một chủ đề trừu tượng để quen thời lượng thi.</p>
               </div>
             </div>
           </div>
           <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-4 text-sm text-cyan-900">
             <TrendingUp className="mr-3 inline text-cyan-700" size={22} />
-            <b>Thang Ä‘iá»ƒm APTIS:</b> tá»« A0 Ä‘áº¿n C1. Part 4 Ä‘Ã¡nh giÃ¡ kháº£ nÄƒng tháº£o luáº­n kinh nghiá»‡m cÃ¡ nhÃ¢n, Ä‘Æ°a ra Ã½ kiáº¿n vÃ  láº­p luáº­n vá» chá»§ Ä‘á» trá»«u tÆ°á»£ng.
+            <b>Thang điểm APTIS:</b> từ A0 đến C1. Part 4 đánh giá khả năng thảo luận kinh nghiệm cá nhân, đưa ra ý kiến và lập luận về chủ đề trừu tượng.
           </div>
           <div className="rounded-2xl bg-white p-6 text-center shadow-soft">
-            <p className="mb-4 text-sm font-semibold text-slate-500">Chá»n cháº¿ Ä‘á»™ há»c</p>
+            <p className="mb-4 text-sm font-semibold text-slate-500">Chọn chế độ học</p>
             <div className="mx-auto grid max-w-[580px] gap-3 sm:grid-cols-2">
               <button type="button" onClick={() => openPractice(0)} className="h-12 rounded-full bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
-                <Mic className="mr-2 inline" size={16} /> Trang luyá»‡n táº­p
+                <Mic className="mr-2 inline" size={16} /> Trang luyện tập
               </button>
               <button type="button" onClick={openSummary} className="h-12 rounded-full border border-slate-400 text-sm font-extrabold text-slate-700 hover:bg-slate-50">
-                <ListChecks className="mr-2 inline" size={16} /> Trang tá»•ng há»£p
+                <ListChecks className="mr-2 inline" size={16} /> Trang tổng hợp
               </button>
             </div>
           </div>
@@ -3159,10 +3159,10 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-                <Clock className="mr-1 inline" size={13} /> Chuáº©n bá»‹: 1 phÃºt
+                <Clock className="mr-1 inline" size={13} /> Chuẩn bị: 1 phút
               </span>
               <span className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">
-                <Mic className="mr-1 inline" size={13} /> NÃ³i: 2 phÃºt
+                <Mic className="mr-1 inline" size={13} /> Nói: 2 phút
               </span>
             </div>
           </div>
@@ -3184,12 +3184,12 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
                 onClick={() => patchAnswers({ speakingPart4ShowSample: showSample ? 'false' : 'true' })}
                 className="h-10 w-full rounded-lg border border-brand-600 text-sm font-semibold text-brand-600 hover:bg-blue-50"
               >
-                <MessageCircle className="mr-2 inline" size={15} />{showSample ? 'áº¨n Sample Answer' : 'Sample Answer'}
+                <MessageCircle className="mr-2 inline" size={15} />{showSample ? 'Ẩn Sample Answer' : 'Sample Answer'}
               </button>
               {showSample && (
                 <div
                   className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-slate-800"
-                  dangerouslySetInnerHTML={{ __html: current.answer1 || 'ChÆ°a cÃ³ Ä‘Ã¡p Ã¡n máº«u cho cÃ¢u nÃ y.' }}
+                  dangerouslySetInnerHTML={{ __html: current.answer1 || 'Chưa có đáp án mẫu cho câu này.' }}
                 />
               )}
             </div>
@@ -3204,15 +3204,15 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
       <div className="mx-auto max-w-[1160px] space-y-5">
         <h1 className="flex items-center gap-3 text-2xl font-extrabold">
           <ListChecks className="text-brand-600" size={24} />
-          Speaking Part 4 - Danh sÃ¡ch cÃ¢u há»i
+          Speaking Part 4 - Danh sách câu hỏi
         </h1>
         <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-soft">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-slate-50 text-left">
               <tr>
                 <th className="w-12 border-b border-r border-slate-300 px-3 py-3">#</th>
-                <th className="border-b border-r border-slate-300 px-3 py-3">CÃ¢u há»i</th>
-                <th className="w-44 border-b border-slate-300 px-3 py-3">ÄÃ¡p Ã¡n máº«u</th>
+                <th className="border-b border-r border-slate-300 px-3 py-3">Câu hỏi</th>
+                <th className="w-44 border-b border-slate-300 px-3 py-3">Đáp án mẫu</th>
               </tr>
             </thead>
             <tbody>
@@ -3229,7 +3229,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
                           onClick={() => toggleAnswer(index)}
                           className="h-9 rounded-md border border-brand-600 px-4 text-sm font-semibold text-brand-600 hover:bg-blue-50"
                         >
-                          {isOpen ? 'áº¨n Ä‘Ã¡p Ã¡n' : 'Xem Ä‘Ã¡p Ã¡n'}
+                          {isOpen ? 'Ẩn đáp án' : 'Xem đáp án'}
                         </button>
                       </td>
                     </tr>
@@ -3237,10 +3237,10 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
                       <tr>
                         <td className="border-r border-slate-200 bg-blue-50" />
                         <td colSpan={2} className="border-l-4 border-brand-600 bg-blue-50 p-5">
-                          <p className="mb-3 text-xs font-extrabold uppercase tracking-widest text-slate-500">ÄÃ¡p Ã¡n máº«u</p>
+                          <p className="mb-3 text-xs font-extrabold uppercase tracking-widest text-slate-500">Đáp án mẫu</p>
                           <div
                             className="prose max-w-none text-sm leading-7 text-slate-800"
-                            dangerouslySetInnerHTML={{ __html: question.answer1 || 'ChÆ°a cÃ³ Ä‘Ã¡p Ã¡n máº«u.' }}
+                            dangerouslySetInnerHTML={{ __html: question.answer1 || 'Chưa có đáp án mẫu.' }}
                           />
                         </td>
                       </tr>
@@ -3283,7 +3283,7 @@ function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boo
 
   async function startRecording() {
     if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error('TrÃ¬nh duyá»‡t chÆ°a há»— trá»£ ghi Ã¢m báº±ng micro.');
+      toast.error('Trình duyệt chưa hỗ trợ ghi âm bằng micro.');
       return;
     }
 
@@ -3311,7 +3311,7 @@ function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boo
       setRemaining(duration);
       setRecording(true);
     } catch {
-      toast.error('KhÃ´ng má»Ÿ Ä‘Æ°á»£c micro. HÃ£y cho phÃ©p quyá»n ghi Ã¢m trÃªn trÃ¬nh duyá»‡t.');
+      toast.error('Không mở được micro. Hãy cho phép quyền ghi âm trên trình duyệt.');
     }
   }
 
@@ -3331,7 +3331,7 @@ function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boo
           onClick={recording ? stopRecording : startRecording}
           className={`inline-flex h-11 items-center gap-2 rounded-full px-6 font-bold text-white ${recording ? 'bg-slate-800' : 'bg-red-500 hover:bg-red-600'}`}
         >
-          <Mic size={16} />{recording ? `CÃ²n ${remaining}s` : 'Record'}
+          <Mic size={16} />{recording ? `Còn ${remaining}s` : 'Record'}
         </button>
         <div className="h-1.5 w-40 overflow-hidden rounded-full bg-red-100">
           <span className="block h-full rounded-full bg-red-500 transition-all" style={{ width: `${progress}%` }} />
@@ -3344,8 +3344,8 @@ function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boo
   return (
     <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-center sm:justify-between">
       <div>
-        <p className="font-extrabold text-slate-900">Thá»i gian nÃ³i: 45 giÃ¢y</p>
-        <p className="mt-1 text-sm text-slate-500">{recording ? `Äang ghi Ã¢m, cÃ²n ${remaining} giÃ¢y.` : remaining === 0 ? 'ÄÃ£ háº¿t thá»i gian nÃ³i.' : 'Báº¥m báº¯t Ä‘áº§u ghi Ã¢m Ä‘á»ƒ tÃ­nh giá».'}</p>
+        <p className="font-extrabold text-slate-900">Thời gian nói: 45 giây</p>
+        <p className="mt-1 text-sm text-slate-500">{recording ? `Đang ghi âm, còn ${remaining} giây.` : remaining === 0 ? 'Đã hết thời gian nói.' : 'Bấm bắt đầu ghi âm để tính giờ.'}</p>
       </div>
       <div className="flex items-center gap-3">
         <div className="h-2 w-32 overflow-hidden rounded-full bg-red-100">
@@ -3356,12 +3356,12 @@ function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boo
           onClick={recording ? stopRecording : startRecording}
           className={`inline-flex h-11 items-center gap-2 rounded-full px-5 font-bold text-white ${recording ? 'bg-slate-800' : 'bg-red-500 hover:bg-red-600'}`}
         >
-          <Mic size={16} />{recording ? 'Dá»«ng ghi Ã¢m' : 'Báº¯t Ä‘áº§u ghi Ã¢m'}
+          <Mic size={16} />{recording ? 'Dừng ghi âm' : 'Bắt đầu ghi âm'}
         </button>
       </div>
       {audioUrl && (
         <div className="sm:col-span-2">
-          <p className="mb-2 text-sm font-bold text-slate-600">Báº£n ghi cá»§a báº¡n</p>
+          <p className="mb-2 text-sm font-bold text-slate-600">Bản ghi của bạn</p>
           <audio className="w-full" controls src={audioUrl} />
         </div>
       )}
@@ -3388,10 +3388,10 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
   const writingInstruction = (text: string | undefined, currentPart: number) => {
     if (currentPart === 0) {
       const article = /^[aeiou]/i.test(club.clubName) ? 'an' : 'a';
-      return `You are joining ${article} ${club.clubName}. Fill out the form. Write short answers (1-5 words) for each message (BÃ i nÃ y nÃªn tráº£ lá»i dÃ i nháº¥t lÃ  5 tá»«, viáº¿t hoa tá»« Ä‘áº§u vÃ  dáº¥u cháº¥m káº¿t thÃºc cÃ¢u).`;
+      return `You are joining ${article} ${club.clubName}. Fill out the form. Write short answers (1-5 words) for each message (Bài này nên trả lời dài nhất là 5 từ, viết hoa từ đầu và dấu chấm kết thúc câu).`;
     }
     if (currentPart === 1) {
-      return (text ?? '').replace(/\([^)]*Vi[^)]*\)/, '(Viáº¿t 20 Ä‘áº¿n 30 tá»« thÃ´i nhÃ©!)');
+      return (text ?? '').replace(/\([^)]*Vi[^)]*\)/, '(Viết 20 đến 30 từ thôi nhé!)');
     }
     return text ?? '';
   };
@@ -3433,7 +3433,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
   return (
     <AptisPaper narrow compact>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <button type="button" className="rounded bg-slate-700 px-3 py-1.5 text-sm font-semibold text-white" onClick={() => patchAnswers({ selectedClubIndex: '-1', writingPartIndex: '0' })}>Quay láº¡i danh sÃ¡ch</button>
+        <button type="button" className="rounded bg-slate-700 px-3 py-1.5 text-sm font-semibold text-white" onClick={() => patchAnswers({ selectedClubIndex: '-1', writingPartIndex: '0' })}>Quay lại danh sách</button>
         <div className="flex gap-2">
           {[0, 1, 2, 3].map((index) => (
             <button
@@ -3442,7 +3442,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
               key={index}
               onClick={() => setAnswer('writingPartIndex', String(index))}
             >
-              CÃ¢u {index + 1}
+              Câu {index + 1}
             </button>
           ))}
         </div>
@@ -3512,7 +3512,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
         <button type="button" className="rounded bg-cyan-500 px-4 py-2 text-sm font-semibold text-white" onClick={() => setShowAnswers((value) => !value)}>
-          {showAnswers ? 'áº¨n Ä‘Ã¡p Ã¡n máº«u' : 'ÄÃ¡p Ã¡n máº«u'}
+          {showAnswers ? 'Ẩn đáp án mẫu' : 'Đáp án mẫu'}
         </button>
       </div>
 
@@ -3577,7 +3577,7 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
   async function toggleAudio() {
     const audio = ref.current;
     if (!audio || !normalizedAudioUrl) {
-      toast.error('ChÆ°a cÃ³ link audio cho cÃ¢u nÃ y.');
+      toast.error('Chưa có link audio cho câu này.');
       return;
     }
     if (audio.paused) {
@@ -3585,7 +3585,7 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
         await audio.play();
       } catch {
         setPlaying(false);
-        toast.error('KhÃ´ng phÃ¡t Ä‘Æ°á»£c audio. Báº¡n cÃ³ thá»ƒ báº¥m "Má»Ÿ audio" Ä‘á»ƒ kiá»ƒm tra link.');
+        toast.error('Không phát được audio. Bạn có thể bấm "Mở audio" để kiểm tra link.');
       }
     } else {
       audio.pause();
@@ -3605,7 +3605,7 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
             onEnded={() => setPlaying(false)}
             onError={() => {
               setPlaying(false);
-              toast.error('KhÃ´ng táº£i Ä‘Æ°á»£c audio. Kiá»ƒm tra láº¡i link file nghe.');
+              toast.error('Không tải được audio. Kiểm tra lại link file nghe.');
             }}
             onTimeUpdate={(event) => setCurrent(event.currentTarget.currentTime)}
             onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
@@ -3625,7 +3625,7 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
         <span className="block text-right text-xs font-bold sm:text-left">{text ?? '2 of 2 plays remaining'}</span>
         {normalizedAudioUrl && (
           <a className="rounded-full bg-white/15 px-3 py-1 text-xs font-extrabold text-white hover:bg-white/25" href={normalizedAudioUrl} target="_blank" rel="noreferrer">
-            Má»Ÿ audio
+            Mở audio
           </a>
         )}
       </div>

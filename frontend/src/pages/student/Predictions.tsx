@@ -1,4 +1,4 @@
-import { AlertCircle, FileSearch, Sparkles, Target } from 'lucide-react';
+import { FileSearch, Sparkles, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { api, unwrap } from '../../api/client';
 import type { SkillType } from '../../types';
@@ -29,16 +29,14 @@ export function Predictions() {
   const [items, setItems] = useState<Prediction[]>([]);
   const [activeSkill, setActiveSkill] = useState<SkillType | 'ALL'>('ALL');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   useEffect(() => {
     async function loadPredictions() {
       try {
         setLoading(true);
-        setError('');
         setItems(await unwrap<Prediction[]>(api.get('/predictions?publishedOnly=true')));
       } catch {
-        setError('Không thể tải dữ liệu dự đoán đề.');
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -89,11 +87,6 @@ export function Predictions() {
 
       {loading ? (
         <div className="card p-10 text-center font-bold text-slate-500">Đang tải dự đoán đề...</div>
-      ) : error ? (
-        <div className="card flex items-center gap-3 border-red-200 p-6 text-red-600">
-          <AlertCircle size={22} />
-          <span className="font-bold">{error}</span>
-        </div>
       ) : visibleItems.length > 0 ? (
         <section className="grid gap-5 lg:grid-cols-2">
           {visibleItems.map((item) => (

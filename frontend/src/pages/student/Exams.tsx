@@ -1,9 +1,11 @@
 import { ArrowRight, BookOpen, Clock, FileCheck, Headphones, Mic, PenLine, Search, SpellCheck } from 'lucide-react';
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../store/authStore';
 import type { SkillType, Test } from '../../types';
 
 type ExamCategory = 'ALL' | SkillType;
@@ -26,6 +28,7 @@ const categoryMeta: Record<Exclude<ExamCategory, 'ALL'>, { label: string; icon: 
 };
 
 export function Exams() {
+  const accessToken = useAuthStore((state) => state.accessToken);
   const { data, loading, error } = useApi<Test[]>(() => unwrap(api.get('/tests')), []);
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState<ExamCategory>('ALL');
@@ -47,7 +50,14 @@ export function Exams() {
   }, [category, query, tests]);
 
   if (loading) return <div className="rounded-[18px] border border-slate-200 bg-white p-7">Đang tải danh sách bộ đề...</div>;
-  if (error) return <div className="rounded-[18px] border border-red-200 bg-white p-7 text-red-600">{error}</div>;
+  if (error && accessToken) return <div className="rounded-[18px] border border-red-200 bg-white p-7 text-red-600">{error}</div>;
+
+  const requireLogin = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (accessToken) return;
+
+    event.preventDefault();
+    toast.error('Bạn cần đăng nhập để học bài.', { id: 'login-required' });
+  };
 
   return (
     <div className="space-y-7">
@@ -98,6 +108,7 @@ export function Exams() {
               <Link
                 key={test.id}
                 to={`/app/exams/${test.id}`}
+                onClick={requireLogin}
                 className="group rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft transition hover:-translate-y-1 hover:border-brand-300 hover:shadow-lg"
               >
                 <div className="flex items-start justify-between gap-4">

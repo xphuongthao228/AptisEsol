@@ -26,7 +26,7 @@ export function Login() {
       await login(email, password);
       toast.success('Đăng nhập thành công');
       const nextUser = useAuthStore.getState().user ?? user;
-      navigate(userHasRole(nextUser, 'ADMIN') ? '/admin' : '/app');
+      navigate(userHasRole(nextUser, 'ADMIN') ? '/admin' : '/');
     } catch {
       toast.error('Tài khoản hoặc mật khẩu không đúng');
     } finally {

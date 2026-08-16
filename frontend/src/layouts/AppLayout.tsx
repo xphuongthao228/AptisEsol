@@ -10,6 +10,7 @@ import {
   HeartHandshake,
   HelpCircle,
   LayoutDashboard,
+  LogIn,
   LogOut,
   Mail,
   Menu,
@@ -18,6 +19,7 @@ import {
   Shield,
   Upload,
   Users,
+  UserPlus,
   X,
   type LucideIcon
 } from 'lucide-react';
@@ -25,6 +27,7 @@ import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LingoWidget } from '../components/LingoWidget';
 import { SEO, getSeoByPath } from '../components/SEO';
+import { communityInviteDismissedKey } from '../pages/student/Dashboard';
 import { useAuthStore } from '../store/authStore';
 import { userHasRole } from '../utils/roles';
 
@@ -35,7 +38,7 @@ type LayoutLink = {
 };
 
 const studentLinks: LayoutLink[] = [
-  { to: '/app', label: 'Tổng quan', icon: LayoutDashboard },
+  { to: '/', label: 'Tổng quan', icon: LayoutDashboard },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/tests', label: 'Luyện tập', icon: BookOpen },
   { to: '/app/exams', label: 'Đề thi', icon: FileText },
@@ -64,6 +67,7 @@ export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const isAuthenticated = Boolean(user);
   const isAdmin = userHasRole(user, 'ADMIN');
   const links = isAdmin ? adminLinks : studentLinks;
   const isExamMode = !isAdmin && (/^\/app\/(tests|exams)\/\d+/.test(location.pathname) || location.pathname.startsWith('/app/mock-tests'));
@@ -71,8 +75,9 @@ export function AppLayout() {
 
   const signOut = async () => {
     setMobileMenuOpen(false);
+    sessionStorage.removeItem(communityInviteDismissedKey);
     await logout();
-    navigate('/login');
+    navigate('/');
   };
 
   if (isExamMode) {
@@ -108,14 +113,27 @@ export function AppLayout() {
             ))}
           </nav>
           <div className="shrink-0 border-t border-slate-700/60 p-4">
-            <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3">
-              <p className="mb-2 text-center text-xs font-bold text-white">Aptis Pro Access</p>
-              <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">Nâng cấp Pro</Link>
-            </div>
-            <Link to="/app/contact" className="flex h-10 items-center gap-3 rounded-lg px-4 text-sm text-slate-300 hover:bg-white/10 hover:text-white"><HelpCircle size={20} />Trợ giúp</Link>
-            <button onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
-              <LogOut size={20} />Đăng xuất
-            </button>
+            {isAuthenticated ? (
+              <>
+                <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3">
+                  <p className="mb-2 text-center text-xs font-bold text-white">Aptis Pro Access</p>
+                  <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">Nâng cấp Pro</Link>
+                </div>
+                <Link to="/app/contact" className="flex h-10 items-center gap-3 rounded-lg px-4 text-sm text-slate-300 hover:bg-white/10 hover:text-white"><HelpCircle size={20} />Trợ giúp</Link>
+                <button onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
+                  <LogOut size={20} />Đăng xuất
+                </button>
+              </>
+            ) : (
+              <div className="grid gap-2">
+                <Link to="/login" className="flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 text-sm font-extrabold text-white hover:bg-brand-700">
+                  <LogIn size={18} /> Đăng nhập
+                </Link>
+                <Link to="/register" className="flex h-10 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/5 text-sm font-extrabold text-white hover:bg-white/10">
+                  <UserPlus size={18} /> Đăng ký
+                </Link>
+              </div>
+            )}
           </div>
         </aside>
 
@@ -132,16 +150,25 @@ export function AppLayout() {
               <span className="text-sm">Tìm kiếm bài học...</span>
             </div>
             <div className="flex items-center gap-4">
-              <Bell size={21} className="text-slate-600" />
-              <div className="h-8 w-px bg-slate-200" />
-              <div className="flex items-center gap-3">
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">{user?.fullName?.[0] ?? 'L'}</div>
-                <span className="hidden text-sm font-semibold text-slate-800 sm:inline">{user?.fullName ?? 'Học viên'}</span>
-              </div>
+              {isAuthenticated ? (
+                <>
+                  <Bell size={21} className="text-slate-600" />
+                  <div className="h-8 w-px bg-slate-200" />
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">{user?.fullName?.[0] ?? 'L'}</div>
+                    <span className="hidden text-sm font-semibold text-slate-800 sm:inline">{user?.fullName ?? 'Học viên'}</span>
+                  </div>
+                </>
+              ) : (
+                <div className="hidden items-center gap-2 sm:flex">
+                  <Link to="/login" className="btn-secondary h-10 px-4"><LogIn size={18} /> Đăng nhập</Link>
+                  <Link to="/register" className="btn-primary h-10 px-4"><UserPlus size={18} /> Đăng ký</Link>
+                </div>
+              )}
             </div>
           </div>
         </header>
-        <MobileDrawer links={links} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onSignOut={signOut} isAdmin={Boolean(isAdmin)} />
+        <MobileDrawer links={links} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onSignOut={signOut} isAdmin={Boolean(isAdmin)} isAuthenticated={isAuthenticated} />
         <main className="min-h-screen pb-24 pt-16 xl:ml-[260px]">
           <div className="mx-auto max-w-[1200px] px-3 py-5 sm:px-4 sm:py-8 xl:px-8">
             <Outlet />
@@ -196,7 +223,7 @@ export function AppLayout() {
           <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700">{isAdmin ? 'ADMIN' : 'STUDENT'}</span>
         </div>
       </header>
-      <MobileDrawer links={links} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onSignOut={signOut} isAdmin={Boolean(isAdmin)} />
+      <MobileDrawer links={links} open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} onSignOut={signOut} isAdmin={Boolean(isAdmin)} isAuthenticated={isAuthenticated} />
 
       <main className="pb-24 lg:ml-64 lg:pb-8">
         <div className="mx-auto max-w-6xl px-3 py-5 sm:px-6 lg:px-8">
@@ -216,12 +243,13 @@ export function AppLayout() {
   );
 }
 
-function MobileDrawer({ links, open, onClose, onSignOut, isAdmin }: {
+function MobileDrawer({ links, open, onClose, onSignOut, isAdmin, isAuthenticated }: {
   links: LayoutLink[];
   open: boolean;
   onClose: () => void;
   onSignOut: () => void;
   isAdmin: boolean;
+  isAuthenticated: boolean;
 }) {
   return (
     <div className={`fixed inset-0 z-50 xl:hidden ${open ? '' : 'pointer-events-none'}`} aria-hidden={!open}>
@@ -241,7 +269,7 @@ function MobileDrawer({ links, open, onClose, onSignOut, isAdmin }: {
             <NavLink
               key={to}
               to={to}
-              end={to === '/app' || to === '/admin'}
+              end={to === '/' || to === '/app' || to === '/admin'}
               onClick={onClose}
               className={({ isActive }) => `flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold ${isActive ? 'bg-brand-600 text-white' : 'text-white/78 hover:bg-white/10 hover:text-white'}`}
             >
@@ -250,9 +278,20 @@ function MobileDrawer({ links, open, onClose, onSignOut, isAdmin }: {
             </NavLink>
           ))}
         </nav>
-        <button onClick={onSignOut} className="mt-4 flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-red-200 hover:bg-white/10">
-          <LogOut size={20} /> Đăng xuất
-        </button>
+        {isAuthenticated ? (
+          <button onClick={onSignOut} className="mt-4 flex h-12 items-center gap-3 rounded-xl px-3 text-sm font-semibold text-red-200 hover:bg-white/10">
+            <LogOut size={20} /> Đăng xuất
+          </button>
+        ) : (
+          <div className="mt-4 grid gap-2">
+            <Link to="/login" onClick={onClose} className="flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white">
+              <LogIn size={19} /> Đăng nhập
+            </Link>
+            <Link to="/register" onClick={onClose} className="flex h-12 items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 text-sm font-extrabold text-white">
+              <UserPlus size={19} /> Đăng ký
+            </Link>
+          </div>
+        )}
       </aside>
     </div>
   );
