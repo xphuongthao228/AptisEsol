@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, BookOpen, FileText, Headphones, Lightbulb, Mic, PenLine, Search, SpellCheck, Timer } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, FileText, Headphones, Lightbulb, Mic, PenLine, Search, SpellCheck, Star, Timer } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -234,7 +234,8 @@ export function SkillTestSets() {
     return (data ?? [])
       .filter(isExamTest)
       .filter((test) => normalizeSkill(test.skillName) === selectedSkill)
-      .filter((test) => test.title.toLowerCase().includes(query.toLowerCase()));
+      .filter((test) => test.title.toLowerCase().includes(query.toLowerCase()))
+      .sort(compareTestsByNaturalNumber);
   }, [data, query, selectedSkill]);
 
   if (loading) return <InfoCard>Đang tải bộ đề...</InfoCard>;
@@ -270,10 +271,17 @@ export function SkillTestSets() {
               key={test.id}
               to={`/app/tests/${test.id}`}
               onClick={requireLogin}
-              className="group flex min-h-[190px] flex-col rounded-[20px] border border-slate-200 bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lg"
+              className={`group flex min-h-[190px] flex-col rounded-[20px] border bg-white p-5 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lg ${test.featured ? 'border-amber-400 ring-4 ring-amber-100 hover:border-amber-400' : 'border-slate-200 hover:border-brand-300'}`}
             >
               <div className="mb-4 flex items-center justify-between gap-3">
-                <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-extrabold text-brand-700">{skillLabel(test.skillName)}</span>
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-extrabold text-brand-700">{skillLabel(test.skillName)}</span>
+                  {test.featured && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
+                      <Star size={13} className="fill-amber-400 text-amber-500" /> Quan trọng
+                    </span>
+                  )}
+                </div>
                 <ArrowRight className="text-slate-400 transition group-hover:translate-x-1 group-hover:text-brand-600" size={19} />
               </div>
               <h2 className="line-clamp-2 text-2xl font-extrabold leading-7 text-slate-950">{formatTestTitle(test.title, test.skillName)}</h2>
@@ -310,7 +318,8 @@ export function SkillPartQuestions() {
     return filterTestsByPart(
       (allTests ?? [])
         .filter(isPracticeTest)
-        .filter((test) => normalizeSkill(test.skillName) === selectedSkill),
+        .filter((test) => normalizeSkill(test.skillName) === selectedSkill)
+        .sort(compareTestsByNaturalNumber),
       selectedPart
     );
   }, [allTests, selectedPart, selectedSkill]);
@@ -506,6 +515,40 @@ function isExamTest(test: Test) {
 
 function isPracticeTest(test: Test) {
   return !isExamTest(test);
+}
+
+function compareTestsByNaturalNumber(left: Test, right: Test) {
+  const leftNumber = getTestOrderNumber(left);
+  const rightNumber = getTestOrderNumber(right);
+
+  if (leftNumber !== null && rightNumber !== null && leftNumber !== rightNumber) {
+    return leftNumber - rightNumber;
+  }
+  if (leftNumber !== null && rightNumber === null) return -1;
+  if (leftNumber === null && rightNumber !== null) return 1;
+
+  return `${left.title} ${left.description ?? ''}`.localeCompare(
+    `${right.title} ${right.description ?? ''}`,
+    'vi',
+    { numeric: true, sensitivity: 'base' }
+  );
+}
+
+function getTestOrderNumber(test: Test) {
+  const value = `${test.title ?? ''} ${test.description ?? ''}`;
+  const patterns = [
+    /\bpractice\s*test\s*(\d+)\b/i,
+    /\btest\s*(\d+)\b/i,
+    /#\s*0*(\d+)\b/i,
+    /\b(?:bo\s*de|bộ\s*đề|de|đề)\s*0*(\d+)\b/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match?.[1]) return Number(match[1]);
+  }
+
+  return null;
 }
 
 function getWritingClubTopics(groups: Array<{ test: Test; questions: Question[] }>) {

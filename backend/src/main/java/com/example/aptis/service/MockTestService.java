@@ -95,6 +95,7 @@ public class MockTestService {
                     mockTest.setQuestionData(csv(record, "questionData", ""));
                     mockTest.setMinutes(csv(record, "minutes", ""));
                     mockTest.setStatus(parseStatus(csv(record, "status", "PUBLISHED")));
+                    mockTest.setFeatured(parseBoolean(csv(record, "featured", "false")));
                     imported.add(response(mockTests.save(mockTest)));
                 } catch (RuntimeException ex) {
                     throw new IllegalArgumentException("CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
@@ -113,12 +114,13 @@ public class MockTestService {
         mockTest.setQuestionData(request.questionData());
         mockTest.setMinutes(request.minutes());
         mockTest.setStatus(request.status() == null ? TestStatus.PUBLISHED : request.status());
+        mockTest.setFeatured(Boolean.TRUE.equals(request.featured()));
     }
 
     private MockTestDtos.MockTestResponse response(MockTest mockTest) {
         return new MockTestDtos.MockTestResponse(mockTest.getId(), mockTest.getExternalId(), mockTest.getSkill(),
                 mockTest.getTitle(), mockTest.getDescription(), mockTest.getQuestions(), mockTest.getQuestionData(),
-                mockTest.getMinutes(), mockTest.getStatus(), mockTest.getUpdatedAt());
+                mockTest.getMinutes(), mockTest.getStatus(), mockTest.isFeatured(), mockTest.getUpdatedAt());
     }
 
     private String csv(CSVRecord record, String name, String fallback) {
@@ -144,6 +146,13 @@ public class MockTestService {
         if (normalized.equals("ĐANG HIỆN") || normalized.equals("DANG HIEN")) return TestStatus.PUBLISHED;
         if (normalized.equals("BẢN NHÁP") || normalized.equals("BAN NHAP")) return TestStatus.DRAFT;
         return TestStatus.valueOf(normalized);
+    }
+
+    private boolean parseBoolean(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase();
+        return normalized.equals("true") || normalized.equals("1") || normalized.equals("yes")
+                || normalized.equals("y") || normalized.equals("featured") || normalized.equals("important")
+                || normalized.equals("quan trong") || normalized.equals("quan trọng");
     }
 
     private String blankToNull(String value) {

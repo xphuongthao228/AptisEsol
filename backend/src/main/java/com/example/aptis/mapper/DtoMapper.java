@@ -44,7 +44,7 @@ public class DtoMapper {
     public CoreDtos.TestResponse test(Test test, int questionCount) {
         return new CoreDtos.TestResponse(test.getId(), test.getSkill().getId(), test.getSkill().getName(),
                 test.getTitle(), test.getDescription(), test.getDurationMinutes(), test.getStatus(),
-                resolveTestMode(test), questionCount);
+                resolveTestMode(test), test.isFeatured(), questionCount);
     }
 
     public CoreDtos.LessonResponse lesson(Lesson lesson) {

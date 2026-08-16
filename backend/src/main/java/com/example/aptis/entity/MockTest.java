@@ -43,4 +43,7 @@ public class MockTest extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 40)
     private TestStatus status = TestStatus.PUBLISHED;
+
+    @Column(nullable = false)
+    private boolean featured = false;
 }

@@ -29,11 +29,11 @@ public class CoreDtos {
     }
 
     public record TestRequest(@NotNull Long skillId, @NotBlank String title, String description,
-            Integer durationMinutes, TestStatus status, TestMode mode) {
+            Integer durationMinutes, TestStatus status, TestMode mode, Boolean featured) {
     }
 
     public record TestResponse(Long id, Long skillId, String skillName, String title, String description,
-            Integer durationMinutes, TestStatus status, TestMode mode, int questionCount) {
+            Integer durationMinutes, TestStatus status, TestMode mode, Boolean featured, int questionCount) {
     }
 
     public record LessonRequest(@NotNull SkillType skill, @NotBlank String title, String summary,

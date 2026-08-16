@@ -64,6 +64,7 @@ export interface Test {
   durationMinutes: number;
   status: string;
   mode: TestMode;
+  featured: boolean;
   questionCount: number;
 }
 

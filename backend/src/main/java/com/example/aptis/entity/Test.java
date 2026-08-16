@@ -39,6 +39,9 @@ public class Test extends BaseEntity {
     @Column(length = 20)
     private TestMode mode = TestMode.PRACTICE;
 
+    @Column(nullable = false)
+    private boolean featured = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "skill_id", nullable = false)
     private Skill skill;

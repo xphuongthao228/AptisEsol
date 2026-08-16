@@ -177,6 +177,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [status, setStatus] = useState<TestStatus>('PUBLISHED');
   const [mode, setMode] = useState<TestMode>('PRACTICE');
+  const [featured, setFeatured] = useState(false);
 
   function fill(test: Test) {
     setEditing(test);
@@ -186,6 +187,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
     setDurationMinutes(test.durationMinutes);
     setStatus(test.status as TestStatus);
     setMode(test.mode ?? 'PRACTICE');
+    setFeatured(Boolean(test.featured));
   }
 
   function reset() {
@@ -196,11 +198,12 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
     setDurationMinutes(30);
     setStatus('PUBLISHED');
     setMode('PRACTICE');
+    setFeatured(false);
   }
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    const payload = { skillId: Number(skillId), title, description, durationMinutes, status, mode };
+    const payload = { skillId: Number(skillId), title, description, durationMinutes, status, mode, featured };
     const saved = editing
       ? await unwrap<Test>(api.put(`/tests/${editing.id}`, payload))
       : await unwrap<Test>(api.post('/tests', payload));
@@ -214,6 +217,21 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
     await api.delete(`/tests/${test.id}`);
     setTests(tests.filter((item) => item.id !== test.id));
     toast.success('Đã xóa bài luyện');
+  }
+
+  async function toggleFeatured(test: Test) {
+    const payload = {
+      skillId: test.skillId,
+      title: test.title,
+      description: test.description,
+      durationMinutes: test.durationMinutes,
+      status: test.status as TestStatus,
+      mode: test.mode ?? 'PRACTICE',
+      featured: !test.featured
+    };
+    const saved = await unwrap<Test>(api.put(`/tests/${test.id}`, payload));
+    setTests(tests.map((item) => item.id === saved.id ? saved : item));
+    toast.success(saved.featured ? 'Đã đánh dấu đề quan trọng' : 'Đã bỏ đánh dấu quan trọng');
   }
 
   async function importTestsCsv(file: File | undefined) {
@@ -249,6 +267,11 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value as TestStatus)}>
             {statuses.map((item) => <option key={item} value={item}>{item}</option>)}
           </select>
+          <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+            <input type="checkbox" checked={featured} onChange={(event) => setFeatured(event.target.checked)} />
+            <Star size={18} className={featured ? 'fill-amber-400 text-amber-500' : 'text-amber-500'} />
+            Đề quan trọng
+          </label>
           <div className="flex gap-2">
             <button className="btn-primary flex-1"><Plus size={18} />Lưu</button>
             {editing && <button type="button" className="btn-secondary" onClick={reset}>Hủy</button>}
@@ -280,12 +303,18 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
           <div className="card p-4" key={test.id}>
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div>
-                <p className="text-xs font-semibold uppercase text-brand-600">{test.skillName} | {test.status} | {(test.mode ?? 'PRACTICE') === 'EXAM' ? 'BỘ ĐỀ' : 'LUYỆN TẬP'}</p>
+                <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-brand-600">
+                  <span>{test.skillName} | {test.status} | {(test.mode ?? 'PRACTICE') === 'EXAM' ? 'BỘ ĐỀ' : 'LUYỆN TẬP'}</span>
+                  {test.featured && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-amber-700"><Star size={13} className="fill-amber-400" /> Quan trọng</span>}
+                </p>
                 <h3 className="mt-1 font-semibold">{test.title}</h3>
                 <p className="mt-1 text-sm text-slate-500">{test.description}</p>
                 <p className="mt-2 text-xs text-slate-500">{test.durationMinutes} phút</p>
               </div>
               <div className="flex gap-2">
+                <button className={`btn-secondary h-9 px-3 ${test.featured ? 'text-amber-600' : 'text-slate-500'}`} onClick={() => toggleFeatured(test)} title={test.featured ? 'Bỏ đánh dấu quan trọng' : 'Đánh dấu quan trọng'}>
+                  <Star size={16} className={test.featured ? 'fill-amber-400' : ''} />
+                </button>
                 <button className="btn-secondary h-9 px-3" onClick={() => fill(test)}><Pencil size={16} /></button>
                 <button className="btn-secondary h-9 px-3 text-red-600" onClick={() => remove(test)}><Trash2 size={16} /></button>
               </div>

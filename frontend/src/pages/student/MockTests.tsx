@@ -30,6 +30,7 @@
   Search,
   Settings,
   Sparkles,
+  Star,
   Volume2,
   VolumeX,
   X,
@@ -97,6 +98,7 @@ type MockCard = {
   icon: LucideIcon;
   ready: boolean;
   color: string;
+  featured?: boolean;
 };
 
 type StoredAdminMockTest = {
@@ -108,6 +110,7 @@ type StoredAdminMockTest = {
   questionData?: string;
   minutes?: string;
   status?: 'PUBLISHED' | 'DRAFT';
+  featured?: boolean;
 };
 
 type ApiMockTest = {
@@ -119,7 +122,10 @@ type ApiMockTest = {
   questionData?: string;
   minutes?: string;
   status?: 'PUBLISHED' | 'DRAFT';
+  featured?: boolean;
 };
+
+const FEATURED_MARKER = '[[APTIS_FEATURED_MOCK_TEST]]';
 
 type ListeningPart1Question = {
   prompt: string;
@@ -268,18 +274,20 @@ function loadPublishedAdminMockCards() {
       )
       .map<MockCard>((item) => {
         const meta = mockCardMeta[item.skill];
+        const description = item.description?.trim() ?? '';
         return {
           id: item.id ? `admin-${item.id}` : `admin-${item.skill}-${item.title}`,
           skill: item.skill,
           label: meta.label,
           title: item.title.trim(),
-          description: item.description?.trim() || 'Đề thi thử do admin thêm.',
+          description: cleanFeaturedMarker(description) || 'Đề thi thử do admin thêm.',
           questions: item.questions?.trim() || 'Chưa rõ',
           questionData: (item as StoredAdminMockTest & { questionData?: string }).questionData?.trim(),
           minutes: item.minutes?.trim() || 'Chưa rõ',
           icon: meta.icon,
           ready: true,
-          color: meta.color
+          color: meta.color,
+          featured: Boolean(item.featured || hasFeaturedMarker(description))
         };
       });
   } catch {
@@ -287,22 +295,103 @@ function loadPublishedAdminMockCards() {
   }
 }
 
+function loadStoredFeaturedMap() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const saved = window.localStorage.getItem('aptis-admin-mock-tests-featured');
+    if (!saved) return {};
+    const parsed = JSON.parse(saved);
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, boolean> : {};
+  } catch {
+    return {};
+  }
+}
+
+function storedFeaturedValue(card: MockCard, featuredMap: Record<string, boolean>) {
+  const cardId = card.id.replace(/^api-/, '').replace(/^admin-/, '');
+  const title = card.title.trim().toLowerCase();
+  if (featuredMap[`id:${cardId}`] || featuredMap[`skill-title:${card.skill}|${title}`] || featuredMap[`title:${title}`]) {
+    return true;
+  }
+
+  return Object.entries(featuredMap).some(([key, featured]) => {
+    if (!featured) return false;
+    const [id = '', skill = '', title = ''] = key.split('|');
+    return id === cardId || (skill === card.skill && title === card.title.trim().toLowerCase());
+  });
+}
+
 function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   if (!item.skill || !mockCardMeta[item.skill] || !item.title?.trim()) return null;
   const meta = mockCardMeta[item.skill];
+  const description = item.description?.trim() ?? '';
   return {
     id: `api-${item.id}`,
     skill: item.skill,
     label: meta.label,
     title: item.title.trim(),
-    description: item.description?.trim() || 'Đề thi thử do admin thêm.',
+    description: cleanFeaturedMarker(description) || 'Đề thi thử do admin thêm.',
     questions: item.questions?.trim() || 'Chưa rõ',
     questionData: item.questionData?.trim(),
     minutes: item.minutes?.trim() || 'Chưa rõ',
     icon: meta.icon,
     ready: true,
-    color: meta.color
+    color: meta.color,
+    featured: Boolean(item.featured || hasFeaturedMarker(description))
   };
+}
+
+function hasFeaturedMarker(value?: string) {
+  return Boolean(value?.includes(FEATURED_MARKER));
+}
+
+function cleanFeaturedMarker(value?: string) {
+  return (value ?? '').split(FEATURED_MARKER).join('').trim();
+}
+
+function mergeStoredFeatured(cards: MockCard[]) {
+  const storedCards = loadPublishedAdminMockCards();
+  const featuredMap = loadStoredFeaturedMap();
+
+  return cards.map((card) => {
+    const stored = storedCards.find((item) => {
+      const storedId = item.id.replace(/^admin-/, '');
+      const cardId = card.id.replace(/^api-/, '');
+      return storedId === cardId
+        || (item.skill === card.skill && item.title.trim().toLowerCase() === card.title.trim().toLowerCase());
+    });
+    return stored?.featured || storedFeaturedValue(card, featuredMap) ? { ...card, featured: true } : card;
+  });
+}
+
+function compareMockCards(left: MockCard, right: MockCard) {
+  const featuredCompare = Number(Boolean(right.featured)) - Number(Boolean(left.featured));
+  if (featuredCompare !== 0) return featuredCompare;
+
+  const leftNumber = getMockCardOrderNumber(left);
+  const rightNumber = getMockCardOrderNumber(right);
+  if (leftNumber !== null && rightNumber !== null && leftNumber !== rightNumber) return leftNumber - rightNumber;
+  if (leftNumber !== null && rightNumber === null) return -1;
+  if (leftNumber === null && rightNumber !== null) return 1;
+
+  return left.title.localeCompare(right.title, 'vi', { numeric: true, sensitivity: 'base' });
+}
+
+function getMockCardOrderNumber(card: MockCard) {
+  const value = `${card.title} ${card.description}`;
+  const patterns = [
+    /\bpractice\s*test\s*(\d+)\b/i,
+    /\bmock\s*test\s*(\d+)\b/i,
+    /\btest\s*(\d+)\b/i,
+    /#\s*0*(\d+)\b/i,
+    /\b(?:de|đề)\s*0*(\d+)\b/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern);
+    if (match?.[1]) return Number(match[1]);
+  }
+  return null;
 }
 
 function parseQuestionDataArray(questionData?: string) {
@@ -2364,7 +2453,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     const reloadAdminCards = () => {
       unwrap<ApiMockTest[]>(api.get('/mock-tests'))
         .then((data) => {
-          const cards = data.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
+          const cards = mergeStoredFeatured(data.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card)));
           setAdminCards(cards);
         })
         .catch(() => setAdminCards(loadPublishedAdminMockCards()));
@@ -2372,13 +2461,17 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     reloadAdminCards();
     window.addEventListener('focus', reloadAdminCards);
     window.addEventListener('storage', reloadAdminCards);
+    window.addEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     return () => {
       window.removeEventListener('focus', reloadAdminCards);
       window.removeEventListener('storage', reloadAdminCards);
+      window.removeEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     };
   }, []);
 
-  const visibleCards = adminCards.filter((card) => card.skill === selectedSkill);
+  const visibleCards = adminCards
+    .filter((card) => card.skill === selectedSkill)
+    .sort(compareMockCards);
 
   return (
     <section>
@@ -2436,12 +2529,19 @@ function MockSkillCard({ card, onOpenSpeaking, onOpenReading, onOpenListening, o
   const Icon = card.icon;
   const openCard = card.skill === 'SPEAKING' ? onOpenSpeaking : card.skill === 'READING' ? onOpenReading : card.skill === 'LISTENING' ? onOpenListening : card.skill === 'WRITING' ? onOpenWriting : card.skill === 'GRAMMAR' ? onOpenGrammar : card.skill === 'FULL' ? onOpenFull : undefined;
   return (
-    <article className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-soft">
+    <article className={`rounded-[24px] border bg-white p-6 shadow-soft ${card.featured ? 'border-amber-400 ring-4 ring-amber-100' : 'border-slate-200'}`}>
       <div className="flex items-start justify-between gap-4">
         <div className={`grid h-14 w-14 place-items-center rounded-2xl ${card.color}`}>
           <Icon size={23} />
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">{card.label}</span>
+        <div className="flex flex-wrap justify-end gap-2">
+          {card.featured && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
+              <Star size={13} className="fill-amber-400 text-amber-500" /> Quan trọng
+            </span>
+          )}
+          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">{card.label}</span>
+        </div>
       </div>
 
       <h2 className="mt-6 text-xl font-extrabold text-slate-950">{card.title}</h2>

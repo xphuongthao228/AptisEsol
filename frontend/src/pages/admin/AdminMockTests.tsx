@@ -1,4 +1,4 @@
-import { Copy, Download, FileCheck, Pencil, Plus, RotateCcw, Save, Search, Trash2, UploadCloud } from 'lucide-react';
+import { Copy, Download, FileCheck, Pencil, Plus, RotateCcw, Save, Search, Star, Trash2, UploadCloud } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -16,6 +16,7 @@ type AdminMockTest = {
   questionData?: string;
   minutes: string;
   status: MockStatus;
+  featured: boolean;
   updatedAt: string;
 };
 
@@ -31,10 +32,13 @@ type ApiMockTest = {
   questionData?: string;
   minutes?: string;
   status: MockStatus;
+  featured?: boolean;
   updatedAt?: string;
 };
 
 const STORAGE_KEY = 'aptis-admin-mock-tests';
+const FEATURED_KEY = 'aptis-admin-mock-tests-featured';
+const FEATURED_MARKER = '[[APTIS_FEATURED_MOCK_TEST]]';
 
 const skillLabels: Record<MockSkill, string> = {
   FULL: 'Full',
@@ -61,6 +65,7 @@ const defaultMockTests: AdminMockTest[] = [
     questions: '5 kỹ năng',
     minutes: '162 phút',
     status: 'DRAFT',
+    featured: false,
     updatedAt: '2026-08-13'
   },
   {
@@ -71,6 +76,7 @@ const defaultMockTests: AdminMockTest[] = [
     questions: '4 phần',
     minutes: '12 phút',
     status: 'PUBLISHED',
+    featured: false,
     updatedAt: '2026-08-13'
   },
   {
@@ -81,6 +87,7 @@ const defaultMockTests: AdminMockTest[] = [
     questions: '25 câu',
     minutes: '40 phút',
     status: 'PUBLISHED',
+    featured: false,
     updatedAt: '2026-08-13'
   },
   {
@@ -91,6 +98,7 @@ const defaultMockTests: AdminMockTest[] = [
     questions: '30 câu',
     minutes: '25 phút',
     status: 'PUBLISHED',
+    featured: false,
     updatedAt: '2026-08-13'
   },
   {
@@ -101,6 +109,7 @@ const defaultMockTests: AdminMockTest[] = [
     questions: '27 câu',
     minutes: '35 phút',
     status: 'PUBLISHED',
+    featured: false,
     updatedAt: '2026-08-13'
   },
   {
@@ -111,6 +120,7 @@ const defaultMockTests: AdminMockTest[] = [
     questions: '4 phần',
     minutes: '50 phút',
     status: 'PUBLISHED',
+    featured: false,
     updatedAt: '2026-08-13'
   }
 ];
@@ -123,7 +133,8 @@ const emptyForm: MockForm = {
   questions: '',
   questionData: '',
   minutes: '',
-  status: 'PUBLISHED'
+  status: 'PUBLISHED',
+  featured: false
 };
 
 function createId() {
@@ -149,18 +160,50 @@ function loadMockTests() {
   }
 }
 
+function mockFeaturedKey(item: Pick<AdminMockTest, 'id' | 'skill' | 'title'>) {
+  return `${item.id}|${item.skill}|${item.title.trim().toLowerCase()}`;
+}
+
+function persistFeaturedMap(items: AdminMockTest[]) {
+  if (typeof window === 'undefined') return;
+  const featuredEntries = items.flatMap((item) => {
+    const featured = Boolean(item.featured);
+    const normalizedTitle = item.title.trim().toLowerCase();
+    return [
+      [mockFeaturedKey(item), featured],
+      [`id:${item.id}`, featured],
+      [`skill-title:${item.skill}|${normalizedTitle}`, featured],
+      [`title:${normalizedTitle}`, featured]
+    ];
+  });
+  const featuredMap = Object.fromEntries(featuredEntries);
+  window.localStorage.setItem(FEATURED_KEY, JSON.stringify(featuredMap));
+  window.dispatchEvent(new Event('aptis-admin-mock-tests-updated'));
+}
+
 function fromApiMockTest(item: ApiMockTest): AdminMockTest {
+  const description = item.description ?? '';
   return {
     id: String(item.id),
     skill: item.skill,
     title: item.title,
-    description: item.description ?? '',
+    description: cleanFeaturedMarker(description),
     questions: item.questions ?? '',
     questionData: item.questionData ?? '',
     minutes: item.minutes ?? '',
     status: item.status,
+    featured: Boolean(item.featured || hasFeaturedMarker(description)),
     updatedAt: item.updatedAt?.slice(0, 10) ?? today()
   };
+}
+
+function isSameMockTest(left: Pick<AdminMockTest, 'id' | 'skill' | 'title'>, right: Pick<AdminMockTest, 'id' | 'skill' | 'title'>) {
+  return left.id === right.id || (left.skill === right.skill && left.title.trim().toLowerCase() === right.title.trim().toLowerCase());
+}
+
+function preserveFeaturedFromStored(next: AdminMockTest, storedItems: AdminMockTest[]) {
+  const stored = storedItems.find((item) => isSameMockTest(item, next));
+  return { ...next, featured: Boolean(next.featured || stored?.featured) };
 }
 
 function toApiMockTest(form: MockForm) {
@@ -168,12 +211,26 @@ function toApiMockTest(form: MockForm) {
     externalId: form.id?.startsWith('mock-') ? form.id : undefined,
     skill: form.skill,
     title: form.title.trim(),
-    description: form.description.trim(),
+    description: withFeaturedMarker(form.description, Boolean(form.featured)),
     questions: form.questions.trim(),
     questionData: form.questionData.trim(),
     minutes: form.minutes.trim(),
-    status: form.status
+    status: form.status,
+    featured: Boolean(form.featured)
   };
+}
+
+function hasFeaturedMarker(value?: string) {
+  return Boolean(value?.includes(FEATURED_MARKER));
+}
+
+function cleanFeaturedMarker(value?: string) {
+  return (value ?? '').split(FEATURED_MARKER).join('').trim();
+}
+
+function withFeaturedMarker(description: string, featured: boolean) {
+  const cleaned = cleanFeaturedMarker(description);
+  return featured ? `${FEATURED_MARKER}\n${cleaned}`.trim() : cleaned;
 }
 
 function escapeCsvCell(value: string) {
@@ -214,7 +271,7 @@ function sampleMockQuestionData(skill: MockSkill) {
 }
 
 function toCsv(items: AdminMockTest[]) {
-  const headers: Array<keyof AdminMockTest> = ['id', 'skill', 'title', 'description', 'questions', 'questionData', 'minutes', 'status', 'updatedAt'];
+  const headers: Array<keyof AdminMockTest> = ['id', 'skill', 'title', 'description', 'questions', 'questionData', 'minutes', 'status', 'featured', 'updatedAt'];
   const rows = items.map((item) => headers.map((header) => escapeCsvCell(String(item[header] ?? ''))).join(','));
   return `\uFEFF${headers.join(',')}\n${rows.join('\n')}`;
 }
@@ -262,6 +319,11 @@ function normalizeStatus(value: string): MockStatus {
   return value.trim().toUpperCase() === 'DRAFT' ? 'DRAFT' : 'PUBLISHED';
 }
 
+function parseCsvBoolean(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return ['true', '1', 'yes', 'y', 'featured', 'important', 'quan trong', 'quan trọng'].includes(normalized);
+}
+
 export function AdminMockTests() {
   const [items, setItems] = useState<AdminMockTest[]>(() => loadMockTests());
   const [form, setForm] = useState<MockForm>(emptyForm);
@@ -271,7 +333,10 @@ export function AdminMockTests() {
 
   useEffect(() => {
     unwrap<ApiMockTest[]>(api.get('/mock-tests/admin'))
-      .then((data) => persist(data.map(fromApiMockTest)))
+      .then((data) => {
+        const storedItems = loadMockTests();
+        persist(data.map((item) => preserveFeaturedFromStored(fromApiMockTest(item), storedItems)));
+      })
       .catch(() => undefined);
   }, []);
 
@@ -316,6 +381,7 @@ export function AdminMockTests() {
   function persist(next: AdminMockTest[]) {
     setItems(next);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    persistFeaturedMap(next);
   }
 
   function resetForm() {
@@ -332,7 +398,7 @@ export function AdminMockTests() {
       const saved = form.id
         ? await unwrap<ApiMockTest>(api.put(`/mock-tests/${form.id}`, toApiMockTest(form)))
         : await unwrap<ApiMockTest>(api.post('/mock-tests', toApiMockTest(form)));
-      const payload = fromApiMockTest(saved);
+      const payload = { ...fromApiMockTest(saved), featured: Boolean(saved.featured ?? form.featured) };
       const next = form.id
         ? items.map((item) => (item.id === form.id ? payload : item))
         : [payload, ...items];
@@ -353,7 +419,8 @@ export function AdminMockTests() {
       questions: item.questions,
       questionData: item.questionData ?? '',
       minutes: item.minutes,
-      status: item.status
+      status: item.status,
+      featured: Boolean(item.featured)
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -364,6 +431,7 @@ export function AdminMockTests() {
       id: createId(),
       title: `${item.title} Copy`,
       status: 'DRAFT',
+      featured: Boolean(item.featured),
       updatedAt: today()
     };
     persist([copy, ...items]);
@@ -427,17 +495,39 @@ export function AdminMockTests() {
         externalId: undefined,
         skill: item.skill,
         title: item.title,
-        description: item.description,
+        description: withFeaturedMarker(item.description, Boolean(item.featured)),
         questions: item.questions,
         questionData: item.questionData ?? '',
         minutes: item.minutes,
-        status: nextStatus
+        status: nextStatus,
+        featured: Boolean(item.featured)
       }));
-      const payload = fromApiMockTest(saved);
+      const payload = { ...fromApiMockTest(saved), featured: Boolean(saved.featured ?? item.featured) };
       persist(items.map((current) => current.id === item.id ? payload : current));
       toast.success(nextStatus === 'PUBLISHED' ? 'Đã bật hiển thị đề' : 'Đã chuyển đề về bản nháp');
     } catch {
       toast.error('Không cập nhật trạng thái đề thi thử');
+    }
+  }
+
+  async function toggleFeatured(item: AdminMockTest) {
+    try {
+      const saved = await unwrap<ApiMockTest>(api.put(`/mock-tests/${item.id}`, {
+        externalId: undefined,
+        skill: item.skill,
+        title: item.title,
+        description: withFeaturedMarker(item.description, !item.featured),
+        questions: item.questions,
+        questionData: item.questionData ?? '',
+        minutes: item.minutes,
+        status: item.status,
+        featured: !item.featured
+      }));
+      const payload = { ...fromApiMockTest(saved), featured: Boolean(saved.featured ?? !item.featured) };
+      persist(items.map((current) => current.id === item.id ? payload : current));
+      toast.success(payload.featured ? 'Đã đánh dấu đề quan trọng' : 'Đã bỏ đánh dấu quan trọng');
+    } catch {
+      toast.error('Không cập nhật được đánh dấu quan trọng');
     }
   }
 
@@ -512,6 +602,7 @@ export function AdminMockTests() {
           questionData: (row[indexes.questionData] ?? '').trim(),
           minutes,
           status: normalizeStatus(row[indexes.status] ?? 'PUBLISHED'),
+          featured: parseCsvBoolean(row[indexes.featured] ?? ''),
           updatedAt: (row[indexes.updatedAt] ?? '').trim() || today()
         });
         return result;
@@ -582,6 +673,16 @@ export function AdminMockTests() {
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-600">Tên đề</span>
               <input className="input" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="VD: Speaking Practice Test 2" />
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+              <input
+                type="checkbox"
+                checked={Boolean(form.featured)}
+                onChange={(event) => setForm((current) => ({ ...current, featured: event.target.checked }))}
+              />
+              <Star size={18} className={form.featured ? 'fill-amber-400 text-amber-500' : 'text-amber-500'} />
+              Đề quan trọng
             </label>
 
             <label className="space-y-2">
@@ -737,6 +838,11 @@ export function AdminMockTests() {
                             >
                               {statusLabels[item.status]}
                             </button>
+                            {item.featured && (
+                              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
+                                <Star size={13} className="fill-amber-400" /> Quan trọng
+                              </span>
+                            )}
                             <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">Cập nhật {item.updatedAt}</span>
                           </div>
                           <h3 className="mt-3 text-lg font-extrabold text-slate-950">{item.title}</h3>
@@ -754,6 +860,9 @@ export function AdminMockTests() {
                           </div>
                         </div>
                         <div className="flex shrink-0 gap-2">
+                          <button type="button" className={`rounded-xl border p-3 ${item.featured ? 'border-amber-200 text-amber-600' : 'border-slate-200 text-slate-600'} hover:border-amber-200 hover:text-amber-600`} onClick={() => toggleFeatured(item)} title={item.featured ? 'Bỏ đánh dấu quan trọng' : 'Đánh dấu quan trọng'}>
+                            <Star size={18} className={item.featured ? 'fill-amber-400' : ''} />
+                          </button>
                           <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => editMockTest(item)} title="Sửa">
                             <Pencil size={18} />
                           </button>

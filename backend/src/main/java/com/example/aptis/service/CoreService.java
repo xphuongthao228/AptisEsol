@@ -168,6 +168,7 @@ public class CoreService {
             test.setStatus(request.status());
         if (request.mode() != null)
             test.setMode(request.mode());
+        test.setFeatured(Boolean.TRUE.equals(request.featured()));
     }
 
     @Transactional
@@ -193,6 +194,7 @@ public class CoreService {
                     test.setDurationMinutes(parseInteger(record, "duration_minutes", 30));
                     test.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
                     test.setMode(parseTestMode(csv(record, "mode", "PRACTICE")));
+                    test.setFeatured(parseBoolean(csv(record, "featured", "false")));
                     Test saved = tests.save(test);
                     imported.add(mapper.test(saved, 0));
                 } catch (RuntimeException ex) {
