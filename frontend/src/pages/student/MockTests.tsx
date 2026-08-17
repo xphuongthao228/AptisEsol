@@ -136,6 +136,42 @@ type ListeningPart1Question = {
   correctAnswer?: string;
 };
 
+type ReadingGapQuestion = {
+  prompt?: string;
+  questionStart?: string;
+  questionEnd?: string;
+  options: string[];
+  answer: string;
+};
+
+type ReadingCohesionQuestion = {
+  title: string;
+  choices: string[];
+  correctOrder: string[];
+};
+
+type ReadingOpinionQuestion = {
+  people: { label: string; text: string }[];
+  questions: string[];
+  correctAnswers: string[];
+  intro?: string;
+  topic?: string;
+};
+
+type ReadingLongQuestion = {
+  title: string;
+  headings: string[];
+  paragraphs: string[];
+  correctAnswers: string[];
+};
+
+type ReadingTestData = {
+  gaps: ReadingGapQuestion[];
+  cohesion: ReadingCohesionQuestion[];
+  opinion: ReadingOpinionQuestion;
+  long: ReadingLongQuestion;
+};
+
 type GrammarQuestionItem = {
   prompt?: string;
   options: string[];
@@ -501,6 +537,87 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
   }, {});
 }
 
+function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
+  const rows = parseQuestionDataArray(card?.questionData)
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .filter((item) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      return !skill || skill === 'READING';
+    });
+
+  const gapRows = rows.filter((item) => String(item.part ?? '').trim() === '1');
+  const gaps = gapRows.map((item) => {
+    const options = Array.isArray(item.options) ? item.options.map(String).filter(Boolean) : [];
+    return {
+      prompt: String(item.prompt ?? '').trim() || undefined,
+      questionStart: String(item.questionStart ?? '').trim() || undefined,
+      questionEnd: String(item.questionEnd ?? '').trim() || undefined,
+      options,
+      answer: String(item.answer ?? item.correctAnswer ?? '').trim()
+    };
+  }).filter((item) => item.options.length > 0 && item.answer);
+
+  const cohesion = [2, 3].map((part) => {
+    const row = rows.find((item) => String(item.part ?? '').trim() === String(part));
+    const items = Array.isArray(row?.items) ? row.items : [];
+    const correctOrder = items.map((item) => {
+      if (item && typeof item === 'object') return String((item as Record<string, unknown>).text ?? '').trim();
+      return String(item ?? '').trim();
+    }).filter(Boolean);
+    return {
+      title: String(row?.topic ?? `Part ${part}`).trim(),
+      choices: rotateChoices(correctOrder),
+      correctOrder
+    };
+  }).filter((item) => item.correctOrder.length > 0);
+
+  const part4Rows = rows.filter((item) => String(item.part ?? '').trim() === '4');
+  const context = Array.isArray(part4Rows[0]?.context) ? part4Rows[0].context.map(String) : [];
+  const opinion = {
+    people: peopleFromReadingContext(context),
+    questions: part4Rows.map((item) => String(item.prompt ?? item.question ?? '').trim()).filter(Boolean),
+    correctAnswers: part4Rows.map((item) => String(item.answer ?? item.correctAnswer ?? '').trim()).filter(Boolean),
+    intro: context.find((line) => !/^<strong>[A-D]:/i.test(line)) ?? undefined,
+    topic: String(part4Rows[0]?.topic ?? '').trim() || undefined
+  };
+
+  const part5Row = rows.find((item) => String(item.part ?? '').trim() === '5');
+  const longOptions = Array.isArray(part5Row?.options) ? part5Row.options.map(String).filter(Boolean) : [];
+  const paragraphs = Array.isArray(part5Row?.paragraphs) ? part5Row.paragraphs.map(String).filter(Boolean) : [];
+  const long = {
+    title: String(part5Row?.topic ?? 'Long Reading').trim(),
+    headings: longOptions,
+    paragraphs,
+    correctAnswers: paragraphs.map((_, index) => longOptions[index] ?? '')
+  };
+
+  return {
+    gaps: gaps.length > 0 ? gaps : fallbackReadingTestData.gaps,
+    cohesion: cohesion.length > 0 ? cohesion : fallbackReadingTestData.cohesion,
+    opinion: opinion.people.length > 0 && opinion.questions.length > 0 ? opinion : fallbackReadingTestData.opinion,
+    long: long.headings.length > 0 && long.paragraphs.length > 0 ? long : fallbackReadingTestData.long
+  };
+}
+
+function rotateChoices(values: string[]) {
+  if (values.length <= 1) return values;
+  const split = Math.ceil(values.length / 2);
+  return [...values.slice(split), ...values.slice(0, split)];
+}
+
+function peopleFromReadingContext(context: string[]) {
+  return context.reduce<{ label: string; text: string }[]>((people, line) => {
+    const match = line.match(/^<strong>([A-D]):<\/strong>\s*(.*)$/i);
+    if (!match) return people;
+    people.push({ label: match[1].toUpperCase(), text: match[2] });
+    return people;
+  }, []);
+}
+
+function stripHtml(value: string) {
+  return value.replace(/<[^>]*>/g, '').trim();
+}
+
 const speakingMockTests = [
   { id: 1, title: 'Speaking Practice Test 1', subtitle: 'Part 1 of 4', questions: 4, minutes: 12 }
 ];
@@ -627,6 +744,111 @@ function playSpeakingBeep() {
     };
   });
 }
+
+const fallbackReadingTestData: ReadingTestData = {
+  gaps: [
+    { questionStart: "I didn't ", questionEnd: ' it.', options: ['see', 'watch', 'look', 'view'], answer: 'see' },
+    { questionStart: 'I buy some food at the ', questionEnd: '.', options: ['shop', 'store', 'market', 'restaurant'], answer: 'store' },
+    { questionStart: 'I ate ', questionEnd: '.', options: ['lunch', 'breakfast', 'dinner', 'meal'], answer: 'lunch' },
+    { questionStart: 'I ', questionEnd: ' a program on TV.', options: ['watched', 'saw', 'looked', 'read'], answer: 'watched' }
+  ],
+  cohesion: [
+    {
+      title: 'Tom Harper',
+      choices: [
+        'he almost left the magazine, but then he decided to create some unusual new characters',
+        'the characters he imagined were one of the most famous in the world',
+        'this popularity made Tom Harper rich and successful.',
+        'he soon wrote regularly for the magazine, but he was not satisfied',
+        'When he was young, he began writing short stories for a magazine'
+      ],
+      correctOrder: [
+        'the characters he imagined were one of the most famous in the world',
+        'this popularity made Tom Harper rich and successful.',
+        'he almost left the magazine, but then he decided to create some unusual new characters',
+        'When he was young, he began writing short stories for a magazine',
+        'he soon wrote regularly for the magazine, but he was not satisfied'
+      ]
+    },
+    {
+      title: 'A scientist',
+      choices: [
+        'These were so advanced that he soon became famous all over the world',
+        'As a child, he moved to a special school because he was so clever',
+        'Princeton University in the USA offered him a job because he was so famous.',
+        'His best friend in his new class was a girl named Lavime',
+        'She later became his wife and helped him with his earliest scientific discoveries'
+      ],
+      correctOrder: [
+        'Princeton University in the USA offered him a job because he was so famous.',
+        'These were so advanced that he soon became famous all over the world',
+        'His best friend in his new class was a girl named Lavime',
+        'As a child, he moved to a special school because he was so clever'
+      ]
+    }
+  ],
+  opinion: {
+    topic: 'Flying and air travel',
+    people: [
+      {
+        label: 'A',
+        text: 'I was a businessman so I had to fly many times a week. I had to go to other countries to be able to sign wine trading contracts with them. I felt very tired every time I have to fly. Now, my sister and I, whenever we have free time, take the train together and we enjoy that time very much because I can travel while sightseeing and relax without any stress.'
+      },
+      {
+        label: 'B',
+        text: 'My family and siblings live quite far from me. So I often have to fly to visit them every month when I have time. We really appreciate the time we spend together and we are happy to be able to meet each other and share our new story. I know that traveling by plane too much is not good for the environment so I often shop online or go to work by bike instead of going by car or I reuse plastic bags and paper bags. In addition, I sometimes volunteer to clean up trash in the neighborhood.'
+      },
+      {
+        label: 'C',
+        text: 'I have a dream that I work as a tour guide. So I understand that I will have to fly to other countries. In my personal opinion, airplanes are currently too cheap compared to the damage they cause to the environment, so I believe we should add taxes to airline ticket prices to make people choose to use other means of transport before they think about flying. I believe that people are also very happy when they can contribute to protecting the environment.'
+      },
+      {
+        label: 'D',
+        text: 'If I have to go somewhere I will choose other means of public transport, not the plane. Every time I go on a plane I feel extremely tired and I just hope time passes quickly so I can get off that plane. However, due to the specific nature of my job, I have to film in many different locations, so sometimes I cannot avoid having to take this public transportation.'
+      }
+    ],
+    questions: [
+      'try to protect the environment',
+      'Sometimes cannot avoid flying because of filming work',
+      'Find flying tiring and try to avoid it',
+      'suggest making flights more expensive',
+      'want to work in other countries',
+      'like relaxing while they travel',
+      'visit relatives regularly'
+    ],
+    correctAnswers: ['B', 'D', 'A', 'C', 'C', 'A', 'B']
+  },
+  long: {
+    title: 'Charles Dicken',
+    headings: [
+      'A global writer',
+      'Difficult language',
+      'A famous tragedy',
+      'A lasting legacy',
+      'Early success',
+      'Protecting his reputation',
+      'Remembering Dickens'
+    ],
+    paragraphs: [
+      "The popularity of Dickens's works in our time remains a global phenomenon. Although he wrote his novels in the 19th century, his works have had a global impact. In addition, these masterpieces helped connect Renaissance drama to the multimedia revolution. Many readers find the characters and themes surprisingly modern.",
+      "Shakespeare's plays are difficult to understand and sometimes require the reader to struggle or think twice to figure out the character's thoughts. Sometimes the dialogue tends to be emotional without any connection to the context of the story. There are many passages that are a confusing mess of single words and old classical vocabulary.",
+      "Hamlet is a Renaissance tragedy written by Shakespeare. The play is very long and has plot twists that keep the reader guessing. Dickens had a special interest in the work. He told his daughter to keep an eye on Hamlet. For Dickens' novels, he sometimes created serial editions, with new chapters released monthly, keeping readers eagerly awaiting the next issue.",
+      "Dickens' legacy is undeniable. His works have been translated and used in over 100 countries and are studied by most schoolchildren in the world. It has even been said that Dickens' legacy belongs not to one era but to all times. It is easy to see that Dickens lives on in society and culture through his language and through his enduring influence on education and the media.",
+      "Dickens achieved success at a young age. His first novel, The Pickwick Papers, was published when he was only 24 and became a bestseller. His success increased throughout the 1590s. He was honored as a member of the Lord Chamber Men - those lucky enough to perform for the Queen of England on many occasions. Alongside his novels and plays, he also published many poems in his own style.",
+      "As Dickens's reputation grew, the question arose whether to preserve his legacy and make it live on. Dickens himself was always keen to make his mark and to maintain his uniqueness. He even attempted to break the dominance of the popular comedies of the time with a series of dramatic plays.",
+      "To mark the 400th anniversary of Dickens' death, there will be a number of events to help readers, and especially students, better understand his works. There will be videos detailing the content of each of his works to help people excitedly explore the pinnacle of language and the meaning his works bring to our daily lives."
+    ],
+    correctAnswers: [
+      'A global writer',
+      'Difficult language',
+      'A famous tragedy',
+      'A lasting legacy',
+      'Early success',
+      'Protecting his reputation',
+      'Remembering Dickens'
+    ]
+  }
+};
 
 function shouldBeepBeforeSpeakingTimer(screen: SpeakingScreen) {
   return screen === 'question' || screen === 'part2Question' || screen === 'part3Question';
@@ -1023,32 +1245,31 @@ function scoreReadingAnswers(
   gapAnswers: Record<number, string>,
   cohesionAnswers: Record<number, string[]>,
   opinionAnswers: Record<number, string>,
-  longAnswers: Record<number, string>
+  longAnswers: Record<number, string>,
+  data: ReadingTestData = fallbackReadingTestData
 ): SkillScoreSummary {
-  const gapCorrectAnswers = ['see', 'store', 'lunch', 'watched'];
-  const cohesionCorrectAnswers: Record<number, string[]> = {
-    0: ['B', 'C', 'A', 'E', 'D'],
-    1: ['C', 'A', 'D', 'B']
-  };
-  const opinionCorrectAnswers = ['B', 'D', 'A', 'C', 'C', 'A', 'B'];
-  const longCorrectAnswers = ['A global writer', 'Difficult language', 'A famous tragedy', 'A lasting legacy', 'Early success', 'Protecting his reputation', 'Remembering Dickens'];
-  const gapCorrect = gapCorrectAnswers.filter((answer, index) => sameAnswer(gapAnswers[index], answer)).length;
-  const cohesionCorrect = Object.entries(cohesionCorrectAnswers).reduce((sum, [key, answers]) => {
-    const userAnswers = cohesionAnswers[Number(key)] ?? [];
-    return sum + answers.filter((answer, index) => sameAnswer(userAnswers[index], answer)).length;
+  const gapCorrect = data.gaps.filter((question, index) => sameAnswer(gapAnswers[index], question.answer)).length;
+  const cohesionCorrect = data.cohesion.reduce((sum, question, index) => {
+    const userAnswers = cohesionAnswers[index] ?? [];
+    return sum + question.correctOrder.filter((answer, answerIndex) => sameAnswer(userAnswers[answerIndex], answer)).length;
   }, 0);
-  const opinionCorrect = opinionCorrectAnswers.filter((answer, index) => sameAnswer(opinionAnswers[index], answer)).length;
-  const longCorrect = longCorrectAnswers.filter((answer, index) => sameAnswer(longAnswers[index], answer)).length;
+  const opinionCorrect = data.opinion.correctAnswers.filter((answer, index) => sameAnswer(opinionAnswers[index], answer)).length;
+  const longCorrect = data.long.correctAnswers.filter((answer, index) => sameAnswer(longAnswers[index], answer)).length;
+  const gapTotal = data.gaps.length;
+  const cohesionTotal = data.cohesion.reduce((sum, question) => sum + question.correctOrder.length, 0);
+  const opinionTotal = data.opinion.correctAnswers.length;
+  const longTotal = data.long.correctAnswers.length;
   const rows = [
-    { part: 'Part 1 - Gap Fill', correct: `${gapCorrect}/4`, score: `${scoreFromCorrect(gapCorrect, 4, 7)}/7` },
-    { part: 'Part 2 + 3 - Text Cohesion', correct: `${cohesionCorrect}/9`, score: `${scoreFromCorrect(cohesionCorrect, 9, 17)}/17` },
-    { part: 'Part 4 - Opinion Matching', correct: `${opinionCorrect}/7`, score: `${scoreFromCorrect(opinionCorrect, 7, 13)}/13` },
-    { part: 'Part 5 - Long Reading', correct: `${longCorrect}/7`, score: `${scoreFromCorrect(longCorrect, 7, 13)}/13` }
+    { part: 'Part 1 - Gap Fill', correct: `${gapCorrect}/${gapTotal}`, score: `${scoreFromCorrect(gapCorrect, gapTotal, 7)}/7` },
+    { part: 'Part 2 + 3 - Text Cohesion', correct: `${cohesionCorrect}/${cohesionTotal}`, score: `${scoreFromCorrect(cohesionCorrect, cohesionTotal, 17)}/17` },
+    { part: 'Part 4 - Opinion Matching', correct: `${opinionCorrect}/${opinionTotal}`, score: `${scoreFromCorrect(opinionCorrect, opinionTotal, 13)}/13` },
+    { part: 'Part 5 - Long Reading', correct: `${longCorrect}/${longTotal}`, score: `${scoreFromCorrect(longCorrect, longTotal, 13)}/13` }
   ];
   const correct = gapCorrect + cohesionCorrect + opinionCorrect + longCorrect;
   const score = rows.reduce((sum, row) => sum + Number(row.score.split('/')[0]), 0);
-  const aptisCorrect = correctToAptis25(correct, 27);
-  return { correct, total: 27, score: clampScore50(score), maxScore: 50, cefr: cefrFromReadingCorrect25(aptisCorrect), rows };
+  const total = gapTotal + cohesionTotal + opinionTotal + longTotal;
+  const aptisCorrect = correctToAptis25(correct, total);
+  return { correct, total, score: clampScore50(score), maxScore: 50, cefr: cefrFromReadingCorrect25(aptisCorrect), rows };
 }
 
 export function MockTests() {
@@ -1583,6 +1804,12 @@ export function MockTests() {
     setSelectedMockCard(card ?? null);
     setIsFullMock(false);
     setSelectedSkill('READING');
+    setReadingCohesionIndex(0);
+    setReadingGapAnswers({});
+    setReadingCohesionAnswers({});
+    setReadingOpinionAnswers({});
+    setReadingLongAnswers({});
+    setReadingSeconds(35 * 60);
     setScreen('readingStart');
   }
 
@@ -1955,7 +2182,8 @@ export function MockTests() {
     }
   }
 
-  const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers);
+  const activeReadingData = useMemo(() => getReadingTestDataFromCard(selectedMockCard), [selectedMockCard]);
+  const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers, activeReadingData);
   const activeListeningPart1Questions = useMemo(() => {
     const fromAdmin = listeningQuestionsFromCard(selectedMockCard);
     return fromAdmin.length > 0 ? fromAdmin : listeningPart1Questions;
@@ -2009,7 +2237,7 @@ export function MockTests() {
     if (screen.startsWith('reading')) {
       return [
         questionItem(bookmarkKey('reading-part1', 1), 'Part 1', 'Gap Fill', screen === 'readingQuestion', () => setScreen('readingQuestion')),
-        ...[0, 1].map((index) => questionItem(
+        ...activeReadingData.cohesion.map((_, index) => questionItem(
           bookmarkKey('reading-part2-3', index + 1),
           `Part 2 + 3 - Question ${index + 1}`,
           'Text Cohesion',
@@ -2117,12 +2345,12 @@ export function MockTests() {
             />
           )}
           {screen === 'fullStart' && <FullStart mockCard={selectedMockCard} onStart={startFullSpeaking} />}
-          {screen === 'readingStart' && <ReadingStart onStart={() => setScreen('readingInstructions')} />}
+          {screen === 'readingStart' && <ReadingStart mockCard={selectedMockCard} data={activeReadingData} onStart={() => setScreen('readingInstructions')} />}
           {screen === 'readingInstructions' && <ReadingInstructions />}
-          {screen === 'readingQuestion' && <ReadingQuestion answers={readingGapAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part1', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part1', 1))} />}
-          {screen === 'readingCohesion' && <ReadingCohesion answers={readingCohesionAnswers[readingCohesionIndex] ?? []} bookmarkActive={isBookmarked(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} questionIndex={readingCohesionIndex} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(answers) => setReadingCohesionAnswers((currentAnswers) => ({ ...currentAnswers, [readingCohesionIndex]: answers }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} />}
-          {screen === 'readingOpinion' && <ReadingOpinion answers={readingOpinionAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part4', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingOpinionAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part4', 1))} />}
-          {screen === 'readingLong' && <ReadingLong answers={readingLongAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part5', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingLongAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part5', 1))} />}
+          {screen === 'readingQuestion' && <ReadingQuestion data={activeReadingData.gaps} answers={readingGapAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part1', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part1', 1))} />}
+          {screen === 'readingCohesion' && <ReadingCohesion data={activeReadingData.cohesion[readingCohesionIndex] ?? activeReadingData.cohesion[0]} answers={readingCohesionAnswers[readingCohesionIndex] ?? []} bookmarkActive={isBookmarked(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} questionIndex={readingCohesionIndex} total={activeReadingData.cohesion.length} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(answers) => setReadingCohesionAnswers((currentAnswers) => ({ ...currentAnswers, [readingCohesionIndex]: answers }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} />}
+          {screen === 'readingOpinion' && <ReadingOpinion data={activeReadingData.opinion} answers={readingOpinionAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part4', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingOpinionAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part4', 1))} />}
+          {screen === 'readingLong' && <ReadingLong data={activeReadingData.long} answers={readingLongAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part5', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingLongAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part5', 1))} />}
           {screen === 'fullResult' && (
             <FullResult
               grammar={grammarSummary}
@@ -2529,7 +2757,7 @@ export function MockTests() {
                 else setScreen('readingQuestion');
               }}
               onNext={() => {
-                if (readingCohesionIndex < 1) setReadingCohesionIndex((value) => value + 1);
+                if (readingCohesionIndex < activeReadingData.cohesion.length - 1) setReadingCohesionIndex((value) => value + 1);
                 else setScreen('readingOpinion');
               }}
             />
@@ -2540,7 +2768,7 @@ export function MockTests() {
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onPrevious={() => {
-                setReadingCohesionIndex(1);
+                setReadingCohesionIndex(Math.max(0, activeReadingData.cohesion.length - 1));
                 setScreen('readingCohesion');
               }}
               onNext={() => setScreen('readingLong')}
@@ -4532,7 +4760,8 @@ function ListeningMonologues({
   );
 }
 
-function ReadingStart({ onStart }: { onStart: () => void }) {
+function ReadingStart({ data, mockCard, onStart }: { data: ReadingTestData; mockCard: MockCard | null; onStart: () => void }) {
+  const questionCount = data.gaps.length + data.cohesion.length + 2;
   return (
     <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
       <section className="max-w-[620px]">
@@ -4542,17 +4771,17 @@ function ReadingStart({ onStart }: { onStart: () => void }) {
         </div>
 
         <p className="mt-8 text-lg font-medium text-slate-500">Aptis General Practice Test</p>
-        <h2 className="mt-3 text-[32px] font-extrabold leading-10 text-slate-950">Reading Practice Test</h2>
-        <p className="mt-3 text-xl font-medium text-slate-500">Đề 01</p>
+        <h2 className="mt-3 text-[32px] font-extrabold leading-10 text-slate-950">{mockCard?.title ?? 'Reading Practice Test'}</h2>
+        <p className="mt-3 text-xl font-medium text-slate-500">{mockCard?.description ?? 'Đề Reading'}</p>
 
         <div className="mt-8 grid max-w-[460px] grid-cols-2 gap-4">
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm font-semibold text-slate-500">Number of Questions</p>
-            <p className="mt-3 text-2xl font-extrabold text-slate-950">4</p>
+            <p className="mt-3 text-2xl font-extrabold text-slate-950">{questionCount}</p>
           </div>
           <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
             <p className="text-sm font-semibold text-slate-500">Time Allowed</p>
-            <p className="mt-3 text-2xl font-extrabold text-slate-950">35 min</p>
+            <p className="mt-3 text-2xl font-extrabold text-slate-950">{mockCard?.minutes || '35 min'}</p>
           </div>
         </div>
 
@@ -4588,13 +4817,7 @@ function ReadingInstructions() {
   );
 }
 
-function ReadingQuestion({ answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
-  const options = ['see', 'watch', 'look', 'view'];
-  const exampleOptions = ['window', 'store', 'market', 'restaurant'];
-  const placeOptions = ['shop', 'store', 'market', 'restaurant'];
-  const foodOptions = ['lunch', 'breakfast', 'dinner', 'meal'];
-  const tvOptions = ['watched', 'saw', 'looked', 'read'];
-
+function ReadingQuestion({ data, answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data: ReadingGapQuestion[]; answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
   return (
     <main
       style={{
@@ -4635,31 +4858,25 @@ function ReadingQuestion({ answers, bookmarkActive, showAnswer, timeRemaining, o
 
         <div style={{ marginTop: 56 }}>
           <p style={{ color: '#000000', fontSize: 22, lineHeight: '32px', fontWeight: 900, margin: 0 }}>
-            Choose the word that fits in the gap. The first one is done for you.
+            Choose the word that fits in each gap.
           </p>
 
           <div style={{ color: '#000000', fontSize: 22, lineHeight: '44px', marginTop: 42 }}>
-            <p>
-              I saw some shows in the{' '}
-              <ReadingGapSelect value={answers[-1] ?? ''} options={exampleOptions} onChange={(answer) => onAnswer(-1, answer)} />{' '}
-              of one store.
-            </p>
-            <p>
-              I didn't <ReadingGapSelect value={answers[0] ?? ''} options={options} onChange={(answer) => onAnswer(0, answer)} /> it.
-            </p>
-            {showAnswer && <InlineAnswer>see</InlineAnswer>}
-            <p>
-              I buy some food at the <ReadingGapSelect value={answers[1] ?? ''} options={placeOptions} onChange={(answer) => onAnswer(1, answer)} /> .
-            </p>
-            {showAnswer && <InlineAnswer>store</InlineAnswer>}
-            <p>
-              I ate <ReadingGapSelect value={answers[2] ?? ''} options={foodOptions} onChange={(answer) => onAnswer(2, answer)} /> .
-            </p>
-            {showAnswer && <InlineAnswer>lunch</InlineAnswer>}
-            <p>
-              I <ReadingGapSelect value={answers[3] ?? ''} options={tvOptions} onChange={(answer) => onAnswer(3, answer)} /> a program on TV.
-            </p>
-            {showAnswer && <InlineAnswer>watched</InlineAnswer>}
+            {data.map((question, index) => {
+              const promptParts = question.prompt?.split('___') ?? [];
+              const before = question.questionStart ?? promptParts[0] ?? '';
+              const after = question.questionEnd ?? promptParts.slice(1).join('___') ?? '';
+              return (
+                <div key={`${index}-${question.answer}`}>
+                  <p>
+                    {index + 1}. {before}
+                    <ReadingGapSelect value={answers[index] ?? ''} options={question.options} onChange={(answer) => onAnswer(index, answer)} />
+                    {after}
+                  </p>
+                  {showAnswer && <InlineAnswer>{question.answer}</InlineAnswer>}
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -4667,33 +4884,10 @@ function ReadingQuestion({ answers, bookmarkActive, showAnswer, timeRemaining, o
   );
 }
 
-function ReadingCohesion({ answers, bookmarkActive, questionIndex, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: string[]; bookmarkActive: boolean; questionIndex: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void; onToggleBookmark: () => void }) {
-  const questions = [
-    {
-      title: 'Tom Harper',
-      choices: [
-        'he almost left the magazine, but then he decided to create some unusual new characters',
-        'the characters he imagined were one of the most famous in the world',
-        'this popularity made Tom Harper rich and successful.',
-        'he soon wrote regularly for the magazine, but he was not satisfied',
-        'When he was young, he began writing short stories for a magazine'
-      ]
-    },
-    {
-      title: 'A scientist',
-      choices: [
-        'These were so advanced that he soon became famous all over the world',
-        'As a child, he moved to a special school because he was so clever',
-        'Princeton University in the USA offered him a job because he was so famous.',
-        'His best friend in his new class was a girl named Lavime',
-        'She later became his wife and helped him with his earliest scientific discoveries'
-      ]
-    }
-  ];
-  const currentQuestion = questions[questionIndex];
-  const choices = currentQuestion.choices;
-  const correctAnswers = questionIndex === 0 ? ['B', 'C', 'A', 'E', 'D'] : ['C', 'A', 'D', 'B'];
-  const slots = Array.from({ length: 5 }, (_, index) => answers[index] || null);
+function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data: ReadingCohesionQuestion; answers: string[]; bookmarkActive: boolean; questionIndex: number; total: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void; onToggleBookmark: () => void }) {
+  const choices = data.choices;
+  const correctAnswers = data.correctOrder;
+  const slots = Array.from({ length: correctAnswers.length }, (_, index) => answers[index] || null);
 
   function dropChoice(slotIndex: number, choice: string) {
     const nextSlots = slots.map((slot) => (slot === choice ? null : slot));
@@ -4719,7 +4913,7 @@ function ReadingCohesion({ answers, bookmarkActive, questionIndex, showAnswer, t
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: 0 }}>Reading</p>
-            <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question {questionIndex + 1} of 2</h2>
+            <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question {questionIndex + 1} of {total}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -4762,9 +4956,11 @@ function ReadingCohesion({ answers, bookmarkActive, questionIndex, showAnswer, t
           }}
         >
           <div>
-            <h3 style={{ color: '#020817', fontSize: 21, fontWeight: 900, margin: '4px 0 16px' }}>{currentQuestion.title}</h3>
+            <h3 style={{ color: '#020817', fontSize: 21, fontWeight: 900, margin: '4px 0 16px' }}>{data.title}</h3>
             <div style={{ display: 'grid', gap: 12 }}>
-              {[1, 2, 3, 4, 5].map((number) => (
+              {correctAnswers.map((_, index) => {
+                const number = index + 1;
+                return (
                 <div key={number}>
                   <CohesionSlot
                     number={number}
@@ -4773,7 +4969,7 @@ function ReadingCohesion({ answers, bookmarkActive, questionIndex, showAnswer, t
                   />
                   {showAnswer && <InlineAnswer>{correctAnswers[number - 1] ?? 'Chưa có đáp án mẫu'}</InlineAnswer>}
                 </div>
-              ))}
+              );})}
             </div>
           </div>
 
@@ -4890,36 +5086,10 @@ function CohesionSlot({ number, filled, onDropChoice }: { number: number; filled
   );
 }
 
-function ReadingOpinion({ answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
-  const people = [
-    {
-      label: 'A',
-      text: 'I was a businessman so I had to fly many times a week. I had to go to other countries to be able to sign wine trading contracts with them. I felt very tired every time I have to fly. Now, my sister and I, whenever we have free time, take the train together and we enjoy that time very much because I can travel while sightseeing and relax without any stress.'
-    },
-    {
-      label: 'B',
-      text: 'My family and siblings live quite far from me. So I often have to fly to visit them every month when I have time. We really appreciate the time we spend together and we are happy to be able to meet each other and share our new story. I know that traveling by plane too much is not good for the environment so I often shop online or go to work by bike instead of going by car or I reuse plastic bags and paper bags. In addition, I sometimes volunteer to clean up trash in the neighborhood.'
-    },
-    {
-      label: 'C',
-      text: 'I have a dream that I work as a tour guide. So I understand that I will have to fly to other countries. In my personal opinion, airplanes are currently too cheap compared to the damage they cause to the environment, so I believe we should add taxes to airline ticket prices to make people choose to use other means of transport before they think about flying. I believe that people are also very happy when they can contribute to protecting the environment.'
-    },
-    {
-      label: 'D',
-      text: 'If I have to go somewhere I will choose other means of public transport, not the plane. Every time I go on a plane I feel extremely tired and I just hope time passes quickly so I can get off that plane. However, due to the specific nature of my job, I have to film in many different locations, so sometimes I cannot avoid having to take this public transportation.'
-    }
-  ];
-  const questions = [
-    'try to protect the environment',
-    'Sometimes cannot avoid flying because of filming work',
-    'Find flying tiring and try to avoid it',
-    'suggest making flights more expensive',
-    'want to work in other countries',
-    'like relaxing while they travel',
-    'visit relatives regularly'
-  ];
-  const correctAnswers = ['B', 'D', 'A', 'C', 'C', 'A', 'B'];
-
+function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data: ReadingOpinionQuestion; answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
+  const people = data.people;
+  const questions = data.questions;
+  const correctAnswers = data.correctAnswers;
   return (
     <main style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
       <section style={{ width: 'min(920px, 100%)', margin: '0 auto' }}>
@@ -4941,7 +5111,7 @@ function ReadingOpinion({ answers, bookmarkActive, showAnswer, timeRemaining, on
         </div>
 
         <p style={{ color: '#000000', fontSize: 22, lineHeight: '30px', fontWeight: 900, margin: '34px 0 30px' }}>
-          Four people respond in the comments section of an online magazine article about flying and air travel. Read the texts and then answer the questions below.
+          {data.intro ? stripHtml(data.intro) : `Four people respond to the topic${data.topic ? `: ${data.topic}` : ''}. Read the texts and then answer the questions below.`}
         </p>
 
         <article style={{ borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
@@ -4962,7 +5132,7 @@ function ReadingOpinion({ answers, bookmarkActive, showAnswer, timeRemaining, on
                 </p>
                 <select value={answers[index] ?? ''} onChange={(event) => onAnswer(index, event.target.value)} style={{ height: 52, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 18, outline: 'none' }}>
                   <option value=""></option>
-                  {['A', 'B', 'C', 'D'].map((option) => (
+                  {people.map((person) => person.label).map((option) => (
                     <option key={option} value={option}>{option}</option>
                   ))}
                 </select>
@@ -4980,27 +5150,10 @@ function ReadingOpinion({ answers, bookmarkActive, showAnswer, timeRemaining, on
   );
 }
 
-function ReadingLong({ answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
-  const headings = [
-    'A global writer',
-    'Difficult language',
-    'A famous tragedy',
-    'A lasting legacy',
-    'Early success',
-    'Protecting his reputation',
-    'Remembering Dickens'
-  ];
-  const paragraphs = [
-    "The popularity of Dickens's works in our time remains a global phenomenon. Although he wrote his novels in the 19th century, his works have had a global impact. In addition, these masterpieces helped connect Renaissance drama to the multimedia revolution. Many readers find the characters and themes surprisingly modern.",
-    "Shakespeare's plays are difficult to understand and sometimes require the reader to struggle or think twice to figure out the character's thoughts. Sometimes the dialogue tends to be emotional without any connection to the context of the story. There are many passages that are a confusing mess of single words and old classical vocabulary.",
-    "Hamlet is a Renaissance tragedy written by Shakespeare. The play is very long and has plot twists that keep the reader guessing. Dickens had a special interest in the work. He told his daughter to keep an eye on Hamlet. For Dickens' novels, he sometimes created serial editions, with new chapters released monthly, keeping readers eagerly awaiting the next issue.",
-    "Dickens' legacy is undeniable. His works have been translated and used in over 100 countries and are studied by most schoolchildren in the world. It has even been said that Dickens' legacy belongs not to one era but to all times. It is easy to see that Dickens lives on in society and culture through his language and through his enduring influence on education and the media.",
-    "Dickens achieved success at a young age. His first novel, The Pickwick Papers, was published when he was only 24 and became a bestseller. His success increased throughout the 1590s. He was honored as a member of the Lord Chamber Men - those lucky enough to perform for the Queen of England on many occasions. Alongside his novels and plays, he also published many poems in his own style.",
-    "As Dickens's reputation grew, the question arose whether to preserve his legacy and make it live on. Dickens himself was always keen to make his mark and to maintain his uniqueness. He even attempted to break the dominance of the popular comedies of the time with a series of dramatic plays.",
-    "To mark the 400th anniversary of Dickens' death, there will be a number of events to help readers, and especially students, better understand his works. There will be videos detailing the content of each of his works to help people excitedly explore the pinnacle of language and the meaning his works bring to our daily lives."
-  ];
-  const correctAnswers = ['A global writer', 'Difficult language', 'A famous tragedy', 'A lasting legacy', 'Early success', 'Protecting his reputation', 'Remembering Dickens'];
-
+function ReadingLong({ data, answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data: ReadingLongQuestion; answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
+  const headings = data.headings;
+  const paragraphs = data.paragraphs;
+  const correctAnswers = data.correctAnswers;
   return (
     <main style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
       <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
@@ -5028,7 +5181,7 @@ function ReadingLong({ answers, bookmarkActive, showAnswer, timeRemaining, onAns
           </p>
         </div>
 
-        <h2 style={{ color: '#020817', fontSize: 30, fontWeight: 900, margin: '20px 0 28px' }}>Charles Dicken</h2>
+        <h2 style={{ color: '#020817', fontSize: 30, fontWeight: 900, margin: '20px 0 28px' }}>{data.title}</h2>
 
         <div style={{ display: 'grid', gap: 28 }}>
           {paragraphs.map((paragraph, index) => (

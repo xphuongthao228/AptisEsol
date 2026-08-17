@@ -74,7 +74,7 @@ export function Login() {
         </label>
         <div className="-mt-2 text-right">
           <Link className="text-sm font-extrabold text-brand-600 hover:text-brand-700" to="/forgot-password">
-            Quen mat khau?
+            Quên mật khẩu?
           </Link>
         </div>
         <button className="btn-primary h-14 w-full rounded-2xl text-base" disabled={loading}>

@@ -161,7 +161,7 @@ export function AdminLessons() {
       await unwrap(api.delete(`/lessons/${id}`));
       setLessons((current) => current.filter((lesson) => lesson.id !== id));
       if (form.id === id) setForm(emptyForm);
-      toast.success('Da xoa bai hoc');
+      toast.success('Đã xóa bài học');
     } catch (error) {
       toast.error(apiErrorMessage(error, 'Không xóa được bài học'));
     }
@@ -198,7 +198,7 @@ export function AdminLessons() {
             </div>
             <div>
               <h2 className="text-xl font-extrabold">{form.id ? 'Sửa bài học' : 'Tạo bài học'}</h2>
-              <p className="text-sm text-slate-500">Nội dung nay duoc luu vao backend.</p>
+              <p className="text-sm text-slate-500">Nội dung này được lưu vào backend.</p>
             </div>
           </div>
 
@@ -270,7 +270,7 @@ export function AdminLessons() {
                 className="input"
                 value={form.title}
                 onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
-                placeholder="VD: Cach nghe bat keyword Part 1"
+                placeholder="VD: Cách nghe bắt keyword Part 1"
               />
             </label>
 
@@ -285,7 +285,7 @@ export function AdminLessons() {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Nội dung bai hoc</span>
+              <span className="text-sm font-bold text-slate-600">Nội dung bài học</span>
               <textarea
                 className="input min-h-[180px]"
                 value={form.content}
@@ -312,7 +312,7 @@ export function AdminLessons() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-xl font-extrabold">Danh sách bài học</h2>
-                <p className="text-sm text-slate-500">{lessons.length} bai hoc</p>
+                <p className="text-sm text-slate-500">{lessons.length} bài học</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <label className="btn-primary h-11 cursor-pointer justify-center px-4">
@@ -334,7 +334,7 @@ export function AdminLessons() {
                     className="w-full bg-transparent text-sm text-slate-700 outline-none"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Tim bai hoc..."
+                    placeholder="Tìm bài học..."
                   />
                 </label>
               </div>
@@ -388,7 +388,7 @@ export function AdminLessons() {
             )) : (
               <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
                 <p className="font-extrabold text-slate-700">Chưa có bài học nào</p>
-                <p className="mt-2 text-sm text-slate-500">Tạo bài học dau tien tu form ben trai.</p>
+                <p className="mt-2 text-sm text-slate-500">Tạo bài học đầu tiên từ form bên trái.</p>
               </div>
             )}
           </div>

@@ -79,19 +79,19 @@ export function SEO({ title, description, robots = 'index, follow', image = DEFA
 
 export function getSeoByPath(pathname: string, isAdmin = false): SEOProps {
   if (isAdmin) {
-    if (pathname.includes('/admin/users')) return { title: 'Quan ly nguoi dung', description: 'Quan ly hoc vien, trang thai truy cap, han hoc va tai khoan trong he thong LingoMaster Aptis.', robots: 'noindex, nofollow' };
-    if (pathname.includes('/admin/content')) return { title: 'Quan ly noi dung', description: 'Tao va cap nhat cau hoi, bai luyen, topic, dap an va noi dung on thi Aptis.', robots: 'noindex, nofollow' };
-    if (pathname.includes('/admin/lessons')) return { title: 'Quan ly bai hoc', description: 'Quan ly video, tai lieu va meo hoc Aptis cho hoc vien.', robots: 'noindex, nofollow' };
-    if (pathname.includes('/admin/mock-tests')) return { title: 'Quan ly de thi thu', description: 'Tao va quan ly cac bo de thi thu Aptis theo tung ky nang.', robots: 'noindex, nofollow' };
-    return { title: 'Bang quan tri', description: 'Khu vuc quan tri noi dung va nguoi dung cua LingoMaster Aptis.', robots: 'noindex, nofollow' };
+    if (pathname.includes('/admin/users')) return { title: 'Quản lý người dùng', description: 'Quản lý học viên, trạng thái truy cập, hạn học và tài khoản trong hệ thống LingoMaster Aptis.', robots: 'noindex, nofollow' };
+    if (pathname.includes('/admin/content')) return { title: 'Quản lý nội dung', description: 'Tạo và cập nhật câu hỏi, bài luyện, topic, đáp án và nội dung ôn thi Aptis.', robots: 'noindex, nofollow' };
+    if (pathname.includes('/admin/lessons')) return { title: 'Quản lý bài học', description: 'Quản lý video, tài liệu và mẹo học Aptis cho học viên.', robots: 'noindex, nofollow' };
+    if (pathname.includes('/admin/mock-tests')) return { title: 'Quản lý đề thi thử', description: 'Tạo và quản lý các bộ đề thi thử Aptis theo từng kỹ năng.', robots: 'noindex, nofollow' };
+    return { title: 'Bảng quản trị', description: 'Khu vực quản trị nội dung và người dùng của LingoMaster Aptis.', robots: 'noindex, nofollow' };
   }
 
-  if (pathname.includes('/app/lessons')) return { title: 'Tai lieu va meo hoc Aptis', description: 'Hoc meo Listening, Reading, Speaking va Writing kem tai lieu on tap Aptis theo tung ky nang.' };
-  if (pathname.includes('/app/tests')) return { title: 'Luyen tap Aptis online', description: 'Luyen cau hoi Aptis theo ky nang, xem dap an va theo doi tien do hoc tap.' };
-  if (pathname.includes('/app/mock-tests')) return { title: 'Thi thu Aptis Full', description: 'Lam bai thi thu Aptis Full gom nhieu ky nang trong cung mot phien assessment.' };
-  if (pathname.includes('/app/exams')) return { title: 'De thi Aptis', description: 'Lam de thi Aptis theo bo de, cham diem va on luyen nhu phong thi that.' };
-  if (pathname.includes('/app/predictions')) return { title: 'Du doan de Aptis', description: 'Cap nhat du doan de va chu de Aptis de hoc vien on tap co trong tam.' };
-  if (pathname.includes('/app/renewal')) return { title: 'Gia han tai khoan Aptis', description: 'Gia han quyen truy cap LingoMaster Aptis va tiep tuc hoc tai lieu on thi.' };
-  if (pathname.includes('/app/contact')) return { title: 'Lien he ho tro Aptis', description: 'Lien he ho tro tai khoan, bai hoc va noi dung on thi Aptis.' };
-  return { title: 'Luyen thi Aptis online', description: 'Luyen thi Aptis online voi lo trinh ro rang, tai lieu on tap, de thi thu va theo doi tien do hoc tap.' };
+  if (pathname.includes('/app/lessons')) return { title: 'Tài liệu và mẹo học Aptis', description: 'Học mẹo Listening, Reading, Speaking và Writing kèm tài liệu ôn tập Aptis theo từng kỹ năng.' };
+  if (pathname.includes('/app/tests')) return { title: 'Luyện tập Aptis online', description: 'Luyện câu hỏi Aptis theo kỹ năng, xem đáp án và theo dõi tiến độ học tập.' };
+  if (pathname.includes('/app/mock-tests')) return { title: 'Thi thử Aptis Full', description: 'Làm bài thi thử Aptis Full gồm nhiều kỹ năng trong cùng một phiên assessment.' };
+  if (pathname.includes('/app/exams')) return { title: 'Đề thi Aptis', description: 'Làm đề thi Aptis theo bộ đề, chấm điểm và ôn luyện như phòng thi thật.' };
+  if (pathname.includes('/app/predictions')) return { title: 'Dự đoán đề Aptis', description: 'Cập nhật dự đoán đề và chủ đề Aptis để học viên ôn tập có trọng tâm.' };
+  if (pathname.includes('/app/renewal')) return { title: 'Gia hạn tài khoản Aptis', description: 'Gia hạn quyền truy cập LingoMaster Aptis và tiếp tục học tài liệu ôn thi.' };
+  if (pathname.includes('/app/contact')) return { title: 'Liên hệ hỗ trợ Aptis', description: 'Liên hệ hỗ trợ tài khoản, bài học và nội dung ôn thi Aptis.' };
+  return { title: 'Luyện thi Aptis online', description: 'Luyện thi Aptis online với lộ trình rõ ràng, tài liệu ôn tập, đề thi thử và theo dõi tiến độ học tập.' };
 }

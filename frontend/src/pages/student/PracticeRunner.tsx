@@ -1770,7 +1770,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
       <AptisPaper narrow>
         <div className="mb-6">
           <h1 className="flex items-center gap-2 text-3xl font-extrabold text-slate-800">
-            <span className="text-brand-600">â€¹</span>
+            <span className="text-brand-600">‹</span>
             Question {data.questionNumber ?? currentNumber ?? 1} of {data.total ?? 30}
           </h1>
           {featured && <div className="mt-2"><FeaturedQuestionBadge /></div>}
@@ -2412,7 +2412,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
     const partIndex = Number(saved.writingPartIndex ?? 0);
     const club = clubs[selectedClubIndex];
     const palette = ['bg-amber-400 text-slate-950', 'bg-emerald-700 text-white', 'bg-red-500 text-white', 'bg-sky-500 text-slate-950', 'bg-brand-600 text-white'];
-    const iconNames = ['ðŸŽ¨', 'ðŸ”’', 'ðŸ‘¤', 'âŒ‚', 'ðŸ“–', 'ðŸ’š', 'ðŸ’»', 'ðŸ’¼', 'ðŸ ', 'ðŸ“º', 'ðŸš—', 'ðŸŒ', 'âœˆ', 'ðŸŽ¬', 'ðŸŽ¥', 'ðŸš¶', 'ðŸŽ§', 'ðŸ›', 'âœŽ', 'â–­', 'â™«', 'ðŸ›'];
+    const iconNames = ['🎨', '🔒', '👤', '⌂', '📖', '💚', '💻', '💼', '🏠', '📺', '🚗', '🌐', '✈', '🎬', '🎥', '🚶', '🎧', '🏛', '✎', '▭', '♫', '🛍'];
     const sampleHtml = (html?: string) => ({ __html: (html ?? '').replace(/\n/g, '<br />') });
     const wordCount = (text: string) => text.trim() ? text.trim().split(/\s+/).length : 0;
 

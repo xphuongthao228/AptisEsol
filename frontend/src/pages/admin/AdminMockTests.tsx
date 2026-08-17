@@ -465,7 +465,7 @@ export function AdminMockTests() {
     if (selectedIds.length === 0) return;
     const selectedSet = new Set(selectedIds);
     const selectedItems = items.filter((item) => selectedSet.has(item.id));
-    if (!confirm(`Xoa ${selectedItems.length} de thi thu da chon?`)) return;
+    if (!confirm(`Xóa ${selectedItems.length} đề thi thử đã chọn?`)) return;
 
     const results = await Promise.allSettled(selectedItems.map((item) => api.delete(`/mock-tests/${item.id}`).then(() => item.id)));
     const deletedIds = results
@@ -480,11 +480,11 @@ export function AdminMockTests() {
     }
 
     if (deletedIds.length === selectedItems.length) {
-      toast.success(`Da xoa ${deletedIds.length} de thi thu`);
+      toast.success(`Đã xóa ${deletedIds.length} đề thi thử`);
     } else if (deletedIds.length > 0) {
-      toast.error(`Da xoa ${deletedIds.length}/${selectedItems.length} de. Mot so de chua xoa duoc`);
+      toast.error(`Đã xóa ${deletedIds.length}/${selectedItems.length} đề. Một số đề chưa xóa được`);
     } else {
-      toast.error('Khong xoa duoc cac de da chon');
+      toast.error('Không xóa được các đề đã chọn');
     }
   }
 
@@ -785,7 +785,7 @@ export function AdminMockTests() {
                   Chon tat ca dang loc ({filteredItems.length})
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-slate-500">Da chon {selectedIds.length} de</span>
+                  <span className="text-sm font-bold text-slate-500">Đã chọn {selectedIds.length} đề</span>
                   <button
                     type="button"
                     className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-extrabold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-white"
@@ -793,7 +793,7 @@ export function AdminMockTests() {
                     disabled={selectedIds.length === 0}
                   >
                     <Trash2 size={17} />
-                    Xoa da chon
+                    Xóa đã chọn
                   </button>
                 </div>
               </div>
