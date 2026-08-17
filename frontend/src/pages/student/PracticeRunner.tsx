@@ -2,7 +2,7 @@
 import { Fragment } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowLeft, ArrowRight, BookOpen, CalendarPlus, CheckSquare, Clock, FileSearch, HelpCircle, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, FileSearch, HelpCircle, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
@@ -441,8 +441,6 @@ export function PracticeRunner() {
             onReset={resetCurrentQuestion}
             onCheck={checkCurrentQuestion}
             onNext={goNext}
-            onExit={exitRunner}
-            exitLabel={exitLabel}
             showCheck={showClassicCheckButton}
           />
         </form>
@@ -617,9 +615,6 @@ export function PracticeRunner() {
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
                 <button type="button" onClick={goBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
-                <button type="button" onClick={exitRunner} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-700 shadow-sm hover:border-brand-200 hover:text-brand-700">
-                  <LogOut size={17} />Thoát
-                </button>
               </div>
               <div className="grid grid-cols-2 gap-2 sm:flex">
                 <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={resetCurrentQuestion}><RotateCcw size={17} />Làm lại</button>
@@ -693,7 +688,7 @@ function AppTopbar({ exitLabel, onExit }: { exitLabel: string; onExit: () => voi
           <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onExit} title={exitLabel} className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-extrabold text-slate-700 shadow-sm hover:border-brand-200 hover:text-brand-700">
+          <button type="button" onClick={onExit} title={exitLabel} className="inline-flex h-9 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-extrabold text-red-700 shadow-sm shadow-red-100 transition hover:border-red-300 hover:bg-red-600 hover:text-white focus:outline-none focus:ring-4 focus:ring-red-100">
             <LogOut size={17} />Thoát
           </button>
           <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
@@ -706,15 +701,13 @@ function AppTopbar({ exitLabel, onExit }: { exitLabel: string; onExit: () => voi
   );
 }
 
-function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onCheck, onNext, onExit, exitLabel, showCheck = true }: {
+function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onCheck, onNext, showCheck = true }: {
   currentIndex: number;
   totalQuestions: number;
   onBack: () => void;
   onReset: () => void;
   onCheck: () => void;
   onNext: () => void;
-  onExit: () => void;
-  exitLabel: string;
   showCheck?: boolean;
 }) {
   return (
@@ -723,9 +716,6 @@ function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onChec
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={onBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={currentIndex === 0}>
             <ArrowLeft />Quay lại
-          </button>
-          <button type="button" onClick={onExit} title={exitLabel} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-700 shadow-sm hover:border-brand-200 hover:text-brand-700">
-            <LogOut size={17} />Thoát
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:flex">
@@ -2155,7 +2145,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                         moveSentence(sentence, -1);
                       }}
                     >
-                      ↑
+                      <ArrowUp size={14} />
                     </button>
                     <button
                       type="button"
@@ -2165,7 +2155,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                         moveSentence(sentence, 1);
                       }}
                     >
-                      ↓
+                      <ArrowDown size={14} />
                     </button>
                   </span>
               </div>
@@ -3886,7 +3876,7 @@ function TemplateSelect({ value, options, onChange, wide, compact, status }: {
         onClick={() => setOpen((next) => !next)}
       >
         <span className={value ? 'text-slate-950' : 'text-slate-950'}>{label}</span>
-        <span className="text-xl leading-none text-slate-700">âŒ„</span>
+        <ChevronDown className={`shrink-0 text-slate-700 transition ${open ? 'rotate-180' : ''}`} size={18} />
       </button>
       {open && (
         <div className="absolute left-0 right-0 top-[42px] z-50 border border-slate-500 bg-white shadow-lg">
