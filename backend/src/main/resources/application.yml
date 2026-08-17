@@ -16,7 +16,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: true
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
     open-in-view: false
 
   servlet:
@@ -68,4 +68,14 @@ springdoc:
 
 logging:
   level:
-    com.example.aptis.service.EmailService: INFO
+    root: ${LOG_LEVEL_ROOT:WARN}
+    com.example.aptis: ${LOG_LEVEL_APP:INFO}
+    com.example.aptis.service.EmailService: ${LOG_LEVEL_EMAIL:WARN}
+    org.springframework: ${LOG_LEVEL_SPRING:WARN}
+    org.springframework.web: ${LOG_LEVEL_SPRING_WEB:WARN}
+    org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:WARN}
+    org.hibernate: ${LOG_LEVEL_HIBERNATE:WARN}
+    org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:WARN}
+    org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_HIBERNATE_BIND:WARN}
+    org.hibernate.type.descriptor.sql: ${LOG_LEVEL_HIBERNATE_BIND:WARN}
+    com.zaxxer.hikari: ${LOG_LEVEL_HIKARI:WARN}
