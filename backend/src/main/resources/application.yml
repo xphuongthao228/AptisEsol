@@ -1,5 +1,8 @@
 server:
   port: ${PORT:8080}
+  tomcat:
+    accesslog:
+      enabled: false
 
 spring:
   application:
@@ -11,6 +14,7 @@ spring:
     password: ${DB_PASSWORD:demo123}
 
   jpa:
+    show-sql: false
     hibernate:
       ddl-auto: update
     properties:
@@ -68,14 +72,14 @@ springdoc:
 
 logging:
   level:
-    root: ${LOG_LEVEL_ROOT:WARN}
-    com.example.aptis: ${LOG_LEVEL_APP:INFO}
-    com.example.aptis.service.EmailService: ${LOG_LEVEL_EMAIL:WARN}
-    org.springframework: ${LOG_LEVEL_SPRING:WARN}
-    org.springframework.web: ${LOG_LEVEL_SPRING_WEB:WARN}
-    org.springframework.security: ${LOG_LEVEL_SPRING_SECURITY:WARN}
-    org.hibernate: ${LOG_LEVEL_HIBERNATE:WARN}
-    org.hibernate.SQL: ${LOG_LEVEL_HIBERNATE_SQL:WARN}
-    org.hibernate.orm.jdbc.bind: ${LOG_LEVEL_HIBERNATE_BIND:WARN}
-    org.hibernate.type.descriptor.sql: ${LOG_LEVEL_HIBERNATE_BIND:WARN}
-    com.zaxxer.hikari: ${LOG_LEVEL_HIKARI:WARN}
+    root: WARN
+    com.example.aptis: WARN
+    com.example.aptis.service.EmailService: ERROR
+    org.springframework: WARN
+    org.springframework.web: ERROR
+    org.springframework.security: ERROR
+    org.hibernate: ERROR
+    org.hibernate.SQL: ERROR
+    org.hibernate.orm.jdbc.bind: ERROR
+    org.hibernate.type.descriptor.sql: ERROR
+    com.zaxxer.hikari: WARN

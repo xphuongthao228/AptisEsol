@@ -243,24 +243,11 @@ public class EmailService {
                 } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
 
-                        log.error(
-                                        "Sending {} to {} was interrupted",
-                                        mailType,
-                                        recipient,
-                                        e);
-
                         throw new IllegalStateException(
                                         "Quá trình gửi email bị gián đoạn",
                                         e);
 
                 } catch (Exception e) {
-                        log.error(
-                                        "Failed to send {} through Google Apps Script to {}. Error: {}",
-                                        mailType,
-                                        recipient,
-                                        e.getMessage(),
-                                        e);
-
                         throw new IllegalStateException(
                                         "Không gửi được email qua Google Apps Script: "
                                                         + e.getMessage(),
