@@ -159,6 +159,8 @@ export function PracticeRunner() {
               ? false
           : currentIndex < totalQuestions - 1;
   const templateOwnsHeader = isSpeakingPart1Question || isSpeakingPart2Question || isSpeakingPart3Question || isSpeakingPart4Question;
+  const exitTarget = isExamSetMode ? '/app/exams' : '/app/tests';
+  const exitLabel = isExamSetMode ? 'Thoát về đề thi' : 'Thoát về luyện tập';
 
   useEffect(() => {
     if (!questions?.length || !requestedQuestionId) return;
@@ -365,7 +367,7 @@ export function PracticeRunner() {
       return;
     }
 
-    const value = answers[activeQuestion.id];
+    const value = getCurrentAnswerValueForCheck(mergedTemplateData, answers[activeQuestion.id]);
     if (!value) {
       toast.error('Bạn hãy chọn hoặc nhập câu trả lời trước.');
       return;
@@ -390,6 +392,15 @@ export function PracticeRunner() {
     toast[isCorrect ? 'success' : 'error'](isCorrect ? 'Chính xác!' : 'Chưa đúng, xem lại đáp án đúng.');
   }
 
+  function getCurrentAnswerValueForCheck(data: TemplateData | null, value?: string) {
+    if (value) return value;
+    if (data?.template === 'READING_SENTENCE_ORDER') {
+      const displaySentences = getReadingOrderDisplaySentences(data);
+      if (displaySentences.length) return JSON.stringify({ order: displaySentences });
+    }
+    return value ?? '';
+  }
+
   function resetCurrentQuestion() {
     if (!activeQuestion) return;
     const { [activeQuestion.id]: _oldAnswer, ...nextAnswers } = answers;
@@ -398,12 +409,16 @@ export function PracticeRunner() {
     setCheckedAnswers(nextChecked);
   }
 
+  function exitRunner() {
+    navigate(exitTarget);
+  }
+
   if (classicTemplate) {
     return (
       <div className="min-h-screen bg-white text-slate-950">
         <AppSidebar pathname={location.pathname} onSignOut={async () => { await logout(); navigate('/login'); }} />
         <main className="xl:pl-[260px]">
-          <AppTopbar />
+          <AppTopbar exitLabel={exitLabel} onExit={exitRunner} />
         <form onSubmit={submit} className="pb-24">
           {loading && <div className="mx-auto max-w-[1460px] p-8">Đang tải câu hỏi...</div>}
           {activeQuestion?.featured && !templateOwnsHeader && <FeaturedQuestionCallout />}
@@ -426,6 +441,8 @@ export function PracticeRunner() {
             onReset={resetCurrentQuestion}
             onCheck={checkCurrentQuestion}
             onNext={goNext}
+            onExit={exitRunner}
+            exitLabel={exitLabel}
             showCheck={showClassicCheckButton}
           />
         </form>
@@ -480,9 +497,14 @@ export function PracticeRunner() {
               <div className="hidden h-9 w-px bg-slate-200 sm:block" />
               <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
             </div>
-            <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
-              <Search size={19} />
-              <span className="hidden sm:inline">Tìm tài liệu...</span>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={exitRunner} className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-extrabold text-slate-700 shadow-sm hover:border-brand-200 hover:text-brand-700">
+                <LogOut size={17} />Thoát
+              </button>
+              <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
+                <Search size={19} />
+                <span className="hidden sm:inline">Tìm tài liệu...</span>
+              </div>
             </div>
           </div>
         </header>
@@ -593,7 +615,12 @@ export function PracticeRunner() {
 
           <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <button type="button" onClick={goBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button type="button" onClick={goBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
+                <button type="button" onClick={exitRunner} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-700 shadow-sm hover:border-brand-200 hover:text-brand-700">
+                  <LogOut size={17} />Thoát
+                </button>
+              </div>
               <div className="grid grid-cols-2 gap-2 sm:flex">
                 <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={resetCurrentQuestion}><RotateCcw size={17} />Làm lại</button>
                 <button type="button" onClick={checkCurrentQuestion} disabled={!canCheckCurrent} className="inline-flex h-10 items-center gap-2 rounded-xl bg-green-700 px-5 text-sm font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500"><CheckSquare size={18} />Kiểm tra</button>
@@ -656,7 +683,7 @@ function AppSidebar({ pathname, onSignOut }: { pathname: string; onSignOut: () =
   );
 }
 
-function AppTopbar() {
+function AppTopbar({ exitLabel, onExit }: { exitLabel: string; onExit: () => void }) {
   return (
     <header className="sticky top-0 z-20 border-b border-slate-200 bg-white">
       <div className="flex h-12 items-center justify-between px-5 sm:px-6">
@@ -665,30 +692,42 @@ function AppTopbar() {
           <div className="hidden h-9 w-px bg-slate-200 sm:block" />
           <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
         </div>
-        <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
-          <Search size={19} />
-          <span className="hidden sm:inline">Tìm tài liệu...</span>
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onExit} title={exitLabel} className="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 text-sm font-extrabold text-slate-700 shadow-sm hover:border-brand-200 hover:text-brand-700">
+            <LogOut size={17} />Thoát
+          </button>
+          <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-500 sm:flex">
+            <Search size={19} />
+            <span className="hidden sm:inline">Tìm tài liệu...</span>
+          </div>
         </div>
       </div>
     </header>
   );
 }
 
-function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onCheck, onNext, showCheck = true }: {
+function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onCheck, onNext, onExit, exitLabel, showCheck = true }: {
   currentIndex: number;
   totalQuestions: number;
   onBack: () => void;
   onReset: () => void;
   onCheck: () => void;
   onNext: () => void;
+  onExit: () => void;
+  exitLabel: string;
   showCheck?: boolean;
 }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-2 pb-[calc(0.5rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6 xl:left-[260px]">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <button type="button" onClick={onBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={currentIndex === 0}>
-          <ArrowLeft />Quay lại
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={onBack} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl font-semibold text-slate-600 disabled:opacity-50 sm:justify-start" disabled={currentIndex === 0}>
+            <ArrowLeft />Quay lại
+          </button>
+          <button type="button" onClick={onExit} title={exitLabel} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-extrabold text-slate-700 shadow-sm hover:border-brand-200 hover:text-brand-700">
+            <LogOut size={17} />Thoát
+          </button>
+        </div>
         <div className="grid grid-cols-2 gap-2 sm:flex">
           <button type="button" className="btn-secondary hidden h-10 px-4 text-sm outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={onReset}>
             <RotateCcw size={17} />Làm lại</button>
@@ -1643,7 +1682,8 @@ function evaluateTemplateAnswer(data: TemplateData | null, value: string) {
     return correctAnswers.every((answer, index) => saved[`gap${index}`] === answer);
   }
   if (data?.template === 'READING_SENTENCE_ORDER') {
-    const order = Array.isArray(saved.order) ? saved.order : [];
+    const displaySentences = getReadingOrderDisplaySentences(data);
+    const order = Array.isArray(saved.order) ? saved.order : displaySentences;
     const correctOrder = getReadingOrderCorrectSentences(data);
     if (!correctOrder.length) return null;
     return order.length === correctOrder.length && correctOrder.every((sentence, index) => order[index] === sentence);
@@ -2044,7 +2084,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
     const correctOrder = getReadingOrderCorrectSentences(data);
     const selectedOrder = Array.isArray((saved as any).order) ? (saved as any).order as string[] : [];
     const currentOrder = selectedOrder.length ? selectedOrder : displaySentences;
-    const score = selectedOrder.filter((sentence, index) => sentence === correctOrder[index]).length * EXAM_POINT_PER_QUESTION;
+    const score = currentOrder.filter((sentence, index) => sentence === correctOrder[index]).length * EXAM_POINT_PER_QUESTION;
     const maxScore = correctOrder.length * EXAM_POINT_PER_QUESTION;
     const topic = displayTemplateTopic(data);
     function saveOrder(nextOrder: string[]) {
@@ -2115,7 +2155,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                         moveSentence(sentence, -1);
                       }}
                     >
-                      â†‘
+                      ↑
                     </button>
                     <button
                       type="button"
@@ -2125,7 +2165,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                         moveSentence(sentence, 1);
                       }}
                     >
-                      â†“
+                      ↓
                     </button>
                   </span>
               </div>
@@ -2154,7 +2194,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                   <div className="border-b border-slate-300 p-3 font-extrabold">Correct Answer</div>
                   {correctOrder.map((sentence, index) => (
                     <div className="contents" key={`${sentence}-${index}`}>
-                      <div className="border-b border-slate-200 p-3 text-red-600 md:border-r">{selectedOrder[index] ?? 'Chưa chọn'}</div>
+                      <div className="border-b border-slate-200 p-3 text-red-600 md:border-r">{currentOrder[index] ?? 'Chưa chọn'}</div>
                       <div className="border-b border-slate-200 p-3 text-green-700">{sentence}</div>
                     </div>
                   ))}
