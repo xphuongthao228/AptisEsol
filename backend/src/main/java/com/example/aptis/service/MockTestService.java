@@ -135,6 +135,9 @@ public class MockTestService {
 
     private String parseSkill(String value) {
         String normalized = value.trim().toUpperCase();
+        if (normalized.equals("GRAMMAR_VOCABULARY") || normalized.equals("GRAMMAR&VOCABULARY") || normalized.equals("G&V")) {
+            return "GRAMMAR";
+        }
         if (!List.of("FULL", "SPEAKING", "LISTENING", "GRAMMAR", "READING", "WRITING").contains(normalized)) {
             throw new IllegalArgumentException("Invalid skill: " + value);
         }

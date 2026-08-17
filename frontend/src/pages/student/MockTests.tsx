@@ -103,7 +103,7 @@ type MockCard = {
 
 type StoredAdminMockTest = {
   id?: string;
-  skill?: MockSkill;
+  skill?: MockSkill | 'GRAMMAR_VOCABULARY';
   title?: string;
   description?: string;
   questions?: string;
@@ -115,7 +115,7 @@ type StoredAdminMockTest = {
 
 type ApiMockTest = {
   id: number;
-  skill: MockSkill;
+  skill: MockSkill | 'GRAMMAR_VOCABULARY';
   title: string;
   description?: string;
   questions?: string;
@@ -127,6 +127,12 @@ type ApiMockTest = {
 
 const FEATURED_MARKER = '[[APTIS_FEATURED_MOCK_TEST]]';
 const BOOKMARK_STORAGE_KEY = 'aptis-mock-test-bookmarks';
+
+function normalizeMockSkill(value?: string): MockSkill | null {
+  const skill = String(value ?? '').trim().toUpperCase();
+  if (skill === 'GRAMMAR_VOCABULARY' || skill === 'GRAMMAR&VOCABULARY' || skill === 'G&V') return 'GRAMMAR';
+  return skill in mockCardMeta ? skill as MockSkill : null;
+}
 
 type ListeningPart1Question = {
   prompt: string;
@@ -315,15 +321,16 @@ function loadPublishedAdminMockCards() {
     const parsed = JSON.parse(saved) as StoredAdminMockTest[];
     if (!Array.isArray(parsed)) return [];
     return parsed
-      .filter((item): item is StoredAdminMockTest & { skill: MockSkill; title: string } =>
-        Boolean(item.skill && mockCardMeta[item.skill] && item.title?.trim() && item.status !== 'DRAFT')
+      .filter((item): item is StoredAdminMockTest & { title: string } =>
+        Boolean(normalizeMockSkill(item.skill) && item.title?.trim() && item.status !== 'DRAFT')
       )
       .map<MockCard>((item) => {
-        const meta = mockCardMeta[item.skill];
+        const skill = normalizeMockSkill(item.skill) ?? 'GRAMMAR';
+        const meta = mockCardMeta[skill];
         const description = item.description?.trim() ?? '';
         return {
           id: item.id ? `admin-${item.id}` : `admin-${item.skill}-${item.title}`,
-          skill: item.skill,
+          skill,
           label: meta.label,
           title: item.title.trim(),
           description: cleanFeaturedMarker(description) || 'Đề thi thử do admin thêm.',
@@ -379,12 +386,13 @@ function storedFeaturedValue(card: MockCard, featuredMap: Record<string, boolean
 }
 
 function apiMockTestToCard(item: ApiMockTest): MockCard | null {
-  if (!item.skill || !mockCardMeta[item.skill] || !item.title?.trim()) return null;
-  const meta = mockCardMeta[item.skill];
+  const skill = normalizeMockSkill(item.skill);
+  if (!skill || !item.title?.trim()) return null;
+  const meta = mockCardMeta[skill];
   const description = item.description?.trim() ?? '';
   return {
     id: `api-${item.id}`,
-    skill: item.skill,
+    skill,
     label: meta.label,
     title: item.title.trim(),
     description: cleanFeaturedMarker(description) || 'Đề thi thử do admin thêm.',
@@ -535,6 +543,63 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
 
     return result;
   }, {});
+}
+
+function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[] {
+  const rows = parseQuestionDataArray(card?.questionData)
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .filter((item) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      return !skill || skill === 'GRAMMAR' || skill === 'GRAMMAR_VOCABULARY';
+    });
+
+  const questions = rows.reduce<GrammarQuestionItem[]>((questions, item) => {
+    const prompt = String(item.prompt ?? item.question ?? '').trim();
+    const options = Array.isArray(item.options) ? item.options.map(String).map((option) => option.trim()).filter(Boolean) : [];
+    const answer = String(item.answer ?? item.correctAnswer ?? '').trim() || options[0] || undefined;
+    const part = Number(item.part ?? 1);
+    const type = String(item.type ?? '').toLowerCase();
+    const questionStart = String(item.questionStart ?? '').trim();
+    const questionEnd = String(item.questionEnd ?? '').trim();
+
+    if (!prompt || options.length === 0 || !answer) return questions;
+
+    if (part === 1 || type.includes('grammar')) {
+      questions.push({ prompt, options, answer });
+      return questions;
+    }
+
+    if (part === 3 || type.includes('definition')) {
+      questions.push({
+        options,
+        definitionMode: 'matching' as const,
+        definitionRows: [{ definition: prompt, answer }]
+      });
+      return questions;
+    }
+
+    if (part === 4 || questionStart || questionEnd) {
+      questions.push({
+        options,
+        sentenceRows: [{
+          before: questionStart || prompt.split(/_{2,}/)[0] || prompt,
+          after: questionEnd || prompt.split(/_{2,}/).slice(1).join(' ').trim(),
+          answer
+        }]
+      });
+      return questions;
+    }
+
+    if (part === 6) {
+      questions.push({ options, collocationRows: [{ word: prompt, answer }] });
+      return questions;
+    }
+
+    questions.push({ options, matchRows: [{ word: prompt, answer }] });
+    return questions;
+  }, []);
+
+  return questions.length > 0 ? questions : grammarQuestions;
 }
 
 function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
@@ -1199,8 +1264,8 @@ function cefrFromListeningCorrect25(correctOutOf25: number) {
   return 'A1';
 }
 
-function scoreGrammarAnswers(answers: Record<number, string>): SkillScoreSummary {
-  const counts = grammarQuestions.map((question, index) => {
+function scoreGrammarAnswers(answers: Record<number, string>, questions: GrammarQuestionItem[] = grammarQuestions): SkillScoreSummary {
+  const counts = questions.map((question, index) => {
     const answer = answers[index];
     if (question.answer) return sameAnswer(answer, question.answer) ? 1 : 0;
     const selections = parseGrammarMatchingAnswer(answer);
@@ -1211,11 +1276,15 @@ function scoreGrammarAnswers(answers: Record<number, string>): SkillScoreSummary
     }).length;
   });
   const correct = counts.reduce((sum, value) => sum + value, 0);
+  const grammarCount = questions.filter((question) => !question.matchRows && !question.definitionRows && !question.sentenceRows && !question.collocationRows).length;
+  const vocabularyCount = Math.max(0, questions.length - grammarCount);
+  const grammarCorrect = counts.slice(0, grammarCount).reduce((sum, value) => sum + value, 0);
+  const vocabularyCorrect = counts.slice(grammarCount).reduce((sum, value) => sum + value, 0);
   const rows = [
-    { part: 'Grammar multiple choice', correct: `${counts.slice(0, 25).reduce((sum, value) => sum + value, 0)}/25`, score: `${counts.slice(0, 25).reduce((sum, value) => sum + value, 0)}/25` },
-    { part: 'Vocabulary & matching', correct: `${counts.slice(25).reduce((sum, value) => sum + value, 0)}/25`, score: `${counts.slice(25).reduce((sum, value) => sum + value, 0)}/25` }
+    { part: 'Grammar multiple choice', correct: `${grammarCorrect}/${grammarCount}`, score: `${scoreFromCorrect(grammarCorrect, grammarCount, Math.round((grammarCount / Math.max(1, questions.length)) * 50))}/50` },
+    { part: 'Vocabulary & matching', correct: `${vocabularyCorrect}/${vocabularyCount}`, score: `${scoreFromCorrect(vocabularyCorrect, vocabularyCount, Math.round((vocabularyCount / Math.max(1, questions.length)) * 50))}/50` }
   ];
-  return { correct, total: 50, score: correct, maxScore: 50, cefr: 'Không xếp CEFR', rows };
+  return { correct, total: questions.length, score: scoreFromCorrect(correct, questions.length, 50), maxScore: 50, cefr: 'Không xếp CEFR', rows };
 }
 
 function scoreListeningAnswers(
@@ -2191,7 +2260,8 @@ export function MockTests() {
   const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
   const activeListeningAudioByPart = useMemo(() => listeningAudioByPartFromCard(selectedMockCard), [selectedMockCard]);
   const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey);
-  const grammarSummary = scoreGrammarAnswers(grammarAnswers);
+  const activeGrammarQuestions = useMemo(() => grammarQuestionsFromCard(selectedMockCard), [selectedMockCard]);
+  const grammarSummary = scoreGrammarAnswers(grammarAnswers, activeGrammarQuestions);
   const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
   const questionListItems = buildCurrentQuestionListItems();
 
@@ -2266,7 +2336,7 @@ export function MockTests() {
     }
 
     if (screen.startsWith('grammar')) {
-      return grammarQuestions.map((_, index) => questionItem(
+      return activeGrammarQuestions.map((_, index) => questionItem(
         bookmarkKey('grammar', index + 1),
         `Question ${index + 1}`,
         'Grammar & Vocabulary',
@@ -2417,10 +2487,10 @@ export function MockTests() {
               answer={grammarAnswers[grammarQuestionIndex]}
               bookmarkActive={isBookmarked(bookmarkKey('grammar', grammarQuestionIndex + 1))}
               index={grammarQuestionIndex}
-              question={grammarQuestions[grammarQuestionIndex]}
+              question={activeGrammarQuestions[grammarQuestionIndex] ?? activeGrammarQuestions[0]}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(grammarSeconds)}
-              total={grammarQuestions.length}
+              total={activeGrammarQuestions.length}
               onAnswer={(answer) => setGrammarAnswers((currentAnswers) => ({ ...currentAnswers, [grammarQuestionIndex]: answer }))}
               onToggleBookmark={() => toggleBookmark(bookmarkKey('grammar', grammarQuestionIndex + 1))}
             />
@@ -2638,7 +2708,7 @@ export function MockTests() {
                 else setScreen('grammarInstructions');
               }}
               onNext={() => {
-                if (grammarQuestionIndex < grammarQuestions.length - 1) {
+                if (grammarQuestionIndex < activeGrammarQuestions.length - 1) {
                   setGrammarQuestionIndex((value) => value + 1);
                 } else if (isFullMock) {
                   resetReadingSection();

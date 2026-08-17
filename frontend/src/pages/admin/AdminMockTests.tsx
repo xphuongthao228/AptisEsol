@@ -312,6 +312,7 @@ function parseCsv(text: string) {
 
 function normalizeSkill(value: string): MockSkill | null {
   const skill = value.trim().toUpperCase();
+  if (skill === 'GRAMMAR_VOCABULARY' || skill === 'GRAMMAR&VOCABULARY' || skill === 'G&V') return 'GRAMMAR';
   return skill in skillLabels ? skill as MockSkill : null;
 }
 
