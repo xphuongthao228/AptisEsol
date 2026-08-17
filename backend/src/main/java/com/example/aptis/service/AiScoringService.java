@@ -5,10 +5,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
@@ -19,6 +21,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +39,21 @@ public class AiScoringService {
 
     @Value("${app.ai.deepseek-base-url:https://api.deepseek.com}")
     private String baseUrl;
+
+    @Value("${app.ai.max-concurrent-requests:2}")
+    private int maxConcurrentRequests;
+
+    private RestClient deepSeekClient;
+    private Semaphore aiRequestSemaphore;
+
+    @PostConstruct
+    void initHttpClient() {
+        this.deepSeekClient = RestClient.builder()
+                .baseUrl(baseUrl)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + blankToEmpty(apiKey))
+                .build();
+        this.aiRequestSemaphore = new Semaphore(Math.max(1, maxConcurrentRequests));
+    }
 
     public AiDtos.WritingScoreResponse scoreWriting(AiDtos.WritingScoreRequest request) {
         String answers = request.parts().stream()
@@ -113,7 +132,12 @@ public class AiScoringService {
             throw new IllegalStateException("Chưa cấu hình DEEPSEEK_API_KEY cho backend.");
         }
 
+        boolean acquired = false;
         try {
+            acquired = aiRequestSemaphore.tryAcquire(30, TimeUnit.SECONDS);
+            if (!acquired) {
+                throw new IllegalStateException("AI is busy. Please try again later.");
+            }
             return callDeepSeek(messages, jsonMode, model);
         } catch (RestClientResponseException ex) {
             String body = ex.getResponseBodyAsString(StandardCharsets.UTF_8);
@@ -121,6 +145,13 @@ public class AiScoringService {
                 return callDeepSeek(messages, jsonMode, "deepseek-chat");
             }
             throw new IllegalStateException("DeepSeek API lỗi " + ex.getStatusCode().value() + ": " + simplifyDeepSeekError(body));
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("AI request was interrupted.");
+        } finally {
+            if (acquired) {
+                aiRequestSemaphore.release();
+            }
         }
     }
 
@@ -136,10 +167,9 @@ public class AiScoringService {
                         "messages", messages,
                         "temperature", 0.5);
 
-        String response = RestClient.create()
+        String response = deepSeekClient
                 .post()
-                .uri(baseUrl + "/chat/completions")
-                .headers(headers -> headers.setBearerAuth(apiKey))
+                .uri("/chat/completions")
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(body)
                 .retrieve()
