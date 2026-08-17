@@ -27,6 +27,14 @@ const categoryMeta: Record<Exclude<ExamCategory, 'ALL'>, { label: string; icon: 
   GRAMMAR: { label: 'Grammar', icon: <SpellCheck size={20} />, color: 'bg-violet-50 text-violet-700' }
 };
 
+const categoryOrder: Record<Exclude<ExamCategory, 'ALL'>, number> = {
+  LISTENING: 1,
+  SPEAKING: 2,
+  READING: 3,
+  WRITING: 4,
+  GRAMMAR: 5
+};
+
 export function Exams() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const { data, loading, error } = useApi<Test[]>(() => unwrap(api.get('/tests')), []);
@@ -46,7 +54,7 @@ export function Exams() {
         getCategoryLabel(testCategory).toLowerCase().includes(keyword);
 
       return matchesCategory && matchesQuery;
-    });
+    }).sort(compareExamTests);
   }, [category, query, tests]);
 
   if (loading) return <div className="rounded-[18px] border border-slate-200 bg-white p-7">Đang tải danh sách bộ đề...</div>;
@@ -176,6 +184,26 @@ function normalizeCategory(test: Test): Exclude<ExamCategory, 'ALL'> {
 
 function getCategoryLabel(category: Exclude<ExamCategory, 'ALL'>) {
   return categoryMeta[category].label;
+}
+
+function compareExamTests(left: Test, right: Test) {
+  const leftCategory = normalizeCategory(left);
+  const rightCategory = normalizeCategory(right);
+  const categoryCompare = categoryOrder[leftCategory] - categoryOrder[rightCategory];
+  if (categoryCompare !== 0) return categoryCompare;
+
+  const leftNumber = getExamNumber(left.title);
+  const rightNumber = getExamNumber(right.title);
+  if (leftNumber !== null && rightNumber !== null && leftNumber !== rightNumber) return leftNumber - rightNumber;
+  if (leftNumber !== null && rightNumber === null) return -1;
+  if (leftNumber === null && rightNumber !== null) return 1;
+
+  return left.title.localeCompare(right.title, 'vi', { numeric: true, sensitivity: 'base' });
+}
+
+function getExamNumber(title?: string) {
+  const match = String(title ?? '').match(/(?:đề|de|test|exam)\s*0*(\d+)/i);
+  return match?.[1] ? Number(match[1]) : null;
 }
 
 function isExamTest(test: Test) {

@@ -81,6 +81,36 @@ export function Dashboard() {
   return (
     <div className="space-y-9">
       <CommunityInviteModal />
+      <section className="overflow-hidden rounded-[18px] border border-slate-200 bg-white shadow-soft">
+        <div className="grid gap-0 lg:grid-cols-[1.25fr_0.75fr]">
+          <div className="p-6 sm:p-8">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-extrabold text-brand-700">
+              <Sparkles size={16} /> LingoMaster Aptis ESOL
+            </div>
+            <h1 className="max-w-3xl text-3xl font-extrabold leading-tight text-slate-950 sm:text-4xl">
+              Luyện Aptis theo bộ đề, học mẹo nhanh và nhận nhận xét AI sau khi làm bài
+            </h1>
+            <p className="mt-4 max-w-3xl text-base leading-8 text-slate-600">
+              Web hỗ trợ Reading, Listening, Speaking, Writing và Grammar với giao diện luyện thi rõ ràng. Phần Writing và Speaking có chấm AI để ước tính điểm, CEFR, chỉ ra lỗi chính và gợi ý cách cải thiện bài làm.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link to="/app/exams" className="btn-primary h-12 px-5">
+                Vào bộ đề <ArrowRight size={18} />
+              </Link>
+              <Link to="/app/mock-tests" className="btn-secondary h-12 px-5">
+                Thi thử AI
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-3 border-t border-slate-100 bg-slate-50 p-5 sm:grid-cols-3 lg:grid-cols-1 lg:border-l lg:border-t-0">
+            <FeaturePill icon={<PenLine size={20} />} title="Writing AI" text="Chấm bài viết, sửa lỗi và gợi ý bài mẫu." />
+            <FeaturePill icon={<Mic size={20} />} title="Speaking AI" text="Nhận xét transcript, điểm mạnh và cách nói tốt hơn." />
+            <FeaturePill icon={<MessageCircle size={20} />} title="Lingo" text="Hỏi nhanh ngữ pháp, từ vựng và cách làm bài." />
+          </div>
+        </div>
+      </section>
+
       <section className="overflow-hidden rounded-[18px] border border-brand-100 bg-white p-5 shadow-soft sm:p-6">
         <div className="mb-4">
           <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-xs font-extrabold text-brand-700">
@@ -161,6 +191,18 @@ export function Dashboard() {
         })}
       </section>
 
+    </div>
+  );
+}
+
+function FeaturePill({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="mb-3 grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-700">
+        {icon}
+      </div>
+      <h2 className="text-sm font-extrabold text-slate-950">{title}</h2>
+      <p className="mt-1 text-sm leading-6 text-slate-500">{text}</p>
     </div>
   );
 }
