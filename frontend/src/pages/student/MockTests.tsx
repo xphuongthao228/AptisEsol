@@ -649,11 +649,14 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
   const part5Row = rows.find((item) => String(item.part ?? '').trim() === '5');
   const longOptions = Array.isArray(part5Row?.options) ? part5Row.options.map(String).filter(Boolean) : [];
   const paragraphs = Array.isArray(part5Row?.paragraphs) ? part5Row.paragraphs.map(String).filter(Boolean) : [];
+  const longCorrectAnswers = Array.isArray(part5Row?.correctAnswers)
+    ? part5Row.correctAnswers.map(String).filter(Boolean)
+    : paragraphs.map((_, index) => longOptions[index] ?? '');
   const long = {
     title: String(part5Row?.topic ?? 'Long Reading').trim(),
-    headings: longOptions,
+    headings: rotateChoices(longOptions),
     paragraphs,
-    correctAnswers: paragraphs.map((_, index) => longOptions[index] ?? '')
+    correctAnswers: longCorrectAnswers
   };
 
   return {
@@ -2054,7 +2057,7 @@ export function MockTests() {
         score,
         feedback: words === 0
           ? 'Chưa có câu trả lời nên phần này tạm tính 0 điểm.'
-          : `Có ${words} từ. Backend AI chưa trả kết quả chi tiết, nên đây chỉ là điểm tạm theo độ đầy đủ của câu trả lời.`
+          : `Có ${words} từ. AI chưa trả kết quả chi tiết, nên đây chỉ là điểm tạm theo độ đầy đủ của câu trả lời.`
       };
     });
     const answeredParts = partFeedback.filter((part) => part.score > 0).length;
@@ -2065,17 +2068,17 @@ export function MockTests() {
     return {
       overallScore,
       cefrLevel: overallScore >= 40 ? 'B2' : overallScore >= 28 ? 'B1' : overallScore >= 16 ? 'A2' : 'A1',
-      summary: `AI Writing chưa chấm được từ backend (${reason}). Kết quả này là điểm tạm để bài thi full không bị dừng; cần cấu hình hoặc kiểm tra DeepSeek để có nhận xét AI thật.`,
+      summary: `AI Writing chưa chấm được lúc này (${reason}). Kết quả này là điểm tạm để bài thi full không bị dừng; bạn có thể thử chấm lại sau.`,
       criteria: [
         { name: 'Task achievement', score: answeredParts === parts.length ? 5 : answeredParts > 0 ? 3 : 0, feedback: `${answeredParts}/${parts.length} phần có nội dung trả lời.` },
-        { name: 'Grammar', score: 0, feedback: 'Chưa đánh giá được ngữ pháp vì AI backend chưa trả kết quả.' },
-        { name: 'Vocabulary', score: 0, feedback: 'Chưa đánh giá được từ vựng vì AI backend chưa trả kết quả.' },
-        { name: 'Coherence', score: 0, feedback: 'Chưa đánh giá được mạch lạc vì AI backend chưa trả kết quả.' },
-        { name: 'Tone/register', score: 0, feedback: 'Chưa đánh giá được văn phong vì AI backend chưa trả kết quả.' }
+        { name: 'Grammar', score: 0, feedback: 'Chưa đánh giá được ngữ pháp vì AI chưa trả kết quả.' },
+        { name: 'Vocabulary', score: 0, feedback: 'Chưa đánh giá được từ vựng vì AI chưa trả kết quả.' },
+        { name: 'Coherence', score: 0, feedback: 'Chưa đánh giá được mạch lạc vì AI chưa trả kết quả.' },
+        { name: 'Tone/register', score: 0, feedback: 'Chưa đánh giá được văn phong vì AI chưa trả kết quả.' }
       ],
       parts: partFeedback,
-      corrections: ['Kiểm tra DEEPSEEK_API_KEY, quyền truy cập gói học, kết nối backend tới DeepSeek và log backend để lấy lỗi thật.'],
-      suggestedAnswer: 'Sau khi backend AI hoạt động, nộp lại bài Writing để nhận nhận xét chi tiết, lỗi cần sửa và bài gợi ý.'
+      corrections: ['Bạn có thể thử chấm lại sau hoặc rút gọn câu trả lời nếu nội dung quá dài.'],
+      suggestedAnswer: 'Khi AI hoạt động lại, nộp lại bài Writing để nhận nhận xét chi tiết, lỗi cần sửa và bài gợi ý.'
     };
   }
 
@@ -2129,7 +2132,7 @@ export function MockTests() {
       const fallback = buildSpeakingFallbackScore(payload.parts);
       setSpeakingScore(fallback);
       setSpeakingScoreError('');
-      toast.error(message.includes('Cannot deserialize') ? 'Backend cần restart để nhận cấu hình chấm Speaking mới.' : message);
+      toast.error(message.includes('Cannot deserialize') ? 'AI Speaking đang tạm bận. Bạn thử chấm lại sau ít phút nhé.' : message);
       if (nextScreen) setScreen(nextScreen);
     } finally {
       setSpeakingScoreLoading(false);
@@ -2147,7 +2150,7 @@ export function MockTests() {
           ? 'Phần này chưa có file ghi âm nên tính 0 điểm.'
           : unavailable
             ? 'Có file ghi âm nhưng trình duyệt chưa lấy được nội dung nói, nên phần này chỉ được điểm rất thấp.'
-            : 'Có dữ liệu nói nhưng backend chưa trả được chấm chi tiết. Cần restart backend để dùng prompt Speaking mới.'
+            : 'Có dữ liệu nói nhưng AI chưa trả được chấm chi tiết. Bạn có thể thử chấm lại sau.'
       };
     });
     const overallScore = partFeedback.length
@@ -2156,7 +2159,7 @@ export function MockTests() {
     return {
       overallScore,
       cefrLevel: overallScore < 4 ? 'Below A1' : 'A1',
-      summary: 'Chưa có đủ dữ liệu hoặc backend chưa reload prompt Speaking mới. Phần không có file ghi âm được tính 0; phần có file nhưng không lấy được transcript được tính điểm rất thấp.',
+      summary: 'Chưa có đủ dữ liệu hoặc AI chưa chấm được lúc này. Phần không có file ghi âm được tính 0; phần có file nhưng không lấy được transcript được tính điểm rất thấp.',
       criteria: [
         { name: 'Task response', score: 0, feedback: 'Chưa có đủ nội dung nói rõ ràng để đánh giá mức độ trả lời đúng câu hỏi.' },
         { name: 'Grammar', score: 0, feedback: 'Chưa có transcript rõ để đánh giá ngữ pháp.' },

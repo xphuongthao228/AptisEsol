@@ -144,7 +144,7 @@ public class AiScoringService {
             if (!"deepseek-chat".equals(model) && isModelError(body)) {
                 return callDeepSeek(messages, jsonMode, "deepseek-chat");
             }
-            throw new IllegalStateException("DeepSeek API lỗi " + ex.getStatusCode().value() + ": " + simplifyDeepSeekError(body));
+            throw new IllegalStateException(friendlyAiUnavailableMessage(ex.getStatusCode().value()));
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("AI request was interrupted.");
@@ -206,6 +206,13 @@ public class AiScoringService {
             // Keep the raw body below.
         }
         return body.length() > 500 ? body.substring(0, 500) : body;
+    }
+
+    private String friendlyAiUnavailableMessage(int statusCode) {
+        if (statusCode == 402 || statusCode == 429) {
+            return "AI đang tạm hết lượt xử lý. Mỗi tài khoản có tối đa 10 lượt AI mỗi ngày; vui lòng thử lại sau.";
+        }
+        return "AI đang tạm bận nên chưa xử lý được yêu cầu. Vui lòng thử lại sau ít phút.";
     }
 
     private String loadPrompt(String fileName) {

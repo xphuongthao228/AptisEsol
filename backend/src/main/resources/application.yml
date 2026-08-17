@@ -35,7 +35,7 @@ app:
     refresh-token-days: ${JWT_REFRESH_DAYS:14}
 
   upload-dir: ${UPLOAD_DIR:uploads}
-  cors: ${APP_CORS:http://localhost:5173}
+  cors: ${APP_CORS:http://localhost:5173,https://*.trycloudflare.com}
   frontend-url: ${FRONTEND_URL:http://localhost:5173}
 
   mail:

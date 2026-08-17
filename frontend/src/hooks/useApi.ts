@@ -27,7 +27,7 @@ export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []) {
         const apiMessage = err?.response?.data?.message;
         const detail = err?.response?.data?.errors ? `: ${JSON.stringify(err.response.data.errors)}` : '';
         const message = status === 401
-          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+          ? 'Không xác thực được yêu cầu. Phiên hiện tại vẫn được giữ; vui lòng tải lại trang hoặc thử đăng nhập lại nếu lỗi lặp lại.'
           : status === 403
             ? 'Bạn không có quyền truy cập dữ liệu này.'
             : apiMessage

@@ -54,7 +54,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/sepay/webhook").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/skills", "/api/tests", "/api/lessons", "/api/predictions").permitAll()
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/skills",
+                                "/api/tests",
+                                "/api/lessons",
+                                "/api/predictions",
+                                "/api/mock-tests")
+                        .permitAll()
                         .anyRequest().authenticated())
                 .headers(headers -> headers
                         .contentSecurityPolicy(
@@ -86,7 +92,10 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(Arrays.stream(cors.split(",")).map(String::trim).toList());
+        config.setAllowedOriginPatterns(Arrays.stream(cors.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toList());
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

@@ -35,8 +35,11 @@ export function LingoWidget() {
         history: messages.slice(-10)
       }));
       setMessages([...nextMessages, { role: 'assistant', content: result.reply }]);
-    } catch {
-      toast.error('Lingo chưa trả lời được. Kiểm tra cấu hình DeepSeek ở backend nhé.');
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : 'Lingo đang tạm bận. Bạn thử lại sau ít phút nhé.';
+      toast.error(message);
       setMessages(nextMessages);
     } finally {
       setLoading(false);
