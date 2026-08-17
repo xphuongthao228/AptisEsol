@@ -93,5 +93,5 @@ export function getSeoByPath(pathname: string, isAdmin = false): SEOProps {
   if (pathname.includes('/app/predictions')) return { title: 'Du doan de Aptis', description: 'Cap nhat du doan de va chu de Aptis de hoc vien on tap co trong tam.' };
   if (pathname.includes('/app/renewal')) return { title: 'Gia han tai khoan Aptis', description: 'Gia han quyen truy cap LingoMaster Aptis va tiep tuc hoc tai lieu on thi.' };
   if (pathname.includes('/app/contact')) return { title: 'Lien he ho tro Aptis', description: 'Lien he ho tro tai khoan, bai hoc va noi dung on thi Aptis.' };
-  return { title: 'Hoc Aptis online', description: 'LingoMaster Aptis giup hoc vien luyen Listening, Reading, Speaking, Writing, lam de va hoc tai lieu on thi.' };
+  return { title: 'Luyen thi Aptis online', description: 'Luyen thi Aptis online voi lo trinh ro rang, tai lieu on tap, de thi thu va theo doi tien do hoc tap.' };
 }
