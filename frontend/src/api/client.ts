@@ -13,6 +13,20 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
 
 let refreshPromise: Promise<AuthResponse> | null = null;
 
+function clearAuthSession() {
+  useAuthStore.setState({
+    user: null,
+    accessToken: null,
+    refreshToken: null
+  });
+}
+
+function redirectToLogin() {
+  if (typeof window === 'undefined') return;
+  if (window.location.pathname === '/login') return;
+  window.location.replace('/login');
+}
+
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -24,8 +38,9 @@ api.interceptors.response.use(
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
     const status = error.response?.status;
-    const { refreshToken } = useAuthStore.getState();
+    const { refreshToken, accessToken, user } = useAuthStore.getState();
     const url = originalRequest?.url ?? '';
+    const hasSession = Boolean(accessToken || refreshToken || user);
 
     // 403 = không có quyền / hết hạn gói học. Không refresh và tuyệt đối không logout.
     // Chỉ thử refresh khi access token thực sự bị 401.
@@ -40,6 +55,10 @@ api.interceptors.response.use(
       !url.includes('/auth/refresh-token');
 
     if (!canRefresh || !originalRequest || !refreshToken) {
+      if (status === 401 && hasSession && !url.includes('/auth/login') && !url.includes('/auth/register')) {
+        clearAuthSession();
+        redirectToLogin();
+      }
       return Promise.reject(error);
     }
 
@@ -60,10 +79,11 @@ api.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
       return api(originalRequest);
     } catch (refreshError) {
-      // QUAN TRỌNG:
-      // Không tự xóa user/token tại interceptor. Một lỗi API hoặc lỗi refresh tạm thời
-      // không được phép làm người dùng bị văng về /login. Phiên chỉ bị xóa khi người
-      // dùng bấm Đăng xuất trong authStore.logout().
+      const refreshStatus = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined;
+      if (refreshStatus === 400 || refreshStatus === 401 || refreshStatus === 403) {
+        clearAuthSession();
+        redirectToLogin();
+      }
       return Promise.reject(refreshError);
     } finally {
       refreshPromise = null;

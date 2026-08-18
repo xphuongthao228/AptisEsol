@@ -1,11 +1,15 @@
-import { CalendarDays, CreditCard, DollarSign, Loader2, PackageCheck, Search, TrendingUp, Users } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, CreditCard, DollarSign, Loader2, PackageCheck, Search, TrendingUp, Users } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { PaymentOrder } from '../../types';
 
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
+
 export function AdminRevenue() {
   const [query, setQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const { data, loading } = useApi<PaymentOrder[]>(() => unwrap(api.get('/payments/revenue')), []);
   const transactions = data ?? [];
 
@@ -19,6 +23,18 @@ export function AdminRevenue() {
       item.paymentCode.toLowerCase().includes(keyword)
     );
   }, [query, transactions]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pageStart = (safePage - 1) * pageSize;
+  const paginatedTransactions = filtered.slice(pageStart, pageStart + pageSize);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
   const totalRevenue = transactions.reduce((sum, item) => sum + item.amount, 0);
   const thisMonthRevenue = transactions
@@ -85,7 +101,7 @@ export function AdminRevenue() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {filtered.map((item) => (
+                    {paginatedTransactions.map((item) => (
                       <tr key={item.id} className="align-top">
                         <td className="px-5 py-4">
                           <p className="font-extrabold text-slate-950">{item.fullName || 'Chưa nhập tên'}</p>
@@ -102,6 +118,19 @@ export function AdminRevenue() {
                     ))}
                   </tbody>
                 </table>
+                {!!filtered.length && (
+                  <PaginationBar
+                    currentPage={safePage}
+                    pageSize={pageSize}
+                    pageSizeOptions={PAGE_SIZE_OPTIONS}
+                    totalItems={filtered.length}
+                    totalPages={totalPages}
+                    startItem={pageStart + 1}
+                    endItem={Math.min(pageStart + pageSize, filtered.length)}
+                    onPageChange={setCurrentPage}
+                    onPageSizeChange={setPageSize}
+                  />
+                )}
                 {!filtered.length && (
                   <div className="p-8 text-center text-sm font-semibold text-slate-500">
                     Chưa có giao dịch doanh thu nào.
@@ -143,6 +172,68 @@ function StatCard({ icon, label, value, tone }: { icon: JSX.Element; label: stri
       <div className={`mb-4 grid h-11 w-11 place-items-center rounded-xl ${tone}`}>{icon}</div>
       <p className="text-sm font-semibold text-slate-500">{label}</p>
       <p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+function PaginationBar({
+  currentPage,
+  pageSize,
+  pageSizeOptions,
+  totalItems,
+  totalPages,
+  startItem,
+  endItem,
+  onPageChange,
+  onPageSizeChange
+}: {
+  currentPage: number;
+  pageSize: number;
+  pageSizeOptions: number[];
+  totalItems: number;
+  totalPages: number;
+  startItem: number;
+  endItem: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+      <div className="font-semibold">
+        Hiển thị {startItem}-{endItem} / {totalItems}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold outline-none"
+          value={pageSize}
+          onChange={(event) => onPageSizeChange(Number(event.target.value))}
+        >
+          {pageSizeOptions.map((option) => (
+            <option key={option} value={option}>{option} / trang</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="btn-secondary h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={currentPage <= 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          title="Trang trước"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span className="min-w-[92px] text-center font-bold text-slate-700">
+          Trang {currentPage}/{totalPages}
+        </span>
+        <button
+          type="button"
+          className="btn-secondary h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={currentPage >= totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          title="Trang sau"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
     </div>
   );
 }

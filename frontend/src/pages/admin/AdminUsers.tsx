@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
-import { AlertCircle, CalendarPlus, Lock, Pencil, RefreshCw, Search, Trash2, Unlock, UserCheck, UserX, Wifi } from 'lucide-react';
+import { AlertCircle, CalendarPlus, ChevronLeft, ChevronRight, Lock, Pencil, RefreshCw, Search, Trash2, Unlock, UserCheck, UserX, Wifi } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { RoleName, User } from '../../types';
@@ -8,12 +8,15 @@ import type { RoleName, User } from '../../types';
 type StatusFilter = 'ALL' | 'ACTIVE' | 'ONLINE' | 'LOCKED';
 type RoleFilter = 'ALL' | RoleName;
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 export function AdminUsers() {
   const { data, error, loading, reload, setData } = useApi<User[]>(() => unwrap(api.get('/users')), []);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<StatusFilter>('ALL');
   const [role, setRole] = useState<RoleFilter>('ALL');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const users = data ?? [];
   const activeUsers = users.filter((user) => user.enabled);
   const onlineUsers = users.filter((user) => user.enabled && isOnlineUser(user));
@@ -29,24 +32,19 @@ export function AdminUsers() {
     const matchRole = role === 'ALL' || user.roles.includes(role);
     return matchQuery && matchStatus && matchRole;
   }), [users, query, status, role]);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const pageStart = (safePage - 1) * pageSize;
+  const paginatedUsers = filtered.slice(pageStart, pageStart + pageSize);
 
   useEffect(() => {
-    const refreshOnlineData = async () => {
-      const latestUsers = await unwrap<User[]>(api.get('/users'));
-      setData(latestUsers);
-    };
+    setCurrentPage(1);
+  }, [query, status, role, pageSize]);
 
-    refreshOnlineData().catch(() => undefined);
-    const intervalId = window.setInterval(() => {
-      refreshOnlineData().catch(() => undefined);
-    }, 10_000);
-    window.addEventListener('focus', reload);
+  useEffect(() => {
+    if (currentPage > totalPages) setCurrentPage(totalPages);
+  }, [currentPage, totalPages]);
 
-    return () => {
-      window.clearInterval(intervalId);
-      window.removeEventListener('focus', reload);
-    };
-  }, [reload, setData]);
 
   if (loading && !data) return <div className="card p-6">Đang tải người dùng...</div>;
 
@@ -164,7 +162,7 @@ export function AdminUsers() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr className="border-t border-slate-100" key={user.id}>
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -191,6 +189,19 @@ export function AdminUsers() {
           </table>
         </div>
         {!filtered.length && !error && <div className="p-6 text-center text-sm text-slate-500">Không tìm thấy người dùng phù hợp.</div>}
+        {!!filtered.length && (
+          <PaginationBar
+            currentPage={safePage}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZE_OPTIONS}
+            totalItems={filtered.length}
+            totalPages={totalPages}
+            startItem={pageStart + 1}
+            endItem={Math.min(pageStart + pageSize, filtered.length)}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+          />
+        )}
         {error && data && <div className="border-t border-amber-100 bg-amber-50 p-4 text-center text-sm font-semibold text-amber-700">{error} Dữ liệu cũ vẫn được giữ lại, bấm Tải lại để thử lại.</div>}
       </div>
     </div>
@@ -276,6 +287,68 @@ function Summary({ label, value, icon }: { label: string; value: number; icon: R
     <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-3 sm:px-4">
       <p className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">{icon}{label}</p>
       <p className="mt-1 text-2xl font-extrabold">{value}</p>
+    </div>
+  );
+}
+
+function PaginationBar({
+  currentPage,
+  pageSize,
+  pageSizeOptions,
+  totalItems,
+  totalPages,
+  startItem,
+  endItem,
+  onPageChange,
+  onPageSizeChange
+}: {
+  currentPage: number;
+  pageSize: number;
+  pageSizeOptions: number[];
+  totalItems: number;
+  totalPages: number;
+  startItem: number;
+  endItem: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+      <div className="font-semibold">
+        Hiển thị {startItem}-{endItem} / {totalItems}
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold outline-none"
+          value={pageSize}
+          onChange={(event) => onPageSizeChange(Number(event.target.value))}
+        >
+          {pageSizeOptions.map((option) => (
+            <option key={option} value={option}>{option} / trang</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="btn-secondary h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={currentPage <= 1}
+          onClick={() => onPageChange(currentPage - 1)}
+          title="Trang trước"
+        >
+          <ChevronLeft size={16} />
+        </button>
+        <span className="min-w-[92px] text-center font-bold text-slate-700">
+          Trang {currentPage}/{totalPages}
+        </span>
+        <button
+          type="button"
+          className="btn-secondary h-9 px-3 disabled:cursor-not-allowed disabled:opacity-50"
+          disabled={currentPage >= totalPages}
+          onClick={() => onPageChange(currentPage + 1)}
+          title="Trang sau"
+        >
+          <ChevronRight size={16} />
+        </button>
+      </div>
     </div>
   );
 }

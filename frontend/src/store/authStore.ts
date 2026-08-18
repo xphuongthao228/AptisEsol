@@ -35,7 +35,7 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'aptis-esol-auth',
-      storage: createJSONStorage(() => sessionStorage)
+      storage: createJSONStorage(() => localStorage)
     }
   )
 );
