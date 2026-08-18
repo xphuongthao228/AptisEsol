@@ -17,7 +17,14 @@ export function AdminUsers() {
   const [role, setRole] = useState<RoleFilter>('ALL');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const users = data ?? [];
+  const users = useMemo(() => (data ?? []).slice().sort((left, right) => {
+    const leftCreatedAt = new Date(left.createdAt).getTime();
+    const rightCreatedAt = new Date(right.createdAt).getTime();
+    if (Number.isNaN(leftCreatedAt) && Number.isNaN(rightCreatedAt)) return 0;
+    if (Number.isNaN(leftCreatedAt)) return 1;
+    if (Number.isNaN(rightCreatedAt)) return -1;
+    return rightCreatedAt - leftCreatedAt;
+  }), [data]);
   const activeUsers = users.filter((user) => user.enabled);
   const onlineUsers = users.filter((user) => user.enabled && isOnlineUser(user));
   const expiredUsers = users.filter((user) => user.enabled && !hasActiveAccess(user));

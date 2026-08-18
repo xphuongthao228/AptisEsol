@@ -48,6 +48,7 @@ public class AuthDtos {
         }
 
         public record UserResponse(Long id, String email, String fullName, Set<RoleName> roles, boolean enabled,
-                        LocalDateTime proExpiresAt, LocalDateTime accessExpiresAt, LocalDateTime lastSeenAt) {
+                        LocalDateTime proExpiresAt, LocalDateTime accessExpiresAt, LocalDateTime lastSeenAt,
+                        LocalDateTime createdAt) {
         }
 }

@@ -21,6 +21,7 @@ export interface User {
   proExpiresAt: string | null;
   accessExpiresAt: string | null;
   lastSeenAt: string | null;
+  createdAt: string;
 }
 
 export interface AuthResponse {
