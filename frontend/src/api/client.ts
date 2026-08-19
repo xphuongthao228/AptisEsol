@@ -27,6 +27,25 @@ function redirectToLogin() {
   window.location.replace('/login');
 }
 
+function shouldRedirectToLogin(url: string) {
+  if (url.includes('/auth/login') || url.includes('/auth/register')) return false;
+  if (url.includes('/auth/heartbeat')) return false;
+
+  const currentPath = typeof window === 'undefined' ? '' : window.location.pathname;
+  const isLearningPage =
+    currentPath.startsWith('/app/tests') ||
+    currentPath.startsWith('/app/exams') ||
+    currentPath.startsWith('/app/mock-tests');
+
+  const isLearningRequest =
+    url.includes('/tests') ||
+    url.includes('/questions') ||
+    url.includes('/submissions') ||
+    url.includes('/payments/subscription/me');
+
+  return !(isLearningPage && isLearningRequest);
+}
+
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
@@ -55,7 +74,7 @@ api.interceptors.response.use(
       !url.includes('/auth/refresh-token');
 
     if (!canRefresh || !originalRequest || !refreshToken) {
-      if (status === 401 && hasSession && !url.includes('/auth/login') && !url.includes('/auth/register')) {
+      if (status === 401 && hasSession && shouldRedirectToLogin(url)) {
         clearAuthSession();
         redirectToLogin();
       }
@@ -80,7 +99,7 @@ api.interceptors.response.use(
       return api(originalRequest);
     } catch (refreshError) {
       const refreshStatus = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined;
-      if (refreshStatus === 400 || refreshStatus === 401 || refreshStatus === 403) {
+      if ((refreshStatus === 400 || refreshStatus === 401 || refreshStatus === 403) && shouldRedirectToLogin(url)) {
         clearAuthSession();
         redirectToLogin();
       }
