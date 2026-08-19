@@ -4,7 +4,7 @@ import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { PaymentOrder } from '../../types';
 
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 0];
 
 export function AdminRevenue() {
   const [query, setQuery] = useState('');
@@ -23,10 +23,11 @@ export function AdminRevenue() {
       item.paymentCode.toLowerCase().includes(keyword)
     );
   }, [query, transactions]);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const effectivePageSize = pageSize === 0 ? Math.max(1, filtered.length) : pageSize;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / effectivePageSize));
   const safePage = Math.min(currentPage, totalPages);
-  const pageStart = (safePage - 1) * pageSize;
-  const paginatedTransactions = filtered.slice(pageStart, pageStart + pageSize);
+  const pageStart = (safePage - 1) * effectivePageSize;
+  const paginatedTransactions = filtered.slice(pageStart, pageStart + effectivePageSize);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -126,7 +127,7 @@ export function AdminRevenue() {
                     totalItems={filtered.length}
                     totalPages={totalPages}
                     startItem={pageStart + 1}
-                    endItem={Math.min(pageStart + pageSize, filtered.length)}
+                    endItem={Math.min(pageStart + effectivePageSize, filtered.length)}
                     onPageChange={setCurrentPage}
                     onPageSizeChange={setPageSize}
                   />
@@ -209,7 +210,7 @@ function PaginationBar({
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
         >
           {pageSizeOptions.map((option) => (
-            <option key={option} value={option}>{option} / trang</option>
+            <option key={option} value={option}>{option === 0 ? 'Tất cả' : `${option} / trang`}</option>
           ))}
         </select>
         <button

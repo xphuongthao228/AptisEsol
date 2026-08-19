@@ -1095,6 +1095,74 @@ const writingParts = [
     helper: 'Write 40-50 words.'
   }
 ];
+type WritingPartData = typeof writingParts[number] & {
+  sampleAnswers?: string[];
+  emailPrompts?: Record<string, string>;
+};
+
+function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
+  const rows = parseQuestionDataArray(card?.questionData)
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .filter((item) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      return !skill || skill === 'WRITING';
+    });
+
+  if (rows.length === 0) return writingParts;
+
+  const nextParts: WritingPartData[] = writingParts.map((part) => ({
+    ...part,
+    questions: [...part.questions]
+  }));
+  const grouped = new Map<number, Record<string, unknown>[]>();
+
+  rows.forEach((row) => {
+    const partIndex = Math.min(3, Math.max(0, Number(row.part ?? row.questionPart ?? 1) - 1));
+    grouped.set(partIndex, [...(grouped.get(partIndex) ?? []), row]);
+  });
+
+  grouped.forEach((partRows, partIndex) => {
+    const current = nextParts[partIndex];
+    const first = partRows[0] ?? {};
+    const clubName = String(first.clubName ?? card?.description?.replace(/^Bộ đề\s*#\d+\s*-\s*/i, '').replace(/\.$/, '') ?? '').trim();
+    const rowQuestions = partRows.flatMap((row) => {
+      if (Array.isArray(row.questions)) return row.questions.map(String);
+      return [
+        row.question,
+        row.question1,
+        row.question2,
+        row.question3,
+        row.question4,
+        row.question5,
+        row.prompt
+      ].map((value) => String(value ?? ''));
+    }).map((question) => question.trim()).filter(Boolean);
+    const sampleAnswers = partRows
+      .map((row) => String(row.sampleAnswer ?? row.answer ?? '').trim())
+      .filter(Boolean);
+    const heading = String(first.heading ?? first.instructions ?? first.title ?? '').trim();
+    const context = String(first.context ?? first.mainText ?? '').trim();
+    const prompt = String(first.prompt ?? first.content ?? '').trim();
+
+    nextParts[partIndex] = {
+      ...current,
+      heading: heading || (clubName ? current.heading.replace(/(?:an?|the)\s+[^.]+ club/i, `the ${clubName}`) : current.heading),
+      prompt: partIndex === 3 ? context || prompt || current.prompt : prompt || current.prompt,
+      questions: (partIndex === 0 || partIndex === 2) && rowQuestions.length > 0 ? rowQuestions : current.questions,
+      helper: String(first.helper ?? first.wordLimit ?? '').trim() || current.helper,
+      sampleAnswers: sampleAnswers.length > 0 ? sampleAnswers : current.sampleAnswers,
+      emailPrompts: partIndex === 3
+        ? {
+            friend: String(partRows.find((row) => String(row.subpart ?? '') === '1')?.prompt ?? '').trim(),
+            president: String(partRows.find((row) => String(row.subpart ?? '') === '2')?.prompt ?? '').trim()
+          }
+        : current.emailPrompts
+    };
+  });
+
+  return nextParts;
+}
+
 const speakingScreens: SpeakingScreen[] = ['select', 'fullStart', 'fullResult', 'start', 'instructions', 'prompt', 'question', 'part2Prompt', 'part2Question', 'part3Prompt', 'part3Question', 'part4Prompt', 'part4Question', 'complete', 'readingStart', 'readingInstructions', 'readingQuestion', 'readingCohesion', 'readingOpinion', 'readingLong', 'readingResult', 'readingReview', 'listeningStart', 'listeningInstructions', 'listeningQuestion', 'listeningMatching', 'listeningShort', 'listeningMonologues', 'listeningResult', 'listeningReview', 'writingInstructions', 'writingPart', 'writingResult', 'grammarStart', 'grammarInstructions', 'grammarQuestion', 'grammarResult'];
 const mockSkills: MockSkill[] = ['FULL', 'LISTENING', 'SPEAKING', 'WRITING', 'READING', 'GRAMMAR'];
 
@@ -1994,27 +2062,27 @@ export function MockTests() {
     return {
       parts: [
         {
-          title: writingParts[0].title,
-          prompt: writingParts[0].heading,
-          answer: writingParts[0].questions
+          title: activeWritingParts[0].title,
+          prompt: activeWritingParts[0].heading,
+          answer: activeWritingParts[0].questions
             .map((question, index) => `${index + 1}. ${question}\n${writingShortAnswers[index] ?? ''}`)
             .join('\n\n')
         },
         {
-          title: writingParts[1].title,
-          prompt: `${writingParts[1].heading}\n${writingParts[1].prompt}`,
+          title: activeWritingParts[1].title,
+          prompt: `${activeWritingParts[1].heading}\n${activeWritingParts[1].prompt}`,
           answer: writingAnswers[1] ?? ''
         },
         {
-          title: writingParts[2].title,
-          prompt: writingParts[2].heading,
-          answer: writingParts[2].questions
+          title: activeWritingParts[2].title,
+          prompt: activeWritingParts[2].heading,
+          answer: activeWritingParts[2].questions
             .map((question, index) => `${index + 1}. ${question}\n${writingThreeAnswers[index] ?? ''}`)
             .join('\n\n')
         },
         {
-          title: writingParts[3].title,
-          prompt: `${writingParts[3].heading}\n${writingParts[3].prompt}`,
+          title: activeWritingParts[3].title,
+          prompt: `${activeWritingParts[3].heading}\n${activeWritingParts[3].prompt}`,
           answer: [
             `Email to friend:\n${writingEmailAnswers.friend ?? ''}`,
             `Email to president:\n${writingEmailAnswers.president ?? ''}`
@@ -2265,6 +2333,7 @@ export function MockTests() {
   const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey);
   const activeGrammarQuestions = useMemo(() => grammarQuestionsFromCard(selectedMockCard), [selectedMockCard]);
   const grammarSummary = scoreGrammarAnswers(grammarAnswers, activeGrammarQuestions);
+  const activeWritingParts = useMemo(() => writingPartsFromCard(selectedMockCard), [selectedMockCard]);
   const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
   const questionListItems = buildCurrentQuestionListItems();
 
@@ -2326,7 +2395,7 @@ export function MockTests() {
     }
 
     if (screen.startsWith('writing')) {
-      return writingParts.map((part, index) => questionItem(
+      return activeWritingParts.map((part, index) => questionItem(
         bookmarkKey('writing', index + 1),
         `Part ${index + 1}`,
         part.title,
@@ -2398,7 +2467,7 @@ export function MockTests() {
             <ListeningTopbar title={screen === 'listeningMonologues' ? 'Part 4 - Monologues' : screen === 'listeningShort' ? 'Part 3 - Short Conversations' : screen === 'listeningMatching' ? 'Part 2 - Matching Information' : screen === 'listeningStart' ? 'Part 1 of 4' : 'Part 1 - Word Recognition'} onExit={() => setScreen('select')} />
           )}
           {(screen === 'writingInstructions' || screen === 'writingPart') && (
-            <WritingTopbar title={screen === 'writingPart' ? writingPartIndex === 0 ? 'Part 1 - Short Answers' : writingPartIndex === 2 ? 'Part 3 - Three Questions' : writingPartIndex === 3 ? 'Part 4 - Informal & Formal Email' : writingParts[writingPartIndex].title : 'Aptis General Writing Instructions'} onExit={() => setScreen('select')} />
+            <WritingTopbar title={screen === 'writingPart' ? writingPartIndex === 0 ? 'Part 1 - Short Answers' : writingPartIndex === 2 ? 'Part 3 - Three Questions' : writingPartIndex === 3 ? 'Part 4 - Informal & Formal Email' : activeWritingParts[writingPartIndex].title : 'Aptis General Writing Instructions'} onExit={() => setScreen('select')} />
           )}
           {(screen === 'grammarStart' || screen === 'grammarInstructions' || screen === 'grammarQuestion' || screen === 'grammarResult') && (
             <GrammarTopbar onExit={() => setScreen('select')} />
@@ -2458,7 +2527,7 @@ export function MockTests() {
               answer={writingAnswers[writingPartIndex] ?? ''}
               bookmarkActive={isBookmarked(bookmarkKey('writing', writingPartIndex + 1))}
               emailAnswers={writingEmailAnswers}
-              part={writingParts[writingPartIndex]}
+              part={activeWritingParts[writingPartIndex]}
               partIndex={writingPartIndex}
               showAnswer={answerRevealOpen}
               shortAnswers={writingShortAnswers}
@@ -2728,13 +2797,13 @@ export function MockTests() {
               nextDisabled={writingScoreLoading}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
-              nextLabel={writingPartIndex === writingParts.length - 1 ? writingScoreLoading ? 'Scoring...' : 'Submit' : 'Next'}
+              nextLabel={writingPartIndex === activeWritingParts.length - 1 ? writingScoreLoading ? 'Scoring...' : 'Submit' : 'Next'}
               onPrevious={() => {
                 if (writingPartIndex > 0) setWritingPartIndex((value) => value - 1);
                 else setScreen('writingInstructions');
               }}
               onNext={() => {
-                if (writingPartIndex < writingParts.length - 1) setWritingPartIndex((value) => value + 1);
+                if (writingPartIndex < activeWritingParts.length - 1) setWritingPartIndex((value) => value + 1);
                 else submitWritingForAi(isFullMock ? 'fullResult' : undefined);
               }}
             />
@@ -3822,7 +3891,7 @@ function WritingPart({
   answer: string;
   bookmarkActive: boolean;
   emailAnswers: Record<string, string>;
-  part: typeof writingParts[number];
+  part: WritingPartData;
   partIndex: number;
   showAnswer?: boolean;
   shortAnswers: Record<number, string>;
@@ -3881,7 +3950,7 @@ function WritingPart({
             <WritingEmailBox
               count={friendWordCount}
               limit={75}
-              prompt="Write an email to your friend. Write about your feelings and what you plan to do about the situation. Write about 50 words. Recommended time: 10 minutes."
+              prompt={part.emailPrompts?.friend || 'Write an email to your friend. Write about your feelings and what you plan to do about the situation. Write about 50 words. Recommended time: 10 minutes.'}
               value={friendEmail}
               onChange={(value) => onEmailAnswer('friend', limitWords(value, 75))}
             />
@@ -3893,7 +3962,7 @@ function WritingPart({
             <WritingEmailBox
               count={presidentWordCount}
               limit={225}
-              prompt="Write an email to the president of the club. Write about your feelings and what you think the club should do about the situation. Write 120-150 words. Recommended time: 20 minutes."
+              prompt={part.emailPrompts?.president || 'Write an email to the president of the club. Write about your feelings and what you think the club should do about the situation. Write 120-150 words. Recommended time: 20 minutes.'}
               value={presidentEmail}
               onChange={(value) => onEmailAnswer('president', limitWords(value, 225))}
               tall
@@ -5855,7 +5924,7 @@ function GrammarAnswerContent({ question }: { question: GrammarQuestionItem }) {
   return <>Chưa có đáp án mẫu cho câu này.</>;
 }
 
-function WritingAnswerContent({ part, partIndex }: { part: typeof writingParts[number]; partIndex: number }) {
+function WritingAnswerContent({ part, partIndex }: { part: WritingPartData; partIndex: number }) {
   const sampleAnswers = (part as { sampleAnswers?: string[] }).sampleAnswers ?? [];
   if (sampleAnswers.length) return <AnswerList items={sampleAnswers} />;
 

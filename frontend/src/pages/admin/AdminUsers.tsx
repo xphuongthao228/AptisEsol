@@ -8,7 +8,7 @@ import type { RoleName, User } from '../../types';
 type StatusFilter = 'ALL' | 'ACTIVE' | 'ONLINE' | 'LOCKED';
 type RoleFilter = 'ALL' | RoleName;
 const ONLINE_WINDOW_MS = 2 * 60 * 1000;
-const PAGE_SIZE_OPTIONS = [10, 20, 50];
+const PAGE_SIZE_OPTIONS = [10, 20, 50, 0];
 
 export function AdminUsers() {
   const { data, error, loading, reload, setData } = useApi<User[]>(() => unwrap(api.get('/users')), []);
@@ -39,10 +39,11 @@ export function AdminUsers() {
     const matchRole = role === 'ALL' || user.roles.includes(role);
     return matchQuery && matchStatus && matchRole;
   }), [users, query, status, role]);
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const effectivePageSize = pageSize === 0 ? Math.max(1, filtered.length) : pageSize;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / effectivePageSize));
   const safePage = Math.min(currentPage, totalPages);
-  const pageStart = (safePage - 1) * pageSize;
-  const paginatedUsers = filtered.slice(pageStart, pageStart + pageSize);
+  const pageStart = (safePage - 1) * effectivePageSize;
+  const paginatedUsers = filtered.slice(pageStart, pageStart + effectivePageSize);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -204,7 +205,7 @@ export function AdminUsers() {
             totalItems={filtered.length}
             totalPages={totalPages}
             startItem={pageStart + 1}
-            endItem={Math.min(pageStart + pageSize, filtered.length)}
+            endItem={Math.min(pageStart + effectivePageSize, filtered.length)}
             onPageChange={setCurrentPage}
             onPageSizeChange={setPageSize}
           />
@@ -331,7 +332,7 @@ function PaginationBar({
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
         >
           {pageSizeOptions.map((option) => (
-            <option key={option} value={option}>{option} / trang</option>
+            <option key={option} value={option}>{option === 0 ? 'Tất cả' : `${option} / trang`}</option>
           ))}
         </select>
         <button

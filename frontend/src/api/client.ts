@@ -46,9 +46,30 @@ function shouldRedirectToLogin(url: string) {
   return !(isLearningPage && isLearningRequest);
 }
 
+function isPublicGetRequest(config: InternalAxiosRequestConfig) {
+  const method = (config.method ?? 'get').toLowerCase();
+  if (method !== 'get') return false;
+
+  const url = config.url ?? '';
+  return (
+    url === '/tests' ||
+    url.startsWith('/tests?') ||
+    url === '/skills' ||
+    url.startsWith('/skills?') ||
+    url === '/lessons' ||
+    url.startsWith('/lessons?') ||
+    url === '/predictions' ||
+    url.startsWith('/predictions?') ||
+    url === '/mock-tests' ||
+    url.startsWith('/mock-tests?') ||
+    url === '/notifications/public' ||
+    url.startsWith('/notifications/public?')
+  );
+}
+
 api.interceptors.request.use((config) => {
   const token = useAuthStore.getState().accessToken;
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token && !isPublicGetRequest(config)) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
