@@ -13,7 +13,13 @@ public class AiDtos {
     public record WritingScoreRequest(@NotEmpty List<@Valid WritingPartRequest> parts) {
     }
 
-    public record SpeakingPartRequest(@NotBlank String title, @NotBlank String prompt, String transcript) {
+    public record SpeakingPartRequest(
+            @NotBlank String title,
+            @NotBlank String prompt,
+            String transcript,
+            String audioFileName,
+            String audioContentType,
+            Long audioSizeBytes) {
     }
 
     public record SpeakingScoreRequest(@NotEmpty List<@Valid SpeakingPartRequest> parts) {

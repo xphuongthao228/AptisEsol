@@ -820,10 +820,36 @@ function getSharedAudioUrl(questions: Question[]) {
 }
 
 function getQuestionScriptText(question: Question, templateData: TemplateData | null) {
-  if (question.scriptText) return question.scriptText;
-  if (templateData?.scriptText) return String(templateData.scriptText);
-  if (templateData?.script) return String(templateData.script);
-  if (templateData?.transcript) return String(templateData.transcript);
+  const directScript = firstTextValue(
+    question.scriptText,
+    templateData?.scriptText,
+    templateData?.script_text,
+    templateData?.script,
+    templateData?.transcript,
+    templateData?.transcriptText
+  );
+  if (directScript) return directScript;
+
+  const explanationScript = extractScriptFromText(question.explanation);
+  if (explanationScript) return explanationScript;
+
+  return '';
+}
+
+function firstTextValue(...values: unknown[]) {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) return repairMojibake(value.trim());
+  }
+  return '';
+}
+
+function extractScriptFromText(value?: string) {
+  const text = repairMojibake(value ?? '').trim();
+  if (!text) return '';
+
+  const labeledScript = text.match(/(?:^|\n)\s*(?:script|transcript|audio script|listening script)\s*:\s*([\s\S]+)$/i);
+  if (labeledScript?.[1]?.trim()) return labeledScript[1].trim();
+
   return '';
 }
 

@@ -79,11 +79,12 @@ let sortOrder = 1;
 
 for (const item of data.q1_13 ?? []) {
   const options = item.options ?? [];
+  const transcript = item.transcript ?? item.scriptText ?? item.script ?? '';
   rows.push({
     type: 'LISTENING_AUDIO_MC',
     topic: '',
     audio_url: normalizeAssetUrl(item.audioUrl),
-    script_text: item.transcript,
+    script_text: transcript,
     content: '',
     total: 17,
     points: 1,

@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -79,13 +80,27 @@ public class AiScoringService {
     }
 
     public AiDtos.SpeakingScoreResponse scoreSpeaking(AiDtos.SpeakingScoreRequest request) {
-        String answers = request.parts().stream()
+        return scoreSpeaking(request, List.of());
+    }
+
+    public AiDtos.SpeakingScoreResponse scoreSpeaking(AiDtos.SpeakingScoreRequest request, List<MultipartFile> audioFiles) {
+        AiDtos.SpeakingScoreRequest requestWithAudio = attachAudioMetadata(request, audioFiles);
+        String answers = requestWithAudio.parts().stream()
                 .map(part -> """
                         %s
                         Prompt: %s
+                        Audio file: %s
+                        Audio type: %s
+                        Audio size: %s bytes
                         Transcript:
                         %s
-                        """.formatted(part.title(), part.prompt(), part.transcript()))
+                        """.formatted(
+                        part.title(),
+                        part.prompt(),
+                        blankToEmpty(part.audioFileName()),
+                        blankToEmpty(part.audioContentType()),
+                        part.audioSizeBytes() == null ? 0 : part.audioSizeBytes(),
+                        part.transcript()))
                 .collect(Collectors.joining("\n---\n"));
 
         String prompt = loadPrompt("aptis-speaking-score.md")
@@ -97,8 +112,47 @@ public class AiScoringService {
         try {
             return objectMapper.treeToValue(normalizeSpeakingJson(content), AiDtos.SpeakingScoreResponse.class);
         } catch (Exception ex) {
-            return fallbackSpeakingScore(request);
+            return fallbackSpeakingScore(requestWithAudio);
         }
+    }
+
+    private AiDtos.SpeakingScoreRequest attachAudioMetadata(AiDtos.SpeakingScoreRequest request, List<MultipartFile> audioFiles) {
+        if (audioFiles == null || audioFiles.isEmpty()) {
+            return request;
+        }
+
+        List<AiDtos.SpeakingPartRequest> parts = new ArrayList<>();
+        for (int i = 0; i < request.parts().size(); i++) {
+            AiDtos.SpeakingPartRequest part = request.parts().get(i);
+            MultipartFile file = i < audioFiles.size() ? audioFiles.get(i) : null;
+            if (file == null || file.isEmpty()) {
+                parts.add(new AiDtos.SpeakingPartRequest(
+                        part.title(),
+                        part.prompt(),
+                        "[NO_AUDIO_FILE_SUBMITTED]",
+                        null,
+                        null,
+                        0L));
+                continue;
+            }
+
+            parts.add(new AiDtos.SpeakingPartRequest(
+                    part.title(),
+                    part.prompt(),
+                    normalizeAudioTranscript(part.transcript()),
+                    blankToEmpty(file.getOriginalFilename()),
+                    blankToEmpty(file.getContentType()),
+                    file.getSize()));
+        }
+        return new AiDtos.SpeakingScoreRequest(parts);
+    }
+
+    private String normalizeAudioTranscript(String transcript) {
+        String value = blankToEmpty(transcript).trim();
+        if (value.isBlank() || value.equals("[NO_AUDIO_FILE_SUBMITTED]")) {
+            return "[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]";
+        }
+        return value;
     }
 
     public AiDtos.LingoChatResponse chatWithLingo(AiDtos.LingoChatRequest request) {

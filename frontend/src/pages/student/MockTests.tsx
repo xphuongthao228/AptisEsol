@@ -80,6 +80,15 @@ type AiSpeakingScore = {
   improvedAnswer: string;
 };
 
+type SpeakingScorePartPayload = {
+  title: string;
+  prompt: string;
+  transcript: string;
+  audioFileName?: string;
+  audioContentType?: string;
+  audioSizeBytes?: number;
+};
+
 type SidebarLink = {
   to: string;
   label: string;
@@ -2157,30 +2166,56 @@ export function MockTests() {
       return transcript || '[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]';
     };
 
-    return {
-      parts: [
+    const audioFileForAi = (key: string, fileName: string) => {
+      const blob = speakingRecordings[key] ?? new Blob([], { type: 'audio/webm' });
+      return new File([blob], fileName, { type: blob.type || 'audio/webm' });
+    };
+
+    const items = [
         ...speakingQuestions.map((question, index) => ({
+          key: `part1-${index}`,
           title: `Speaking Part 1 - Question ${index + 1}`,
           prompt: question,
           transcript: transcriptForAi(`part1-${index}`)
         })),
         ...part2Questions.map((question, index) => ({
+          key: `part2-${index}`,
           title: `Speaking Part 2 - Question ${index + 1}`,
           prompt: question,
           transcript: transcriptForAi(`part2-${index}`)
         })),
         ...part3Questions.map((question, index) => ({
+          key: `part3-${index}`,
           title: `Speaking Part 3 - Question ${index + 1}`,
           prompt: question,
           transcript: transcriptForAi(`part3-${index}`)
         })),
         {
+          key: 'part4',
           title: 'Speaking Part 4',
           prompt: `${part4Topic.title}\n${part4Topic.questions.join('\n')}`,
           transcript: transcriptForAi('part4')
         }
-      ]
-    };
+      ];
+
+    const parts: SpeakingScorePartPayload[] = items.map((item) => {
+      const recording = speakingRecordings[item.key];
+      const fileName = `${item.key}.webm`;
+      return {
+        title: item.title,
+        prompt: item.prompt,
+        transcript: item.transcript,
+        audioFileName: recording ? fileName : '',
+        audioContentType: recording?.type ?? '',
+        audioSizeBytes: recording?.size ?? 0
+      };
+    });
+
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify({ parts }));
+    items.forEach((item) => formData.append('files', audioFileForAi(item.key, `${item.key}.webm`)));
+
+    return { formData, parts };
   }
 
   async function submitSpeakingForAi(nextScreen?: SpeakingScreen) {
@@ -2192,7 +2227,7 @@ export function MockTests() {
     setScreen('complete');
 
     try {
-      const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score', payload));
+      const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score-audio', payload.formData));
       setSpeakingScore(result);
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
@@ -2207,9 +2242,9 @@ export function MockTests() {
     }
   }
 
-  function buildSpeakingFallbackScore(parts: Array<{ title: string; prompt: string; transcript: string }>): AiSpeakingScore {
+  function buildSpeakingFallbackScore(parts: SpeakingScorePartPayload[]): AiSpeakingScore {
     const partFeedback = parts.map((part) => {
-      const missing = part.transcript === '[NO_AUDIO_FILE_SUBMITTED]' || part.transcript.trim().length === 0;
+      const missing = part.audioSizeBytes === 0 || part.transcript === '[NO_AUDIO_FILE_SUBMITTED]' || part.transcript.trim().length === 0;
       const unavailable = part.transcript === '[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]';
       return {
         title: part.title,
@@ -7081,11 +7116,11 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
                 </div>
               </div>
             )}
-            <FeedbackList title="Pronunciation tips" items={result.pronunciationTips} />
-            <FeedbackList title="Fluency tips" items={result.fluencyTips} />
             <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
-              <p className="text-sm font-extrabold uppercase text-emerald-700">Improved answer</p>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-emerald-950">{result.improvedAnswer}</p>
+              <p className="text-sm font-extrabold uppercase text-emerald-700">Bài chỉnh lại</p>
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-emerald-950">
+                {result.improvedAnswer || 'Chưa có bài chỉnh lại cho phần này.'}
+              </p>
             </div>
           </div>
         )}
@@ -7098,17 +7133,6 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
   );
 }
 
-function FeedbackList({ title, items }: { title: string; items: string[] }) {
-  if (!items.length) return null;
-  return (
-    <div className="rounded-xl border border-slate-200 p-5">
-      <p className="text-sm font-extrabold uppercase text-slate-500">{title}</p>
-      <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
-        {items.map((item, index) => <li key={`${title}-${index}`}>- {item}</li>)}
-      </ul>
-    </div>
-  );
-}
 function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onOpenQuestionList, onPrevious, onNext }: { canPrevious: boolean; canNext?: boolean; showNext: boolean; nextLabel: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void }) {
   return (
     <footer
