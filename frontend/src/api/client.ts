@@ -41,6 +41,7 @@ function shouldRedirectToLogin(url: string) {
     url.includes('/tests') ||
     url.includes('/questions') ||
     url.includes('/submissions') ||
+    url.includes('/ai/') ||
     url.includes('/payments/subscription/me');
 
   return !(isLearningPage && isLearningRequest);
