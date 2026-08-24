@@ -168,6 +168,33 @@ export function PracticeRunner() {
     if (index >= 0) setCurrentIndex(index);
   }, [questions, requestedQuestionId]);
 
+  useEffect(() => {
+    if (!requestedQuestionId || !activeQuestion || activeQuestion.id !== requestedQuestionId) return;
+    if (!mergedTemplateData?.template?.startsWith('SPEAKING_PART')) return;
+
+    const targetIndex = findSpeakingQuestionIndexBySourceId(mergedTemplateData, requestedQuestionId);
+    const state = speakingPracticeStateForTemplate(mergedTemplateData.template, targetIndex);
+    if (!state) return;
+
+    setAnswers((current) => {
+      let savedAnswer: Record<string, string> = {};
+      try {
+        savedAnswer = current[activeQuestion.id] ? JSON.parse(current[activeQuestion.id]) : {};
+      } catch {
+        savedAnswer = {};
+      }
+
+      if (Object.entries(state).every(([key, value]) => savedAnswer[key] === value)) {
+        return current;
+      }
+
+      return {
+        ...current,
+        [activeQuestion.id]: JSON.stringify({ ...savedAnswer, ...state })
+      };
+    });
+  }, [activeQuestion, mergedTemplateData, requestedQuestionId]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     const payload = {
@@ -1034,11 +1061,13 @@ function mergeSameSpeakingTemplateData(data: TemplateData | null, questions: Que
     if (Array.isArray(itemData.questions) && itemData.questions.length) {
       return itemData.questions.map((item: Record<string, unknown>, itemIndex: number) => ({
         ...item,
+        __sourceQuestionId: question.id,
+        __sourceItemIndex: itemIndex,
         featured: Boolean(isFeaturedTemplateItem(item) || (question.featured && itemIndex === 0))
       }));
     }
     const singleQuestion = speakingSingleQuestionFromTemplate(itemData);
-    return singleQuestion ? [{ ...singleQuestion, featured: Boolean(isFeaturedTemplateItem(singleQuestion) || question.featured) }] : [];
+    return singleQuestion ? [{ ...singleQuestion, __sourceQuestionId: question.id, __sourceItemIndex: 0, featured: Boolean(isFeaturedTemplateItem(singleQuestion) || question.featured) }] : [];
   });
 
   if (!mergedQuestions.length) return data;
@@ -1047,6 +1076,29 @@ function mergeSameSpeakingTemplateData(data: TemplateData | null, questions: Que
     total: mergedQuestions.length,
     questions: mergedQuestions
   };
+}
+
+function findSpeakingQuestionIndexBySourceId(data: TemplateData, sourceQuestionId: number) {
+  const questions = Array.isArray(data.questions) ? data.questions : [];
+  const index = questions.findIndex((item: Record<string, unknown>) => Number(item.__sourceQuestionId) === sourceQuestionId);
+  return index >= 0 ? index : 0;
+}
+
+function speakingPracticeStateForTemplate(template: string, index: number): Record<string, string> | null {
+  const safeIndex = String(Math.max(0, index));
+  if (template === 'SPEAKING_PART1') {
+    return { speakingPart1Mode: 'practice', speakingPart1Index: safeIndex, speakingPart1OpenAnswer: '' };
+  }
+  if (template === 'SPEAKING_PART2') {
+    return { speakingPart2Mode: 'practice', speakingPart2Index: safeIndex, speakingPart2Tab: '0', speakingPart2ShowSample: 'false' };
+  }
+  if (template === 'SPEAKING_PART3') {
+    return { speakingPart3Mode: 'practice', speakingPart3Index: safeIndex, speakingPart3Tab: '0', speakingPart3ShowSample: 'false' };
+  }
+  if (template === 'SPEAKING_PART4') {
+    return { speakingPart4Mode: 'practice', speakingPart4Index: safeIndex, speakingPart4ShowSample: 'false', speakingPart4OpenAnswer: '' };
+  }
+  return null;
 }
 
 function speakingSingleQuestionFromTemplate(data: TemplateData | null) {
