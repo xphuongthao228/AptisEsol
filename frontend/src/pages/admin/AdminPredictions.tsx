@@ -67,7 +67,12 @@ type PredictionQuestionLink = {
   questionId: number;
   label: string;
   section?: PredictionSectionSkill;
+  part?: PredictionPart;
 };
+
+type PredictionPart = 1 | 2 | 3 | 4;
+
+const predictionParts: PredictionPart[] = [1, 2, 3, 4];
 
 function apiErrorMessage(error: any, fallback: string) {
   const message = error?.response?.data?.message ?? error?.response?.data?.errors?.[0] ?? error?.message;
@@ -139,7 +144,8 @@ function parseQuestionLinksBlock(content: string): PredictionQuestionLink[] {
           testId: Number(item.testId),
           questionId: Number(item.questionId),
           label: String(item.label ?? '').trim(),
-          ...(section ? { section } : {})
+          ...(section ? { section } : {}),
+          ...(isPredictionPart(item.part) ? { part: Number(item.part) as PredictionPart } : {})
         };
       });
   } catch {
@@ -150,28 +156,71 @@ function parseQuestionLinksBlock(content: string): PredictionQuestionLink[] {
 function addCompositeTemplate(content: string) {
   const template = [
     '## Listening',
-    '- Dạng bài / topic:',
-    '- Ghi chú ôn tập:',
+    '### Part 1',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
+    '### Part 2',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
+    '### Part 3',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
+    '### Part 4',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
     '',
     '## Speaking',
-    '- Part / topic:',
-    '- Ghi chú ôn tập:',
+    '### Part 1',
+    '- Cau hoi / topic:',
+    '- Ghi chu on tap:',
+    '### Part 2',
+    '- Tranh / topic:',
+    '- Ghi chu on tap:',
+    '### Part 3',
+    '- So sanh tranh / topic:',
+    '- Ghi chu on tap:',
+    '### Part 4',
+    '- Topic thao luan:',
+    '- Ghi chu on tap:',
     '',
     '## Reading',
-    '- Dạng bài / topic:',
-    '- Ghi chú ôn tập:',
+    '### Part 1',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
+    '### Part 2',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
+    '### Part 3',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
+    '### Part 4',
+    '- Dang bai / topic:',
+    '- Ghi chu on tap:',
     '',
     '## Writing',
+    '### Part 1',
     '- Task / topic:',
-    '- Ghi chú ôn tập:'
+    '- Ghi chu on tap:',
+    '### Part 2',
+    '- Task / topic:',
+    '- Ghi chu on tap:',
+    '### Part 3',
+    '- Task / topic:',
+    '- Ghi chu on tap:',
+    '### Part 4',
+    '- Task / topic:',
+    '- Ghi chu on tap:'
   ].join('\n');
 
   const trimmed = content.trim();
   return trimmed ? `${trimmed}\n\n${template}` : template;
 }
-
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isPredictionPart(value: unknown) {
+  return predictionParts.includes(Number(value) as PredictionPart);
 }
 
 export function AdminPredictions() {
@@ -182,6 +231,7 @@ export function AdminPredictions() {
   const [selectedTestId, setSelectedTestId] = useState<number | ''>('');
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
   const [selectedSection, setSelectedSection] = useState<PredictionSectionSkill>('LISTENING');
+  const [selectedPart, setSelectedPart] = useState<PredictionPart>(1);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -310,11 +360,12 @@ export function AdminPredictions() {
       testId: Number(selectedTestId),
       questionId: question.id,
       label: questionLinkLabel(question, index),
-      section: selectedSection
+      section: selectedSection,
+      part: selectedPart
     }));
     const existingLinks = parseQuestionLinksBlock(form.content);
     const mergedLinks = [
-      ...existingLinks.filter((link) => link.section !== selectedSection),
+      ...existingLinks.filter((link) => link.section !== selectedSection || link.part !== selectedPart),
       ...links
     ];
 
@@ -322,7 +373,7 @@ export function AdminPredictions() {
       ...current,
       content: upsertQuestionLinksBlock(current.content, mergedLinks)
     }));
-    toast.success(`Đã cập nhật link cho mục ${sectionLabels[selectedSection]}`);
+    toast.success(`Da cap nhat link cho ${sectionLabels[selectedSection]} Part ${selectedPart}`);
   }
 
   function insertCompositeTemplate() {
@@ -330,7 +381,7 @@ export function AdminPredictions() {
       ...current,
       content: addCompositeTemplate(current.content)
     }));
-    toast.success('Đã thêm khung dự đoán 4 kỹ năng');
+    toast.success('Da them khung du doan 4 ky nang, moi ky nang 4 part');
   }
 
   async function copyQuestionLink(question: Question) {
@@ -426,6 +477,14 @@ export function AdminPredictions() {
                   ))}
                 </select>
               </label>
+              <label className="mb-3 block space-y-2">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Part</span>
+                <select className="input bg-white" value={selectedPart} onChange={(event) => setSelectedPart(Number(event.target.value) as PredictionPart)}>
+                  {predictionParts.map((part) => (
+                    <option key={part} value={part}>Part {part}</option>
+                  ))}
+                </select>
+              </label>
               <label className="space-y-2">
                 <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Bài luyện</span>
                 <select className="input bg-white" value={selectedTestId} onChange={(event) => setSelectedTestId(event.target.value ? Number(event.target.value) : '')}>
@@ -457,7 +516,7 @@ export function AdminPredictions() {
               ) : null}
               <button type="button" className="btn-secondary mt-3 w-full justify-center" onClick={insertQuestionLinks} disabled={!selectedTestId || selectedQuestionIds.length === 0}>
                 <CheckSquare size={18} />
-                Chèn/cập nhật link cho {sectionLabels[selectedSection]}
+                Chen/cap nhat link cho {sectionLabels[selectedSection]} Part {selectedPart}
               </button>
             </div>
 

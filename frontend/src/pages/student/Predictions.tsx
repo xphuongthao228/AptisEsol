@@ -44,7 +44,12 @@ type PredictionQuestionLink = {
   questionId: number;
   label: string;
   section?: PredictionSectionSkill;
+  part?: PredictionPart;
 };
+
+type PredictionPart = 1 | 2 | 3 | 4;
+
+const predictionParts: PredictionPart[] = [1, 2, 3, 4];
 
 export function Predictions() {
   const [items, setItems] = useState<Prediction[]>([]);
@@ -125,7 +130,7 @@ export function Predictions() {
 
 function PredictionCard({ item }: { item: Prediction }) {
   const parsed = parsePredictionContent(item.content);
-  const groupedLinks = groupLinksBySection(parsed.links);
+  const groupedLinks = groupLinksBySectionAndPart(parsed.links);
   const ungroupedLinks = parsed.links.filter((link) => !link.section);
 
   return (
@@ -155,8 +160,23 @@ function PredictionCard({ item }: { item: Prediction }) {
             {predictionSections.map((section) => groupedLinks[section].length > 0 ? (
               <div key={section}>
                 <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">{sectionLabels[section]}</p>
-                <div className="space-y-2">
-                  {groupedLinks[section].map((link) => <QuestionLink key={`${section}-${link.testId}-${link.questionId}`} link={link} />)}
+                <div className="space-y-3">
+                  {predictionParts.map((part) => {
+                    const partLinks = groupedLinks[section].filter((link) => link.part === part);
+                    return partLinks.length > 0 ? (
+                      <div key={`${section}-${part}`} className="rounded-xl border border-white bg-white/70 p-3">
+                        <p className="mb-2 text-xs font-extrabold text-brand-700">Part {part}</p>
+                        <div className="space-y-2">
+                          {partLinks.map((link) => <QuestionLink key={`${section}-${part}-${link.testId}-${link.questionId}`} link={link} />)}
+                        </div>
+                      </div>
+                    ) : null;
+                  })}
+                  {groupedLinks[section].filter((link) => !link.part).length > 0 ? (
+                    <div className="space-y-2">
+                      {groupedLinks[section].filter((link) => !link.part).map((link) => <QuestionLink key={`${section}-general-${link.testId}-${link.questionId}`} link={link} />)}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : null)}
@@ -194,7 +214,7 @@ function QuestionLink({ link }: { link: PredictionQuestionLink }) {
   );
 }
 
-function groupLinksBySection(links: PredictionQuestionLink[]) {
+function groupLinksBySectionAndPart(links: PredictionQuestionLink[]) {
   return predictionSections.reduce((acc, section) => {
     acc[section] = links.filter((link) => link.section === section);
     return acc;
@@ -216,7 +236,8 @@ function parsePredictionContent(content: string): { text: string; links: Predict
           testId: Number(item.testId),
           questionId: Number(item.questionId),
           label: String(item.label ?? '').trim(),
-          ...(predictionSections.includes(item.section) ? { section: item.section as PredictionSectionSkill } : {})
+          ...(predictionSections.includes(item.section) ? { section: item.section as PredictionSectionSkill } : {}),
+          ...(isPredictionPart(item.part) ? { part: Number(item.part) as PredictionPart } : {})
         }));
     }
   } catch {
@@ -231,4 +252,8 @@ function parsePredictionContent(content: string): { text: string; links: Predict
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function isPredictionPart(value: unknown) {
+  return predictionParts.includes(Number(value) as PredictionPart);
 }
