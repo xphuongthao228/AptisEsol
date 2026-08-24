@@ -39,7 +39,24 @@ body {
   }
 
   .mock-test-topbar > div {
+    align-items: center;
     gap: 0.75rem;
+  }
+
+  .mock-speaking-title {
+    min-width: 0;
+    transform: translateY(0.25rem) !important;
+  }
+
+  .mock-speaking-title p {
+    font-size: 0.82rem;
+    line-height: 1;
+  }
+
+  .mock-speaking-title h1 {
+    font-size: 1.05rem !important;
+    line-height: 1.2 !important;
+    max-width: 42vw;
   }
 
   .mock-test-topbar h1 {
@@ -47,6 +64,11 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .mock-speaking-topbar-actions {
+    flex-shrink: 0;
+    gap: 0.45rem !important;
   }
 
   .mock-test-topbar button {
@@ -58,9 +80,20 @@ body {
     white-space: nowrap;
   }
 
+  .mock-speaking-topbar-actions .mock-topbar-action {
+    width: 38px;
+    justify-content: center;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .mock-speaking-topbar-actions .mock-topbar-button-label {
+    display: none;
+  }
+
   .mock-speaking-main {
     min-height: calc(100vh - 64px) !important;
-    padding: 1rem 0.75rem 8.5rem !important;
+    padding: 0.85rem 0.75rem 8.5rem !important;
   }
 
   .mock-speaking-grid {
@@ -71,16 +104,20 @@ body {
 
   .mock-speaking-card {
     min-height: 0 !important;
-    padding: 1.1rem !important;
+    padding: 1rem !important;
   }
 
   .mock-speaking-card p {
     max-width: 100%;
   }
 
+  .mock-speaking-card h2 {
+    font-size: 1rem !important;
+  }
+
   .mock-speaking-card img {
     height: auto !important;
-    max-height: 260px;
+    max-height: 220px;
   }
 
   .mock-speaking-image-grid {
@@ -93,13 +130,13 @@ body {
 
   .mock-speaking-recorder > div {
     min-height: 0 !important;
-    padding: 1.25rem !important;
+    padding: 1rem !important;
   }
 
   .mock-speaking-recorder > div > div {
-    height: 132px !important;
-    margin-top: 1rem !important;
-    width: 132px !important;
+    height: 118px !important;
+    margin-top: 0.85rem !important;
+    width: 118px !important;
   }
 
   .mock-speaking-recorder > div > div p {
@@ -111,7 +148,7 @@ body {
     left: 0.75rem !important;
     right: 0.75rem !important;
     display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
     gap: 0.5rem !important;
   }
 

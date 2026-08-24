@@ -790,7 +790,7 @@ const speakingSampleAnswers = [
   'One place I like in my city is a small park near my house. It is quiet, clean, and has many trees. I often go there to walk, relax, and clear my mind after studying.'
 ];
 
-const speakingInstructionsSpeechText = 'Aptis General Speaking Test Instructions. Speaking. You will answer some questions about yourself and then do three short speaking tasks. Listen to the instructions and speak clearly into your microphone when you hear the signal. Each part of the test will appear automatically. The test will take about 12 minutes. When you click on the Next button, the test will begin.';
+const speakingInstructionsSpeechText = 'Aptis General Speaking Test Instructions. Speaking. You will answer some questions about yourself and then do three short speaking tasks. Listen to the instructions and questions, then speak clearly into your microphone after you hear the signal. Each part of the test will appear automatically. The test will take about 12 minutes. When you click on the Next button, the test will begin.';
 const promptSpeechText = 'Part One. In this part, I am going to ask you three short questions about yourself and your interests. You will have 30 seconds to reply to each question. Begin speaking when you hear this sound.';
 const part2PromptSpeechText = "Part Two. In this part, I'm going to ask you to describe a picture. Then I will ask you two questions about it. You will have 45 seconds for each response. Begin speaking when you hear this sound.";
 const part3PromptSpeechText = "Part Three. In this part, I'm going to ask you to compare two pictures, and I will then ask you two questions about them. You will have 45 seconds for each response. Begin speaking when you hear this sound.";
@@ -928,13 +928,18 @@ const fallbackReadingTestData: ReadingTestData = {
 };
 
 function shouldBeepBeforeSpeakingTimer(screen: SpeakingScreen) {
-  return screen === 'question' || screen === 'part2Question' || screen === 'part3Question';
+  return screen === 'question' || screen === 'part2Question' || screen === 'part3Question' || screen === 'part4Question';
 }
 
 const part2Questions = [
   'Describe the picture.',
   'What do you think the people are talking about?',
   'Do you like eating with friends? Why or why not?'
+];
+const part2ImageUrls = [
+  '/images/speaking/part2/1.png',
+  '/images/speaking/part2/2.png',
+  '/images/speaking/part2/3.png'
 ];
 const part2SampleAnswers = [
   'In the picture, I can see several people sitting around a table and having a meal together. They look relaxed and happy. It seems like they are friends or family members enjoying food and conversation.',
@@ -1803,7 +1808,13 @@ export function MockTests() {
   }, [grammarSeconds, screen]);
 
   useEffect(() => {
-    if (screen !== 'instructions' && screen !== 'prompt' && screen !== 'question' && screen !== 'part2Prompt' && screen !== 'part2Question' && screen !== 'part3Prompt' && screen !== 'part3Question' && screen !== 'part4Prompt') {
+    if (screen !== 'instructions' && screen !== 'prompt' && screen !== 'question' && screen !== 'part2Prompt' && screen !== 'part2Question' && screen !== 'part3Prompt' && screen !== 'part3Question' && screen !== 'part4Prompt' && screen !== 'part4Question') {
+      setSpeechReady(true);
+      window.speechSynthesis?.cancel();
+      return;
+    }
+
+    if (screen === 'part4Question' && part4Phase !== 'recording') {
       setSpeechReady(true);
       window.speechSynthesis?.cancel();
       return;
@@ -1829,11 +1840,14 @@ export function MockTests() {
                 ? part2Questions[part2QuestionIndex]
                 : screen === 'part3Question'
                   ? part3Questions[part3QuestionIndex]
-                  : speakingQuestions[questionIndex];
+                  : screen === 'part4Question'
+                    ? `Topic. ${part4Topic.title}. ${part4Topic.questions.join(' ')}`
+                    : speakingQuestions[questionIndex];
     setSpeechReady(false);
     if (screen === 'question') setRecordingSeconds(30);
     if (screen === 'part2Question') setRecordingSeconds(45);
     if (screen === 'part3Question') setRecordingSeconds(45);
+    if (screen === 'part4Question') setRecordingSeconds(120);
 
     if (!('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) {
       setSpeechReady(true);
@@ -1860,7 +1874,7 @@ export function MockTests() {
     window.speechSynthesis.speak(utterance);
 
     return () => window.speechSynthesis.cancel();
-  }, [part2QuestionIndex, part3QuestionIndex, questionIndex, screen, speakingSoundEnabled]);
+  }, [part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, speakingSoundEnabled]);
 
   useEffect(() => {
     if ((screen !== 'question' && screen !== 'part2Question' && screen !== 'part3Question' && screen !== 'part4Question') || !speechReady) return;
@@ -1916,12 +1930,8 @@ export function MockTests() {
       if (screen === 'part4Prompt') {
         setPart4Phase('prepare');
         setRecordingSeconds(60);
-        setSpeechReady(false);
-        const readyAfterBeep = speakingSoundEnabled ? playSpeakingBeep() : Promise.resolve();
-        readyAfterBeep.finally(() => {
-          setScreen('part4Question');
-          setSpeechReady(true);
-        });
+        setScreen('part4Question');
+        setSpeechReady(true);
       }
     }, 900);
 
@@ -2327,12 +2337,8 @@ export function MockTests() {
     if (screen === 'part4Question') {
       if (part4Phase === 'prepare') {
         setSpeechReady(false);
-        const readyAfterBeep = speakingSoundEnabled ? playSpeakingBeep() : Promise.resolve();
-        readyAfterBeep.finally(() => {
-          setPart4Phase('recording');
-          setRecordingSeconds(120);
-          setSpeechReady(true);
-        });
+        setPart4Phase('recording');
+        setRecordingSeconds(120);
       } else {
         if (isFullMock) {
           resetListeningSection();
@@ -2736,6 +2742,7 @@ export function MockTests() {
               phase={part4Phase}
               seconds={recordingSeconds}
               showAnswer={answerRevealOpen}
+              isReading={!speechReady && part4Phase === 'recording'}
               microphoneLevel={microphoneLevel}
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onOpenDraft={() => setSpeakingDraftOpen(true)}
@@ -3337,23 +3344,23 @@ function SpeakingTopbar({ part, soundEnabled, onExit, onToggleSound }: { part: n
   return (
     <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
-        <div>
+        <div className="mock-speaking-title translate-y-2">
           <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
           <h1 className="text-xl font-extrabold leading-6 text-white">Part {part} of 4</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="mock-speaking-topbar-actions flex items-center gap-3">
           <button
             type="button"
             onClick={onToggleSound}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-extrabold text-white hover:bg-white/25"
+            className="mock-topbar-action inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-extrabold text-white hover:bg-white/25"
             title={soundEnabled ? 'Tắt âm thanh đọc đề' : 'Bật âm thanh đọc đề'}
           >
             <SoundIcon size={19} />
-            {soundEnabled ? 'Âm thanh' : 'Đã tắt âm'}
+            <span className="mock-topbar-button-label">{soundEnabled ? 'Âm thanh' : 'Đã tắt âm'}</span>
           </button>
-        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+        <button type="button" onClick={onExit} title="Thoát" className="mock-topbar-action inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
           <LogOut size={21} />
-          Thoát
+          <span className="mock-topbar-button-label">Thoát</span>
         </button>
         </div>
       </div>
@@ -3367,23 +3374,23 @@ function SpeakingTopbarWithAudio({ part, soundEnabled, onExit, onToggleSound }: 
   return (
     <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
-        <div>
+        <div className="mock-speaking-title translate-y-2">
           <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
           <h1 className="text-xl font-extrabold leading-6 text-white">Part {part} of 4</h1>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="mock-speaking-topbar-actions flex items-center gap-3">
           <button
             type="button"
             onClick={onToggleSound}
-            className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-extrabold text-white hover:bg-white/25"
+            className="mock-topbar-action inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-4 text-sm font-extrabold text-white hover:bg-white/25"
             title={soundEnabled ? 'Mute speaking audio' : 'Unmute speaking audio'}
           >
             <SoundIcon size={19} />
-            {soundEnabled ? 'Sound on' : 'Muted'}
+            <span className="mock-topbar-button-label">{soundEnabled ? 'Sound on' : 'Muted'}</span>
           </button>
-          <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+          <button type="button" onClick={onExit} title="Exit" className="mock-topbar-action inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
             <LogOut size={21} />
-            Exit
+            <span className="mock-topbar-button-label">Exit</span>
           </button>
         </div>
       </div>
@@ -3555,6 +3562,7 @@ function GrammarStart({ onStart }: { onStart: () => void }) {
 function GrammarInstructions() {
   return (
     <main
+      className="mock-speaking-main"
       style={{
         minHeight: 'calc(100vh - 68px)',
         backgroundColor: '#ffffff',
@@ -6121,7 +6129,8 @@ function SpeakingInstructions() {
         <h3 style={{ color: '#020817', fontSize: 20, fontWeight: 800, margin: '28px 0 0' }}>Speaking</h3>
         <div style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', marginTop: 20 }}>
           <p style={{ margin: '0 0 20px' }}>You will answer some questions about yourself and then do three short speaking tasks.</p>
-          <p style={{ margin: '0 0 20px' }}>Listen to the instructions and speak clearly into your microphone when you hear the signal.</p>
+          <p style={{ margin: '0 0 20px' }}>Listen to the instructions and questions, then speak clearly into your microphone after you hear the signal.</p>
+          <p style={{ margin: '0 0 20px' }}>For this mock test, the system reads each question before the beep. Answer fully with details, reasons, or examples.</p>
           <p style={{ margin: '0 0 20px' }}>Each part of the test will appear automatically.</p>
           <p style={{ margin: '0 0 20px' }}>The test will take about 12 minutes.</p>
           <p style={{ margin: 0 }}>When you click on the 'Next' button, the test will begin.</p>
@@ -6149,6 +6158,7 @@ function SpeakingPrompt({ part }: { part: 1 | 2 | 3 | 4 }) {
       }}
     >
       <section
+        className="mock-speaking-grid"
         style={{
           width: 'min(960px, 100%)',
           margin: '0 auto',
@@ -6161,7 +6171,8 @@ function SpeakingPrompt({ part }: { part: 1 | 2 | 3 | 4 }) {
         <h2 style={{ color: '#020817', fontSize: 26, fontWeight: 800, lineHeight: '32px', margin: 0 }}>Prompt</h2>
         <div style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', marginTop: 32, maxWidth: 760 }}>
           <p style={{ margin: '0 0 32px' }}>{promptText}</p>
-          <p style={{ margin: 0 }}>Begin speaking when you hear this sound.</p>
+          <p style={{ margin: '0 0 16px' }}>The system will read the question first.</p>
+          <p style={{ margin: 0 }}>Begin speaking after you hear the beep.</p>
         </div>
       </section>
     </main>
@@ -6275,6 +6286,8 @@ function SpeakingQuestion({ question, index, total, seconds, showAnswer, isReadi
 }
 
 function Part2Question({ question, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { question: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
+  const imageUrl = part2ImageUrls[index] ?? `/images/speaking/part2/${index + 1}.png`;
+
   return (
     <main
       className="mock-speaking-main"
@@ -6309,8 +6322,8 @@ function Part2Question({ question, index, total, seconds, showAnswer, isReading,
           <p style={{ color: '#7a8393', fontSize: 16, fontWeight: 500, margin: 0 }}>Speaking</p>
           <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Question {index + 1} of {total}</h2>
           <img
-            src="/images/speaking/part2/1.png"
-            alt="People having a meal together"
+            src={imageUrl}
+            alt={`Speaking Part 2 prompt ${index + 1}`}
             style={{
               display: 'block',
               width: 'min(560px, 100%)',
@@ -6531,7 +6544,7 @@ function Part3Question({ question, index, total, seconds, showAnswer, isReading,
   );
 }
 
-function Part4Question({ phase, seconds, showAnswer, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { phase: Part4Phase; seconds: number; showAnswer?: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
+function Part4Question({ phase, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { phase: Part4Phase; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
   const isPreparing = phase === 'prepare';
 
   return (
@@ -6648,8 +6661,8 @@ function Part4Question({ phase, seconds, showAnswer, microphoneLevel, onToggleAn
                   boxShadow: '0 12px 24px rgba(15, 23, 42, 0.08)'
                 }}
               >
-                <p style={{ color: seconds === 0 ? '#2b075c' : '#ef1d1d', fontSize: 18, fontWeight: 800, margin: 0 }}>
-                  {seconds === 0 ? 'Finished' : 'Recording...'}
+                <p style={{ color: isReading || seconds === 0 ? '#2b075c' : '#ef1d1d', fontSize: 18, fontWeight: 800, margin: 0 }}>
+                  {isReading ? 'Reading...' : seconds === 0 ? 'Finished' : 'Recording...'}
                 </p>
                 <div
                   style={{
@@ -6665,25 +6678,26 @@ function Part4Question({ phase, seconds, showAnswer, microphoneLevel, onToggleAn
                 >
                   <div>
                     <Mic size={24} color="#ef1d1d" style={{ margin: '0 auto 8px' }} />
-                    <p style={{ color: '#2b075c', fontSize: 42, fontWeight: 900, lineHeight: 1, margin: 0 }}>{seconds}s</p>
+                    <p style={{ color: '#2b075c', fontSize: 42, fontWeight: 900, lineHeight: 1, margin: 0 }}>{isReading ? '...' : `${seconds}s`}</p>
                   </div>
                 </div>
-                <RecordingWaveform level={seconds === 0 ? 0 : microphoneLevel} />
+                <RecordingWaveform level={isReading || seconds === 0 ? 0 : microphoneLevel} />
               </div>
               <button
                 type="button"
                 onClick={onFinish}
+                disabled={isReading}
                 style={{
                   width: '100%',
                   height: 50,
                   marginTop: 20,
                   border: 0,
                   borderRadius: 14,
-                  backgroundColor: '#2b075c',
+                  backgroundColor: isReading ? '#dedbe5' : '#2b075c',
                   color: '#ffffff',
                   fontSize: 18,
                   fontWeight: 800,
-                  cursor: 'pointer'
+                  cursor: isReading ? 'not-allowed' : 'pointer'
                 }}
               >
                 Finish Recording
@@ -6971,7 +6985,7 @@ const speakingSideActionsStyle = {
 function AutoScoredRecordingNote() {
   return (
     <div style={{ marginTop: 24, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: '14px 16px', color: '#64748b', fontSize: 15, lineHeight: '22px', fontWeight: 700 }}>
-      Bài nói sẽ được ghi âm và tự chấm sau khi bạn hoàn thành phần Speaking.
+      Bài nói sẽ được ghi âm và tự chấm sau khi bạn hoàn thành phần Speaking. Hệ thống sẽ đọc câu hỏi trước tiếng tít; sau tiếng tít, hãy trả lời đầy đủ bằng câu hoàn chỉnh, lý do và ví dụ.
     </div>
   );
 }

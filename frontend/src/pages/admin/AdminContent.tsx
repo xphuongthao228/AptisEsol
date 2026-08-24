@@ -1,7 +1,7 @@
 ﻿import { FormEvent, useMemo, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { BookOpen, Check, Download, Layers, ListChecks, MessageCircle, Mic, Pencil, Play, Plus, Star, Trash2, UploadCloud, Volume2, Wand2 } from 'lucide-react';
+import { BookOpen, Download, Layers, ListChecks, MessageCircle, Mic, Pencil, Play, Plus, Star, Trash2, UploadCloud, Volume2, Wand2 } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import type { Question, QuestionType, Skill, SkillType, Test, TestMode } from '../../types';
@@ -349,10 +349,14 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
   const [answer2, setAnswer2] = useState('');
   const [answer3, setAnswer3] = useState('');
   const [answer4, setAnswer4] = useState('');
-  const [correctIndex, setCorrectIndex] = useState(1);
+  const [correctIndexes, setCorrectIndexes] = useState<number[]>([1]);
   const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
   const selectedTemplate = parseTemplateContent(content);
   const selectedTemplateName = selectedTemplate ? getTemplateName(content) : '';
+  const answerValues = [answer1, answer2, answer3, answer4];
+  const answerSetters = [setAnswer1, setAnswer2, setAnswer3, setAnswer4];
+  const hasAnswerChoices = type !== 'TEXT' && type !== 'SPEAKING';
+  const multipleCorrect = type === 'MULTIPLE_CHOICE';
   const allSelected = questions.length > 0 && selectedQuestionIds.length === questions.length;
   const displayedQuestions = useMemo(
     () => [...questions].sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)) || a.sortOrder - b.sortOrder),
@@ -374,7 +378,10 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
     setAnswer2(question.answers[1]?.content ?? '');
     setAnswer3(question.answers[2]?.content ?? '');
     setAnswer4(question.answers[3]?.content ?? '');
-    setCorrectIndex(Math.max(1, question.answers.findIndex((answer) => answer.correct) + 1));
+    const nextCorrectIndexes = question.answers
+      .map((answer, index) => answer.correct ? index + 1 : 0)
+      .filter((index) => index > 0);
+    setCorrectIndexes(nextCorrectIndexes.length ? nextCorrectIndexes : [1]);
   }
 
   function reset() {
@@ -392,7 +399,26 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
     setAnswer2('');
     setAnswer3('');
     setAnswer4('');
-    setCorrectIndex(1);
+    setCorrectIndexes([1]);
+  }
+
+  function updateType(nextType: QuestionType) {
+    setType(nextType);
+    if (nextType === 'TEXT' || nextType === 'SPEAKING') {
+      setCorrectIndexes([]);
+      return;
+    }
+    setCorrectIndexes((current) => current.length ? [current[0]] : [1]);
+  }
+
+  function toggleCorrectAnswer(index: number) {
+    const answerIndex = index + 1;
+    setCorrectIndexes((current) => {
+      if (!multipleCorrect) return [answerIndex];
+      return current.includes(answerIndex)
+        ? current.filter((item) => item !== answerIndex)
+        : [...current, answerIndex].sort((a, b) => a - b);
+    });
   }
 
   function setTemplateContent(template: string, data: Record<string, unknown>) {
@@ -544,7 +570,17 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
       toast.error('Hãy chọn bài luyện trước');
       return;
     }
-    const rawAnswers = [answer1, answer2, answer3, answer4].filter(Boolean);
+    const rawAnswers = answerValues
+      .map((answer, index) => ({ content: answer.trim(), originalIndex: index + 1 }))
+      .filter((answer) => answer.content);
+    if (hasAnswerChoices && rawAnswers.length < 2) {
+      toast.error('Vui lòng nhập ít nhất 2 đáp án');
+      return;
+    }
+    if (hasAnswerChoices && !rawAnswers.some((answer) => correctIndexes.includes(answer.originalIndex))) {
+      toast.error('Vui lòng chọn ít nhất một đáp án đúng');
+      return;
+    }
     const payload = {
       testId: Number(selectedTestId),
       type,
@@ -558,7 +594,11 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
       featured,
       answers: type === 'TEXT' || type === 'SPEAKING'
         ? []
-        : rawAnswers.map((answer, index) => ({ content: answer, correct: index + 1 === correctIndex, sortOrder: index + 1 }))
+        : rawAnswers.map((answer, index) => ({
+          content: answer.content,
+          correct: correctIndexes.includes(answer.originalIndex),
+          sortOrder: index + 1
+        }))
     };
     try {
       const saved = editing
@@ -620,6 +660,23 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
             <option value="">Chọn bài luyện</option>
             {tests.map((test) => <option key={test.id} value={test.id}>{test.title}</option>)}
           </select>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-2">
+              <span className="text-sm font-bold text-slate-600">Loại câu hỏi</span>
+              <select className="input" value={type} onChange={(event) => updateType(event.target.value as QuestionType)}>
+                {questionTypes.map((questionType) => (
+                  <option key={questionType} value={questionType}>{questionType}</option>
+                ))}
+              </select>
+            </label>
+            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+              {hasAnswerChoices
+                ? multipleCorrect
+                  ? 'Câu nhiều đáp án: tick tất cả đáp án đúng.'
+                  : 'Câu một đáp án: chọn đúng một đáp án đúng.'
+                : 'Câu tự luận/speaking không cần nhập đáp án trắc nghiệm.'}
+            </div>
+          </div>
           <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
             <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700"><Wand2 size={17} />Tạo nhanh bằng template Aptis</div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
@@ -667,8 +724,14 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
             )}
             <textarea className="input min-h-20 py-3" value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="Giải thích / gợi ý" />
             <div className="grid grid-cols-2 gap-3">
-              <input className="input" type="number" min={1} value={points} onChange={(e) => setPoints(Number(e.target.value))} placeholder="Điểm" />
-              <input className="input" type="number" min={1} value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} placeholder="Thứ tự" />
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-600">Điểm câu hỏi</span>
+                <input className="input" type="number" min={1} value={points} onChange={(e) => setPoints(Number(e.target.value))} placeholder="VD: 2" />
+              </label>
+              <label className="space-y-2">
+                <span className="text-sm font-bold text-slate-600">Thứ tự hiển thị</span>
+                <input className="input" type="number" min={1} value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} placeholder="VD: 1" />
+              </label>
             </div>
             <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${featured ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200'}`}>
               <input
@@ -680,14 +743,35 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
               <Star size={18} className={featured ? 'fill-amber-400 text-amber-500' : 'text-slate-400'} />
               Đánh dấu câu hỏi nổi bật
             </label>
-            {type !== 'TEXT' && type !== 'SPEAKING' && (
-              <div className="space-y-3 rounded-lg bg-slate-50 p-3">
-                {[answer1, answer2, answer3, answer4].map((value, index) => (
-                  <div className="flex gap-2" key={index}>
-                    <button type="button" onClick={() => setCorrectIndex(index + 1)} className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg border ${correctIndex === index + 1 ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-400'}`}><Check size={16} /></button>
-                    <input className="input" value={value} onChange={(e) => [setAnswer1, setAnswer2, setAnswer3, setAnswer4][index](e.target.value)} placeholder={`Đáp án ${index + 1}`} />
+            {hasAnswerChoices && (
+              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-extrabold text-slate-800">Đáp án trắc nghiệm</p>
+                    <p className="text-xs text-slate-500">Nhập đáp án và chọn ô “Đáp án đúng” tương ứng.</p>
                   </div>
-                ))}
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-500">
+                    {multipleCorrect ? 'Nhiều đáp án đúng' : 'Một đáp án đúng'}
+                  </span>
+                </div>
+                {answerValues.map((value, index) => {
+                  const selected = correctIndexes.includes(index + 1);
+                  return (
+                    <div className={`grid gap-2 rounded-xl border p-3 transition md:grid-cols-[1fr_150px] ${selected ? 'border-green-300 bg-green-50' : 'border-slate-200 bg-white'}`} key={index}>
+                      <input className="input bg-white" value={value} onChange={(e) => answerSetters[index](e.target.value)} placeholder={`Đáp án ${index + 1}`} />
+                      <label className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-sm font-bold ${selected ? 'border-green-500 bg-green-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200'}`}>
+                        <input
+                          type={multipleCorrect ? 'checkbox' : 'radio'}
+                          name="correct-answer"
+                          className="h-4 w-4"
+                          checked={selected}
+                          onChange={() => toggleCorrectAnswer(index)}
+                        />
+                        Đáp án đúng
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
             )}
             <div className="flex gap-2">
@@ -889,18 +973,25 @@ function TemplateEditor({ data, onChange }: { data: TemplateData; onChange: (dat
   if (data.template === 'LISTENING_AUDIO_MC') {
     const prompts = (data.groups ?? []).map((group: any) => group.prompt).join('\n');
     const options = (data.groups ?? []).map((group: any) => (group.options ?? []).join(' | ')).join('\n');
-    function updateGroups(nextPrompts = prompts, nextOptions = options) {
+    const correctAnswers = (data.groups ?? []).map((group: any) => group.correctAnswer ?? '').join('\n');
+    function updateGroups(nextPrompts = prompts, nextOptions = options, nextCorrectAnswers = correctAnswers) {
       const promptRows = listValue(nextPrompts);
       const optionRows = nextOptions.split('\n');
-      patch('groups', promptRows.map((prompt, index) => ({ prompt, options: (optionRows[index] ?? '').split('|').map((item: string) => item.trim()).filter(Boolean) })));
+      const correctRows = nextCorrectAnswers.split('\n');
+      patch('groups', promptRows.map((prompt, index) => ({
+        prompt,
+        options: (optionRows[index] ?? '').split('|').map((item: string) => item.trim()).filter(Boolean),
+        correctAnswer: (correctRows[index] ?? '').trim()
+      })));
     }
     return commonFields(
       <>
         <AdminInput label="Số lần nghe" value={data.playsRemaining ?? ''} onChange={(value) => patch('playsRemaining', value)} />
         <AdminInput label="Link audio nghe" value={data.audioUrl ?? ''} onChange={(value) => patch('audioUrl', value)} />
         <AdminTextarea label="Script / transcript nghe" value={data.scriptText ?? data.script ?? ''} onChange={(value) => patch('scriptText', value)} />
-        <AdminTextarea label="Câu hỏi con - mỗi dòng 1 câu" value={prompts} onChange={(value) => updateGroups(value, options)} />
-        <AdminTextarea label="Đáp án - mỗi dòng ứng với 1 câu, ngăn cách bằng dấu |" value={options} onChange={(value) => updateGroups(prompts, value)} />
+        <AdminTextarea label="Câu hỏi con - mỗi dòng 1 câu" value={prompts} onChange={(value) => updateGroups(value, options, correctAnswers)} />
+        <AdminTextarea label="Các lựa chọn - mỗi dòng ứng với 1 câu, ngăn cách bằng dấu |" value={options} onChange={(value) => updateGroups(prompts, value, correctAnswers)} />
+        <AdminTextarea label="Đáp án đúng - mỗi dòng ứng với 1 câu hỏi con" value={correctAnswers} onChange={(value) => updateGroups(prompts, options, value)} />
       </>
     );
   }
@@ -1044,6 +1135,7 @@ function AdminTemplateRenderer({ data }: { data: TemplateData }) {
               <div key={groupIndex}>
                 <p className="mb-3">{group.prompt}</p>
                 {(group.options ?? []).map((option: string) => <label className="mb-2 flex items-center gap-2 text-sm" key={option}><input type="radio" readOnly />{option}</label>)}
+                {group.correctAnswer ? <p className="mt-2 text-xs font-bold text-green-700">Đáp án đúng: {group.correctAnswer}</p> : null}
               </div>
             ))}
           </div>

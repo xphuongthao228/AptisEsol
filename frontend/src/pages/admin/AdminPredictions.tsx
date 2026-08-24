@@ -1,8 +1,8 @@
-import { FileSearch, Pencil, Plus, RotateCcw, Save, Search, Trash2 } from 'lucide-react';
+import { CheckSquare, Copy, FileSearch, Layers, Link2, Pencil, Plus, RotateCcw, Save, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
-import type { SkillType } from '../../types';
+import type { Question, SkillType, Test } from '../../types';
 
 type PredictionStatus = 'PUBLISHED' | 'DRAFT' | 'ARCHIVED';
 
@@ -48,22 +48,157 @@ const skillLabels: Record<SkillType, string> = {
   GRAMMAR: 'Grammar'
 };
 
+type PredictionSectionSkill = Extract<SkillType, 'LISTENING' | 'SPEAKING' | 'READING' | 'WRITING'>;
+
+const predictionSections: PredictionSectionSkill[] = ['LISTENING', 'SPEAKING', 'READING', 'WRITING'];
+
+const sectionLabels: Record<PredictionSectionSkill, string> = {
+  LISTENING: 'Listening',
+  SPEAKING: 'Speaking',
+  READING: 'Reading',
+  WRITING: 'Writing'
+};
+
+const QUESTION_LINKS_START = '[[QUESTION_LINKS]]';
+const QUESTION_LINKS_END = '[[/QUESTION_LINKS]]';
+
+type PredictionQuestionLink = {
+  testId: number;
+  questionId: number;
+  label: string;
+  section?: PredictionSectionSkill;
+};
+
 function apiErrorMessage(error: any, fallback: string) {
   const message = error?.response?.data?.message ?? error?.response?.data?.errors?.[0] ?? error?.message;
   const status = error?.response?.status;
   return message ? `${fallback}: ${message}` : `${fallback}${status ? ` (HTTP ${status})` : ''}`;
 }
 
+function questionLinkLabel(question: Question, index: number) {
+  const topic = question.topic?.trim();
+  if (topic) return `Câu ${index + 1}: ${topic}`;
+
+  const text = stripQuestionContent(question.content);
+  return `Câu ${index + 1}: ${text || `ID ${question.id}`}`;
+}
+
+function stripQuestionContent(content: string) {
+  const value = content?.trim() ?? '';
+  if (!value) return '';
+  try {
+    const parsed = JSON.parse(value);
+    const candidates = [
+      parsed.title,
+      parsed.topic,
+      parsed.prompt,
+      parsed.question,
+      Array.isArray(parsed.questions) ? parsed.questions[0]?.question ?? parsed.questions[0]?.prompt : ''
+    ];
+    const found = candidates.find((item) => typeof item === 'string' && item.trim());
+    if (found) return String(found).trim();
+  } catch {
+    // Plain text question.
+  }
+  return value.replace(/\s+/g, ' ').slice(0, 90);
+}
+
+function absoluteQuestionUrl(testId: number, questionId: number) {
+  const path = `/app/tests/${testId}?questionId=${questionId}`;
+  if (typeof window === 'undefined') return path;
+  return `${window.location.origin}${path}`;
+}
+
+function upsertQuestionLinksBlock(content: string, links: PredictionQuestionLink[]) {
+  const block = [
+    QUESTION_LINKS_START,
+    JSON.stringify(links, null, 2),
+    QUESTION_LINKS_END
+  ].join('\n');
+
+  const pattern = new RegExp(`${escapeRegExp(QUESTION_LINKS_START)}[\\s\\S]*?${escapeRegExp(QUESTION_LINKS_END)}`, 'm');
+  const trimmed = content.trim();
+  if (pattern.test(trimmed)) return trimmed.replace(pattern, block);
+  return trimmed ? `${trimmed}\n\n${block}` : block;
+}
+
+function parseQuestionLinksBlock(content: string): PredictionQuestionLink[] {
+  const pattern = new RegExp(`${escapeRegExp(QUESTION_LINKS_START)}([\\s\\S]*?)${escapeRegExp(QUESTION_LINKS_END)}`, 'm');
+  const match = content.match(pattern);
+  if (!match) return [];
+
+  try {
+    const parsed = JSON.parse(match[1].trim());
+    if (!Array.isArray(parsed)) return [];
+
+    return parsed
+      .filter((item) => Number(item?.testId) && Number(item?.questionId))
+      .map((item) => {
+        const section = predictionSections.includes(item.section) ? item.section : undefined;
+        return {
+          testId: Number(item.testId),
+          questionId: Number(item.questionId),
+          label: String(item.label ?? '').trim(),
+          ...(section ? { section } : {})
+        };
+      });
+  } catch {
+    return [];
+  }
+}
+
+function addCompositeTemplate(content: string) {
+  const template = [
+    '## Listening',
+    '- Dạng bài / topic:',
+    '- Ghi chú ôn tập:',
+    '',
+    '## Speaking',
+    '- Part / topic:',
+    '- Ghi chú ôn tập:',
+    '',
+    '## Reading',
+    '- Dạng bài / topic:',
+    '- Ghi chú ôn tập:',
+    '',
+    '## Writing',
+    '- Task / topic:',
+    '- Ghi chú ôn tập:'
+  ].join('\n');
+
+  const trimmed = content.trim();
+  return trimmed ? `${trimmed}\n\n${template}` : template;
+}
+
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function AdminPredictions() {
   const [items, setItems] = useState<AdminPrediction[]>([]);
   const [form, setForm] = useState<PredictionForm>(emptyForm);
+  const [tests, setTests] = useState<Test[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedTestId, setSelectedTestId] = useState<number | ''>('');
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<number[]>([]);
+  const [selectedSection, setSelectedSection] = useState<PredictionSectionSkill>('LISTENING');
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadPredictions();
+    loadTests();
   }, []);
+
+  useEffect(() => {
+    if (!selectedTestId) {
+      setQuestions([]);
+      setSelectedQuestionIds([]);
+      return;
+    }
+    loadQuestions(selectedTestId);
+  }, [selectedTestId]);
 
   async function loadPredictions() {
     try {
@@ -73,6 +208,25 @@ export function AdminPredictions() {
       toast.error(apiErrorMessage(error, 'Không tải được danh sách dự đoán đề'));
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadTests() {
+    try {
+      setTests(await unwrap<Test[]>(api.get('/tests')));
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Không tải được danh sách bài/câu hỏi'));
+    }
+  }
+
+  async function loadQuestions(testId: number) {
+    try {
+      const data = await unwrap<Question[]>(api.get(`/questions?testId=${testId}`));
+      setQuestions(data);
+      setSelectedQuestionIds((current) => current.filter((questionId) => data.some((question) => question.id === questionId)));
+    } catch (error) {
+      setQuestions([]);
+      toast.error(apiErrorMessage(error, 'Không tải được câu hỏi'));
     }
   }
 
@@ -137,6 +291,53 @@ export function AdminPredictions() {
       status: item.status
     });
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function toggleQuestion(questionId: number) {
+    setSelectedQuestionIds((current) => current.includes(questionId)
+      ? current.filter((id) => id !== questionId)
+      : [...current, questionId]);
+  }
+
+  function insertQuestionLinks() {
+    if (!selectedTestId || selectedQuestionIds.length === 0) {
+      toast.error('Vui lòng chọn bài và ít nhất một câu hỏi');
+      return;
+    }
+
+    const selectedQuestions = questions.filter((question) => selectedQuestionIds.includes(question.id));
+    const links: PredictionQuestionLink[] = selectedQuestions.map((question, index) => ({
+      testId: Number(selectedTestId),
+      questionId: question.id,
+      label: questionLinkLabel(question, index),
+      section: selectedSection
+    }));
+    const existingLinks = parseQuestionLinksBlock(form.content);
+    const mergedLinks = [
+      ...existingLinks.filter((link) => link.section !== selectedSection),
+      ...links
+    ];
+
+    setForm((current) => ({
+      ...current,
+      content: upsertQuestionLinksBlock(current.content, mergedLinks)
+    }));
+    toast.success(`Đã cập nhật link cho mục ${sectionLabels[selectedSection]}`);
+  }
+
+  function insertCompositeTemplate() {
+    setForm((current) => ({
+      ...current,
+      content: addCompositeTemplate(current.content)
+    }));
+    toast.success('Đã thêm khung dự đoán 4 kỹ năng');
+  }
+
+  async function copyQuestionLink(question: Question) {
+    if (!selectedTestId) return;
+    const url = absoluteQuestionUrl(Number(selectedTestId), question.id);
+    await navigator.clipboard.writeText(url);
+    toast.success('Đã copy link câu hỏi');
   }
 
   async function deletePrediction(id: number) {
@@ -207,6 +408,58 @@ export function AdminPredictions() {
               <span className="text-sm font-bold text-slate-600">Nội dung dự đoán</span>
               <textarea className="input min-h-[170px]" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder="Nhập nội dung chi tiết..." />
             </label>
+            <button type="button" className="btn-secondary w-full justify-center" onClick={insertCompositeTemplate}>
+              <Layers size={18} />
+              Tạo khung 4 kỹ năng
+            </button>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-700">
+                <Link2 size={17} />
+                Chọn câu hỏi để tạo link
+              </div>
+              <label className="mb-3 block space-y-2">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Gắn vào mục</span>
+                <select className="input bg-white" value={selectedSection} onChange={(event) => setSelectedSection(event.target.value as PredictionSectionSkill)}>
+                  {predictionSections.map((section) => (
+                    <option key={section} value={section}>{sectionLabels[section]}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="space-y-2">
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Bài luyện</span>
+                <select className="input bg-white" value={selectedTestId} onChange={(event) => setSelectedTestId(event.target.value ? Number(event.target.value) : '')}>
+                  <option value="">Chọn bài có câu hỏi</option>
+                  {tests.map((test) => (
+                    <option key={test.id} value={test.id}>
+                      {test.title} ({test.skillName})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {selectedTestId ? (
+                <div className="mt-3 max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
+                  {questions.length > 0 ? questions.map((question, index) => (
+                    <div key={question.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg p-2 hover:bg-slate-50">
+                      <input type="checkbox" checked={selectedQuestionIds.includes(question.id)} onChange={() => toggleQuestion(question.id)} />
+                      <button type="button" className="min-w-0 text-left text-sm font-semibold text-slate-700" onClick={() => toggleQuestion(question.id)}>
+                        <span className="block truncate">{questionLinkLabel(question, index)}</span>
+                        <span className="block truncate text-xs font-medium text-slate-400">{question.topic || question.content}</span>
+                      </button>
+                      <button type="button" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:text-brand-700" onClick={() => copyQuestionLink(question)} title="Copy link câu hỏi">
+                        <Copy size={15} />
+                      </button>
+                    </div>
+                  )) : (
+                    <p className="p-3 text-sm font-semibold text-slate-400">Bài này chưa có câu hỏi.</p>
+                  )}
+                </div>
+              ) : null}
+              <button type="button" className="btn-secondary mt-3 w-full justify-center" onClick={insertQuestionLinks} disabled={!selectedTestId || selectedQuestionIds.length === 0}>
+                <CheckSquare size={18} />
+                Chèn/cập nhật link cho {sectionLabels[selectedSection]}
+              </button>
+            </div>
 
             <label className="space-y-2">
               <span className="text-sm font-bold text-slate-600">Tag</span>
