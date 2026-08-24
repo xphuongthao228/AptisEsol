@@ -1,4 +1,4 @@
-import { CheckSquare, Copy, FileSearch, Layers, Link2, Pencil, Plus, RotateCcw, Save, Search, Trash2 } from 'lucide-react';
+import { CheckSquare, Copy, Download, FileSearch, Layers, Link2, Pencil, Plus, RotateCcw, Save, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
@@ -221,6 +221,114 @@ function escapeRegExp(value: string) {
 
 function isPredictionPart(value: unknown) {
   return predictionParts.includes(Number(value) as PredictionPart);
+}
+
+function parsePredictionContent(content: string): { text: string; links: PredictionQuestionLink[] } {
+  const pattern = new RegExp(`${escapeRegExp(QUESTION_LINKS_START)}([\\s\\S]*?)${escapeRegExp(QUESTION_LINKS_END)}`, 'm');
+  return {
+    text: content.replace(pattern, '').trim(),
+    links: parseQuestionLinksBlock(content)
+  };
+}
+
+function downloadPredictionWord(item: AdminPrediction) {
+  const parsed = parsePredictionContent(item.content);
+  const html = buildPredictionWordHtml(item, parsed);
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${slugifyFileName(item.title || 'du-doan-de')}.doc`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(link.href);
+}
+
+function buildPredictionWordHtml(item: AdminPrediction, parsed: { text: string; links: PredictionQuestionLink[] }) {
+  const groupedLinks = groupLinksBySection(parsed.links);
+  const ungroupedLinks = parsed.links.filter((link) => !link.section);
+  const updatedAt = item.updatedAt ? new Date(item.updatedAt).toLocaleDateString('vi-VN') : '';
+  const linkSections = predictionSections.map((section) => {
+    const sectionLinks = groupedLinks[section];
+    if (sectionLinks.length === 0) return '';
+    const partHtml = predictionParts.map((part) => {
+      const links = sectionLinks.filter((link) => link.part === part);
+      if (links.length === 0) return '';
+      return `<h3>Part ${part}</h3><ul>${links.map((link) => `<li><a href="${questionHref(link)}">${escapeHtml(link.label || `Cau hoi ${link.questionId}`)}</a></li>`).join('')}</ul>`;
+    }).join('');
+    const generalLinks = sectionLinks.filter((link) => !link.part);
+    const generalHtml = generalLinks.length > 0
+      ? `<ul>${generalLinks.map((link) => `<li><a href="${questionHref(link)}">${escapeHtml(link.label || `Cau hoi ${link.questionId}`)}</a></li>`).join('')}</ul>`
+      : '';
+    return `<h2>${sectionLabels[section]}</h2>${partHtml}${generalHtml}`;
+  }).join('');
+  const ungroupedHtml = ungroupedLinks.length > 0
+    ? `<h2>Cau hoi chung</h2><ul>${ungroupedLinks.map((link) => `<li><a href="${questionHref(link)}">${escapeHtml(link.label || `Cau hoi ${link.questionId}`)}</a></li>`).join('')}</ul>`
+    : '';
+
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>${escapeHtml(item.title)}</title>
+  <style>
+    body { font-family: Arial, sans-serif; color: #111827; line-height: 1.55; }
+    h1 { color: #2b075c; font-size: 26px; margin: 0 0 8px; }
+    h2 { color: #2b075c; font-size: 20px; margin: 24px 0 8px; }
+    h3 { color: #0f477e; font-size: 16px; margin: 14px 0 6px; }
+    .meta { color: #64748b; font-size: 12px; margin-bottom: 18px; }
+    .summary { background: #f8fafc; border: 1px solid #dce3ee; padding: 12px; margin: 14px 0; }
+    p { margin: 0 0 10px; }
+    li { margin: 4px 0; }
+    a { color: #0f477e; }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(item.title)}</h1>
+  <div class="meta">Ky nang: ${escapeHtml(skillLabels[item.skill])}${updatedAt ? ` | Cap nhat: ${escapeHtml(updatedAt)}` : ''}</div>
+  ${item.summary ? `<div class="summary">${escapeParagraphs(item.summary)}</div>` : ''}
+  ${parsed.text ? `<h2>Noi dung du doan</h2>${escapeParagraphs(parsed.text)}` : ''}
+  ${parsed.links.length > 0 ? `<h2>Cau hoi duoc du doan</h2>${linkSections}${ungroupedHtml}` : ''}
+</body>
+</html>`;
+}
+
+function groupLinksBySection(links: PredictionQuestionLink[]) {
+  return predictionSections.reduce((acc, section) => {
+    acc[section] = links.filter((link) => link.section === section);
+    return acc;
+  }, {} as Record<PredictionSectionSkill, PredictionQuestionLink[]>);
+}
+
+function questionHref(link: PredictionQuestionLink) {
+  const path = `/app/tests/${link.testId}?questionId=${link.questionId}`;
+  if (typeof window === 'undefined') return path;
+  return `${window.location.origin}${path}`;
+}
+
+function escapeParagraphs(value: string) {
+  return value
+    .split(/\n{2,}/)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, '<br>')}</p>`)
+    .join('');
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function slugifyFileName(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .toLowerCase() || 'du-doan-de';
 }
 
 export function AdminPredictions() {
@@ -570,6 +678,9 @@ export function AdminPredictions() {
                     <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm text-slate-600">{item.content}</p>
                   </div>
                   <div className="flex shrink-0 gap-2">
+                    <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => downloadPredictionWord(item)} title="Export Word">
+                      <Download size={18} />
+                    </button>
                     <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => editPrediction(item)}>
                       <Pencil size={18} />
                     </button>

@@ -139,7 +139,7 @@ function PredictionCard({ item }: { item: Prediction }) {
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
           <Target size={22} />
         </div>
-        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">
+        <span className="inline-flex h-8 items-center rounded-full bg-slate-100 px-3 text-xs font-extrabold text-slate-600">
           {skillLabels[item.skill]}
         </span>
       </div>
@@ -257,3 +257,4 @@ function escapeRegExp(value: string) {
 function isPredictionPart(value: unknown) {
   return predictionParts.includes(Number(value) as PredictionPart);
 }
+
