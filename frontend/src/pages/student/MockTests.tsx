@@ -2581,7 +2581,9 @@ export function MockTests() {
             <ReadingReview
               cohesionAnswers={readingCohesionAnswers}
               data={activeReadingData}
+              gapAnswers={readingGapAnswers}
               longAnswers={readingLongAnswers}
+              opinionAnswers={readingOpinionAnswers}
               onBack={() => setScreen('readingResult')}
             />
           )}
@@ -5768,56 +5770,18 @@ function ResultStat({ value, label, tone }: { value: string; label: string; tone
 function ReadingReview({
   cohesionAnswers,
   data,
+  gapAnswers,
   longAnswers,
+  opinionAnswers,
   onBack
 }: {
   cohesionAnswers: Record<number, string[]>;
   data: ReadingTestData;
+  gapAnswers: Record<number, string>;
   longAnswers: Record<number, string>;
+  opinionAnswers: Record<number, string>;
   onBack: () => void;
 }) {
-  const reviewGroups = [
-    {
-      title: 'Part 1 - Gap Fill',
-      rows: [
-        { question: "I didn't ___ it.", user: 'Chưa chọn', answer: 'see' },
-        { question: 'I buy some food at the ___.', user: 'Chưa chọn', answer: 'store' },
-        { question: 'I ate ___.', user: 'Chưa chọn', answer: 'lunch' },
-        { question: 'I ___ a program on TV.', user: 'Chưa chọn', answer: 'watched' }
-      ]
-    },
-    {
-      title: 'Part 2 + 3 - Text Cohesion',
-      rows: data.cohesion.flatMap((question, questionIndex) =>
-        question.correctOrder.map((answer, sentenceIndex) => ({
-          question: `${question.title} - câu ${sentenceIndex + 1}`,
-          user: cohesionAnswers[questionIndex]?.[sentenceIndex] || 'Chưa xếp',
-          answer
-        }))
-      )
-    },
-    {
-      title: 'Part 4 - Opinion Matching',
-      rows: [
-        { question: 'try to protect the environment', user: 'Chưa chọn', answer: 'B' },
-        { question: 'Sometimes cannot avoid flying because of filming work', user: 'Chưa chọn', answer: 'D' },
-        { question: 'Find flying tiring and try to avoid it', user: 'Chưa chọn', answer: 'A' },
-        { question: 'suggest making flights more expensive', user: 'Chưa chọn', answer: 'C' },
-        { question: 'want to work in other countries', user: 'Chưa chọn', answer: 'C' },
-        { question: 'like relaxing while they travel', user: 'Chưa chọn', answer: 'A' },
-        { question: 'visit relatives regularly', user: 'Chưa chọn', answer: 'B' }
-      ]
-    },
-    {
-      title: 'Part 5 - Long Reading',
-      rows: data.long.correctAnswers.map((answer, index) => ({
-        question: `Paragraph ${index + 1}`,
-        user: longAnswers[index] || 'Chưa chọn',
-        answer: resolveOptionLabel(answer, data.long.headings)
-      }))
-    }
-  ];
-
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
       <section style={{ width: 'min(980px, 100%)', margin: '0 auto' }}>
@@ -5833,27 +5797,122 @@ function ReadingReview({
         </div>
 
         <div style={{ display: 'grid', gap: 18 }}>
-          {reviewGroups.map((group) => (
-            <article key={group.title} style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 24, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
-              <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{group.title}</h2>
-              <div style={{ display: 'grid', gap: 10 }}>
-                {group.rows.map((row, index) => (
-                  <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: group.title === 'Part 2 + 3 - Text Cohesion' ? 'minmax(180px, 0.75fr) minmax(280px, 1.25fr) minmax(280px, 1.25fr)' : '1fr 170px 170px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
-                    <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 700, margin: 0 }}>{index + 1}. {row.question}</p>
-                    <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
-                      Bạn chọn: <span style={{ color: '#d81e0c', fontWeight: 900 }}>{row.user}</span>
-                    </p>
-                    <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
-                      Đáp án: <span style={{ color: '#047857', fontWeight: 900 }}>{row.answer}</span>
-                    </p>
-                  </div>
-                ))}
+          <ReadingAnswerSection title="Part 1 - Gap Fill">
+            {data.gaps.map((question, index) => {
+              const user = gapAnswers[index] || 'Chưa chọn';
+              return (
+                <ReadingAnswerRow
+                  key={`${question.answer}-${index}`}
+                  answer={question.answer}
+                  correct={sameAnswer(user, question.answer)}
+                  index={index}
+                  question={formatGapPrompt(question)}
+                  user={user}
+                />
+              );
+            })}
+          </ReadingAnswerSection>
+
+          <ReadingAnswerSection title="Part 2 + 3 - Text Cohesion">
+            {data.cohesion.map((question, questionIndex) => (
+              <div key={question.title} style={{ display: 'grid', gap: 10 }}>
+                <h3 style={{ color: '#111827', fontSize: 18, fontWeight: 900, margin: questionIndex === 0 ? '0 0 2px' : '10px 0 2px' }}>{question.title}</h3>
+                {question.correctOrder.map((answer, sentenceIndex) => {
+                  const user = cohesionAnswers[questionIndex]?.[sentenceIndex] || 'Chưa xếp';
+                  return (
+                    <ReadingAnswerRow
+                      key={`${question.title}-${sentenceIndex}`}
+                      answer={answer}
+                      correct={sameAnswer(user, answer)}
+                      index={sentenceIndex}
+                      question={`Vị trí ${sentenceIndex + 1}`}
+                      user={user}
+                      wide
+                    />
+                  );
+                })}
               </div>
-            </article>
-          ))}
+            ))}
+          </ReadingAnswerSection>
+
+          <ReadingAnswerSection title="Part 4 - Opinion Matching">
+            {data.opinion.questions.map((question, index) => {
+              const answer = data.opinion.correctAnswers[index] ?? '';
+              const user = opinionAnswers[index] || 'Chưa chọn';
+              return (
+                <ReadingAnswerRow
+                  key={`${question}-${index}`}
+                  answer={answer}
+                  correct={sameAnswer(user, answer)}
+                  index={index}
+                  question={question}
+                  user={user}
+                />
+              );
+            })}
+          </ReadingAnswerSection>
+
+          <ReadingAnswerSection title="Part 5 - Long Reading">
+            {data.long.correctAnswers.map((answer, index) => {
+              const correctAnswer = resolveOptionLabel(answer, data.long.headings);
+              const user = longAnswers[index] || 'Chưa chọn';
+              return (
+                <ReadingAnswerRow
+                  key={`${correctAnswer}-${index}`}
+                  answer={correctAnswer}
+                  correct={sameAnswer(user, correctAnswer)}
+                  index={index}
+                  question={`Paragraph ${index + 1}`}
+                  user={user}
+                />
+              );
+            })}
+          </ReadingAnswerSection>
         </div>
       </section>
     </main>
+  );
+}
+
+function formatGapPrompt(question: ReadingGapQuestion) {
+  if (question.prompt?.trim()) return question.prompt;
+  return `${question.questionStart ?? ''}___${question.questionEnd ?? ''}`.trim();
+}
+
+function ReadingAnswerSection({ children, title }: { children: ReactNode; title: string }) {
+  return (
+    <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 24, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+      <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{title}</h2>
+      <div style={{ display: 'grid', gap: 10 }}>{children}</div>
+    </article>
+  );
+}
+
+function ReadingAnswerRow({
+  answer,
+  correct,
+  index,
+  question,
+  user,
+  wide = false
+}: {
+  answer: string;
+  correct: boolean;
+  index: number;
+  question: string;
+  user: string;
+  wide?: boolean;
+}) {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: wide ? '110px minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(220px, 1fr) minmax(180px, 0.75fr) minmax(180px, 0.75fr)', gap: 14, alignItems: 'start', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
+      <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 800, margin: 0 }}>{index + 1}. {question}</p>
+      <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
+        Bạn chọn: <span style={{ color: correct ? '#047857' : '#d81e0c', fontWeight: 900 }}>{user}</span>
+      </p>
+      <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
+        Đáp án: <span style={{ color: '#047857', fontWeight: 900 }}>{answer}</span>
+      </p>
+    </div>
   );
 }
 
