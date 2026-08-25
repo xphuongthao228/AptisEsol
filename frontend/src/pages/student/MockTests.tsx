@@ -2559,6 +2559,9 @@ export function MockTests() {
           )}
           {screen === 'readingReview' && (
             <ReadingReview
+              cohesionAnswers={readingCohesionAnswers}
+              data={activeReadingData}
+              longAnswers={readingLongAnswers}
               onBack={() => setScreen('readingResult')}
             />
           )}
@@ -5742,7 +5745,22 @@ function ResultStat({ value, label, tone }: { value: string; label: string; tone
   );
 }
 
-function ReadingReview({ onBack }: { onBack: () => void }) {
+function formatCohesionOrder(answers: string[], total: number) {
+  if (answers.filter(Boolean).length === 0) return 'Chưa sắp xếp';
+  return Array.from({ length: total }, (_, index) => `${index + 1}. ${answers[index] || 'Chưa xếp'}`).join(' | ');
+}
+
+function ReadingReview({
+  cohesionAnswers,
+  data,
+  longAnswers,
+  onBack
+}: {
+  cohesionAnswers: Record<number, string[]>;
+  data: ReadingTestData;
+  longAnswers: Record<number, string>;
+  onBack: () => void;
+}) {
   const reviewGroups = [
     {
       title: 'Part 1 - Gap Fill',
@@ -5755,10 +5773,11 @@ function ReadingReview({ onBack }: { onBack: () => void }) {
     },
     {
       title: 'Part 2 + 3 - Text Cohesion',
-      rows: [
-        { question: 'Tom Harper - sentence order', user: 'Chưa sắp xếp đủ', answer: '1-5 theo đáp án đúng' },
-        { question: 'A scientist - sentence order', user: 'Chưa sắp xếp đủ', answer: '1-5 theo đáp án đúng' }
-      ]
+      rows: data.cohesion.map((question, index) => ({
+        question: `${question.title} - sentence order`,
+        user: formatCohesionOrder(cohesionAnswers[index] ?? [], question.correctOrder.length),
+        answer: formatCohesionOrder(question.correctOrder, question.correctOrder.length)
+      }))
     },
     {
       title: 'Part 4 - Opinion Matching',
@@ -5774,10 +5793,10 @@ function ReadingReview({ onBack }: { onBack: () => void }) {
     },
     {
       title: 'Part 5 - Long Reading',
-      rows: Array.from({ length: 7 }, (_, index) => ({
+      rows: data.long.correctAnswers.map((answer, index) => ({
         question: `Paragraph ${index + 1}`,
-        user: 'Chưa chọn',
-        answer: ['A global writer', 'Difficult language', 'A famous tragedy', 'A lasting legacy', 'Early success', 'Protecting his reputation', 'Remembering Dickens'][index]
+        user: longAnswers[index] || 'Chưa chọn',
+        answer
       }))
     }
   ];
@@ -5802,12 +5821,12 @@ function ReadingReview({ onBack }: { onBack: () => void }) {
               <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{group.title}</h2>
               <div style={{ display: 'grid', gap: 10 }}>
                 {group.rows.map((row, index) => (
-                  <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1fr 170px 170px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
+                  <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: group.title === 'Part 2 + 3 - Text Cohesion' ? 'minmax(180px, 0.8fr) minmax(260px, 1.3fr) minmax(260px, 1.3fr)' : '1fr 170px 170px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
                     <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 700, margin: 0 }}>{index + 1}. {row.question}</p>
-                    <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+                    <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
                       Bạn chọn: <span style={{ color: '#d81e0c', fontWeight: 900 }}>{row.user}</span>
                     </p>
-                    <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
+                    <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
                       Đáp án: <span style={{ color: '#047857', fontWeight: 900 }}>{row.answer}</span>
                     </p>
                   </div>
