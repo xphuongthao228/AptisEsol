@@ -659,7 +659,7 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
   const longOptions = Array.isArray(part5Row?.options) ? part5Row.options.map(String).filter(Boolean) : [];
   const paragraphs = Array.isArray(part5Row?.paragraphs) ? part5Row.paragraphs.map(String).filter(Boolean) : [];
   const longCorrectAnswers = Array.isArray(part5Row?.correctAnswers)
-    ? part5Row.correctAnswers.map(String).filter(Boolean)
+    ? part5Row.correctAnswers.map((answer) => resolveOptionLabel(String(answer), longOptions)).filter(Boolean)
     : paragraphs.map((_, index) => longOptions[index] ?? '');
   const long = {
     title: String(part5Row?.topic ?? 'Long Reading').trim(),
@@ -680,6 +680,26 @@ function rotateChoices(values: string[]) {
   if (values.length <= 1) return values;
   const split = Math.ceil(values.length / 2);
   return [...values.slice(split), ...values.slice(0, split)];
+}
+
+function resolveOptionLabel(value: string, options: string[]) {
+  const answer = value.trim();
+  if (!answer) return '';
+  const exactMatch = options.find((option) => sameAnswer(option, answer));
+  if (exactMatch) return exactMatch;
+
+  if (/^[A-Z]$/i.test(answer)) {
+    const optionIndex = answer.toUpperCase().charCodeAt(0) - 65;
+    return options[optionIndex] ?? answer;
+  }
+
+  const numberedMatch = answer.match(/^(\d+)[).:-]?\s*(.*)$/);
+  if (numberedMatch?.[2]) {
+    const label = numberedMatch[2].trim();
+    return options.find((option) => sameAnswer(option, label)) ?? label;
+  }
+
+  return answer;
 }
 
 function peopleFromReadingContext(context: string[]) {
@@ -5745,11 +5765,6 @@ function ResultStat({ value, label, tone }: { value: string; label: string; tone
   );
 }
 
-function formatCohesionOrder(answers: string[], total: number) {
-  if (answers.filter(Boolean).length === 0) return 'Chưa sắp xếp';
-  return Array.from({ length: total }, (_, index) => `${index + 1}. ${answers[index] || 'Chưa xếp'}`).join(' | ');
-}
-
 function ReadingReview({
   cohesionAnswers,
   data,
@@ -5773,11 +5788,13 @@ function ReadingReview({
     },
     {
       title: 'Part 2 + 3 - Text Cohesion',
-      rows: data.cohesion.map((question, index) => ({
-        question: `${question.title} - sentence order`,
-        user: formatCohesionOrder(cohesionAnswers[index] ?? [], question.correctOrder.length),
-        answer: formatCohesionOrder(question.correctOrder, question.correctOrder.length)
-      }))
+      rows: data.cohesion.flatMap((question, questionIndex) =>
+        question.correctOrder.map((answer, sentenceIndex) => ({
+          question: `${question.title} - câu ${sentenceIndex + 1}`,
+          user: cohesionAnswers[questionIndex]?.[sentenceIndex] || 'Chưa xếp',
+          answer
+        }))
+      )
     },
     {
       title: 'Part 4 - Opinion Matching',
@@ -5796,7 +5813,7 @@ function ReadingReview({
       rows: data.long.correctAnswers.map((answer, index) => ({
         question: `Paragraph ${index + 1}`,
         user: longAnswers[index] || 'Chưa chọn',
-        answer
+        answer: resolveOptionLabel(answer, data.long.headings)
       }))
     }
   ];
@@ -5821,7 +5838,7 @@ function ReadingReview({
               <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{group.title}</h2>
               <div style={{ display: 'grid', gap: 10 }}>
                 {group.rows.map((row, index) => (
-                  <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: group.title === 'Part 2 + 3 - Text Cohesion' ? 'minmax(180px, 0.8fr) minmax(260px, 1.3fr) minmax(260px, 1.3fr)' : '1fr 170px 170px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
+                  <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: group.title === 'Part 2 + 3 - Text Cohesion' ? 'minmax(180px, 0.75fr) minmax(280px, 1.25fr) minmax(280px, 1.25fr)' : '1fr 170px 170px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
                     <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 700, margin: 0 }}>{index + 1}. {row.question}</p>
                     <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
                       Bạn chọn: <span style={{ color: '#d81e0c', fontWeight: 900 }}>{row.user}</span>
