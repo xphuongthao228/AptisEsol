@@ -10,17 +10,17 @@ export function AdminRevenue() {
   const [query, setQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const { data, loading } = useApi<PaymentOrder[]>(() => unwrap(api.get('/payments/revenue')), []);
+  const { data, error, loading } = useApi<PaymentOrder[]>(() => unwrap(api.get('/payments/revenue')), []);
   const transactions = data ?? [];
 
   const filtered = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return transactions;
     return transactions.filter((item) =>
-      item.userEmail.toLowerCase().includes(keyword) ||
-      item.fullName.toLowerCase().includes(keyword) ||
-      item.packageLabel.toLowerCase().includes(keyword) ||
-      item.paymentCode.toLowerCase().includes(keyword)
+      textOf(item.userEmail).toLowerCase().includes(keyword) ||
+      textOf(item.fullName).toLowerCase().includes(keyword) ||
+      textOf(item.packageLabel).toLowerCase().includes(keyword) ||
+      textOf(item.paymentCode).toLowerCase().includes(keyword)
     );
   }, [query, transactions]);
   const effectivePageSize = pageSize === 0 ? Math.max(1, filtered.length) : pageSize;
@@ -37,15 +37,16 @@ export function AdminRevenue() {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [currentPage, totalPages]);
 
-  const totalRevenue = transactions.reduce((sum, item) => sum + item.amount, 0);
+  const totalRevenue = transactions.reduce((sum, item) => sum + numberOf(item.amount), 0);
   const thisMonthRevenue = transactions
     .filter((item) => {
-      const date = new Date(item.paidAt ?? item.createdAt);
+      const date = dateOf(item.paidAt ?? item.createdAt);
+      if (!date) return false;
       const now = new Date();
       return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
     })
-    .reduce((sum, item) => sum + item.amount, 0);
-  const uniqueCustomers = new Set(transactions.map((item) => item.userEmail)).size;
+    .reduce((sum, item) => sum + numberOf(item.amount), 0);
+  const uniqueCustomers = new Set(transactions.map((item) => textOf(item.userEmail)).filter(Boolean)).size;
   const bestPackage = getBestPackage(transactions);
 
   return (
@@ -88,6 +89,10 @@ export function AdminRevenue() {
               <div className="flex items-center justify-center gap-2 p-8 text-sm font-semibold text-slate-500">
                 <Loader2 className="animate-spin" size={18} />
                 Đang tải doanh thu...
+              </div>
+            ) : error ? (
+              <div className="m-5 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm font-semibold leading-6 text-red-700">
+                {error}
               </div>
             ) : (
               <>
@@ -242,11 +247,28 @@ function PaginationBar({
 function getBestPackage(transactions: PaymentOrder[]) {
   if (!transactions.length) return { label: 'Chưa có', count: 0 };
   const counter = transactions.reduce<Record<string, number>>((map, item) => {
-    map[item.packageLabel] = (map[item.packageLabel] ?? 0) + 1;
+    const label = textOf(item.packageLabel) || 'Chua ro goi';
+    map[label] = (map[label] ?? 0) + 1;
     return map;
   }, {});
   const [label, count] = Object.entries(counter).sort((a, b) => b[1] - a[1])[0];
   return { label, count };
+}
+
+function textOf(value: unknown) {
+  return String(value ?? '').trim();
+}
+
+function numberOf(value: unknown) {
+  const number = Number(value ?? 0);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function dateOf(value: unknown) {
+  const text = textOf(value);
+  if (!text) return null;
+  const date = new Date(text);
+  return Number.isNaN(date.getTime()) ? null : date;
 }
 
 function formatCurrency(value: number) {
