@@ -306,6 +306,10 @@ function questionHref(link: PredictionQuestionLink) {
   return `${window.location.origin}${path}`;
 }
 
+function linkKey(link: PredictionQuestionLink) {
+  return `${link.testId}:${link.questionId}:${link.section ?? ''}:${link.part ?? ''}`;
+}
+
 function escapeParagraphs(value: string) {
   return value
     .split(/\n{2,}/)
@@ -399,6 +403,8 @@ export function AdminPredictions() {
     );
   }, [items, query]);
 
+  const currentQuestionLinks = useMemo(() => parseQuestionLinksBlock(form.content), [form.content]);
+
   function resetForm() {
     setForm(emptyForm);
   }
@@ -451,6 +457,21 @@ export function AdminPredictions() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  function duplicatePrediction(item: AdminPrediction) {
+    setForm({
+      id: null,
+      skill: item.skill,
+      title: `${item.title} - Bản sao`,
+      summary: item.summary ?? '',
+      content: item.content,
+      tags: item.tags ?? '',
+      priority: item.priority ?? 1,
+      status: item.status
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    toast.success('Da copy du doan sang form tao moi, bao gom ca link cau hoi');
+  }
+
   function toggleQuestion(questionId: number) {
     setSelectedQuestionIds((current) => current.includes(questionId)
       ? current.filter((id) => id !== questionId)
@@ -472,16 +493,32 @@ export function AdminPredictions() {
       part: selectedPart
     }));
     const existingLinks = parseQuestionLinksBlock(form.content);
-    const mergedLinks = [
-      ...existingLinks.filter((link) => link.section !== selectedSection || link.part !== selectedPart),
-      ...links
-    ];
+    const existingKeys = new Set(existingLinks.map(linkKey));
+    const newLinks = links.filter((link) => !existingKeys.has(linkKey(link)));
+
+    if (newLinks.length === 0) {
+      toast.error('Cac cau hoi da duoc gan trong du doan nay');
+      return;
+    }
+
+    const mergedLinks = [...existingLinks, ...newLinks];
 
     setForm((current) => ({
       ...current,
       content: upsertQuestionLinksBlock(current.content, mergedLinks)
     }));
-    toast.success(`Da cap nhat link cho ${sectionLabels[selectedSection]} Part ${selectedPart}`);
+    setSelectedQuestionIds([]);
+    toast.success(`Da them ${newLinks.length} cau hoi vao ${sectionLabels[selectedSection]} Part ${selectedPart}`);
+  }
+
+  function removeQuestionLink(index: number) {
+    const links = parseQuestionLinksBlock(form.content);
+    const nextLinks = links.filter((_, linkIndex) => linkIndex !== index);
+    setForm((current) => ({
+      ...current,
+      content: upsertQuestionLinksBlock(current.content, nextLinks)
+    }));
+    toast.success('Da xoa cau hoi khoi du doan');
   }
 
   function insertCompositeTemplate() {
@@ -624,8 +661,33 @@ export function AdminPredictions() {
               ) : null}
               <button type="button" className="btn-secondary mt-3 w-full justify-center" onClick={insertQuestionLinks} disabled={!selectedTestId || selectedQuestionIds.length === 0}>
                 <CheckSquare size={18} />
-                Chen/cap nhat link cho {sectionLabels[selectedSection]} Part {selectedPart}
+                Them cau hoi vao {sectionLabels[selectedSection]} Part {selectedPart}
               </button>
+              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Cau hoi dang gan</p>
+                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{currentQuestionLinks.length}</span>
+                </div>
+                {currentQuestionLinks.length > 0 ? (
+                  <div className="max-h-52 space-y-2 overflow-y-auto">
+                    {currentQuestionLinks.map((link, index) => (
+                      <div key={`${linkKey(link)}:${index}`} className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border border-slate-100 p-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-slate-700">{link.label || `Cau hoi ${link.questionId}`}</p>
+                          <p className="text-xs font-medium text-slate-400">
+                            {link.section ? sectionLabels[link.section] : 'Chung'}{link.part ? ` - Part ${link.part}` : ''} - Bai #{link.testId}, cau #{link.questionId}
+                          </p>
+                        </div>
+                        <button type="button" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:border-red-200 hover:text-red-600" onClick={() => removeQuestionLink(index)} title="Xoa cau hoi khoi du doan">
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm font-semibold text-slate-400">Chua gan cau hoi nao.</p>
+                )}
+              </div>
             </div>
 
             <label className="space-y-2">
@@ -680,6 +742,9 @@ export function AdminPredictions() {
                   <div className="flex shrink-0 gap-2">
                     <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => downloadPredictionWord(item)} title="Export Word">
                       <Download size={18} />
+                    </button>
+                    <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => duplicatePrediction(item)} title="Copy sang dự đoán mới">
+                      <Copy size={18} />
                     </button>
                     <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => editPrediction(item)}>
                       <Pencil size={18} />

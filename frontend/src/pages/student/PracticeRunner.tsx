@@ -2,7 +2,7 @@
 import { Fragment } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, FileSearch, HelpCircle, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
@@ -614,7 +614,11 @@ export function PracticeRunner() {
                           <h2 className="text-base font-extrabold">{activeQuestion.answers.length ? 'Chọn đáp án đúng' : 'Trả lời tự luận'}</h2>
                           {activeQuestion.featured && <FeaturedQuestionBadge />}
                         </div>
-                        <p className="mt-1 text-sm leading-5 text-slate-600">{repairMojibake(activeQuestion.content)}</p>
+                        <HighlightableText
+                          storageId={`question-${activeQuestion.id}-content`}
+                          text={repairMojibake(activeQuestion.content)}
+                          className="mt-1 text-sm leading-5 text-slate-600"
+                        />
                       </div>
                     </div>
                   </div>
@@ -1013,6 +1017,220 @@ function QuestionNavigator({ total, currentIndex, answeredIds, checkedIds, quest
 }
 
 type TemplateData = Record<string, any> & { template: string };
+type TextHighlight = {
+  id: string;
+  start: number;
+  end: number;
+  color: string;
+};
+
+const HIGHLIGHT_COLOR = '#fde68a';
+const HIGHLIGHT_STORAGE_PREFIX = 'aptis-reading-highlights';
+
+function loadTextHighlights(storageKey: string): TextHighlight[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? '[]');
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item) => Number.isFinite(item?.start) && Number.isFinite(item?.end) && item.end > item.start)
+      .map((item) => ({
+        id: String(item.id ?? `${item.start}-${item.end}`),
+        start: Number(item.start),
+        end: Number(item.end),
+        color: typeof item.color === 'string' ? item.color : HIGHLIGHT_COLOR
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function saveTextHighlights(storageKey: string, highlights: TextHighlight[]) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(storageKey, JSON.stringify(highlights));
+}
+
+function getSelectionTextRange(root: HTMLElement): Pick<TextHighlight, 'start' | 'end'> | null {
+  const selection = window.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null;
+  if (!selection.anchorNode || !selection.focusNode) return null;
+  if (!root.contains(selection.anchorNode) || !root.contains(selection.focusNode)) return null;
+
+  const range = selection.getRangeAt(0);
+  const start = textOffsetInRoot(root, range.startContainer, range.startOffset);
+  const end = textOffsetInRoot(root, range.endContainer, range.endOffset);
+  const normalizedStart = Math.max(0, Math.min(start, end));
+  const normalizedEnd = Math.max(0, Math.max(start, end));
+  if (normalizedEnd <= normalizedStart) return null;
+  return { start: normalizedStart, end: normalizedEnd };
+}
+
+function textOffsetInRoot(root: HTMLElement, node: Node, offset: number) {
+  const range = document.createRange();
+  range.selectNodeContents(root);
+  try {
+    range.setEnd(node, offset);
+    return range.toString().length;
+  } finally {
+    range.detach();
+  }
+}
+
+function applyTextHighlights(root: HTMLElement, highlights: TextHighlight[]) {
+  if (!highlights.length) return;
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const textNodes: Array<{ node: Text; start: number; end: number }> = [];
+  let cursor = 0;
+  let current = walker.nextNode();
+  while (current) {
+    const node = current as Text;
+    const length = node.data.length;
+    textNodes.push({ node, start: cursor, end: cursor + length });
+    cursor += length;
+    current = walker.nextNode();
+  }
+
+  const normalizedHighlights = highlights
+    .filter((item) => item.end > item.start)
+    .sort((first, second) => first.start - second.start);
+
+  textNodes.forEach(({ node, start, end }) => {
+    const matches = normalizedHighlights
+      .map((highlight) => ({
+        ...highlight,
+        start: Math.max(highlight.start, start),
+        end: Math.min(highlight.end, end)
+      }))
+      .filter((highlight) => highlight.end > highlight.start);
+    if (!matches.length || !node.parentNode) return;
+
+    const fragment = document.createDocumentFragment();
+    let localCursor = 0;
+    matches.forEach((highlight) => {
+      const localStart = highlight.start - start;
+      const localEnd = highlight.end - start;
+      if (localStart > localCursor) {
+        fragment.appendChild(document.createTextNode(node.data.slice(localCursor, localStart)));
+      }
+      const mark = document.createElement('mark');
+      mark.className = 'rounded-sm px-0.5 text-slate-950';
+      mark.style.backgroundColor = highlight.color;
+      mark.appendChild(document.createTextNode(node.data.slice(localStart, localEnd)));
+      fragment.appendChild(mark);
+      localCursor = localEnd;
+    });
+    if (localCursor < node.data.length) {
+      fragment.appendChild(document.createTextNode(node.data.slice(localCursor)));
+    }
+    node.parentNode.replaceChild(fragment, node);
+  });
+}
+
+function mergeTextHighlights(highlights: TextHighlight[]) {
+  const sorted = highlights
+    .filter((item) => item.end > item.start)
+    .sort((first, second) => first.start - second.start);
+  return sorted.reduce<TextHighlight[]>((merged, item) => {
+    const previous = merged[merged.length - 1];
+    if (!previous || item.start > previous.end) {
+      merged.push(item);
+      return merged;
+    }
+    previous.end = Math.max(previous.end, item.end);
+    return merged;
+  }, []);
+}
+
+function HighlightableText({ storageId, text, html, className = '' }: {
+  storageId: string;
+  text?: string;
+  html?: string;
+  className?: string;
+}) {
+  const storageKey = `${HIGHLIGHT_STORAGE_PREFIX}:${storageId}`;
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const [highlights, setHighlights] = useState<TextHighlight[]>(() => loadTextHighlights(storageKey));
+  const [pendingRange, setPendingRange] = useState<Pick<TextHighlight, 'start' | 'end'> | null>(null);
+  const hasContent = Boolean((html ?? text ?? '').trim());
+
+  useEffect(() => {
+    setHighlights(loadTextHighlights(storageKey));
+    setPendingRange(null);
+  }, [storageKey]);
+
+  useEffect(() => {
+    const root = contentRef.current;
+    if (!root) return;
+    if (html !== undefined) {
+      root.innerHTML = html;
+    } else {
+      root.textContent = text ?? '';
+    }
+    applyTextHighlights(root, highlights);
+  }, [html, text, highlights]);
+
+  function rememberSelection() {
+    const root = contentRef.current;
+    if (!root) return;
+    setPendingRange(getSelectionTextRange(root));
+  }
+
+  function addHighlight() {
+    if (!pendingRange) {
+      toast.error('Bạn hãy bôi đen đoạn chữ cần ghi nhớ trước.');
+      return;
+    }
+    const next = mergeTextHighlights([
+      ...highlights.filter((item) => !(item.start === pendingRange.start && item.end === pendingRange.end)),
+      { id: `${Date.now()}-${pendingRange.start}-${pendingRange.end}`, ...pendingRange, color: HIGHLIGHT_COLOR }
+    ]);
+    setHighlights(next);
+    saveTextHighlights(storageKey, next);
+    setPendingRange(null);
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function clearHighlights() {
+    setHighlights([]);
+    saveTextHighlights(storageKey, []);
+    setPendingRange(null);
+  }
+
+  if (!hasContent) return null;
+
+  return (
+    <div className={className}>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={addHighlight}
+          disabled={!pendingRange}
+          title="Bôi đen đoạn chữ rồi bấm để tô sáng"
+        >
+          <Highlighter size={14} />Tô sáng
+        </button>
+        <button
+          type="button"
+          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={clearHighlights}
+          disabled={!highlights.length}
+          title="Xóa các đoạn đã tô sáng trong vùng này"
+        >
+          <Eraser size={14} />Xóa
+        </button>
+      </div>
+      <div
+        ref={contentRef}
+        className="select-text"
+        onMouseUp={rememberSelection}
+        onKeyUp={rememberSelection}
+        onTouchEnd={rememberSelection}
+      />
+    </div>
+  );
+}
 type ListeningReviewGroup = '1-13' | '14' | '15' | '16-17';
 const EXAM_POINT_PER_QUESTION = 2;
 
@@ -2107,7 +2325,13 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         <h1 className="mb-3 text-3xl font-extrabold">Reading Question <span className="mx-2 inline-flex min-w-12 justify-center border-b border-slate-900">{currentNumber ?? 1}</span> of {data.total}</h1>
         {topic && <h2 className="mb-4 text-xl font-bold text-red-600">Topic: {topic}</h2>}
         <p className="mb-4 text-sm">{data.instructions}</p>
-        {data.before && <p className="mb-4 whitespace-pre-line text-sm">{data.before}</p>}
+        {data.before && (
+          <HighlightableText
+            storageId={`question-${questionId}-reading-gap-before`}
+            text={data.before}
+            className="mb-4 whitespace-pre-line text-sm"
+          />
+        )}
         <div className="space-y-2.5">
           {rows.map((row: any, index: number) => {
             const parts = getReadingGapParts(row);
@@ -2125,7 +2349,13 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
             );
           })}
         </div>
-        {data.after && <p className="mt-5 whitespace-pre-line text-sm">{data.after}</p>}
+        {data.after && (
+          <HighlightableText
+            storageId={`question-${questionId}-reading-gap-after`}
+            text={data.after}
+            className="mt-5 whitespace-pre-line text-sm"
+          />
+        )}
         {showAnswers && correctAnswers.length > 0 && (
           <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3">
             <h3 className="mb-2 font-extrabold text-green-800">Đáp án</h3>
@@ -2212,7 +2442,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                 }}
                 onDragEnd={() => setDragSentence('')}
               >
-                <span>{sentence}</span>
+                <HighlightableText
+                  storageId={`question-${questionId}-order-sentence-${index}`}
+                  text={sentence}
+                  className="flex-1"
+                />
                 <span className="ml-4 inline-flex items-center overflow-hidden rounded-full border border-brand-200 bg-brand-600 text-white shadow-sm">
                     <span className="inline-flex h-7 min-w-7 items-center justify-center px-2 text-sm font-extrabold">{index + 1}</span>
                     <button
@@ -2284,9 +2518,19 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
         {topic && <h2 className="mb-4 text-xl font-bold text-red-600">Topic: {topic}</h2>}
         <div className="grid gap-6 text-[15px] leading-6 lg:grid-cols-[1.15fr_0.85fr]">
           <section>
-            <p className="mb-3 font-extrabold leading-6" dangerouslySetInnerHTML={{ __html: data.leftTitle ?? '' }} />
+            <HighlightableText
+              storageId={`question-${questionId}-forum-title`}
+              html={data.leftTitle ?? ''}
+              className="mb-3 font-extrabold leading-6"
+            />
             <div className="space-y-3 leading-6">
-              {(data.opinions ?? []).map((opinion: string) => <p key={opinion} dangerouslySetInnerHTML={{ __html: opinion }} />)}
+              {(data.opinions ?? []).map((opinion: string, index: number) => (
+                <HighlightableText
+                  key={`${opinion}-${index}`}
+                  storageId={`question-${questionId}-forum-opinion-${index}`}
+                  html={opinion}
+                />
+              ))}
             </div>
           </section>
           <section>
@@ -2396,9 +2640,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, featured, init
                     {options.map((option: string) => <option value={option} key={option}>{option}</option>)}
                   </select>
                   {showScript && (
-                    <p className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700">
-                      {paragraph}
-                    </p>
+                    <HighlightableText
+                      storageId={`question-${questionId}-heading-paragraph-${index}`}
+                      text={paragraph}
+                      className="mt-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-700"
+                    />
                   )}
                 </div>
               </div>
