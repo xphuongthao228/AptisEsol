@@ -770,8 +770,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Politics',
     subtitle: 'Chính trị',
     variants: [
-      { speaker: 'Nam', key: 'B - M - W - B', note: 'Cả hai cùng nói về chính trị, nhưng nam và nữ có quan điểm riêng ở giữa.' },
-      { speaker: 'Nữ', key: 'B - W - M - B', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'B - M - W - B', note: 'Cả đàn ông (M) và phụ nữ (W) đều (B) phải tôn trọng pháp luật.' },
+      { speaker: 'Nữ', key: 'B - W - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -779,8 +779,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'IT & Tech',
     subtitle: 'Thông tin & Công nghệ',
     variants: [
-      { speaker: 'Nam', key: 'M - W - W - B', note: 'Nam nói trước, nữ phản hồi về công nghệ, cuối cùng cả hai cùng đồng ý.' },
-      { speaker: 'Nữ', key: 'W - M - M - B', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'M - M - W - B', note: 'Đàn ông (M) chê phụ nữ (W) kém công nghệ, nhưng phụ nữ (W) nghĩ cả 2 (B) đều giỏi.' },
+      { speaker: 'Nữ', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -788,8 +788,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Arts',
     subtitle: 'Nghệ thuật',
     variants: [
-      { speaker: 'Nam', key: 'M - W - B - W', note: 'Nam và nữ nói về nghệ thuật, có đoạn cả hai cùng đồng tình.' },
-      { speaker: 'Nữ', key: 'W - M - B - M', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'M - W - B - W', note: 'Chàng trai (M) và cô gái (W) cùng nhau (B) nhảy múa, nhưng cô gái (W) rời đi khi trời tối còn rất trẻ.' },
+      { speaker: 'Nữ', key: 'W - M - B - M', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -797,8 +797,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Music',
     subtitle: 'Âm nhạc & Ca sĩ',
     variants: [
-      { speaker: 'Nam', key: 'M - B - W - B', note: 'Nam nói trước, sau đó cả hai cùng nhắc đến âm nhạc và ca sĩ.' },
-      { speaker: 'Nữ', key: 'W - B - M - B', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'M - B - W - B', note: 'Đàn ông (M) thích cả (B) âm nhạc và ca sĩ. Phụ nữ (W) cũng thích cả (B) âm nhạc và ca sĩ.' },
+      { speaker: 'Nữ', key: 'W - B - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -806,8 +806,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'University',
     subtitle: 'Trường đại học',
     variants: [
-      { speaker: 'Nam', key: 'B - W - M - W', note: 'Cả hai nói về trường đại học, chú ý thứ tự nam/nữ trong từng ý.' },
-      { speaker: 'Nữ', key: 'B - M - W - M', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'B - W - M - W', note: 'Bố (M) đưa con gái (W) đi học, nhưng đến trường thì người yêu (M) đưa con gái (W) đi chơi.' },
+      { speaker: 'Nữ', key: 'B - M - W - M', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -815,8 +815,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Urban Farming',
     subtitle: 'Nông nghiệp đô thị',
     variants: [
-      { speaker: 'Nam', key: 'W - B - M - B', note: 'Nữ có ý riêng, sau đó cả hai cùng nói về chủ đề nông nghiệp.' },
-      { speaker: 'Nữ', key: 'M - B - W - B', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'W - B - M - B', note: 'Phụ nữ (W) nói cả (B) đàn ông (M) và phụ nữ đều (B) phải làm ruộng.' },
+      { speaker: 'Nữ', key: 'M - B - W - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -824,8 +824,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Local Center',
     subtitle: 'Trung tâm cộng đồng',
     variants: [
-      { speaker: 'Nam', key: 'M - B - W - W', note: 'Nam nói trước, cả hai cùng bàn về trung tâm cộng đồng, nữ kết thúc.' },
-      { speaker: 'Nữ', key: 'W - B - M - M', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'M - B - W - W', note: 'Mẹ (M) bảo (B) Win (W) tìm em gái (W) ở trung tâm cộng đồng.' },
+      { speaker: 'Nữ', key: 'W - B - M - M', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -833,8 +833,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Design',
     subtitle: 'Thiết kế cộng đồng',
     variants: [
-      { speaker: 'Nam', key: 'B - W - M - B', note: 'Cả hai bàn về thiết kế, giữa bài có ý riêng của nữ và nam.' },
-      { speaker: 'Nữ', key: 'B - M - W - B', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'B - W - M - B', note: 'Bố (B) Win (W) muốn (M) bàn (B) về thiết kế nhà.' },
+      { speaker: 'Nữ', key: 'B - M - W - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -842,7 +842,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Beauty',
     subtitle: 'Sắc đẹp',
     variants: [
-      { speaker: 'Nữ', key: 'M - W - B - W', warning: 'Chỉ có phiên bản giọng nữ.', note: 'Chú ý thứ tự nam/nữ và ý chung của cả hai trong chủ đề sắc đẹp.' }
+      { speaker: 'Nữ', key: 'M - W - B - W', warning: 'Chỉ có phiên bản giọng Nữ.', note: 'Chàng trai (M) đưa cô gái (W) đi làm đẹp, cuối cùng thì hai (B) bị bà chủ tiệm (W) lừa bán sang.' }
     ]
   },
   {
@@ -850,7 +850,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Workplace',
     subtitle: 'Nơi làm việc',
     variants: [
-      { speaker: 'Nữ', key: 'M - W - B - M', warning: 'Chỉ có phiên bản giọng nữ.', note: 'Chú ý ý kiến của nam, nữ và ý chung khi nói về nơi làm việc.' }
+      { speaker: 'Nữ', key: 'M - W - B - M', warning: 'Chỉ có phiên bản giọng Nữ.', note: 'Chú ý ý kiến của nam, nữ và ý chung khi nói về nơi làm việc.' }
     ]
   },
   {
@@ -858,7 +858,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Actor',
     subtitle: 'Diễn viên',
     variants: [
-      { key: 'M - W - B - B', note: 'Mẹo: "Mở Win Bữa Bạn" (MWBB). Có thể nam hoặc nữ nói trước.', badge: 'Do có nhiều phiên bản nên chọn MWBB' }
+      { key: 'M - W - B - B', note: 'Mẹo: Người đàn ông (M) bảo người phụ nữ (W) làm cả hai (B) nghề nên người đàn ông (M) bỏ đi.', badge: 'Do có nhiều phiên bản nên chọn MWBB' }
     ]
   },
   {
@@ -866,7 +866,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Internet',
     subtitle: 'Mạng Internet',
     variants: [
-      { key: 'B - W - B - B', note: 'Mẹo: "Bỏ Win Bữa Bạn" (BWBB). Có thể nam hoặc nữ nói trước.', badge: 'Do có nhiều phiên bản nên chọn BWBB' }
+      { key: 'B - W - B - B', note: 'Mẹo: "Bố Win Bữa Bạn" (BWBB). Cả nam hoặc nữ nói trước.', badge: 'Do có nhiều phiên bản nên chọn BWBB' }
     ]
   },
   {
@@ -874,8 +874,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Homeschooling',
     subtitle: 'Học tại nhà',
     variants: [
-      { speaker: 'Nữ', key: 'M - W - W - B', note: 'Chú ý thứ tự ý kiến của nam và nữ trong chủ đề học tại nhà.' },
-      { speaker: 'Nam', key: 'W - M - M - B', note: 'Đổi vị trí M và W nếu giọng nam nói trước.' }
+      { speaker: 'Nam', key: 'M - M - W - B', note: 'Mình (M) vẫn (W) viết (W) bài (B) cho trường học.' },
+      { speaker: 'Nữ', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -883,8 +883,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Children and Teenagers with Technology',
     subtitle: 'Trẻ em và thanh thiếu niên với công nghệ',
     variants: [
-      { speaker: 'Nam', key: 'B - B - M - W', note: 'Hai ý đầu thường là ý chung, sau đó đến ý riêng của nam và nữ.' },
-      { speaker: 'Nữ', key: 'B - B - W - M', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'B - B - M - W', note: 'Công nghệ biến (B) bạn (B) mẹ (M) Web (W).' },
+      { speaker: 'Nữ', key: 'B - B - W - M', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -892,8 +892,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Environmental volunteer program',
     subtitle: 'Chương trình tình nguyện môi trường',
     variants: [
-      { speaker: 'Nam', key: 'B - M - W - M', note: 'Cả hai mở đầu bằng ý chung, sau đó lần lượt là ý riêng của nam và nữ.' },
-      { speaker: 'Nữ', key: 'B - W - M - W', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'B - M - W - M', note: 'Bố (B) muốn (M) con gái (W) và con trai (M) tham gia chương trình tình nguyện môi trường.' },
+      { speaker: 'Nữ', key: 'B - W - M - W', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -901,8 +901,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Local Culture different',
     subtitle: 'Văn hóa địa phương khác biệt',
     variants: [
-      { speaker: 'Nam', key: 'M - B - W - W', note: 'Nam nói ý riêng, giữa bài là ý chung, cuối bài nữ nêu thêm ý riêng.' },
-      { speaker: 'Nữ', key: 'W - B - M - M', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'M - B - W - W', note: 'Đàn ông (M) không nên bắt (B) hai phụ nữ (WW) phải giống nhau khi văn hóa của họ không giống nhau.' },
+      { speaker: 'Nữ', key: 'W - B - M - M', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {
@@ -910,8 +910,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Work Business / Business and Cultural',
     subtitle: 'Kinh doanh & Văn hóa công sở',
     variants: [
-      { speaker: 'Nam', key: 'W - B - M - M', note: 'Nữ nêu ý riêng, sau đó là ý chung, cuối bài nam nêu thêm ý riêng.' },
-      { speaker: 'Nữ', key: 'M - B - W - W', note: 'Đổi vị trí M và W nếu giọng nữ nói trước.' }
+      { speaker: 'Nam', key: 'W - B - M - M', note: 'Một phụ nữ (W) và (B) hai người đàn ông (M) cùng khởi nghiệp kinh doanh.' },
+      { speaker: 'Nữ', key: 'M - B - W - W', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   }
 ];

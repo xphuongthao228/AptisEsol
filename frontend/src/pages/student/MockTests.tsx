@@ -660,6 +660,27 @@ function parseQuestionDataArray(questionData?: string) {
   }
 }
 
+function questionToMockData(question: Question, skill: MockSkill) {
+  const metadata: Record<string, unknown> = { skill };
+  if (question.topic?.trim()) metadata.topic = question.topic;
+  if (question.audioUrl?.trim()) metadata.audioUrl = question.audioUrl;
+  if (question.scriptText?.trim()) metadata.scriptText = question.scriptText;
+  if (question.explanation?.trim()) metadata.explanation = question.explanation;
+  if (question.answers?.length) metadata.answers = question.answers;
+
+  try {
+    const parsed = JSON.parse(question.content);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? { ...parsed, ...metadata }
+      : { ...metadata, prompt: String(parsed ?? question.content) };
+  } catch {
+    return {
+      ...metadata,
+      prompt: question.content
+    };
+  }
+}
+
 function normalizeQuestionDataObject(data: Record<string, unknown>) {
   if (data.template !== 'WRITING_CLUB_COLLECTION') return [];
   const clubs = Array.isArray(data.clubs) ? data.clubs : [];
@@ -1689,7 +1710,25 @@ function limitWords(value: string, maxWords: number) {
   return words.slice(0, maxWords).join(' ');
 }
 
+function normalizeAudioUrl(value?: string) {
+  const cleaned = String(value ?? '').trim().replace(/^["']|["']$/g, '');
+  if (!cleaned) return '';
+  if (/^(https?:|blob:|data:)/i.test(cleaned)) return cleaned;
+
+  const apiBaseUrl = String(api.defaults.baseURL ?? '').replace(/\/+$/, '');
+  const apiOrigin = apiBaseUrl.replace(/\/api$/i, '');
+  if (!apiOrigin) return cleaned;
+
+  if (cleaned.startsWith('/api/')) return `${apiOrigin}${cleaned}`;
+  if (cleaned.startsWith('api/')) return `${apiOrigin}/${cleaned}`;
+  if (cleaned.startsWith('/media/')) return `${apiOrigin}/api${cleaned}`;
+  if (cleaned.startsWith('media/')) return `${apiOrigin}/api/${cleaned}`;
+  if (cleaned.startsWith('/')) return `${apiOrigin}${cleaned}`;
+  return cleaned;
+}
+
 function useAudioPlayer(audioUrl?: string) {
+  const playableAudioUrl = normalizeAudioUrl(audioUrl);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playCount, setPlayCount] = useState(0);
@@ -1699,21 +1738,21 @@ function useAudioPlayer(audioUrl?: string) {
     audioRef.current = null;
     setPlaying(false);
     setPlayCount(0);
-  }, [audioUrl]);
+  }, [playableAudioUrl]);
 
   useEffect(() => () => {
     audioRef.current?.pause();
   }, []);
 
   async function toggleAudio() {
-    if (!audioUrl) {
+    if (!playableAudioUrl) {
       toast.error('Chưa có file nghe cho câu này.');
       return;
     }
 
     try {
       if (!audioRef.current) {
-        const audio = new Audio(audioUrl);
+        const audio = new Audio(playableAudioUrl);
         audio.preload = 'auto';
         audio.onended = () => setPlaying(false);
         audio.onerror = () => {
@@ -2454,21 +2493,7 @@ export function MockTests() {
         const questionData = JSON.stringify(groups.flatMap(({ skill, questions }) =>
           [...questions]
             .sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0))
-            .map((question) => {
-              try {
-                const parsed = JSON.parse(question.content);
-                return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-                  ? { ...parsed, skill }
-                  : parsed;
-              } catch {
-                return {
-                  skill,
-                  prompt: question.content,
-                  topic: question.topic,
-                  answers: question.answers
-                };
-              }
-            })
+            .map((question) => questionToMockData(question, skill))
         ));
         return { ...card, questionData };
       } catch {
@@ -2481,19 +2506,8 @@ export function MockTests() {
       const questions = await unwrap<Question[]>(api.get(`/questions?testId=${card.practiceTestId}`));
       const orderedQuestions = [...questions].sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));
       const questionData = orderedQuestions.length === 1
-        ? orderedQuestions[0].content
-        : JSON.stringify(orderedQuestions.map((question) => {
-            try {
-              return JSON.parse(question.content);
-            } catch {
-              return {
-                skill: card.skill,
-                prompt: question.content,
-                topic: question.topic,
-                answers: question.answers
-              };
-            }
-          }));
+        ? JSON.stringify(questionToMockData(orderedQuestions[0], card.skill))
+        : JSON.stringify(orderedQuestions.map((question) => questionToMockData(question, card.skill)));
       return { ...card, questionData };
     } catch {
       toast.error('Không tải được dữ liệu đề thi thử.');
