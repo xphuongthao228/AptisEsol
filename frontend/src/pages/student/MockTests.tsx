@@ -421,8 +421,8 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   };
 }
 
-function isRemovedFullAptisMockTest(card: Pick<MockCard, 'skill' | 'title'>) {
-  return card.skill === 'FULL' && /^Full Aptis Mock Test [1-5]$/i.test(card.title.trim());
+function isRemovedMockTest(card: Pick<MockCard, 'skill' | 'title'>) {
+  return card.skill !== 'FULL' || /^Full Aptis Mock Test [1-5]$/i.test(card.title.trim());
 }
 
 function apiExamTestToCard(item: Test): MockCard | null {
@@ -3245,7 +3245,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
   }, []);
 
   const visibleCards = adminCards
-    .filter((card) => !isRemovedFullAptisMockTest(card))
+    .filter((card) => !isRemovedMockTest(card))
     .filter((card) => card.skill === selectedSkill)
     .sort(compareMockCards);
 
