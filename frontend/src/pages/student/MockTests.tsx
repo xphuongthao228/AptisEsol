@@ -421,6 +421,10 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   };
 }
 
+function isRemovedFullAptisMockTest(card: Pick<MockCard, 'skill' | 'title'>) {
+  return card.skill === 'FULL' && /^Full Aptis Mock Test [1-5]$/i.test(card.title.trim());
+}
+
 function apiExamTestToCard(item: Test): MockCard | null {
   if ((item.mode ?? 'PRACTICE') !== 'EXAM' || item.status !== 'PUBLISHED' || !item.title?.trim()) return null;
   const skill = normalizeExamSkill(item.skillName);
@@ -3241,6 +3245,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
   }, []);
 
   const visibleCards = adminCards
+    .filter((card) => !isRemovedFullAptisMockTest(card))
     .filter((card) => card.skill === selectedSkill)
     .sort(compareMockCards);
 
