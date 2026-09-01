@@ -34,6 +34,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api, unwrap } from '../api/client';
 import { LingoWidget } from '../components/LingoWidget';
+import { NotificationDialog } from '../components/NotificationDialog';
 import { SEO, getSeoByPath } from '../components/SEO';
 import { communityInviteDismissedKey } from '../pages/student/Dashboard';
 import { useAuthStore } from '../store/authStore';
@@ -473,6 +474,7 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [readIds, setReadIds] = useState<number[]>(() => loadReadNotificationIds(user));
+  const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
   const notificationRef = useRef<HTMLDivElement>(null);
   const isAdmin = userHasRole(user, 'ADMIN');
 
@@ -526,7 +528,15 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
     saveReadNotificationIds(user, nextIds);
   }
 
+  function openNotification(notification: AppNotification) {
+    const nextIds = Array.from(new Set([...readIds, notification.id]));
+    setReadIds(nextIds);
+    saveReadNotificationIds(user, nextIds);
+    setSelectedNotification(notification);
+  }
+
   return (
+    <>
     <div className="relative" ref={notificationRef}>
       <button
         type="button"
@@ -565,9 +575,11 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
             {notifications.length ? notifications.map((notification) => {
               const unread = !readIds.includes(notification.id);
               return (
-                <article
+                <button
+                  type="button"
                   key={notification.id}
-                  className={`rounded-xl p-3 transition ${unread ? 'bg-brand-50' : 'hover:bg-sky-50'}`}
+                  onClick={() => openNotification(notification)}
+                  className={`w-full rounded-xl p-3 text-left transition ${unread ? 'bg-brand-50' : 'hover:bg-sky-50'}`}
                 >
                   <div className="flex items-start gap-3">
                     <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${unread ? 'bg-red-600' : 'bg-slate-300'}`} />
@@ -585,7 +597,7 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
                       <p className="mt-2 text-[11px] font-semibold text-slate-500">{formatNotificationDate(notification.createdAt)}</p>
                     </div>
                   </div>
-                </article>
+                </button>
               );
             }) : (
               <div className="px-4 py-8 text-center">
@@ -597,6 +609,8 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
         </div>
       )}
     </div>
+    <NotificationDialog notification={selectedNotification} onClose={() => setSelectedNotification(null)} />
+    </>
   );
 }
 

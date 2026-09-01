@@ -23,6 +23,7 @@ import {
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
+import { NotificationDialog } from '../../components/NotificationDialog';
 import type { AppNotification } from '../../types';
 
 const stats = [
@@ -253,6 +254,7 @@ const dashboardNotificationLevelStyles = {
 function DashboardNotificationPanel() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [dismissed, setDismissed] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<AppNotification | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -307,7 +309,12 @@ function DashboardNotificationPanel() {
 
       <div className="space-y-2">
         {notifications.length ? notifications.map((notification) => (
-          <article className="rounded-xl bg-sky-50/70 p-2.5" key={notification.id}>
+          <button
+            type="button"
+            className="w-full rounded-xl bg-sky-50/70 p-2.5 text-left transition hover:bg-brand-50"
+            key={notification.id}
+            onClick={() => setSelectedNotification(notification)}
+          >
             <div className="mb-1 flex flex-wrap items-center gap-1.5">
               {notification.pinned && (
                 <span className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-extrabold text-white">
@@ -321,7 +328,7 @@ function DashboardNotificationPanel() {
             </div>
             <h3 className="line-clamp-2 text-xs font-extrabold leading-5 text-navy">{notification.title}</h3>
             <p className="mt-1 line-clamp-2 whitespace-pre-line text-[11px] font-medium leading-5 text-slate-600">{notification.message}</p>
-          </article>
+          </button>
         )) : (
           <div className="rounded-xl bg-sky-50/70 px-3 py-5 text-center">
             <Bell className="mx-auto mb-2 text-slate-300" size={26} />
@@ -329,6 +336,7 @@ function DashboardNotificationPanel() {
           </div>
         )}
       </div>
+      <NotificationDialog notification={selectedNotification} onClose={() => setSelectedNotification(null)} />
     </aside>
   );
 }
