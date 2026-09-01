@@ -82,9 +82,9 @@ export function Leaderboard() {
             <CalendarDays size={22} />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-extrabold text-navy">Thời gian thi</h2>
+            <h2 className="text-base font-extrabold text-navy">Ngày bắt đầu thi</h2>
             <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-              {examDate ? formatDateOnly(examDate) : 'Admin chưa đặt thời gian thi.'}
+              {examDate ? formatDateOnly(examDate) : 'Admin chưa đặt ngày bắt đầu thi.'}
             </p>
             {isAdmin && (
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -275,7 +275,7 @@ function toDateInputValue(examAt?: string | null, examDate?: string | null) {
 }
 
 function formatDateOnly(value: string | null) {
-  if (!value) return 'Admin chưa đặt thời gian thi.';
+  if (!value) return 'Admin chưa đặt ngày bắt đầu thi.';
   const [year, month, day] = value.slice(0, 10).split('-').map(Number);
   const date = year && month && day ? new Date(year, month - 1, day) : new Date(value);
   if (Number.isNaN(date.getTime())) return value;
