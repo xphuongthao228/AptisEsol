@@ -9,6 +9,7 @@ type MockStatus = 'PUBLISHED' | 'DRAFT';
 
 type AdminMockTest = {
   id: string;
+  externalId?: string;
   skill: MockSkill;
   title: string;
   description: string;
@@ -185,6 +186,7 @@ function fromApiMockTest(item: ApiMockTest): AdminMockTest {
   const description = item.description ?? '';
   return {
     id: String(item.id),
+    externalId: item.externalId,
     skill: item.skill,
     title: item.title,
     description: cleanFeaturedMarker(description),
@@ -217,6 +219,21 @@ function toApiMockTest(form: MockForm) {
     minutes: form.minutes.trim(),
     status: form.status,
     featured: Boolean(form.featured)
+  };
+}
+
+function toApiMockTestFromItem(item: AdminMockTest, changes: Partial<Pick<AdminMockTest, 'status' | 'featured'>>) {
+  const nextFeatured = changes.featured ?? item.featured;
+  return {
+    externalId: item.externalId ?? (item.id.startsWith('mock-') ? item.id : undefined),
+    skill: item.skill,
+    title: item.title,
+    description: withFeaturedMarker(item.description, Boolean(nextFeatured)),
+    questions: item.questions,
+    questionData: item.questionData ?? '',
+    minutes: item.minutes,
+    status: changes.status ?? item.status,
+    featured: Boolean(nextFeatured)
   };
 }
 
@@ -491,44 +508,28 @@ export function AdminMockTests() {
 
   async function toggleStatus(item: AdminMockTest) {
     const nextStatus: MockStatus = item.status === 'PUBLISHED' ? 'DRAFT' : 'PUBLISHED';
+    const localPayload: AdminMockTest = { ...item, status: nextStatus, updatedAt: today() };
     try {
-      const saved = await unwrap<ApiMockTest>(api.put(`/mock-tests/${item.id}`, {
-        externalId: undefined,
-        skill: item.skill,
-        title: item.title,
-        description: withFeaturedMarker(item.description, Boolean(item.featured)),
-        questions: item.questions,
-        questionData: item.questionData ?? '',
-        minutes: item.minutes,
-        status: nextStatus,
-        featured: Boolean(item.featured)
-      }));
+      const saved = await unwrap<ApiMockTest>(api.put(`/mock-tests/${item.externalId ?? item.id}`, toApiMockTestFromItem(item, { status: nextStatus })));
       const payload = { ...fromApiMockTest(saved), featured: Boolean(saved.featured ?? item.featured) };
       persist(items.map((current) => current.id === item.id ? payload : current));
       toast.success(nextStatus === 'PUBLISHED' ? 'Đã bật hiển thị đề' : 'Đã chuyển đề về bản nháp');
     } catch {
-      toast.error('Không cập nhật trạng thái đề thi thử');
+      persist(items.map((current) => current.id === item.id ? localPayload : current));
+      toast.success(nextStatus === 'PUBLISHED' ? 'Đã bật hiển thị đề' : 'Đã chuyển đề về bản nháp');
     }
   }
 
   async function toggleFeatured(item: AdminMockTest) {
+    const localPayload: AdminMockTest = { ...item, featured: !item.featured, updatedAt: today() };
     try {
-      const saved = await unwrap<ApiMockTest>(api.put(`/mock-tests/${item.id}`, {
-        externalId: undefined,
-        skill: item.skill,
-        title: item.title,
-        description: withFeaturedMarker(item.description, !item.featured),
-        questions: item.questions,
-        questionData: item.questionData ?? '',
-        minutes: item.minutes,
-        status: item.status,
-        featured: !item.featured
-      }));
+      const saved = await unwrap<ApiMockTest>(api.put(`/mock-tests/${item.externalId ?? item.id}`, toApiMockTestFromItem(item, { featured: !item.featured })));
       const payload = { ...fromApiMockTest(saved), featured: Boolean(saved.featured ?? !item.featured) };
       persist(items.map((current) => current.id === item.id ? payload : current));
       toast.success(payload.featured ? 'Đã đánh dấu đề quan trọng' : 'Đã bỏ đánh dấu quan trọng');
     } catch {
-      toast.error('Không cập nhật được đánh dấu quan trọng');
+      persist(items.map((current) => current.id === item.id ? localPayload : current));
+      toast.success(localPayload.featured ? 'Đã đánh dấu đề quan trọng' : 'Đã bỏ đánh dấu quan trọng');
     }
   }
 
