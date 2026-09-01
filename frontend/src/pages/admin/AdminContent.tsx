@@ -311,6 +311,11 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
 
   async function importTestsCsv(file: File | undefined) {
     if (!file) return;
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.csv') && !lowerName.endsWith('.zip')) {
+      toast.error('File upload phải là .csv hoặc .zip');
+      return;
+    }
     const formData = new FormData();
     formData.append('file', file);
     try {
@@ -318,9 +323,11 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
         headers: { 'Content-Type': 'multipart/form-data' }
       }));
       setTests([...imported, ...tests]);
-      toast.success(`Đã import ${imported.length} bài luyện/đề thi thử`);
+      toast.success(lowerName.endsWith('.zip')
+        ? `Đã import ${imported.length} đề thi thử`
+        : `Đã import ${imported.length} bài luyện/đề thi thử`);
     } catch (error: any) {
-      toast.error(apiErrorMessage(error, 'Không import được bài luyện/đề thi thử từ CSV'));
+      toast.error(apiErrorMessage(error, 'Không import được bài luyện/đề thi thử từ file'));
     }
   }
 
@@ -359,7 +366,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
         <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="font-extrabold">Import bài luyện / đề thi thử</h3>
-            <p className="text-sm text-slate-600">CSV mode PRACTICE sẽ vào luyện theo part, mode EXAM sẽ hiển thị ở Thi thử.</p>
+            <p className="text-sm text-slate-600">CSV mode PRACTICE sẽ vào luyện theo part, mode EXAM sẽ hiển thị ở Thi thử. ZIP nhiều CSV sẽ tự tạo nhiều đề Thi thử.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {tests.length > 0 && (
@@ -381,10 +388,10 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
             )}
             <label className="btn-primary cursor-pointer justify-center">
               <UploadCloud size={18} />
-              Upload CSV
+              Upload CSV/ZIP
               <input
                 type="file"
-                accept=".csv,text/csv"
+                accept=".csv,.zip,text/csv,application/zip"
                 className="hidden"
                 onChange={(event) => {
                   importTestsCsv(event.target.files?.[0]);
@@ -412,7 +419,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
                 </p>
                 <h3 className="mt-1 font-semibold">{test.title}</h3>
                 <p className="mt-1 text-sm text-slate-600">{test.description}</p>
-                <p className="mt-2 text-xs text-slate-600">{test.durationMinutes} phít</p>
+                <p className="mt-2 text-xs text-slate-600">{test.durationMinutes} phút</p>
                 </div>
               </div>
               <div className="flex gap-2">

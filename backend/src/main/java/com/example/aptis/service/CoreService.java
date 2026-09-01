@@ -23,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.InputStreamReader;
@@ -36,6 +38,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 @Service
 @RequiredArgsConstructor
@@ -320,22 +324,15 @@ public class CoreService {
     @Transactional
     public List<CoreDtos.TestResponse> importTests(MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) {
-            throw new IllegalArgumentException("CSV file is empty");
+            throw new IllegalArgumentException("CSV/ZIP file is empty");
+        }
+        if (isZipUpload(file)) {
+            return importExamTestsFromZip(file);
         }
         List<CoreDtos.TestResponse> imported = new ArrayList<>();
         List<CSVRecord> records = new ArrayList<>();
         try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
-            Iterable<CSVRecord> parsedRecords = CSVFormat.DEFAULT.builder()
-                    .setHeader()
-                    .setSkipHeaderRecord(true)
-                    .setTrim(true)
-                    .build()
-                    .parse(reader);
-            for (CSVRecord record : parsedRecords) {
-                if (!isBlankCsvRecord(record)) {
-                    records.add(record);
-                }
-            }
+            records.addAll(readCsvRecords(reader));
         }
         if (isWritingCollectionRows(records)) {
             return importWritingRowsAsExamTests(records);
@@ -343,13 +340,15 @@ public class CoreService {
         for (CSVRecord record : records) {
             try {
                 Skill skill = skillForType(parseSkillType(requiredCsv(record, "skill")));
+                TestMode mode = parseTestMode(csv(record, "mode", "PRACTICE"));
                 Test test = new Test();
                 test.setSkill(skill);
                 test.setTitle(requiredCsv(record, "title"));
                 test.setDescription(csv(record, "description", ""));
-                test.setDurationMinutes(parseInteger(record, "duration_minutes", 30));
+                test.setDurationMinutes(parseInteger(record, "duration_minutes",
+                        mode == TestMode.EXAM ? defaultExamDuration(skill.getType()) : 30));
                 test.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
-                test.setMode(parseTestMode(csv(record, "mode", "PRACTICE")));
+                test.setMode(mode);
                 test.setFeatured(parseBoolean(csv(record, "featured", "false")));
                 Test saved = tests.save(test);
                 imported.add(mapper.test(saved, 0));
@@ -359,6 +358,137 @@ public class CoreService {
             }
         }
         return imported;
+    }
+
+    private List<CoreDtos.TestResponse> importExamTestsFromZip(MultipartFile file) throws Exception {
+        List<CoreDtos.TestResponse> imported = new ArrayList<>();
+        try (ZipInputStream zip = new ZipInputStream(file.getInputStream(), StandardCharsets.UTF_8)) {
+            ZipEntry entry;
+            while ((entry = zip.getNextEntry()) != null) {
+                if (entry.isDirectory() || !entry.getName().toLowerCase().endsWith(".csv")) {
+                    continue;
+                }
+
+                List<CSVRecord> records = readCsvRecords(new InputStreamReader(
+                        new ByteArrayInputStream(readZipEntry(zip)), StandardCharsets.UTF_8));
+                if (records.isEmpty()) {
+                    continue;
+                }
+
+                SkillType skillType = inferZipSkill(entry.getName(), records);
+                Skill skill = skillForType(skillType);
+                CSVRecord first = records.get(0);
+                String title = firstNonBlank(csv(first, "test_title", ""), titleFromZipEntry(entry.getName(), skillType));
+                Test test = new Test();
+                test.setSkill(skill);
+                test.setTitle(title);
+                test.setDescription(firstNonBlank(csv(first, "description", ""), title));
+                test.setDurationMinutes(parseInteger(first, "duration_minutes", defaultExamDuration(skillType)));
+                test.setStatus(parseTestStatus(csv(first, "status", "PUBLISHED")));
+                test.setMode(TestMode.EXAM);
+                test.setFeatured(parseBoolean(csv(first, "featured", "false")));
+                Test savedTest = tests.save(test);
+
+                int importedQuestions = 0;
+                for (CSVRecord record : records) {
+                    try {
+                        Question question = buildQuestionFromCsv(record, savedTest, importedQuestions + 1);
+                        question.setSortOrder(parseInteger(record, "sort_order", importedQuestions + 1));
+                        questions.save(question);
+                        importedQuestions++;
+                    } catch (RuntimeException ex) {
+                        throw new IllegalArgumentException(entry.getName() + " row " + record.getRecordNumber()
+                                + " error: " + ex.getMessage(), ex);
+                    }
+                }
+                imported.add(mapper.test(savedTest, importedQuestions));
+            }
+        }
+        if (imported.isEmpty()) {
+            throw new IllegalArgumentException("ZIP does not contain any CSV question files");
+        }
+        return imported;
+    }
+
+    private List<CSVRecord> readCsvRecords(Reader reader) throws Exception {
+        List<CSVRecord> records = new ArrayList<>();
+        try (Reader closeableReader = reader) {
+            Iterable<CSVRecord> parsedRecords = CSVFormat.DEFAULT.builder()
+                    .setHeader()
+                    .setSkipHeaderRecord(true)
+                    .setTrim(true)
+                    .build()
+                    .parse(closeableReader);
+            for (CSVRecord record : parsedRecords) {
+                if (!isBlankCsvRecord(record)) {
+                    records.add(record);
+                }
+            }
+        }
+        return records;
+    }
+
+    private byte[] readZipEntry(ZipInputStream zip) throws Exception {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        int read;
+        while ((read = zip.read(buffer)) != -1) {
+            output.write(buffer, 0, read);
+        }
+        return output.toByteArray();
+    }
+
+    private boolean isZipUpload(MultipartFile file) {
+        String filename = file.getOriginalFilename() == null ? "" : file.getOriginalFilename().toLowerCase();
+        return filename.endsWith(".zip") || "application/zip".equalsIgnoreCase(file.getContentType())
+                || "application/x-zip-compressed".equalsIgnoreCase(file.getContentType());
+    }
+
+    private SkillType inferZipSkill(String entryName, List<CSVRecord> records) {
+        for (CSVRecord record : records) {
+            String skill = csv(record, "skill", "");
+            if (!skill.isBlank()) {
+                return parseSkillType(skill);
+            }
+        }
+
+        String normalizedName = entryName == null ? "" : entryName.toLowerCase();
+        if (normalizedName.contains("listening")) return SkillType.LISTENING;
+        if (normalizedName.contains("speaking")) return SkillType.SPEAKING;
+        if (normalizedName.contains("writing")) return SkillType.WRITING;
+        if (normalizedName.contains("grammar")) return SkillType.GRAMMAR;
+        return SkillType.READING;
+    }
+
+    private String titleFromZipEntry(String entryName, SkillType skillType) {
+        String filename = entryName == null ? "" : entryName.replace("\\", "/");
+        int slashIndex = filename.lastIndexOf('/');
+        if (slashIndex >= 0) {
+            filename = filename.substring(slashIndex + 1);
+        }
+        filename = filename.replaceFirst("(?i)\\.csv$", "")
+                .replaceAll("(?i)_?import$", "")
+                .replace('_', ' ')
+                .replace('-', ' ')
+                .trim();
+
+        String[] parts = filename.split("\\s+");
+        for (int i = 0; i < parts.length - 1; i++) {
+            if (parts[i].equalsIgnoreCase("de") && parts[i + 1].matches("\\d+")) {
+                return skillName(skillType) + " Test " + parts[i + 1];
+            }
+        }
+        return filename.isBlank() ? skillName(skillType) + " Test" : filename;
+    }
+
+    private int defaultExamDuration(SkillType skillType) {
+        return switch (skillType) {
+            case LISTENING -> 40;
+            case SPEAKING -> 12;
+            case READING -> 35;
+            case WRITING -> 50;
+            case GRAMMAR -> 25;
+        };
     }
 
     public List<CoreDtos.LessonResponse> lessons(com.example.aptis.enums.SkillType skill) {
