@@ -101,6 +101,7 @@ type SpeakingPart4Topic = {
 type SpeakingTestData = {
   part1: string[];
   part2: string[];
+  part2Image: string;
   part3: string[];
   part4: SpeakingPart4Topic;
 };
@@ -712,7 +713,10 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
     });
 
   const part1 = rows.filter((item) => getSpeakingPart(item) === '1').flatMap((item) => speakingQuestionsFromItem(item));
-  const part2 = rows.filter((item) => getSpeakingPart(item) === '2').flatMap((item) => speakingQuestionsFromItem(item));
+  const part2Rows = rows.filter((item) => getSpeakingPart(item) === '2');
+  const part2 = part2Rows.flatMap((item) => speakingQuestionsFromItem(item));
+  const part2Row = part2Rows[0];
+  const part2Image = String(part2Row?.imageUrl ?? part2Row?.image ?? part2Row?.picture ?? '').trim();
   const part3 = rows.filter((item) => getSpeakingPart(item) === '3').flatMap((item) => speakingQuestionsFromItem(item));
   const part4Row = rows.find((item) => getSpeakingPart(item) === '4');
   const part4Questions = part4Row ? speakingQuestionsFromItem(part4Row) : [];
@@ -722,6 +726,7 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   return {
     part1: part1.length > 0 ? part1 : speakingQuestions,
     part2: part2.length > 0 ? part2 : part2Questions,
+    part2Image: part2Image || part2ImageUrls[0],
     part3: part3.length > 0 ? part3 : part3Questions,
     part4: {
       title: part4Title || part4Topic.title,
@@ -3338,6 +3343,7 @@ export function MockTests() {
           {screen === 'part2Question' && (
             <Part2Question
               question={activeSpeakingData.part2[part2QuestionIndex]}
+              imageUrl={activeSpeakingData.part2Image}
               index={part2QuestionIndex}
               total={activeSpeakingData.part2.length}
               seconds={recordingSeconds}
@@ -7030,9 +7036,7 @@ function SpeakingQuestion({ question, index, total, seconds, showAnswer, isReadi
   );
 }
 
-function Part2Question({ question, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { question: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
-  const imageUrl = part2ImageUrls[index] ?? `/images/speaking/part2/${index + 1}.png`;
-
+function Part2Question({ question, imageUrl, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { question: string; imageUrl: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
   return (
     <main
       className="mock-speaking-main"
