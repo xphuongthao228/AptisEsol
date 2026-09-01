@@ -5334,9 +5334,10 @@ function ListeningMonologues({
 }
 
 function ReadingStart({ data, mockCard, loading, onStart }: { data: ReadingTestData; mockCard: MockCard | null; loading?: boolean; onStart: () => void }) {
+  const hasGaps = data.gaps.length > 0;
   const hasOpinion = data.opinion.people.length > 0 && data.opinion.questions.length > 0;
   const hasLong = data.long.headings.length > 0 && data.long.paragraphs.length > 0;
-  const questionCount = data.gaps.length + data.cohesion.length + Number(hasOpinion) + Number(hasLong);
+  const questionCount = Number(hasGaps) + data.cohesion.length + Number(hasOpinion) + Number(hasLong);
   const canStart = !loading && questionCount > 0;
   return (
     <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
