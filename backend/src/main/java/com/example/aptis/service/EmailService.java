@@ -37,8 +37,18 @@ public class EmailService {
         @Value("${app.mail.gas-secret:}")
         private String gasMailSecret;
 
+        public boolean isDeliveryConfigured() {
+                return mailEnabled
+                                && gasMailUrl != null
+                                && !gasMailUrl.isBlank()
+                                && gasMailSecret != null
+                                && !gasMailSecret.isBlank()
+                                && gasMailUrl.startsWith("https://script.google.com/")
+                                && gasMailUrl.endsWith("/exec");
+        }
+
         public void sendVerificationEmail(User user, String verificationLink) {
-                if (!mailEnabled) {
+                if (!isDeliveryConfigured()) {
                         log.info(
                                         "Mail disabled. Verification link for {}: {}",
                                         user.getEmail(),
@@ -110,7 +120,7 @@ public class EmailService {
         }
 
         public void sendRegistrationOtp(User user, String otp) {
-                if (!mailEnabled) {
+                if (!isDeliveryConfigured()) {
                         log.info(
                                         "Mail disabled. Registration OTP for {}: {}",
                                         user.getEmail(),
@@ -146,7 +156,7 @@ public class EmailService {
         }
 
         public void sendPasswordResetOtp(User user, String otp) {
-                if (!mailEnabled) {
+                if (!isDeliveryConfigured()) {
                         log.info(
                                         "Mail disabled. Password reset OTP for {}: {}",
                                         user.getEmail(),

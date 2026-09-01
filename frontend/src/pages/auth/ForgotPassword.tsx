@@ -11,12 +11,12 @@ export function ForgotPassword() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [devOtp, setDevOtp] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (otpSent) {
-      setOtp('');
       setNewPassword('');
       setConfirmPassword('');
     }
@@ -32,9 +32,13 @@ export function ForgotPassword() {
 
     setLoading(true);
     try {
-      await unwrap<void>(api.post('/auth/forgot-password', { email: cleanEmail }));
+      const result = await unwrap<{ emailSent: boolean; devOtp: string | null }>(
+        api.post('/auth/forgot-password', { email: cleanEmail })
+      );
+      setDevOtp(result.devOtp);
+      if (result.devOtp) setOtp(result.devOtp);
       setOtpSent(true);
-      toast.success('Đã gửi mã OTP về email của bạn.');
+      toast.success(result.emailSent ? 'Đã gửi mã OTP về email của bạn.' : 'Mail chưa cấu hình, đã tạo mã OTP test.');
     } catch (error: any) {
       toast.error(error?.response?.data?.message ?? 'Không gửi được OTP');
     } finally {
@@ -101,6 +105,11 @@ export function ForgotPassword() {
           <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-semibold text-blue-700">
             Mã OTP đã được gửi đến <span className="font-extrabold">{email.trim()}</span>.
           </div>
+          {devOtp && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">
+              Mail chưa cấu hình trên máy này. Dùng mã OTP test: <span className="text-lg font-extrabold tracking-[0.18em] text-navy">{devOtp}</span>
+            </div>
+          )}
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-700">Mã OTP</span>
             <div className="relative">
@@ -172,7 +181,10 @@ export function ForgotPassword() {
             className="h-11 w-full rounded-2xl border border-brand-100 font-bold text-slate-700 hover:bg-sky-50"
             type="button"
             disabled={loading}
-            onClick={() => setOtpSent(false)}
+            onClick={() => {
+              setDevOtp(null);
+              setOtpSent(false);
+            }}
           >
             Đổi email khác
           </button>

@@ -918,12 +918,12 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
 
 function ListeningQuestion15TipPage() {
   return (
-    <div className="mx-auto max-w-[1180px] space-y-6 pb-8">
+    <div className="mx-auto max-w-[1180px] space-y-5 pb-8">
       <Link to="/app/lessons/LISTENING" className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại mẹo Listening
       </Link>
 
-      <section className="rounded-[22px] border border-blue-200 bg-blue-100 px-5 py-4 text-blue-950 shadow-soft">
+      <section className="rounded-xl border border-sky-100 bg-sky-50 px-5 py-4 text-blue-950">
         <div className="flex gap-3">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600 font-black text-white">i</span>
           <p className="leading-7">
@@ -933,36 +933,36 @@ function ListeningQuestion15TipPage() {
         </div>
       </section>
 
-      <section className="overflow-hidden rounded-[18px] border border-brand-100 bg-white shadow-soft">
+      <section className="overflow-hidden border border-slate-200 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)]">
         <div className="overflow-x-auto">
-          <table className="min-w-[980px] w-full border-collapse text-left">
-            <thead className="bg-slate-800 text-sm uppercase text-white">
+          <table className="min-w-[1040px] w-full border-collapse text-left">
+            <thead className="bg-white text-[13px] uppercase text-slate-500">
               <tr>
-                <th className="w-16 px-5 py-4">TT</th>
-                <th className="w-[250px] px-5 py-4">Topic (Chủ đề)</th>
-                <th className="w-[170px] px-5 py-4 text-center">Giọng trước</th>
-                <th className="w-[210px] px-5 py-4 text-center">Đáp án (Key)</th>
-                <th className="px-5 py-4">Ghi chú & mẹo nhỏ</th>
+                <th className="w-14 border-b border-slate-200 px-4 py-3">#</th>
+                <th className="w-[240px] border-b border-slate-200 px-4 py-3">Topic</th>
+                <th className="w-[130px] border-b border-slate-200 px-4 py-3 text-center">Giọng</th>
+                <th className="w-[220px] border-b border-slate-200 px-4 py-3 text-center">Key</th>
+                <th className="border-b border-slate-200 px-4 py-3">Mẹo nhớ</th>
               </tr>
             </thead>
             <tbody>
               {listeningQ15Topics.map((topic) =>
                 topic.variants.map((variant, index) => (
-                  <tr className="border-t border-brand-100 odd:bg-white even:bg-sky-50" key={`${topic.no}-${variant.key}-${index}`}>
+                  <tr className="border-t border-slate-200 bg-white" key={`${topic.no}-${variant.key}-${index}`}>
                     {index === 0 && (
                       <>
-                        <td rowSpan={topic.variants.length} className="px-5 py-5 align-middle text-lg font-extrabold text-slate-700">{topic.no}</td>
-                        <td rowSpan={topic.variants.length} className="px-5 py-5 align-middle">
-                          <p className="font-extrabold text-navy">{topic.topic}</p>
-                          <p className="mt-1 text-sm text-slate-600">{topic.subtitle}</p>
+                        <td rowSpan={topic.variants.length} className="bg-white px-4 py-5 align-middle text-base font-extrabold text-slate-700">{topic.no}</td>
+                        <td rowSpan={topic.variants.length} className="bg-white px-4 py-5 align-middle">
+                          <p className="font-extrabold text-slate-950">{topic.topic}</p>
+                          <p className="mt-1 text-sm text-slate-500">{topic.subtitle}</p>
                         </td>
                       </>
                     )}
-                    <td className="px-5 py-4 text-center">{variant.speaker ? <SpeakerBadge speaker={variant.speaker} /> : null}</td>
-                    <td className="px-5 py-4 text-center"><KeyBadge value={variant.key} highlight={!variant.speaker} /></td>
-                    <td className="px-5 py-4">
-                      {variant.warning && <p className="mb-2 font-bold text-red-500">{variant.warning}</p>}
-                      <p className={index > 0 ? 'italic text-slate-700' : 'text-navy'}>{variant.note}</p>
+                    <td className="bg-[#fbf8ff] px-4 py-3 text-center">{variant.speaker ? <SpeakerBadge speaker={variant.speaker} /> : null}</td>
+                    <td className="bg-[#fff8f8] px-4 py-3 text-center"><KeyBadge value={variant.key} highlight={!variant.speaker} /></td>
+                    <td className="px-4 py-3 text-sm leading-6">
+                      {variant.warning && <p className="mb-1 font-extrabold text-red-500">{variant.warning}</p>}
+                      <p className={index > 0 ? 'italic text-slate-600' : 'text-slate-800'}>{variant.note}</p>
                       {variant.badge && <span className="mt-2 inline-flex rounded bg-emerald-700 px-2 py-1 text-xs font-extrabold text-white">{variant.badge}</span>}
                     </td>
                   </tr>
@@ -983,7 +983,7 @@ function ListeningCode({ value }: { value: string }) {
 function SpeakerBadge({ speaker }: { speaker: 'Nam' | 'Nữ' }) {
   const isMale = speaker === 'Nam';
   return (
-    <span className={`inline-flex min-w-20 items-center justify-center rounded-full border px-3 py-1 text-sm font-bold ${isMale ? 'border-sky-200 bg-sky-100 text-sky-700' : 'border-pink-200 bg-pink-100 text-pink-600'}`}>
+    <span className={`inline-flex min-w-16 items-center justify-center rounded-full border px-3 py-1 text-xs font-extrabold ${isMale ? 'border-sky-200 bg-sky-100 text-sky-700' : 'border-pink-200 bg-pink-100 text-pink-600'}`}>
       {speaker}
     </span>
   );
@@ -991,7 +991,7 @@ function SpeakerBadge({ speaker }: { speaker: 'Nam' | 'Nữ' }) {
 
 function KeyBadge({ value, highlight }: { value: string; highlight?: boolean }) {
   return (
-    <span className={`inline-flex rounded-lg px-3 py-2 font-mono text-sm font-black tracking-[0.2em] ${highlight ? 'bg-amber-400 text-navy' : 'bg-red-50 text-red-600'}`}>
+    <span className={`inline-flex min-w-[160px] justify-center rounded-sm px-3 py-2 font-mono text-xs font-black tracking-[0.2em] ${highlight ? 'bg-amber-100 text-navy' : 'bg-red-50 text-red-500'}`}>
       {value}
     </span>
   );

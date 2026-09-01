@@ -663,7 +663,7 @@ export function PracticeRunner() {
                     <textarea className="min-h-[170px] w-full rounded-[14px] border border-slate-300 bg-white p-4 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Nhập câu trả lời..." onChange={(e) => setAnswers({ ...answers, [activeQuestion.id]: e.target.value })} />
                   )}
                   {activeChecked !== undefined && <QuestionFeedback isCorrect={activeChecked} textOnly={!activeQuestion.answers.length} />}
-                  <ListeningScriptReview scriptText={scriptText} checked={activeChecked} highlightTerms={getQuestionAnswerHighlightTerms(activeQuestion, answers[activeQuestion.id])} />
+                  <ListeningScriptReview scriptText={scriptText} checked={activeChecked} />
               </section>
             )}
           </div>
@@ -920,11 +920,10 @@ function QuestionScriptBox({ scriptText, compact }: { scriptText?: string; compa
   );
 }
 
-function ListeningScriptReview({ scriptText, checked, showAnswers, highlightTerms = [] }: {
+function ListeningScriptReview({ scriptText, checked, showAnswers }: {
   scriptText?: string;
   checked?: boolean;
   showAnswers?: boolean;
-  highlightTerms?: string[];
 }) {
   const text = repairMojibake(scriptText ?? '').trim();
   if (!text || (checked === undefined && !showAnswers)) return null;
@@ -943,7 +942,7 @@ function ListeningScriptReview({ scriptText, checked, showAnswers, highlightTerm
         </div>
       </div>
       <div className="whitespace-pre-line rounded-lg border border-blue-100 bg-white/80 p-3 text-slate-800">
-        <HighlightAnswerTerms text={text} terms={highlightTerms} />
+        {text}
       </div>
     </div>
   );
@@ -3014,11 +3013,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
             {showScript ? 'Ẩn đoạn văn' : 'Hiện đoạn văn'}
           </button>
         </div>
-        <ListeningScriptReview scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} highlightTerms={getTemplateListeningHighlightTerms(data, saved)} />
+        <ListeningScriptReview scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} />
         {showScript && (
           <div className={`mt-3 whitespace-pre-line rounded border p-4 text-sm leading-6 ${data.scriptText ? 'border-slate-300 bg-sky-50 text-slate-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
             {repairMojibake(data.scriptText ?? '').trim()
-              ? <HighlightAnswerTerms text={repairMojibake(data.scriptText ?? '').trim()} terms={getTemplateListeningHighlightTerms(data, saved)} />
+              ? repairMojibake(data.scriptText ?? '').trim()
               : 'Câu này chưa có đoạn văn. Admin cần nhập transcript vào cột script_text hoặc scriptText khi import câu hỏi.'}
           </div>
         )}
@@ -3078,11 +3077,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
             </div>
           </div>
         )}
-        <ListeningScriptReview scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} highlightTerms={getTemplateListeningHighlightTerms(data, saved)} />
+        <ListeningScriptReview scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} />
         {showScript && (
           <div className={`mt-4 whitespace-pre-line rounded border p-5 leading-7 ${data.scriptText ? 'border-slate-300 bg-sky-50 text-slate-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
             {repairMojibake(data.scriptText ?? '').trim()
-              ? <HighlightAnswerTerms text={repairMojibake(data.scriptText ?? '').trim()} terms={getTemplateListeningHighlightTerms(data, saved)} />
+              ? repairMojibake(data.scriptText ?? '').trim()
               : 'Câu này chưa có đoạn văn. Admin cần nhập transcript vào cột script_text hoặc scriptText khi import câu hỏi.'}
           </div>
         )}

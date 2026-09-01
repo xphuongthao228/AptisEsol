@@ -52,7 +52,7 @@ public class AuthService {
     private long verificationHours;
 
     @Transactional
-    public void register(AuthDtos.RegisterRequest request) {
+    public AuthDtos.OtpResponse register(AuthDtos.RegisterRequest request) {
         String email = request.email().trim();
         Role role = roleRepository.findByName(RoleName.STUDENT).orElseThrow();
         User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseGet(User::new);
@@ -70,7 +70,7 @@ public class AuthService {
         }
 
         User saved = userRepository.save(user);
-        sendRegistrationOtp(saved);
+        return sendRegistrationOtp(saved);
     }
 
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
@@ -109,10 +109,10 @@ public class AuthService {
     }
 
     @Transactional
-    public void forgotPassword(String email) {
+    public AuthDtos.OtpResponse forgotPassword(String email) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Email chưa tồn tại trong hệ thống"));
-        sendPasswordResetOtp(user);
+        return sendPasswordResetOtp(user);
     }
 
     @Transactional
@@ -192,23 +192,31 @@ public class AuthService {
     }
 
     @Transactional
-    public void resendVerification(String email) {
+    public AuthDtos.OtpResponse resendVerification(String email) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email.trim())
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy email"));
         if (user.isEmailVerified()) {
             throw new IllegalStateException("Email đã được xác nhận");
         }
-        sendRegistrationOtp(user);
+        return sendRegistrationOtp(user);
     }
 
-    private void sendRegistrationOtp(User user) {
+    private AuthDtos.OtpResponse sendRegistrationOtp(User user) {
         EmailVerificationToken token = createOtpToken(user, PURPOSE_REGISTRATION);
+        if (!emailService.isDeliveryConfigured()) {
+            return new AuthDtos.OtpResponse(false, token.getToken());
+        }
         emailService.sendRegistrationOtp(user, token.getToken());
+        return new AuthDtos.OtpResponse(true, null);
     }
 
-    private void sendPasswordResetOtp(User user) {
+    private AuthDtos.OtpResponse sendPasswordResetOtp(User user) {
         EmailVerificationToken token = createOtpToken(user, PURPOSE_PASSWORD_RESET);
+        if (!emailService.isDeliveryConfigured()) {
+            return new AuthDtos.OtpResponse(false, token.getToken());
+        }
         emailService.sendPasswordResetOtp(user, token.getToken());
+        return new AuthDtos.OtpResponse(true, null);
     }
 
     private EmailVerificationToken createOtpToken(User user, String purpose) {

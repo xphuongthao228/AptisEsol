@@ -6210,15 +6210,14 @@ function ListeningReview({
               <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{group.title}</h2>
               <div style={{ display: 'grid', gap: 10 }}>
                 {group.rows.map((row, index) => {
-                  const isCorrect = row.user === row.answer;
                   return (
                     <div key={`${group.title}-${index}`} style={{ display: 'grid', gridTemplateColumns: '1fr 180px 180px', gap: 14, alignItems: 'center', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
                       <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 700, margin: 0 }}>{index + 1}. {row.question}</p>
                       <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
-                        Bạn chọn: <span style={{ color: isCorrect ? '#047857' : '#d81e0c', fontWeight: 900 }}>{row.user}</span>
+                        Bạn chọn: <span style={{ color: '#111827', fontWeight: 700 }}>{row.user}</span>
                       </p>
                       <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>
-                        Đáp án: <span style={{ color: '#047857', fontWeight: 900 }}>{row.answer}</span>
+                        Đáp án: <span style={{ color: '#111827', fontWeight: 700 }}>{row.answer}</span>
                       </p>
                     </div>
                   );

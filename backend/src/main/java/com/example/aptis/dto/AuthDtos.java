@@ -38,6 +38,9 @@ public class AuthDtos {
         public record UpdateProfileRequest(@NotBlank String fullName) {
         }
 
+        public record OtpResponse(boolean emailSent, String devOtp) {
+        }
+
         public record AuthResponse(String accessToken, String refreshToken, UserResponse user) {
         }
 

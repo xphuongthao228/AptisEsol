@@ -13,6 +13,7 @@ export function Register() {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [devOtp, setDevOtp] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const register = useAuthStore((s) => s.register);
   const navigate = useNavigate();
@@ -21,9 +22,11 @@ export function Register() {
     event.preventDefault();
     setLoading(true);
     try {
-      await register(fullName, email, password);
+      const result = await register(fullName, email, password);
+      setDevOtp(result.devOtp);
+      if (result.devOtp) setOtp(result.devOtp);
       setStep('otp');
-      toast.success('Đã gửi mã OTP về Gmail/email của bạn.');
+      toast.success(result.emailSent ? 'Đã gửi mã OTP về Gmail/email của bạn.' : 'Mail chưa cấu hình, đã tạo mã OTP test.');
     } catch (error: any) {
       toast.error(error?.response?.data?.message ?? 'Không thể gửi mã OTP');
     } finally {
@@ -48,8 +51,10 @@ export function Register() {
   async function resendOtp() {
     setLoading(true);
     try {
-      await unwrap<void>(api.post('/auth/resend-verification', { email }));
-      toast.success('Đã gửi lại mã OTP.');
+      const result = await unwrap<{ emailSent: boolean; devOtp: string | null }>(api.post('/auth/resend-verification', { email }));
+      setDevOtp(result.devOtp);
+      if (result.devOtp) setOtp(result.devOtp);
+      toast.success(result.emailSent ? 'Đã gửi lại mã OTP.' : 'Mail chưa cấu hình, đã tạo lại mã OTP test.');
     } catch (error: any) {
       toast.error(error?.response?.data?.message ?? 'Không thể gửi lại mã OTP');
     } finally {
@@ -78,6 +83,11 @@ export function Register() {
           <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm font-semibold leading-6 text-brand-800">
             Kiểm tra Gmail, Spam hoặc Quảng cáo nếu chưa thấy mã OTP.
           </div>
+          {devOtp && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">
+              Mail chưa cấu hình trên máy này. Dùng mã OTP test: <span className="text-lg font-extrabold tracking-[0.18em] text-navy">{devOtp}</span>
+            </div>
+          )}
           <label className="block">
             <span className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700"><KeyRound size={17} /> Mã OTP</span>
             <input

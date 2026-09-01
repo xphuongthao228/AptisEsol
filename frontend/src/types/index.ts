@@ -30,6 +30,11 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface OtpResponse {
+  emailSent: boolean;
+  devOtp: string | null;
+}
+
 export interface HeartbeatResponse {
   visitorId: string;
   onlineCount: number;

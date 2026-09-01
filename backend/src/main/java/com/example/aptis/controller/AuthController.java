@@ -22,9 +22,9 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public ApiResponse<Void> register(@Valid @RequestBody AuthDtos.RegisterRequest request) {
-        authService.register(request);
-        return ApiResponse.message("Đã gửi mã OTP về Gmail/email. Nhập đúng OTP để hoàn tất đăng ký.", null);
+    public ApiResponse<AuthDtos.OtpResponse> register(@Valid @RequestBody AuthDtos.RegisterRequest request) {
+        AuthDtos.OtpResponse response = authService.register(request);
+        return ApiResponse.message("Đã tạo mã OTP. Nhập đúng OTP để hoàn tất đăng ký.", response);
     }
 
     @PostMapping("/verify-registration-otp")
@@ -82,15 +82,15 @@ public class AuthController {
     }
 
     @PostMapping("/resend-verification")
-    public ApiResponse<Void> resendVerification(@Valid @RequestBody AuthDtos.EmailRequest request) {
-        authService.resendVerification(request.email());
-        return ApiResponse.message("Đã gửi lại mã OTP.", null);
+    public ApiResponse<AuthDtos.OtpResponse> resendVerification(@Valid @RequestBody AuthDtos.EmailRequest request) {
+        AuthDtos.OtpResponse response = authService.resendVerification(request.email());
+        return ApiResponse.message("Đã tạo lại mã OTP.", response);
     }
 
     @PostMapping("/forgot-password")
-    public ApiResponse<Void> forgotPassword(@Valid @RequestBody AuthDtos.EmailRequest request) {
-        authService.forgotPassword(request.email());
-        return ApiResponse.message("Đã gửi mã OTP đặt lại mật khẩu về email của bạn.", null);
+    public ApiResponse<AuthDtos.OtpResponse> forgotPassword(@Valid @RequestBody AuthDtos.EmailRequest request) {
+        AuthDtos.OtpResponse response = authService.forgotPassword(request.email());
+        return ApiResponse.message("Đã tạo mã OTP đặt lại mật khẩu.", response);
     }
 
     @PostMapping("/reset-password")
