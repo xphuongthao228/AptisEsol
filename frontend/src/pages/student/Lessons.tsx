@@ -850,7 +850,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Workplace',
     subtitle: 'Nơi làm việc',
     variants: [
-      { speaker: 'Nữ', key: 'M - W - B - M', warning: 'Chỉ có phiên bản giọng Nữ.', note: 'Chú ý ý kiến của nam, nữ và ý chung khi nói về nơi làm việc.' }
+      { speaker: 'Nữ', key: 'M - W - B - M', warning: 'Chỉ có phiên bản giọng Nữ.', note: 'Mẹo: Người đàn ông (M) bảo người phụ nữ (W) làm cả hai (B) nghề nên người đàn ông (M) bỏ đi.' }
     ]
   },
   {
@@ -858,7 +858,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Actor',
     subtitle: 'Diễn viên',
     variants: [
-      { key: 'M - W - B - B', note: 'Mẹo: Người đàn ông (M) bảo người phụ nữ (W) làm cả hai (B) nghề nên người đàn ông (M) bỏ đi.', badge: 'Do có nhiều phiên bản nên chọn MWBB' }
+      { key: 'M - W - B - B', note: 'Mẹo: Mở Win Bữa Bạn (MWBB). Cả nam hoặc nữ có thể nói trước.', badge: 'Do có nhiều phiên bản nên chọn MWBB' }
     ]
   },
   {
