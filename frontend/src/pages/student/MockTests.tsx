@@ -114,6 +114,7 @@ type SidebarLink = {
 type MockCard = {
   id: string;
   practiceTestId?: number;
+  skillTestIds?: Partial<Record<Exclude<MockSkill, 'FULL'>, number>>;
   skill: MockSkill;
   label: string;
   title: string;
@@ -469,6 +470,9 @@ function apiExamTestToCard(item: Test): MockCard | null {
 }
 
 async function apiExamTestsToCards(items: Test[]) {
+  const baseCards = items
+    .map(apiExamTestToCard)
+    .filter((card): card is MockCard => Boolean(card));
   const cards = await Promise.all(items.map(async (item) => {
     const card = apiExamTestToCard(item);
     if (!card) return [];
@@ -482,7 +486,54 @@ async function apiExamTestsToCards(items: Test[]) {
     }
   }));
 
-  return cards.flat();
+  return [...createFullExamCards(baseCards), ...cards.flat()];
+}
+
+function createFullExamCards(cards: MockCard[]) {
+  const requiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
+  const groups = new Map<string, MockCard[]>();
+  cards.forEach((card) => {
+    if (card.skill === 'FULL' || !card.practiceTestId || !card.ready) return;
+    const key = normalizeFullTestTitle(card.title);
+    if (!key) return;
+    groups.set(key, [...(groups.get(key) ?? []), card]);
+  });
+
+  return [...groups.values()].flatMap((group) => {
+    const bySkill = new Map(group.map((card) => [card.skill, card]));
+    if (!requiredSkills.every((skill) => bySkill.has(skill))) return [];
+
+    const skillTestIds = requiredSkills.reduce<Partial<Record<Exclude<MockSkill, 'FULL'>, number>>>((result, skill) => {
+      const id = bySkill.get(skill)?.practiceTestId;
+      if (id) result[skill] = id;
+      return result;
+    }, {});
+    const first = group[0];
+    const totalMinutes = group.reduce((sum, card) => sum + Number.parseInt(card.minutes, 10), 0);
+    return [{
+      id: `test-full-${Object.values(skillTestIds).join('-')}`,
+      skill: 'FULL' as const,
+      skillTestIds,
+      label: mockCardMeta.FULL.label,
+      title: first.title,
+      description: first.description || 'Đề full test gồm Speaking, Listening, Grammar, Reading và Writing.',
+      questions: '5 kỹ năng',
+      minutes: `${totalMinutes || 162} phút`,
+      icon: mockCardMeta.FULL.icon,
+      ready: true,
+      color: mockCardMeta.FULL.color,
+      featured: group.some((card) => card.featured)
+    }];
+  });
+}
+
+function normalizeFullTestTitle(title: string) {
+  const normalized = removeVietnameseMarks(title)
+    .toLowerCase()
+    .replace(/\b(listening|speaking|reading|writing|grammar|vocabulary|full|mock|practice|thi thu|de thi)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return normalized || removeVietnameseMarks(title).toLowerCase().trim();
 }
 
 function writingExamCardsFromQuestions(card: MockCard, questions: Question[]) {
@@ -598,7 +649,12 @@ function parseQuestionDataArray(questionData?: string) {
       const normalized = normalizeQuestionDataObject(parsed as Record<string, unknown>);
       return normalized.length > 0 ? normalized : [parsed];
     }
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((item) => {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) return [item];
+      const normalized = normalizeQuestionDataObject(item as Record<string, unknown>);
+      return normalized.length > 0 ? normalized : [item];
+    });
   } catch {
     return [];
   }
@@ -2387,7 +2443,40 @@ export function MockTests() {
   }
 
   async function hydrateAssessmentCard(card?: MockCard) {
-    if (!card?.practiceTestId || card.questionData?.trim()) return card ?? null;
+    if (!card || card.questionData?.trim()) return card ?? null;
+    if (card.skill === 'FULL' && card.skillTestIds) {
+      try {
+        const skillEntries = Object.entries(card.skillTestIds) as Array<[Exclude<MockSkill, 'FULL'>, number]>;
+        const groups = await Promise.all(skillEntries.map(async ([skill, testId]) => ({
+          skill,
+          questions: await unwrap<Question[]>(api.get(`/questions?testId=${testId}`))
+        })));
+        const questionData = JSON.stringify(groups.flatMap(({ skill, questions }) =>
+          [...questions]
+            .sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0))
+            .map((question) => {
+              try {
+                const parsed = JSON.parse(question.content);
+                return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+                  ? { ...parsed, skill }
+                  : parsed;
+              } catch {
+                return {
+                  skill,
+                  prompt: question.content,
+                  topic: question.topic,
+                  answers: question.answers
+                };
+              }
+            })
+        ));
+        return { ...card, questionData };
+      } catch {
+        toast.error('Không tải được dữ liệu full test.');
+        return card;
+      }
+    }
+    if (!card.practiceTestId) return card;
     try {
       const questions = await unwrap<Question[]>(api.get(`/questions?testId=${card.practiceTestId}`));
       const orderedQuestions = [...questions].sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));

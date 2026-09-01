@@ -56,7 +56,7 @@ const skillCards: Array<{
   }
 ];
 
-const parts = [1, 2, 3, 4];
+const defaultParts = [1, 2, 3, 4];
 
 function useRequireLogin() {
   const accessToken = useAuthStore((state) => state.accessToken);
@@ -147,7 +147,7 @@ export function TestPartMenu() {
   const { data, loading, error } = useApi<Test[]>(() => unwrap(api.get('/tests')), []);
   const selectedPracticeTests = useMemo(() => {
     return (data ?? [])
-      .filter(isPracticeTest)
+      .filter(isPartPracticeSource)
       .filter((test) => !isRandomTest(test))
       .filter(hasImportedQuestions)
       .filter((test) => normalizeSkill(test.skillName) === selectedSkill.type)
@@ -257,7 +257,7 @@ export function TestPartMenu() {
         )
       ) : (
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          {parts.map((part) => {
+          {partsForSkill(selectedSkill.type).map((part) => {
             const partTests = filterTestsByPart(selectedPracticeTests, part);
             const firstTest = partTests[0];
             const cardContent = (
@@ -324,7 +324,7 @@ export function TestPartMenu() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[420px]">
-                {parts.map((part) => (
+                {partsForSkill(skill.type).map((part) => (
                   <Link
                     key={`${skill.type}-${part}`}
                     to={`/app/tests/questions/${skill.type}/part/${part}`}
@@ -351,7 +351,7 @@ export function SkillQuestionParts() {
   const tests = useMemo(() => {
     if (!selectedSkill) return [];
     return (data ?? [])
-      .filter(isPracticeTest)
+      .filter(isPartPracticeSource)
       .filter((test) => !isRandomTest(test))
       .filter((test) => normalizeSkill(test.skillName) === selectedSkill);
   }, [data, selectedSkill]);
@@ -412,8 +412,8 @@ export function SkillQuestionParts() {
       </section>
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {parts.map((part) => {
-          const displayTests = filterTestsByPart(tests, part);
+          {partsForSkill(selectedSkill).map((part) => {
+            const displayTests = filterTestsByPart(tests, part);
           const firstTest = displayTests[0];
           return (
             <div className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft" key={part}>
@@ -450,26 +450,26 @@ export function SkillPartQuestions() {
 
   const partTests = useMemo(() => {
     if (!selectedSkill || !Number.isFinite(selectedPart)) return [];
-    return filterTestsByPart(
-      (allTests ?? [])
-        .filter(isPracticeTest)
-        .filter((test) => !isRandomTest(test))
-        .filter(hasImportedQuestions)
-        .filter((test) => normalizeSkill(test.skillName) === selectedSkill)
-        .sort(compareTestsByNaturalNumber),
-      selectedPart
-    );
+    return (allTests ?? [])
+      .filter(isPartPracticeSource)
+      .filter((test) => !isRandomTest(test))
+      .filter(hasImportedQuestions)
+      .filter((test) => normalizeSkill(test.skillName) === selectedSkill)
+      .filter((test) => selectedPart <= 4 || selectedSkill === 'READING')
+      .sort(compareTestsByNaturalNumber);
   }, [allTests, selectedPart, selectedSkill]);
 
   const { data: questionGroups, loading: questionsLoading, error: questionsError } = useApi<Array<{ test: Test; questions: Question[] }>>(
     async () => {
       if (!partTests.length) return [];
-      return Promise.all(partTests.map(async (test) => ({
+      const groups = await Promise.all(partTests.map(async (test) => ({
         test,
-        questions: await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`))
+        questions: (await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`)))
+          .filter((question) => isQuestionInPart(question, selectedSkill, selectedPart))
       })));
+      return groups.filter((group) => group.questions.length > 0);
     },
-    [partTests.map((test) => test.id).join(',')]
+    [partTests.map((test) => test.id).join(','), selectedPart, selectedSkill]
   );
 
   if (testsLoading || questionsLoading) return <InfoCard>Đang tải câu hỏi...</InfoCard>;
@@ -665,6 +665,42 @@ function getStoredPartSkill(): SkillType | '' {
 function filterTestsByPart(tests: Test[], part: number) {
   const pattern = new RegExp(`\\b(part|phan|p|set)\\s*${part}\\b|\\b${part}\\s*(/|-)`, 'i');
   return tests.filter((test) => pattern.test(normalizePartSearchText(`${test.title} ${test.description}`)));
+}
+
+function partsForSkill(skill?: SkillType | '') {
+  return skill === 'READING' ? [1, 2, 3, 4, 5] : defaultParts;
+}
+
+function isPartPracticeSource(test: Test) {
+  return isPracticeTest(test) || (test.mode === 'EXAM' && test.status === 'PUBLISHED');
+}
+
+function isQuestionInPart(question: Question, skill: SkillType | '', part: number) {
+  const template = parseQuestionTemplate(question.content);
+  const rawPart = template && 'part' in template ? String((template as { part?: unknown }).part ?? '') : '';
+  const content = normalizePartSearchText([
+    question.topic,
+    question.content,
+    question.explanation,
+    rawPart
+  ].map((value) => String(value ?? '')).join(' ')).toLowerCase();
+
+  if (rawPart) {
+    const parsed = Number(rawPart.replace(/\D+/g, ''));
+    if (Number.isFinite(parsed) && parsed === part) return true;
+  }
+
+  if (skill === 'READING') {
+    const templateName = String(template?.template ?? '').toUpperCase();
+    if (part === 1 && templateName === 'READING_GAP_FILL') return true;
+    if ((part === 2 || part === 3) && templateName === 'READING_SENTENCE_ORDER') {
+      return part === 3 ? content.includes('part 3') : !content.includes('part 3');
+    }
+    if (part === 4 && templateName === 'READING_FORUM_MATCH') return true;
+    if (part === 5 && templateName === 'READING_HEADING_MATCH') return true;
+  }
+
+  return new RegExp(`\\b(part|phan|p|set)\\s*${part}\\b|\\b${part}\\s*(/|-)`, 'i').test(content);
 }
 
 function normalizePartSearchText(value: string) {

@@ -12,6 +12,10 @@ import com.example.aptis.enums.TestStatus;
 import com.example.aptis.exception.ResourceNotFoundException;
 import com.example.aptis.mapper.DtoMapper;
 import com.example.aptis.repository.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -60,6 +64,7 @@ public class CoreService {
     private final MediaFileRepository mediaFiles;
     private final LeaderboardSettingsRepository leaderboardSettings;
     private final DtoMapper mapper;
+    private final ObjectMapper objectMapper;
 
     @Value("${app.upload-dir}")
     private String uploadDir;
@@ -339,6 +344,9 @@ public class CoreService {
         if (isWritingCollectionRows(records)) {
             return importWritingRowsAsExamTests(records);
         }
+        if (isFullTestRows(records)) {
+            return importFullTestRows(records);
+        }
         if (isQuestionCsvRecords(records)) {
             return List.of(importExamTestFromQuestionRecords(file.getOriginalFilename(), records));
         }
@@ -380,13 +388,322 @@ public class CoreService {
                     continue;
                 }
 
-                imported.add(importExamTestFromQuestionRecords(entry.getName(), records));
+                if (isFullTestRows(records)) {
+                    imported.addAll(importFullTestRows(records));
+                } else {
+                    imported.add(importExamTestFromQuestionRecords(entry.getName(), records));
+                }
             }
         }
         if (imported.isEmpty()) {
             throw new IllegalArgumentException("ZIP does not contain any CSV question files");
         }
         return imported;
+    }
+
+    private boolean isFullTestRows(List<CSVRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return false;
+        }
+        return records.stream().anyMatch(record -> isFullTestSkill(csv(record, "skill", ""))
+                && !fullTestPayload(record).isBlank());
+    }
+
+    private List<CoreDtos.TestResponse> importFullTestRows(List<CSVRecord> records) {
+        List<CoreDtos.TestResponse> imported = new ArrayList<>();
+        for (CSVRecord record : records) {
+            if (!isFullTestSkill(csv(record, "skill", ""))) {
+                continue;
+            }
+            try {
+                imported.addAll(importFullTestRow(record));
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException(
+                        "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
+            }
+        }
+        if (imported.isEmpty()) {
+            throw new IllegalArgumentException("CSV does not contain any FULL_TEST rows");
+        }
+        return imported;
+    }
+
+    private List<CoreDtos.TestResponse> importFullTestRow(CSVRecord record) {
+        String payload = fullTestPayload(record);
+        if (payload.isBlank()) {
+            throw new IllegalArgumentException("FULL_TEST row must contain JSON data in questionData/questions/content");
+        }
+
+        JsonNode root;
+        try {
+            root = objectMapper.readTree(sanitizeJsonPayload(payload));
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("FULL_TEST JSON is invalid: " + ex.getMessage(), ex);
+        }
+        if (root == null || !root.isObject()) {
+            throw new IllegalArgumentException("FULL_TEST JSON must be an object");
+        }
+
+        String baseTitle = requiredCsv(record, "title");
+        String description = firstNonBlank(csv(record, "description", ""), baseTitle);
+        TestStatus status = parseTestStatus(firstNonBlank(csv(record, "status", ""), csv(record, "minutes", "")));
+        boolean featured = parseBoolean(csv(record, "featured", ""));
+        List<CoreDtos.TestResponse> imported = new ArrayList<>();
+        for (SkillType skillType : List.of(
+                SkillType.SPEAKING,
+                SkillType.LISTENING,
+                SkillType.GRAMMAR,
+                SkillType.READING,
+                SkillType.WRITING)) {
+            List<JsonNode> items = fullTestSectionItems(root, skillType);
+            if (items.isEmpty()) {
+                continue;
+            }
+
+            Test test = new Test();
+            test.setSkill(skillForType(skillType));
+            test.setTitle(baseTitle);
+            test.setDescription(description);
+            test.setDurationMinutes(defaultExamDuration(skillType));
+            test.setStatus(status);
+            test.setMode(TestMode.EXAM);
+            test.setFeatured(featured);
+            Test savedTest = tests.save(test);
+
+            int importedQuestions = 0;
+            for (JsonNode item : items) {
+                Question question = buildQuestionFromFullTestItem(item, savedTest, skillType, importedQuestions + 1);
+                questions.save(question);
+                importedQuestions++;
+            }
+            imported.add(mapper.test(savedTest, importedQuestions));
+        }
+
+        if (imported.isEmpty()) {
+            throw new IllegalArgumentException("FULL_TEST JSON does not contain skill sections");
+        }
+        return imported;
+    }
+
+    private String fullTestPayload(CSVRecord record) {
+        for (String column : List.of("questionData", "questions", "data", "content")) {
+            String value = csv(record, column, "").trim();
+            if (value.startsWith("{") || value.startsWith("[")) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private List<JsonNode> fullTestSectionItems(JsonNode root, SkillType skillType) {
+        JsonNode section = root.path(skillType.name().toLowerCase());
+        if (section.isMissingNode() && skillType == SkillType.GRAMMAR) {
+            section = root.path("grammar_vocabulary");
+        }
+        List<JsonNode> items = new ArrayList<>();
+        collectFullTestItems(section, skillType, "", items);
+        return items;
+    }
+
+    private void collectFullTestItems(JsonNode node, SkillType skillType, String part, List<JsonNode> items) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return;
+        }
+        if (node.isArray()) {
+            for (JsonNode child : node) {
+                collectFullTestItems(child, skillType, part, items);
+            }
+            return;
+        }
+        if (!node.isObject()) {
+            return;
+        }
+
+        boolean containsNestedParts = false;
+        var fields = node.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            JsonNode child = field.getValue();
+            if (child != null && (child.isArray() || child.isObject())
+                    && field.getKey().toLowerCase().matches("part\\d+")) {
+                containsNestedParts = true;
+                collectFullTestItems(child, skillType, field.getKey().replaceAll("\\D+", ""), items);
+            }
+        }
+        if (!containsNestedParts) {
+            ObjectNode copy = node.deepCopy();
+            copy.put("skill", skillType.name());
+            if (!part.isBlank() && !copy.hasNonNull("part")) {
+                copy.put("part", part);
+            }
+            items.add(copy);
+        }
+    }
+
+    private Question buildQuestionFromFullTestItem(JsonNode item, Test test, SkillType skillType, int sortOrder) {
+        Question q = new Question();
+        q.setTest(test);
+        String rawType = text(item, "type", "TEXT").trim().toUpperCase();
+        q.setType(questionTypeForImportedFullTest(rawType));
+        q.setTopic(cleanTopic(text(item, "topic", "")));
+        q.setAudioUrl(firstNonBlank(text(item, "audio_url", ""), text(item, "audioUrl", "")));
+        q.setScriptText(firstNonBlank(text(item, "script_text", ""), text(item, "scriptText", "")));
+        q.setExplanation(text(item, "explanation", ""));
+        q.setPoints(intValue(item, "points", 1));
+        q.setSortOrder(intValue(item, "sort_order", sortOrder));
+        q.setFeatured(boolValue(item, "featured", false));
+        q.setContent(fullTestQuestionContent(item, skillType));
+        return q;
+    }
+
+    private QuestionType questionTypeForImportedFullTest(String rawType) {
+        if (rawType.equals("SINGLE_CHOICE") || rawType.equals("MULTIPLE_CHOICE")
+                || rawType.equals("AUDIO") || rawType.equals("SPEAKING")) {
+            return parseQuestionType(rawType);
+        }
+        return QuestionType.TEXT;
+    }
+
+    private String fullTestQuestionContent(JsonNode item, SkillType skillType) {
+        String rawContent = text(item, "content", "").trim();
+        if (rawContent.startsWith("{") || rawContent.startsWith("[")) {
+            try {
+                JsonNode parsed = objectMapper.readTree(sanitizeJsonPayload(rawContent));
+                JsonNode normalized = normalizeFullTestJsonNode(parsed, item, skillType);
+                return objectMapper.writeValueAsString(normalized);
+            } catch (Exception ignored) {
+                // Fall through and preserve the row fields below.
+            }
+        }
+
+        ObjectNode data = objectMapper.createObjectNode();
+        if (item.isObject()) {
+            item.fields().forEachRemaining(entry -> data.set(camelCaseCsvKey(entry.getKey()), entry.getValue()));
+        }
+        data.put("skill", skillType.name());
+        if (!data.hasNonNull("prompt") && !rawContent.isBlank()) {
+            data.put("prompt", rawContent);
+        }
+        if (!data.hasNonNull("audioUrl")) {
+            data.put("audioUrl", firstNonBlank(text(item, "audio_url", ""), text(item, "audioUrl", "")));
+        }
+        if (!data.hasNonNull("scriptText")) {
+            data.put("scriptText", firstNonBlank(text(item, "script_text", ""), text(item, "scriptText", "")));
+        }
+        ArrayNode options = optionsFromFullTestItem(item);
+        if (options.size() > 0 && !data.hasNonNull("options")) {
+            data.set("options", options);
+        }
+        String correctAnswer = correctAnswerFromFullTestItem(item, options);
+        if (!correctAnswer.isBlank() && !data.hasNonNull("correctAnswer")) {
+            data.put("correctAnswer", correctAnswer);
+        }
+        try {
+            return objectMapper.writeValueAsString(data);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("cannot serialize FULL_TEST question", ex);
+        }
+    }
+
+    private JsonNode normalizeFullTestJsonNode(JsonNode parsed, JsonNode source, SkillType skillType) {
+        if (parsed.isObject()) {
+            ObjectNode data = ((ObjectNode) parsed).deepCopy();
+            data.put("skill", skillType.name());
+            String part = text(source, "part", "");
+            if (!part.isBlank() && !data.hasNonNull("part")) {
+                data.put("part", part);
+            }
+            for (String field : List.of("topic", "audioUrl", "scriptText", "explanation")) {
+                String value = text(source, field, "");
+                if (!value.isBlank() && !data.hasNonNull(field)) {
+                    data.put(field, value);
+                }
+            }
+            String audioUrl = firstNonBlank(text(source, "audio_url", ""), text(source, "audioUrl", ""));
+            if (!audioUrl.isBlank() && !data.hasNonNull("audioUrl")) {
+                data.put("audioUrl", audioUrl);
+            }
+            String scriptText = firstNonBlank(text(source, "script_text", ""), text(source, "scriptText", ""));
+            if (!scriptText.isBlank() && !data.hasNonNull("scriptText")) {
+                data.put("scriptText", scriptText);
+            }
+            return data;
+        }
+        return parsed;
+    }
+
+    private ArrayNode optionsFromFullTestItem(JsonNode item) {
+        ArrayNode options = objectMapper.createArrayNode();
+        for (int i = 1; i <= 8; i++) {
+            String option = text(item, "answer" + i, "");
+            if (!option.isBlank()) {
+                options.add(option);
+            }
+        }
+        return options;
+    }
+
+    private String correctAnswerFromFullTestItem(JsonNode item, ArrayNode options) {
+        String direct = firstNonBlank(text(item, "correct_answer", ""), text(item, "correctAnswer", ""));
+        if (!direct.isBlank()) {
+            return direct;
+        }
+        int correctIndex = intValue(item, "correct_index", 0);
+        if (correctIndex > 0 && correctIndex <= options.size()) {
+            return options.get(correctIndex - 1).asText();
+        }
+        return "";
+    }
+
+    private String sanitizeJsonPayload(String value) {
+        return value == null ? "" : value.replaceAll(":\\s*NaN(?=\\s*[,}])", ": null");
+    }
+
+    private boolean isFullTestSkill(String value) {
+        String normalized = value == null ? "" : value.trim().toUpperCase();
+        return normalized.equals("FULL_TEST") || normalized.equals("FULL") || normalized.equals("FULLTEST");
+    }
+
+    private String text(JsonNode node, String field, String defaultValue) {
+        if (node == null || !node.has(field) || node.get(field).isNull()) {
+            return defaultValue;
+        }
+        String value = node.get(field).asText(defaultValue);
+        return "NaN".equalsIgnoreCase(value) ? defaultValue : value;
+    }
+
+    private int intValue(JsonNode node, String field, int defaultValue) {
+        if (node == null || !node.has(field) || node.get(field).isNull()) {
+            return defaultValue;
+        }
+        JsonNode value = node.get(field);
+        if (value.isNumber()) {
+            return value.asInt(defaultValue);
+        }
+        try {
+            return Integer.parseInt(value.asText().trim());
+        } catch (RuntimeException ex) {
+            return defaultValue;
+        }
+    }
+
+    private boolean boolValue(JsonNode node, String field, boolean defaultValue) {
+        if (node == null || !node.has(field) || node.get(field).isNull()) {
+            return defaultValue;
+        }
+        JsonNode value = node.get(field);
+        return value.isBoolean() ? value.asBoolean(defaultValue) : parseBoolean(value.asText());
+    }
+
+    private String camelCaseCsvKey(String key) {
+        return switch (key) {
+            case "audio_url" -> "audioUrl";
+            case "script_text" -> "scriptText";
+            case "correct_index" -> "correctIndex";
+            case "correct_answer" -> "correctAnswer";
+            case "sort_order" -> "sortOrder";
+            default -> key;
+        };
     }
 
     private CoreDtos.TestResponse importExamTestFromQuestionRecords(String sourceName, List<CSVRecord> records) {
