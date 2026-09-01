@@ -421,8 +421,8 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   };
 }
 
-function isRemovedMockTest(card: Pick<MockCard, 'skill' | 'title'>) {
-  return card.skill !== 'FULL' || /^Full Aptis Mock Test [1-5]$/i.test(card.title.trim());
+function isRemovedMockTest(card: Pick<MockCard, 'id'>) {
+  return card.id.startsWith('api-') || card.id.startsWith('admin-');
 }
 
 function apiExamTestToCard(item: Test): MockCard | null {
