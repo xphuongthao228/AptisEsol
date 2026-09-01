@@ -668,7 +668,7 @@ function filterTestsByPart(tests: Test[], part: number) {
 }
 
 function partsForSkill(skill?: SkillType | '') {
-  return skill === 'READING' ? [1, 2, 3, 4, 5] : defaultParts;
+  return defaultParts;
 }
 
 function isPartPracticeSource(test: Test) {
