@@ -15,7 +15,7 @@ const questionTypes: QuestionType[] = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TEXT
 const statuses: TestStatus[] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
 const testModes: Array<{ value: TestMode; label: string }> = [
   { value: 'PRACTICE', label: 'Luyện tập theo part' },
-  { value: 'EXAM', label: 'Thi thử / Bộ đề' }
+  { value: 'EXAM', label: 'Full test / Thi thử' }
 ];
 
 export function AdminContent() {
@@ -32,12 +32,12 @@ export function AdminContent() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold">Quản lý nội dung</h1>
-        <p className="mt-1 text-sm text-slate-600">Quản lý kỹ năng, bài luyện, câu hỏi và đáp án từ API backend.</p>
+        <p className="mt-1 text-sm text-slate-600">Quản lý kỹ năng, full test, bài luyện, câu hỏi và đáp án từ API backend.</p>
       </div>
 
       <div className="card flex flex-wrap gap-2 p-2">
         <TabButton active={tab === 'skills'} icon={<Layers size={18} />} label="Kỹ năng" onClick={() => setTab('skills')} />
-        <TabButton active={tab === 'tests'} icon={<BookOpen size={18} />} label="Bài luyện" onClick={() => setTab('tests')} />
+        <TabButton active={tab === 'tests'} icon={<BookOpen size={18} />} label="Full test / Bài luyện" onClick={() => setTab('tests')} />
         <TabButton active={tab === 'questions'} icon={<ListChecks size={18} />} label="Câu hỏi" onClick={() => setTab('questions')} />
       </div>
 
@@ -334,7 +334,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
   return (
     <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
       <section className="card p-5">
-        <h2 className="text-xl font-semibold">{editing ? 'Sửa bài luyện' : 'Tạo bài luyện'}</h2>
+        <h2 className="text-xl font-semibold">{editing ? 'Sửa full test / bài luyện' : 'Tạo full test / bài luyện'}</h2>
         <form onSubmit={save} className="mt-5 space-y-4">
           <select className="input" value={skillId} onChange={(e) => setSkillId(e.target.value)} required>
             <option value="">Chọn kỹ năng</option>
@@ -343,7 +343,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
           <select className="input" value={mode} onChange={(e) => setMode(e.target.value as TestMode)}>
             {testModes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tên bài luyện" required />
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tên full test / bài luyện" required />
           <textarea className="input min-h-24 py-3" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả" />
           <input className="input" type="number" min={1} value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} />
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value as TestStatus)}>
@@ -365,8 +365,8 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
       <section className="space-y-3">
         <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="font-extrabold">Import bài luyện / đề thi thử</h3>
-            <p className="text-sm text-slate-600">CSV mode PRACTICE sẽ vào luyện theo part, mode EXAM sẽ hiển thị ở Thi thử. ZIP nhiều CSV sẽ tự tạo nhiều đề Thi thử.</p>
+            <h3 className="font-extrabold">Import Full test / đề thi thử</h3>
+            <p className="text-sm text-slate-600">Upload CSV hoặc ZIP ở đây. CSV mode EXAM sẽ hiện ở Thi thử/Full test, mode PRACTICE sẽ vào luyện theo part. ZIP nhiều CSV sẽ tự tạo nhiều đề Thi thử.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {tests.length > 0 && (
@@ -388,7 +388,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
             )}
             <label className="btn-primary cursor-pointer justify-center">
               <UploadCloud size={18} />
-              Upload CSV/ZIP
+              Upload Full test CSV/ZIP
               <input
                 type="file"
                 accept=".csv,.zip,text/csv,application/zip"
