@@ -714,8 +714,8 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
 
   const part1 = rows.filter((item) => getSpeakingPart(item) === '1').flatMap((item) => speakingQuestionsFromItem(item));
   const part2Rows = rows.filter((item) => getSpeakingPart(item) === '2');
-  const part2 = part2Rows.flatMap((item) => speakingQuestionsFromItem(item));
   const part2Row = part2Rows[0];
+  const part2 = part2Row ? speakingQuestionsFromItem(part2Row) : [];
   const part2Image = part2Row ? speakingImageFromItem(part2Row, 1) : '';
   const part3 = rows.filter((item) => getSpeakingPart(item) === '3').flatMap((item) => speakingQuestionsFromItem(item));
   const part4Row = rows.find((item) => getSpeakingPart(item) === '4');
