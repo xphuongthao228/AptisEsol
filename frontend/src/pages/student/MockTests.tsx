@@ -716,12 +716,12 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   const part2Rows = rows.filter((item) => getSpeakingPart(item) === '2');
   const part2 = part2Rows.flatMap((item) => speakingQuestionsFromItem(item));
   const part2Row = part2Rows[0];
-  const part2Image = String(part2Row?.imageUrl ?? part2Row?.image ?? part2Row?.picture ?? '').trim();
+  const part2Image = part2Row ? speakingImageFromItem(part2Row, 1) : '';
   const part3 = rows.filter((item) => getSpeakingPart(item) === '3').flatMap((item) => speakingQuestionsFromItem(item));
   const part4Row = rows.find((item) => getSpeakingPart(item) === '4');
   const part4Questions = part4Row ? speakingQuestionsFromItem(part4Row) : [];
   const part4Title = String(part4Row?.title ?? part4Row?.topic ?? part4Row?.prompt ?? '').trim();
-  const part4Image = String(part4Row?.imageUrl ?? part4Row?.image ?? part4Row?.picture ?? '').trim();
+  const part4Image = part4Row ? speakingImageFromItem(part4Row, 1) : '';
 
   return {
     part1: part1.length > 0 ? part1 : speakingQuestions,
@@ -734,6 +734,30 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
       questions: part4Questions.length > 0 ? part4Questions : part4Topic.questions
     }
   };
+}
+
+function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 2): string {
+  const directKeys = imageNumber === 2
+    ? ['imageUrl2', 'image2Url', 'urlpic2', 'urlPic2', 'image2', 'picture2']
+    : ['imageUrl', 'image1Url', 'urlpic1', 'urlPic1', 'image', 'image1', 'picture', 'picture1'];
+
+  for (const key of directKeys) {
+    const value = String(item[key] ?? '').trim();
+    if (value) return value;
+  }
+
+  const nestedItems = [
+    ...(Array.isArray(item.questions) ? item.questions : []),
+    ...(Array.isArray(item.items) ? item.items : []),
+    ...(Array.isArray(item.prompts) ? item.prompts : [])
+  ];
+  for (const nested of nestedItems) {
+    if (!nested || typeof nested !== 'object') continue;
+    const value: string = speakingImageFromItem(nested as Record<string, unknown>, imageNumber);
+    if (value) return value;
+  }
+
+  return '';
 }
 
 function getSpeakingPart(item: Record<string, unknown>) {
