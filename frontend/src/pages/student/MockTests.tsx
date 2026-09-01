@@ -704,7 +704,19 @@ function questionToMockData(question: Question, skill: MockSkill) {
 }
 
 function normalizeQuestionDataObject(data: Record<string, unknown>) {
-  if (data.template !== 'WRITING_CLUB_COLLECTION') return [];
+  if (data.template !== 'WRITING_CLUB_COLLECTION') {
+    const skillSections: Array<[MockSkill, string[]]> = [
+      ['SPEAKING', ['speaking']],
+      ['LISTENING', ['listening']],
+      ['GRAMMAR', ['grammar', 'grammarVocabulary', 'grammar_vocabulary']],
+      ['READING', ['reading']],
+      ['WRITING', ['writing']]
+    ];
+    return skillSections.flatMap(([skill, keys]) =>
+      keys.flatMap((key) => normalizeQuestionSection(data[key], skill))
+    );
+  }
+
   const clubs = Array.isArray(data.clubs) ? data.clubs : [];
   return clubs.flatMap((club) => {
     if (!club || typeof club !== 'object') return [];
@@ -722,6 +734,40 @@ function normalizeQuestionDataObject(data: Record<string, unknown>) {
         questions: Array.isArray(part.prompts) ? part.prompts : part.questions
       }));
   });
+}
+
+function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPart = ''): Record<string, unknown>[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.flatMap((item) => normalizeQuestionSection(item, skill, inheritedPart));
+  if (typeof value !== 'object') return [];
+
+  const row = value as Record<string, unknown>;
+  const partRows = Object.entries(row).filter(([key, child]) =>
+    /^part\s*\d+$/i.test(key) && Boolean(child && typeof child === 'object')
+  );
+  if (partRows.length > 0) {
+    return partRows.flatMap(([key, child]) =>
+      normalizeQuestionSection(child, skill, key.replace(/\D+/g, ''))
+    );
+  }
+
+  const sectionRows = Object.entries(row).filter(([key, child]) =>
+    /^q\d+(?:_\d+)?$/i.test(key) && Boolean(child && typeof child === 'object')
+  );
+  if (sectionRows.length > 0) {
+    return sectionRows.flatMap(([key, child]) =>
+      normalizeQuestionSection(child, skill, inheritedPart).map((item) => ({
+        ...item,
+        section: item.section ?? key
+      }))
+    );
+  }
+
+  return [{
+    ...row,
+    skill: row.skill ?? skill,
+    ...(inheritedPart && !row.part ? { part: inheritedPart } : {})
+  }];
 }
 
 function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
@@ -868,7 +914,7 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
       questions.push({
         prompt,
         options,
-        audioUrl: String(item.audioUrl ?? item.audio ?? item.url ?? '').trim() || undefined,
+        audioUrl: listeningAudioUrlsFromItem(item)[0] || undefined,
         answer: String(item.answer ?? '').trim() || undefined,
         correctAnswer: listeningCorrectAnswerFromItem(item) || undefined
       });
@@ -913,6 +959,67 @@ function listeningCorrectAnswerFromItem(item: Record<string, unknown>) {
   return String(row.content ?? row.text ?? row.label ?? row.answer ?? '').trim();
 }
 
+function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): string[] {
+  if (depth > 3) return [];
+
+  const directKeys = [
+    'audioUrl',
+    'audio_url',
+    'audio',
+    'url',
+    'fileUrl',
+    'file_url',
+    'src',
+    'source',
+    'audioFile',
+    'audio_file'
+  ];
+
+  const urls = directKeys
+    .map((key) => stringValue(item[key]))
+    .filter(Boolean);
+
+  const arrayKeys = ['audioUrls', 'audio_urls', 'audios', 'files'];
+  arrayKeys.forEach((key) => {
+    const value = item[key];
+    if (!Array.isArray(value)) return;
+    value.forEach((entry) => {
+      if (entry && typeof entry === 'object') {
+        urls.push(...listeningAudioUrlsFromItem(entry as Record<string, unknown>, depth + 1));
+      } else {
+        const url = stringValue(entry);
+        if (url) urls.push(url);
+      }
+    });
+  });
+
+  const nestedKeys = ['data', 'questionData', 'media'];
+  nestedKeys.forEach((key) => {
+    const value = item[key];
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      urls.push(...listeningAudioUrlsFromItem(value as Record<string, unknown>, depth + 1));
+    }
+  });
+
+  const nestedArrayKeys = ['questions', 'items', 'prompts', 'records', 'children'];
+  nestedArrayKeys.forEach((key) => {
+    const value = item[key];
+    if (!Array.isArray(value)) return;
+    value.forEach((entry) => {
+      if (entry && typeof entry === 'object') {
+        urls.push(...listeningAudioUrlsFromItem(entry as Record<string, unknown>, depth + 1));
+      }
+    });
+  });
+
+  return Array.from(new Set(urls.map((url) => normalizeAudioUrl(url)).filter(Boolean)));
+}
+
+function stringValue(value: unknown) {
+  if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+  return '';
+}
+
 function listeningAudioByPartFromCard(card?: MockCard | null) {
   const rows = parseQuestionDataArray(card?.questionData);
   return rows.reduce<Record<string, string>>((result, item) => {
@@ -922,18 +1029,8 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
     const skill = String(row.skill ?? '').toUpperCase();
     if (skill && skill !== 'LISTENING') return result;
 
-    // q14-q17 store their audio inside row.data.audioUrl in the imported CSV.
-    const nestedData = row.data && typeof row.data === 'object'
-      ? row.data as Record<string, unknown>
-      : undefined;
-
-    const audioUrl = String(
-      row.audioUrl ?? nestedData?.audioUrl ??
-      row.audio ?? nestedData?.audio ??
-      row.url ?? nestedData?.url ?? ''
-    ).trim();
-
-    if (!audioUrl) return result;
+    const audioUrls = listeningAudioUrlsFromItem(row);
+    if (audioUrls.length === 0) return result;
 
     const rawPart = String(row.part ?? '').trim().toLowerCase();
     const section = String(row.section ?? '').trim().toLowerCase();
@@ -948,10 +1045,15 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
       else if (section === 'q1_13') key = '1';
     }
 
-    if (key) result[key] = audioUrl;
+    if (key) result[key] = audioUrls[0];
+    if (key === '4' && audioUrls.length > 1) {
+      audioUrls.forEach((audioUrl, index) => {
+        result[`4-${index}`] = audioUrl;
+      });
+    }
 
     // Backward compatibility for older Part 4 data that expected a single key.
-    if (section === 'q16' && !result['4']) result['4'] = audioUrl;
+    if (section === 'q16' && !result['4']) result['4'] = audioUrls[0];
 
     return result;
   }, {});

@@ -73,6 +73,7 @@ const adminLinks: LayoutLink[] = [
   { to: '/admin/content', label: 'Nội dung', icon: BookOpen },
   { to: '/admin/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/admin/mock-tests', label: 'Thi thử', icon: FileCheck },
+  { to: '/admin/leaderboard', label: 'Bảng xếp hạng', icon: Trophy },
   { to: '/admin/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
   { to: '/admin/notifications', label: 'Thông báo', icon: Bell },

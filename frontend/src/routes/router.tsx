@@ -119,6 +119,7 @@ export const router = createBrowserRouter([
       { path: 'content', element: <AdminContent /> },
       { path: 'lessons', element: <AdminLessons /> },
       { path: 'mock-tests', element: <AdminMockTests /> },
+      { path: 'leaderboard', element: <Leaderboard /> },
       { path: 'predictions', element: <AdminPredictions /> },
       { path: 'revenue', element: <AdminRevenue /> },
       { path: 'notifications', element: <AdminNotifications /> },
