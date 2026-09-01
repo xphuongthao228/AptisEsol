@@ -812,18 +812,55 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
       return (!skill || skill === 'LISTENING') && isPart1;
     })
     .reduce<ListeningPart1Question[]>((questions, item) => {
-      const options = Array.isArray(item.options) ? item.options.map(String).filter(Boolean) : [];
-      const prompt = String(item.prompt ?? item.question ?? '').trim();
+      const options = listeningOptionsFromItem(item);
+      const prompt = String(item.prompt ?? item.question ?? item.content ?? item.topic ?? '').trim();
       if (!prompt || options.length === 0) return questions;
       questions.push({
         prompt,
         options,
         audioUrl: String(item.audioUrl ?? item.audio ?? item.url ?? '').trim() || undefined,
         answer: String(item.answer ?? '').trim() || undefined,
-        correctAnswer: String(item.correctAnswer ?? '').trim() || undefined
+        correctAnswer: listeningCorrectAnswerFromItem(item) || undefined
       });
       return questions;
     }, []);
+}
+
+function listeningOptionsFromItem(item: Record<string, unknown>) {
+  if (Array.isArray(item.options)) return item.options.map(String).map((option) => option.trim()).filter(Boolean);
+
+  if (Array.isArray(item.answers)) {
+    return item.answers
+      .map((answer) => {
+        if (answer && typeof answer === 'object') {
+          const row = answer as Record<string, unknown>;
+          return String(row.content ?? row.text ?? row.label ?? row.answer ?? '').trim();
+        }
+        return String(answer ?? '').trim();
+      })
+      .filter(Boolean);
+  }
+
+  return [
+    item.optionA,
+    item.optionB,
+    item.optionC,
+    item.optionD,
+    item.answer1,
+    item.answer2,
+    item.answer3
+  ].map((option) => String(option ?? '').trim()).filter(Boolean);
+}
+
+function listeningCorrectAnswerFromItem(item: Record<string, unknown>) {
+  const direct = String(item.correctAnswer ?? item.answer ?? '').trim();
+  if (direct) return direct;
+
+  if (!Array.isArray(item.answers)) return '';
+  const correct = item.answers.find((answer) => Boolean(answer && typeof answer === 'object' && (answer as Record<string, unknown>).correct));
+  if (!correct || typeof correct !== 'object') return '';
+  const row = correct as Record<string, unknown>;
+  return String(row.content ?? row.text ?? row.label ?? row.answer ?? '').trim();
 }
 
 function listeningAudioByPartFromCard(card?: MockCard | null) {
@@ -3616,10 +3653,12 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     };
   }, []);
 
-  const visibleCards = adminCards
-    .filter((card) => !isRemovedMockTest(card))
+  const importedVisibleCards = adminCards
     .filter((card) => card.skill === selectedSkill)
     .sort(compareMockCards);
+  const visibleCards = importedVisibleCards.length > 0
+    ? importedVisibleCards
+    : mockCards.filter((card) => card.skill === selectedSkill);
 
   function createRandomMockTest() {
     if (!authenticated) {
