@@ -331,7 +331,9 @@ public class CoreService {
                     .build()
                     .parse(reader);
             for (CSVRecord record : parsedRecords) {
-                records.add(record);
+                if (!isBlankCsvRecord(record)) {
+                    records.add(record);
+                }
             }
         }
         if (isWritingCollectionRows(records)) {
@@ -549,7 +551,9 @@ public class CoreService {
                     .build()
                     .parse(reader);
             for (CSVRecord record : parsedRecords) {
-                records.add(record);
+                if (!isBlankCsvRecord(record)) {
+                    records.add(record);
+                }
             }
         }
         if (records.isEmpty()) {
@@ -600,6 +604,11 @@ public class CoreService {
             return false;
         }
         return isWritingCollectionRows(records);
+    }
+
+    private boolean isBlankCsvRecord(CSVRecord record) {
+        return record == null || record.toMap().values().stream()
+                .allMatch(value -> value == null || value.isBlank());
     }
 
     private boolean isWritingCollectionRows(List<CSVRecord> records) {
