@@ -57,6 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/tests", "/api/tests/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard/settings").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/skills",
                                 "/api/lessons",

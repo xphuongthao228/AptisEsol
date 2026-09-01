@@ -34,6 +34,7 @@ function isPublicRequest(config: InternalAxiosRequestConfig) {
     url === '/mock-tests' ||
     url.startsWith('/mock-tests?') ||
     url === '/submissions/leaderboard' ||
+    url === '/submissions/leaderboard/settings' ||
     url.startsWith('/submissions/leaderboard?') ||
     url === '/notifications/public' ||
     url.startsWith('/notifications/public?')

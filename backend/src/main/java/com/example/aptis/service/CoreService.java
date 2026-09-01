@@ -54,6 +54,7 @@ public class CoreService {
     private final SubmissionRepository submissions;
     private final ProgressRepository progress;
     private final MediaFileRepository mediaFiles;
+    private final LeaderboardSettingsRepository leaderboardSettings;
     private final DtoMapper mapper;
 
     @Value("${app.upload-dir}")
@@ -1301,6 +1302,22 @@ public class CoreService {
         }
 
         return result;
+    }
+
+    @Transactional(readOnly = true)
+    public CoreDtos.LeaderboardSettingsResponse leaderboardSettings() {
+        return leaderboardSettings.findTopByOrderByIdAsc()
+                .map(settings -> new CoreDtos.LeaderboardSettingsResponse(settings.getExamDate()))
+                .orElseGet(() -> new CoreDtos.LeaderboardSettingsResponse(null));
+    }
+
+    @Transactional
+    public CoreDtos.LeaderboardSettingsResponse updateLeaderboardSettings(CoreDtos.LeaderboardSettingsRequest request) {
+        LeaderboardSettings settings = leaderboardSettings.findTopByOrderByIdAsc()
+                .orElseGet(LeaderboardSettings::new);
+        settings.setExamDate(request.examDate());
+        LeaderboardSettings saved = leaderboardSettings.save(settings);
+        return new CoreDtos.LeaderboardSettingsResponse(saved.getExamDate());
     }
 
     @Transactional(readOnly = true)

@@ -40,6 +40,18 @@ public class SubmissionController {
         return ApiResponse.ok(service.leaderboard());
     }
 
+    @GetMapping("/leaderboard/settings")
+    public ApiResponse<CoreDtos.LeaderboardSettingsResponse> leaderboardSettings() {
+        return ApiResponse.ok(service.leaderboardSettings());
+    }
+
+    @PutMapping("/leaderboard/settings")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<CoreDtos.LeaderboardSettingsResponse> updateLeaderboardSettings(
+            @Valid @RequestBody CoreDtos.LeaderboardSettingsRequest request) {
+        return ApiResponse.ok(service.updateLeaderboardSettings(request));
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<CoreDtos.SubmissionResponse>> all() {

@@ -127,6 +127,10 @@ export interface LeaderboardRow {
   latestSubmissionAt: string | null;
 }
 
+export interface LeaderboardSettings {
+  examDate: string | null;
+}
+
 export interface Progress {
   skillId: number;
   skillName: string;

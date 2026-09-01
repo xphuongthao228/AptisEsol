@@ -191,6 +191,13 @@ type ReadingTestData = {
   long: ReadingLongQuestion;
 };
 
+const emptyReadingTestData: ReadingTestData = {
+  gaps: [],
+  cohesion: [],
+  opinion: { people: [], questions: [], correctAnswers: [] },
+  long: { title: '', headings: [], paragraphs: [], correctAnswers: [] }
+};
+
 type GrammarQuestionItem = {
   prompt?: string;
   options: string[];
@@ -575,7 +582,8 @@ function parseQuestionDataArray(questionData?: string) {
   try {
     const parsed = JSON.parse(questionData);
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return normalizeQuestionDataObject(parsed as Record<string, unknown>);
+      const normalized = normalizeQuestionDataObject(parsed as Record<string, unknown>);
+      return normalized.length > 0 ? normalized : [parsed];
     }
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -742,50 +750,50 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .filter((item) => {
       const skill = String(item.skill ?? '').toUpperCase();
-      return !skill || skill === 'READING';
+      const template = String(item.template ?? '').toUpperCase();
+      return !skill || skill === 'READING' || template.startsWith('READING_');
     });
 
-  const gapRows = rows.filter((item) => String(item.part ?? '').trim() === '1');
-  const gaps = gapRows.map((item) => {
-    const options = Array.isArray(item.options) ? item.options.map(String).filter(Boolean) : [];
-    return {
-      prompt: String(item.prompt ?? '').trim() || undefined,
-      questionStart: String(item.questionStart ?? '').trim() || undefined,
-      questionEnd: String(item.questionEnd ?? '').trim() || undefined,
-      options,
-      answer: String(item.answer ?? item.correctAnswer ?? '').trim()
-    };
-  }).filter((item) => item.options.length > 0 && item.answer);
+  const gapRows = rows.filter((item) => getReadingPart(item) === '1');
+  const gaps = gapRows.flatMap((item) => readingGapRowsFromItem(item))
+    .filter((item) => item.options.length > 0 && item.answer);
 
-  const cohesion = [2, 3].map((part) => {
-    const row = rows.find((item) => String(item.part ?? '').trim() === String(part));
-    const items = Array.isArray(row?.items) ? row.items : [];
-    const correctOrder = items.map((item) => {
-      if (item && typeof item === 'object') return String((item as Record<string, unknown>).text ?? '').trim();
-      return String(item ?? '').trim();
-    }).filter(Boolean);
+  const cohesionRows = rows.filter((item) => ['2', '3'].includes(getReadingPart(item))
+    || String(item.template ?? '').trim().toUpperCase() === 'READING_SENTENCE_ORDER');
+  const cohesion = cohesionRows.map((row, index) => {
+    const correctOrder = readingCorrectOrderFromItem(row);
+    const choices = readingDisplayOrderFromItem(row, correctOrder);
     return {
-      title: String(row?.topic ?? `Part ${part}`).trim(),
-      choices: rotateChoices(correctOrder),
+      title: String(row?.topic ?? `Part ${index + 2}`).trim(),
+      choices,
       correctOrder
     };
   }).filter((item) => item.correctOrder.length > 0);
 
-  const part4Rows = rows.filter((item) => String(item.part ?? '').trim() === '4');
-  const context = Array.isArray(part4Rows[0]?.context) ? part4Rows[0].context.map(String) : [];
+  const part4Rows = rows.filter((item) => getReadingPart(item) === '4');
+  const context = readingForumContextFromRows(part4Rows);
+  const forumQuestions = part4Rows.flatMap((item) => asStringArray(item.questions).length > 0
+    ? asStringArray(item.questions)
+    : [String(item.prompt ?? item.question ?? '').trim()].filter(Boolean));
+  const forumAnswers = part4Rows.flatMap((item) => asStringArray(item.correctAnswers).length > 0
+    ? asStringArray(item.correctAnswers)
+    : [String(item.answer ?? item.correctAnswer ?? '').trim()].filter(Boolean));
+  const forumIntroText = context.find((line) => !/^<strong>[A-D]:/i.test(line))
+    ?? String(part4Rows[0]?.leftTitle ?? '').trim();
+  const forumIntro = forumIntroText || undefined;
   const opinion = {
     people: peopleFromReadingContext(context),
-    questions: part4Rows.map((item) => String(item.prompt ?? item.question ?? '').trim()).filter(Boolean),
-    correctAnswers: part4Rows.map((item) => String(item.answer ?? item.correctAnswer ?? '').trim()).filter(Boolean),
-    intro: context.find((line) => !/^<strong>[A-D]:/i.test(line)) ?? undefined,
+    questions: forumQuestions,
+    correctAnswers: forumAnswers,
+    intro: forumIntro,
     topic: String(part4Rows[0]?.topic ?? '').trim() || undefined
   };
 
-  const part5Row = rows.find((item) => String(item.part ?? '').trim() === '5');
-  const longOptions = Array.isArray(part5Row?.options) ? part5Row.options.map(String).filter(Boolean) : [];
-  const paragraphs = Array.isArray(part5Row?.paragraphs) ? part5Row.paragraphs.map(String).filter(Boolean) : [];
-  const longCorrectAnswers = Array.isArray(part5Row?.correctAnswers)
-    ? part5Row.correctAnswers.map((answer) => resolveOptionLabel(String(answer), longOptions)).filter(Boolean)
+  const part5Row = rows.find((item) => getReadingPart(item) === '5');
+  const longOptions = asStringArray(part5Row?.options);
+  const paragraphs = asStringArray(part5Row?.paragraphs);
+  const longCorrectAnswers = asStringArray(part5Row?.correctAnswers).length > 0
+    ? asStringArray(part5Row?.correctAnswers).map((answer) => resolveOptionLabel(String(answer), longOptions)).filter(Boolean)
     : paragraphs.map((_, index) => longOptions[index] ?? '');
   const long = {
     title: String(part5Row?.topic ?? 'Long Reading').trim(),
@@ -795,11 +803,85 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
   };
 
   return {
-    gaps: gaps.length > 0 ? gaps : fallbackReadingTestData.gaps,
-    cohesion: cohesion.length > 0 ? cohesion : fallbackReadingTestData.cohesion,
-    opinion: opinion.people.length > 0 && opinion.questions.length > 0 ? opinion : fallbackReadingTestData.opinion,
-    long: long.headings.length > 0 && long.paragraphs.length > 0 ? long : fallbackReadingTestData.long
+    gaps,
+    cohesion,
+    opinion: opinion.people.length > 0 && opinion.questions.length > 0 ? opinion : emptyReadingTestData.opinion,
+    long: long.headings.length > 0 && long.paragraphs.length > 0 ? long : emptyReadingTestData.long
   };
+}
+
+function getReadingPart(item: Record<string, unknown>) {
+  const part = String(item.part ?? '').trim();
+  if (part) return part.replace(/^part\s*/i, '');
+
+  const template = String(item.template ?? '').trim().toUpperCase();
+  if (template === 'READING_GAP_FILL') return '1';
+  if (template === 'READING_SENTENCE_ORDER') {
+    const topic = String(item.topic ?? item.title ?? '').toLowerCase();
+    return topic.includes('part 3') ? '3' : '2';
+  }
+  if (template === 'READING_FORUM_MATCH') return '4';
+  if (template === 'READING_HEADING_MATCH') return '5';
+  return '';
+}
+
+function readingGapRowsFromItem(item: Record<string, unknown>): ReadingGapQuestion[] {
+  const nestedRows = Array.isArray(item.rows) ? item.rows : [];
+  if (nestedRows.length > 0) {
+    return nestedRows
+      .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === 'object'))
+      .map((row) => ({
+        prompt: String(row.prompt ?? '').trim() || undefined,
+        questionStart: String(row.questionStart ?? '').trim() || undefined,
+        questionEnd: String(row.questionEnd ?? '').trim() || undefined,
+        options: asStringArray(row.answerOptions).length > 0 ? asStringArray(row.answerOptions) : asStringArray(row.options),
+        answer: String(row.correctAnswer ?? row.answer ?? '').trim()
+      }));
+  }
+
+  return [{
+    prompt: String(item.prompt ?? '').trim() || undefined,
+    questionStart: String(item.questionStart ?? '').trim() || undefined,
+    questionEnd: String(item.questionEnd ?? '').trim() || undefined,
+    options: asStringArray(item.answerOptions).length > 0 ? asStringArray(item.answerOptions) : asStringArray(item.options),
+    answer: String(item.answer ?? item.correctAnswer ?? '').trim()
+  }];
+}
+
+function readingCorrectOrderFromItem(item?: Record<string, unknown>) {
+  const correctSentences = asStringArray(item?.correctSentences);
+  if (correctSentences.length > 0) return correctSentences;
+
+  const items = Array.isArray(item?.items) ? item?.items : [];
+  return items.map((item) => {
+    if (item && typeof item === 'object') return String((item as Record<string, unknown>).text ?? '').trim();
+    return String(item ?? '').trim();
+  }).filter(Boolean);
+}
+
+function readingDisplayOrderFromItem(item: Record<string, unknown> | undefined, correctOrder: string[]) {
+  const displaySentences = asStringArray(item?.displaySentences);
+  if (displaySentences.length > 0) return displaySentences;
+
+  const sentences = asStringArray(item?.sentences);
+  if (sentences.length > 0) return sentences;
+
+  return rotateChoices(correctOrder);
+}
+
+function readingForumContextFromRows(rows: Record<string, unknown>[]) {
+  const context = asStringArray(rows[0]?.context);
+  if (context.length > 0) return context;
+
+  const leftTitle = String(rows[0]?.leftTitle ?? '').trim();
+  return [
+    leftTitle,
+    ...asStringArray(rows[0]?.opinions)
+  ].filter(Boolean);
+}
+
+function asStringArray(value: unknown) {
+  return Array.isArray(value) ? value.map(String).map((item) => item.trim()).filter(Boolean) : [];
 }
 
 function rotateChoices(values: string[]) {
@@ -5172,7 +5254,9 @@ function ListeningMonologues({
 }
 
 function ReadingStart({ data, mockCard, onStart }: { data: ReadingTestData; mockCard: MockCard | null; onStart: () => void }) {
-  const questionCount = data.gaps.length + data.cohesion.length + 2;
+  const hasOpinion = data.opinion.people.length > 0 && data.opinion.questions.length > 0;
+  const hasLong = data.long.headings.length > 0 && data.long.paragraphs.length > 0;
+  const questionCount = data.gaps.length + data.cohesion.length + Number(hasOpinion) + Number(hasLong);
   return (
     <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
       <section className="max-w-[620px]">
@@ -5273,7 +5357,9 @@ function ReadingQuestion({ data, answers, bookmarkActive, showAnswer, timeRemain
           </p>
 
           <div style={{ color: '#000000', fontSize: 22, lineHeight: '44px', marginTop: 42 }}>
-            {data.map((question, index) => {
+            {data.length === 0 ? (
+              <EmptyImportedPart />
+            ) : data.map((question, index) => {
               const promptParts = question.prompt?.split('___') ?? [];
               const before = question.questionStart ?? promptParts[0] ?? '';
               const after = question.questionEnd ?? promptParts.slice(1).join('___') ?? '';
@@ -5295,7 +5381,40 @@ function ReadingQuestion({ data, answers, bookmarkActive, showAnswer, timeRemain
   );
 }
 
-function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data: ReadingCohesionQuestion; answers: string[]; bookmarkActive: boolean; questionIndex: number; total: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void; onToggleBookmark: () => void }) {
+function EmptyReadingScreen({ title, timeRemaining, bookmarkActive, onToggleBookmark }: { title: string; timeRemaining: string; bookmarkActive: boolean; onToggleBookmark: () => void }) {
+  return (
+    <main style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
+      <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+          <div>
+            <p style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: 0 }}>Reading</p>
+            <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>{title}</h2>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+            <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
+            <div style={{ minWidth: 170, textAlign: 'center' }}>
+              <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 30, fontWeight: 900, lineHeight: 1, letterSpacing: 1, margin: 0 }}>{timeRemaining}</p>
+              <p style={{ color: '#64748b', fontSize: 13, margin: '8px 0 0' }}>Time remaining</p>
+              <div style={{ height: 4, borderRadius: 999, backgroundColor: '#2b075c', marginTop: 8 }} />
+            </div>
+          </div>
+        </div>
+        <EmptyImportedPart />
+      </section>
+    </main>
+  );
+}
+
+function EmptyImportedPart() {
+  return (
+    <div style={{ marginTop: 28, borderRadius: 14, border: '1px dashed #cbd5e1', backgroundColor: '#ffffff', padding: '22px 24px', color: '#475569', fontSize: 16, fontWeight: 700, lineHeight: '26px' }}>
+      Phần này chưa có dữ liệu trong đề import.
+    </div>
+  );
+}
+
+function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data?: ReadingCohesionQuestion; answers: string[]; bookmarkActive: boolean; questionIndex: number; total: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void; onToggleBookmark: () => void }) {
+  if (!data) return <EmptyReadingScreen title="Part 2 + 3 - Text Cohesion" timeRemaining={timeRemaining} bookmarkActive={bookmarkActive} onToggleBookmark={onToggleBookmark} />;
   const choices = data.choices;
   const correctAnswers = data.correctOrder;
   const slots = Array.from({ length: correctAnswers.length }, (_, index) => answers[index] || null);
@@ -5525,16 +5644,16 @@ function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaini
           {data.intro ? stripHtml(data.intro) : `Four people respond to the topic${data.topic ? `: ${data.topic}` : ''}. Read the texts and then answer the questions below.`}
         </p>
 
-        <article style={{ borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+        {people.length === 0 || questions.length === 0 ? <EmptyImportedPart /> : <article style={{ borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
           {people.map((person) => (
             <section key={person.label} style={{ marginBottom: person.label === 'D' ? 0 : 26 }}>
               <h3 style={{ color: '#020817', fontSize: 19, fontWeight: 900, margin: '0 0 8px' }}>{person.label}</h3>
               <p style={{ color: '#020817', fontSize: 18, lineHeight: '29px', margin: 0 }}>{person.text}</p>
             </section>
           ))}
-        </article>
+        </article>}
 
-        <article style={{ marginTop: 26, borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+        {people.length > 0 && questions.length > 0 && <article style={{ marginTop: 26, borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
           <div style={{ display: 'grid', gap: 18 }}>
             {questions.map((question, index) => (
               <div key={question} style={{ display: 'grid', gridTemplateColumns: '1fr 156px', alignItems: 'center', gap: 24 }}>
@@ -5555,7 +5674,7 @@ function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaini
               </div>
             ))}
           </div>
-        </article>
+        </article>}
       </section>
     </main>
   );
@@ -5595,7 +5714,7 @@ function ReadingLong({ data, answers, bookmarkActive, showAnswer, timeRemaining,
         <h2 style={{ color: '#020817', fontSize: 30, fontWeight: 900, margin: '20px 0 28px' }}>{data.title}</h2>
 
         <div style={{ display: 'grid', gap: 28 }}>
-          {paragraphs.map((paragraph, index) => (
+          {paragraphs.length === 0 ? <EmptyImportedPart /> : paragraphs.map((paragraph, index) => (
             <article key={index} style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '24px 22px 24px 62px', position: 'relative' }}>
               <span style={{ position: 'absolute', left: 22, top: 38, color: '#020817', fontSize: 16, fontWeight: 900 }}>{index + 1}.</span>
               <select value={answers[index] ?? ''} onChange={(event) => onAnswer(index, event.target.value)} style={{ width: 'min(432px, 100%)', height: 48, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 20px', color: '#64748b', fontSize: 16, fontStyle: 'italic', outline: 'none' }}>

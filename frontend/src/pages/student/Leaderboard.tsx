@@ -1,8 +1,11 @@
-import { Award, ExternalLink, Gift, Medal, RotateCcw, Search, Trophy, Users, UserRound } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Award, CalendarDays, ExternalLink, Gift, Medal, RotateCcw, Save, Search, Trophy, Users, UserRound } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
-import type { LeaderboardRow } from '../../types';
+import { useAuthStore } from '../../store/authStore';
+import type { LeaderboardRow, LeaderboardSettings } from '../../types';
+import { userHasRole } from '../../utils/roles';
 import { repairMojibake } from '../../utils/textRepair';
 
 const facebookCommunityUrl = 'https://www.facebook.com/groups/1017783430680359';
@@ -11,6 +14,16 @@ const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
 export function Leaderboard() {
   const { data, loading, error } = useApi<LeaderboardRow[]>(() => unwrap(api.get('/submissions/leaderboard')), []);
   const [query, setQuery] = useState('');
+  const [examDate, setExamDate] = useState('');
+  const [savingExamDate, setSavingExamDate] = useState(false);
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = userHasRole(user, 'ADMIN');
+
+  useEffect(() => {
+    unwrap<LeaderboardSettings>(api.get('/submissions/leaderboard/settings'))
+      .then((settings) => setExamDate(settings.examDate ?? ''))
+      .catch(() => undefined);
+  }, []);
 
   const rows = data ?? [];
   const filteredRows = useMemo(() => {
@@ -19,6 +32,21 @@ export function Leaderboard() {
     return rows.filter((row) => `${row.fullName} ${row.email}`.toLowerCase().includes(keyword));
   }, [query, rows]);
   const topThree = rows.slice(0, 3);
+
+  async function saveExamDate() {
+    setSavingExamDate(true);
+    try {
+      const saved = await unwrap<LeaderboardSettings>(api.put('/submissions/leaderboard/settings', {
+        examDate: examDate || null
+      }));
+      setExamDate(saved.examDate ?? '');
+      toast.success('Đã cập nhật ngày thi');
+    } catch (saveError) {
+      toast.error(saveError instanceof Error ? saveError.message : 'Không lưu được ngày thi');
+    } finally {
+      setSavingExamDate(false);
+    }
+  }
 
   if (loading) return <InfoCard>Đang tải bảng xếp hạng...</InfoCard>;
   if (error) return <InfoCard error>{error}</InfoCard>;
@@ -48,6 +76,37 @@ export function Leaderboard() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
+        <div className="flex items-start gap-4 rounded-[8px] border border-brand-100 bg-white p-5 shadow-soft">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 shadow-soft">
+            <CalendarDays size={22} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-extrabold text-navy">Ngày thi</h2>
+            <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
+              {examDate ? formatDate(examDate) : 'Admin chưa đặt ngày thi.'}
+            </p>
+            {isAdmin && (
+              <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="date"
+                  value={examDate}
+                  onChange={(event) => setExamDate(event.target.value)}
+                  className="h-10 rounded-lg border border-brand-100 bg-white px-3 text-sm font-bold text-navy outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
+                />
+                <button
+                  type="button"
+                  onClick={saveExamDate}
+                  disabled={savingExamDate}
+                  className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-extrabold text-white transition hover:bg-brand-700 disabled:opacity-70"
+                >
+                  <Save size={16} />
+                  {savingExamDate ? 'Đang lưu...' : 'Lưu'}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex items-start gap-4 rounded-[8px] border border-amber-200 bg-amber-50 p-5 shadow-soft">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-amber-600 shadow-soft">
             <Gift size={22} />
