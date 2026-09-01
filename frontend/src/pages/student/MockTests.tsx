@@ -751,7 +751,9 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
     .filter((item) => {
       const skill = String(item.skill ?? '').toUpperCase();
       const template = String(item.template ?? '').toUpperCase();
-      return !skill || skill === 'READING' || template.startsWith('READING_');
+      if (template.startsWith('READING_')) return true;
+      if (card?.skill === 'READING' && getReadingPart(item)) return true;
+      return !skill || skill === 'READING';
     });
 
   const gapRows = rows.filter((item) => getReadingPart(item) === '1');
@@ -822,6 +824,21 @@ function getReadingPart(item: Record<string, unknown>) {
   }
   if (template === 'READING_FORUM_MATCH') return '4';
   if (template === 'READING_HEADING_MATCH') return '5';
+
+  const searchableText = removeVietnameseMarks([
+    item.topic,
+    item.title,
+    item.instructions,
+    item.prompt,
+    item.question
+  ].map((value) => String(value ?? '')).join(' ')).toLowerCase();
+  if (searchableText.includes('gap') || searchableText.includes('fits in each gap')) return '1';
+  if (searchableText.includes('right order') || searchableText.includes('sentence order') || searchableText.includes('sap xep')) {
+    return searchableText.includes('part 3') ? '3' : '2';
+  }
+  if (searchableText.includes('forum') || searchableText.includes('opinion matching')) return '4';
+  if (searchableText.includes('heading') || searchableText.includes('long reading')) return '5';
+
   return '';
 }
 
@@ -1436,6 +1453,22 @@ function readSkill(value: string | null): MockSkill {
   return mockSkills.includes(value as MockSkill) ? (value as MockSkill) : 'FULL';
 }
 
+function skillFromAssessmentScreen(screen: SpeakingScreen): MockSkill | null {
+  if (screen === 'fullStart' || screen === 'fullResult') return 'FULL';
+  if (screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong' || screen === 'readingResult' || screen === 'readingReview') return 'READING';
+  if (screen === 'listeningStart' || screen === 'listeningInstructions' || screen === 'listeningQuestion' || screen === 'listeningMatching' || screen === 'listeningShort' || screen === 'listeningMonologues' || screen === 'listeningResult' || screen === 'listeningReview') return 'LISTENING';
+  if (screen === 'writingInstructions' || screen === 'writingPart' || screen === 'writingResult') return 'WRITING';
+  if (screen === 'grammarStart' || screen === 'grammarInstructions' || screen === 'grammarQuestion' || screen === 'grammarResult') return 'GRAMMAR';
+  if (screen === 'start' || screen === 'instructions' || screen === 'prompt' || screen === 'question' || screen === 'part2Prompt' || screen === 'part2Question' || screen === 'part3Prompt' || screen === 'part3Question' || screen === 'part4Prompt' || screen === 'part4Question' || screen === 'complete') return 'SPEAKING';
+  return null;
+}
+
+function readTestId(value: string | null) {
+  const numberValue = Number(value);
+  if (!Number.isInteger(numberValue) || numberValue <= 0) return null;
+  return numberValue;
+}
+
 function readQuestionIndex(value: string | null) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue)) return 0;
@@ -1677,6 +1710,7 @@ function scoreReadingAnswers(
 export function MockTests() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const [searchParams, setSearchParams] = useSearchParams();
+  const urlTestId = readTestId(searchParams.get('testId'));
   const [screen, setScreen] = useState<SpeakingScreen>(() => readScreen(searchParams.get('screen')));
   const [answerRevealOpen, setAnswerRevealOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<MockSkill>(() => readSkill(searchParams.get('skill')));
@@ -1716,6 +1750,7 @@ export function MockTests() {
   const [grammarAnswers, setGrammarAnswers] = useState<Record<number, string>>({});
   const [isFullMock, setIsFullMock] = useState(() => searchParams.get('full') === '1');
   const [selectedMockCard, setSelectedMockCard] = useState<MockCard | null>(null);
+  const [selectedMockCardLoading, setSelectedMockCardLoading] = useState(false);
   const [part4Phase, setPart4Phase] = useState<Part4Phase>(() => readPart4Phase(searchParams.get('part4Phase')));
   const [speechReady, setSpeechReady] = useState(true);
   const [speakingSoundEnabled, setSpeakingSoundEnabled] = useState(true);
@@ -1924,7 +1959,11 @@ export function MockTests() {
       params.set('skill', selectedSkill);
     } else {
       params.set('screen', screen);
-      params.set('skill', 'SPEAKING');
+      params.set('skill', skillFromAssessmentScreen(screen) ?? selectedSkill);
+      const activeTestId = selectedMockCard?.practiceTestId ?? urlTestId;
+      if (activeTestId) {
+        params.set('testId', String(activeTestId));
+      }
       if (isFullMock) {
         params.set('full', '1');
       }
@@ -1941,48 +1980,29 @@ export function MockTests() {
         params.set('part4Phase', part4Phase);
       }
       if (screen === 'listeningQuestion') {
-        params.set('skill', 'LISTENING');
         params.set('listeningQuestion', String(listeningQuestionIndex));
       }
-      if (screen === 'listeningMatching') {
-        params.set('skill', 'LISTENING');
-      }
-      if (screen === 'listeningShort') {
-        params.set('skill', 'LISTENING');
-      }
       if (screen === 'listeningMonologues') {
-        params.set('skill', 'LISTENING');
         params.set('listeningRecording', String(listeningMonologueIndex));
       }
-      if (screen === 'writingInstructions' || screen === 'writingResult') {
-        params.set('skill', 'WRITING');
-      }
       if (screen === 'writingPart') {
-        params.set('skill', 'WRITING');
         params.set('writingPart', String(writingPartIndex));
-      }
-      if (screen === 'grammarStart' || screen === 'grammarInstructions' || screen === 'grammarQuestion' || screen === 'grammarResult') {
-        params.set('skill', 'GRAMMAR');
       }
       if (screen === 'grammarQuestion') {
         params.set('grammarQuestion', String(grammarQuestionIndex));
       }
-      if (screen === 'fullStart') {
-        params.set('skill', 'FULL');
-      }
-      if (screen === 'fullResult') {
-        params.set('skill', 'FULL');
-      }
     }
 
     setSearchParams(params, { replace: screen === 'select' });
-  }, [grammarQuestionIndex, isFullMock, listeningMonologueIndex, listeningQuestionIndex, part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, selectedSkill, setSearchParams, writingPartIndex]);
+  }, [grammarQuestionIndex, isFullMock, listeningMonologueIndex, listeningQuestionIndex, part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, selectedMockCard?.practiceTestId, selectedSkill, setSearchParams, urlTestId, writingPartIndex]);
 
   useEffect(() => {
     const syncFromBrowserHistory = () => {
       const params = new URLSearchParams(window.location.search);
+      const nextTestId = readTestId(params.get('testId'));
       setScreen(readScreen(params.get('screen')));
       setSelectedSkill(readSkill(params.get('skill')));
+      setSelectedMockCard((current) => current?.practiceTestId === nextTestId ? current : null);
       setIsFullMock(params.get('full') === '1');
       setQuestionIndex(readQuestionIndex(params.get('question')));
       setPart2QuestionIndex(readPart2QuestionIndex(params.get('part2Question')));
@@ -1997,6 +2017,48 @@ export function MockTests() {
     window.addEventListener('popstate', syncFromBrowserHistory);
     return () => window.removeEventListener('popstate', syncFromBrowserHistory);
   }, []);
+
+  useEffect(() => {
+    const isAssessmentScreen = screen !== 'select';
+    const selectedTestId = urlTestId;
+    const targetSkill = skillFromAssessmentScreen(screen) ?? selectedSkill;
+    if (!isAssessmentScreen || selectedMockCard || (!selectedTestId && targetSkill === 'FULL')) return;
+
+    let cancelled = false;
+
+    async function restoreSelectedAssessment() {
+      setSelectedMockCardLoading(true);
+      try {
+        let card: MockCard | null = null;
+
+        if (selectedTestId) {
+          card = apiExamTestToCard(await unwrap<Test>(api.get(`/tests/${selectedTestId}`)));
+        } else {
+          const tests = await unwrap<Test[]>(api.get('/tests'));
+          const examCards = await apiExamTestsToCards(tests);
+          card = examCards.find((item) => item.skill === targetSkill && item.ready) ?? null;
+        }
+
+        if (!card) return;
+
+        const hydratedCard = await hydrateAssessmentCard(card);
+        if (cancelled) return;
+
+        setSelectedMockCard(hydratedCard);
+        setSelectedSkill((hydratedCard ?? card).skill);
+      } catch {
+        if (!cancelled) toast.error('Không tải được đề đã import.');
+      } finally {
+        if (!cancelled) setSelectedMockCardLoading(false);
+      }
+    }
+
+    restoreSelectedAssessment();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [screen, selectedMockCard, selectedSkill, urlTestId]);
 
   useEffect(() => {
     speakingSoundEnabledRef.current = speakingSoundEnabled;
@@ -2841,7 +2903,7 @@ export function MockTests() {
             />
           )}
           {screen === 'fullStart' && <FullStart mockCard={selectedMockCard} onStart={startFullSpeaking} />}
-          {screen === 'readingStart' && <ReadingStart mockCard={selectedMockCard} data={activeReadingData} onStart={() => setScreen('readingInstructions')} />}
+          {screen === 'readingStart' && <ReadingStart mockCard={selectedMockCard} data={activeReadingData} loading={selectedMockCardLoading} onStart={() => setScreen('readingInstructions')} />}
           {screen === 'readingInstructions' && <ReadingInstructions />}
           {screen === 'readingQuestion' && <ReadingQuestion data={activeReadingData.gaps} answers={readingGapAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part1', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part1', 1))} />}
           {screen === 'readingCohesion' && <ReadingCohesion data={activeReadingData.cohesion[readingCohesionIndex] ?? activeReadingData.cohesion[0]} answers={readingCohesionAnswers[readingCohesionIndex] ?? []} bookmarkActive={isBookmarked(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} questionIndex={readingCohesionIndex} total={activeReadingData.cohesion.length} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(answers) => setReadingCohesionAnswers((currentAnswers) => ({ ...currentAnswers, [readingCohesionIndex]: answers }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} />}
@@ -5271,10 +5333,11 @@ function ListeningMonologues({
   );
 }
 
-function ReadingStart({ data, mockCard, onStart }: { data: ReadingTestData; mockCard: MockCard | null; onStart: () => void }) {
+function ReadingStart({ data, mockCard, loading, onStart }: { data: ReadingTestData; mockCard: MockCard | null; loading?: boolean; onStart: () => void }) {
   const hasOpinion = data.opinion.people.length > 0 && data.opinion.questions.length > 0;
   const hasLong = data.long.headings.length > 0 && data.long.paragraphs.length > 0;
   const questionCount = data.gaps.length + data.cohesion.length + Number(hasOpinion) + Number(hasLong);
+  const canStart = !loading && questionCount > 0;
   return (
     <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
       <section className="max-w-[620px]">
@@ -5290,7 +5353,7 @@ function ReadingStart({ data, mockCard, onStart }: { data: ReadingTestData; mock
         <div className="mt-8 grid max-w-[460px] grid-cols-2 gap-4">
           <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5">
             <p className="text-sm font-semibold text-slate-600">Number of Questions</p>
-            <p className="mt-3 text-2xl font-extrabold text-navy">{questionCount}</p>
+            <p className="mt-3 text-2xl font-extrabold text-navy">{loading ? '...' : questionCount}</p>
           </div>
           <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5">
             <p className="text-sm font-semibold text-slate-600">Time Allowed</p>
@@ -5305,8 +5368,12 @@ function ReadingStart({ data, mockCard, onStart }: { data: ReadingTestData; mock
           </p>
         </div>
 
-        <button type="button" onClick={onStart} className="mt-8 inline-flex h-[52px] items-center justify-center gap-3 rounded-xl px-8 text-lg font-semibold text-white shadow-lift shadow-[#2b075c]/20 hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
-          Start Assessment
+        {!loading && questionCount === 0 && (
+          <p className="mt-4 text-sm font-semibold text-red-700">Đề này chưa có dữ liệu câu hỏi Reading để làm bài.</p>
+        )}
+
+        <button type="button" disabled={!canStart} onClick={onStart} className="mt-8 inline-flex h-[52px] items-center justify-center gap-3 rounded-xl px-8 text-lg font-semibold text-white shadow-lift shadow-[#2b075c]/20 hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60" style={{ backgroundColor: '#2b075c' }}>
+          {loading ? 'Đang tải đề...' : 'Start Assessment'}
           <ArrowRight size={20} />
         </button>
       </section>
