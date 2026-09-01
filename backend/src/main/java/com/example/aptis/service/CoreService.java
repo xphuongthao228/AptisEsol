@@ -337,6 +337,9 @@ public class CoreService {
         if (isWritingCollectionRows(records)) {
             return importWritingRowsAsExamTests(records);
         }
+        if (isQuestionCsvRecords(records)) {
+            return List.of(importExamTestFromQuestionRecords(file.getOriginalFilename(), records));
+        }
         for (CSVRecord record : records) {
             try {
                 Skill skill = skillForType(parseSkillType(requiredCsv(record, "skill")));
@@ -375,39 +378,52 @@ public class CoreService {
                     continue;
                 }
 
-                SkillType skillType = inferZipSkill(entry.getName(), records);
-                Skill skill = skillForType(skillType);
-                CSVRecord first = records.get(0);
-                String title = firstNonBlank(csv(first, "test_title", ""), titleFromZipEntry(entry.getName(), skillType));
-                Test test = new Test();
-                test.setSkill(skill);
-                test.setTitle(title);
-                test.setDescription(firstNonBlank(csv(first, "description", ""), title));
-                test.setDurationMinutes(parseInteger(first, "duration_minutes", defaultExamDuration(skillType)));
-                test.setStatus(parseTestStatus(csv(first, "status", "PUBLISHED")));
-                test.setMode(TestMode.EXAM);
-                test.setFeatured(parseBoolean(csv(first, "featured", "false")));
-                Test savedTest = tests.save(test);
-
-                int importedQuestions = 0;
-                for (CSVRecord record : records) {
-                    try {
-                        Question question = buildQuestionFromCsv(record, savedTest, importedQuestions + 1);
-                        question.setSortOrder(parseInteger(record, "sort_order", importedQuestions + 1));
-                        questions.save(question);
-                        importedQuestions++;
-                    } catch (RuntimeException ex) {
-                        throw new IllegalArgumentException(entry.getName() + " row " + record.getRecordNumber()
-                                + " error: " + ex.getMessage(), ex);
-                    }
-                }
-                imported.add(mapper.test(savedTest, importedQuestions));
+                imported.add(importExamTestFromQuestionRecords(entry.getName(), records));
             }
         }
         if (imported.isEmpty()) {
             throw new IllegalArgumentException("ZIP does not contain any CSV question files");
         }
         return imported;
+    }
+
+    private CoreDtos.TestResponse importExamTestFromQuestionRecords(String sourceName, List<CSVRecord> records) {
+        SkillType skillType = inferCsvSkill(sourceName, records);
+        Skill skill = skillForType(skillType);
+        CSVRecord first = records.get(0);
+        String title = firstNonBlank(csv(first, "test_title", ""), titleFromSourceName(sourceName, skillType));
+        Test test = new Test();
+        test.setSkill(skill);
+        test.setTitle(title);
+        test.setDescription(firstNonBlank(csv(first, "description", ""), title));
+        test.setDurationMinutes(parseInteger(first, "duration_minutes", defaultExamDuration(skillType)));
+        test.setStatus(parseTestStatus(csv(first, "status", "PUBLISHED")));
+        test.setMode(TestMode.EXAM);
+        test.setFeatured(parseBoolean(csv(first, "featured", "false")));
+        Test savedTest = tests.save(test);
+
+        int importedQuestions = 0;
+        for (CSVRecord record : records) {
+            try {
+                Question question = buildQuestionFromCsv(record, savedTest, importedQuestions + 1);
+                question.setSortOrder(parseInteger(record, "sort_order", importedQuestions + 1));
+                questions.save(question);
+                importedQuestions++;
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException(sourceName + " row " + record.getRecordNumber()
+                        + " error: " + ex.getMessage(), ex);
+            }
+        }
+        return mapper.test(savedTest, importedQuestions);
+    }
+
+    private boolean isQuestionCsvRecords(List<CSVRecord> records) {
+        if (records == null || records.isEmpty()) {
+            return false;
+        }
+        CSVRecord first = records.get(0);
+        return hasCsvHeader(first, "type") && hasCsvHeader(first, "content")
+                && !hasCsvHeader(first, "skill") && !hasCsvHeader(first, "title");
     }
 
     private List<CSVRecord> readCsvRecords(Reader reader) throws Exception {
@@ -444,7 +460,7 @@ public class CoreService {
                 || "application/x-zip-compressed".equalsIgnoreCase(file.getContentType());
     }
 
-    private SkillType inferZipSkill(String entryName, List<CSVRecord> records) {
+    private SkillType inferCsvSkill(String sourceName, List<CSVRecord> records) {
         for (CSVRecord record : records) {
             String skill = csv(record, "skill", "");
             if (!skill.isBlank()) {
@@ -452,16 +468,16 @@ public class CoreService {
             }
         }
 
-        String normalizedName = entryName == null ? "" : entryName.toLowerCase();
-        if (normalizedName.contains("listening")) return SkillType.LISTENING;
-        if (normalizedName.contains("speaking")) return SkillType.SPEAKING;
-        if (normalizedName.contains("writing")) return SkillType.WRITING;
+        String normalizedName = sourceName == null ? "" : sourceName.toLowerCase();
+        if (normalizedName.contains("listening") || normalizedName.contains("listen")) return SkillType.LISTENING;
+        if (normalizedName.contains("speaking") || normalizedName.contains("speak")) return SkillType.SPEAKING;
+        if (normalizedName.contains("writing") || normalizedName.contains("write")) return SkillType.WRITING;
         if (normalizedName.contains("grammar")) return SkillType.GRAMMAR;
         return SkillType.READING;
     }
 
-    private String titleFromZipEntry(String entryName, SkillType skillType) {
-        String filename = entryName == null ? "" : entryName.replace("\\", "/");
+    private String titleFromSourceName(String sourceName, SkillType skillType) {
+        String filename = sourceName == null ? "" : sourceName.replace("\\", "/");
         int slashIndex = filename.lastIndexOf('/');
         if (slashIndex >= 0) {
             filename = filename.substring(slashIndex + 1);
@@ -477,6 +493,12 @@ public class CoreService {
             if (parts[i].equalsIgnoreCase("de") && parts[i + 1].matches("\\d+")) {
                 return skillName(skillType) + " Test " + parts[i + 1];
             }
+            if (parts[i].matches("(?i)de\\d+")) {
+                return skillName(skillType) + " Test " + parts[i].replaceAll("\\D+", "");
+            }
+        }
+        if (parts.length > 0 && parts[parts.length - 1].matches("(?i)de\\d+")) {
+            return skillName(skillType) + " Test " + parts[parts.length - 1].replaceAll("\\D+", "");
         }
         return filename.isBlank() ? skillName(skillType) + " Test" : filename;
     }
@@ -1283,6 +1305,14 @@ public class CoreService {
             }
         }
         return defaultValue;
+    }
+
+    private boolean hasCsvHeader(CSVRecord record, String name) {
+        if (record.isMapped(name)) {
+            return true;
+        }
+        return record.toMap().keySet().stream()
+                .anyMatch(header -> normalizeCsvHeader(header).equalsIgnoreCase(name));
     }
 
     private String normalizeCsvHeader(String header) {
