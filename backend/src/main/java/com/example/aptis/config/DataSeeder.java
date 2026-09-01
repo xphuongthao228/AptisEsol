@@ -59,7 +59,12 @@ public class DataSeeder {
                 users.save(admin);
             } else {
                 users.findByEmailAndDeletedAtIsNull(seedAdminEmail).ifPresent(user -> {
+                    if (hasText(seedAdminPassword)) {
+                        user.setPassword(encoder.encode(seedAdminPassword));
+                    }
                     user.setEmailVerified(true);
+                    user.setEnabled(true);
+                    user.getRoles().add(adminRole);
                     users.save(user);
                 });
             }
@@ -73,7 +78,12 @@ public class DataSeeder {
                 users.save(student);
             } else {
                 users.findByEmailAndDeletedAtIsNull(seedStudentEmail).ifPresent(user -> {
+                    if (hasText(seedStudentPassword)) {
+                        user.setPassword(encoder.encode(seedStudentPassword));
+                    }
                     user.setEmailVerified(true);
+                    user.setEnabled(true);
+                    user.getRoles().add(studentRole);
                     users.save(user);
                 });
             }

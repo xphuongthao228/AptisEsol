@@ -5,6 +5,7 @@ import com.example.aptis.dto.CoreDtos;
 import com.example.aptis.entity.*;
 import com.example.aptis.enums.RoleName;
 import com.example.aptis.enums.TestMode;
+import com.example.aptis.util.TextRepair;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -29,12 +30,12 @@ public class DtoMapper {
         if (accessExpiresAt == null || (trialExpiresAt != null && trialExpiresAt.isAfter(accessExpiresAt))) {
             accessExpiresAt = trialExpiresAt;
         }
-        return new AuthDtos.UserResponse(user.getId(), user.getEmail(), user.getFullName(), roles, user.isEnabled(),
+        return new AuthDtos.UserResponse(user.getId(), user.getEmail(), clean(user.getFullName()), roles, user.isEnabled(),
                 user.getProExpiresAt(), accessExpiresAt, user.getLastSeenAt(), user.getCreatedAt());
     }
 
     public CoreDtos.SkillResponse skill(Skill skill) {
-        return new CoreDtos.SkillResponse(skill.getId(), skill.getType(), skill.getName(), skill.getDescription());
+        return new CoreDtos.SkillResponse(skill.getId(), skill.getType(), clean(skill.getName()), clean(skill.getDescription()));
     }
 
     public CoreDtos.TestResponse test(Test test) {
@@ -42,20 +43,20 @@ public class DtoMapper {
     }
 
     public CoreDtos.TestResponse test(Test test, int questionCount) {
-        return new CoreDtos.TestResponse(test.getId(), test.getSkill().getId(), test.getSkill().getName(),
-                test.getTitle(), test.getDescription(), test.getDurationMinutes(), test.getStatus(),
+        return new CoreDtos.TestResponse(test.getId(), test.getSkill().getId(), clean(test.getSkill().getName()),
+                clean(test.getTitle()), clean(test.getDescription()), test.getDurationMinutes(), test.getStatus(),
                 resolveTestMode(test), test.isFeatured(), questionCount);
     }
 
     public CoreDtos.LessonResponse lesson(Lesson lesson) {
-        return new CoreDtos.LessonResponse(lesson.getId(), lesson.getSkill(), lesson.getTitle(),
-                lesson.getSummary(), lesson.getContent(), lesson.getStatus(), lesson.getUpdatedAt(),
-                lesson.getResourceType(), lesson.getResourceUrl(), lesson.getPartLabel());
+        return new CoreDtos.LessonResponse(lesson.getId(), lesson.getSkill(), clean(lesson.getTitle()),
+                clean(lesson.getSummary()), clean(lesson.getContent()), lesson.getStatus(), lesson.getUpdatedAt(),
+                lesson.getResourceType(), clean(lesson.getResourceUrl()), clean(lesson.getPartLabel()));
     }
 
     public CoreDtos.PredictionResponse prediction(Prediction prediction) {
-        return new CoreDtos.PredictionResponse(prediction.getId(), prediction.getSkill(), prediction.getTitle(),
-                prediction.getSummary(), prediction.getContent(), prediction.getTags(), prediction.getPriority(),
+        return new CoreDtos.PredictionResponse(prediction.getId(), prediction.getSkill(), clean(prediction.getTitle()),
+                clean(prediction.getSummary()), clean(prediction.getContent()), clean(prediction.getTags()), prediction.getPriority(),
                 prediction.getStatus(), prediction.getUpdatedAt());
     }
 
@@ -82,17 +83,45 @@ public class DtoMapper {
 
     public CoreDtos.QuestionResponse question(Question question) {
         return new CoreDtos.QuestionResponse(question.getId(), question.getTest().getId(), question.getType(),
-                question.getContent(), question.getTopic(), question.getAudioUrl(), question.getScriptText(),
-                question.getExplanation(),
+                clean(question.getContent()), clean(question.getTopic()), clean(question.getAudioUrl()), clean(question.getScriptText()),
+                clean(question.getExplanation()),
                 EXAM_POINT_PER_QUESTION, question.getSortOrder(), question.isFeatured(),
                 question.getAnswers().stream().sorted(Comparator.comparing(Answer::getSortOrder))
-                        .map(answer -> new CoreDtos.AnswerResponse(answer.getId(), answer.getContent(),
+                        .map(answer -> new CoreDtos.AnswerResponse(answer.getId(), clean(answer.getContent()),
                                 answer.isCorrect(), answer.getSortOrder()))
                         .toList());
     }
 
     public CoreDtos.SubmissionResponse submission(Submission s) {
-        return new CoreDtos.SubmissionResponse(s.getId(), s.getTest().getId(), s.getTest().getTitle(),
-                s.getTotalScore(), s.getMaxScore(), s.getCreatedAt());
+        var answerResponses = s.getAnswers().stream()
+                .sorted(Comparator.comparing(sa -> sa.getQuestion().getSortOrder()))
+                .map(sa -> {
+                    Question question = sa.getQuestion();
+                    String correctAnswer = question.getAnswers().stream()
+                            .filter(Answer::isCorrect)
+                            .sorted(Comparator.comparing(Answer::getSortOrder))
+                            .map(answer -> clean(answer.getContent()))
+                            .collect(Collectors.joining(", "));
+                    return new CoreDtos.SubmissionAnswerResponse(
+                            sa.getId(),
+                            question.getId(),
+                            question.getSortOrder(),
+                            clean(question.getContent()),
+                            clean(question.getTopic()),
+                            sa.getAnswer() == null ? null : clean(sa.getAnswer().getContent()),
+                            clean(sa.getTextAnswer()),
+                            correctAnswer.isBlank() ? null : correctAnswer,
+                            sa.isCorrect(),
+                            sa.getScore(),
+                            clean(question.getExplanation()));
+                })
+                .toList();
+        return new CoreDtos.SubmissionResponse(s.getId(), s.getTest().getId(), clean(s.getTest().getTitle()),
+                clean(s.getTest().getSkill().getName()), s.getTotalScore(), s.getMaxScore(), s.getCreatedAt(),
+                answerResponses);
+    }
+
+    private String clean(String value) {
+        return TextRepair.repair(value);
     }
 }

@@ -4,21 +4,30 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Work Sans', 'Inter', 'ui-sans-serif', 'system-ui']
+        sans: ['Montserrat', 'Inter', 'ui-sans-serif', 'system-ui']
       },
       colors: {
         brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#2563eb',
-          600: '#1d4ed8',
-          700: '#1e40af'
+          50: '#fff7db',
+          100: '#ffef99',
+          200: '#ffe066',
+          300: '#ffd43b',
+          500: '#ffde00',
+          600: '#d71920',
+          700: '#a50f15'
         },
-        slatePanel: '#343A40'
+        sky: {
+          50: '#fff8f2',
+          100: '#ffe9d6',
+          200: '#ffd4b3',
+          300: '#ffb875'
+        },
+        navy: '#3b0a0a',
+        slatePanel: '#2a1010'
       },
       boxShadow: {
-        soft: '0 1px 3px rgba(15, 23, 42, 0.08)',
-        lift: '0 8px 24px rgba(15, 23, 42, 0.08)'
+        soft: '0 8px 24px rgba(165, 15, 21, 0.09)',
+        lift: '0 18px 45px rgba(165, 15, 21, 0.16)'
       }
     }
   },

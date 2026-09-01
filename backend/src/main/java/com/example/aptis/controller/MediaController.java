@@ -38,6 +38,9 @@ public class MediaController {
         MediaFile media = service.mediaEntity(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, media.getContentType())
+                .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")
+                .header(HttpHeaders.PRAGMA, "no-cache")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline")
                 .body(service.mediaResource(id));
     }
 

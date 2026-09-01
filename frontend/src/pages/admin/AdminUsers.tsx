@@ -61,8 +61,8 @@ export function AdminUsers() {
       <div className="card flex items-start gap-3 p-6">
         <AlertCircle className="mt-0.5 shrink-0 text-red-600" size={22} />
         <div className="min-w-0 flex-1">
-          <h1 className="text-lg font-extrabold text-slate-950">Không tải được dữ liệu người dùng</h1>
-          <p className="mt-1 text-sm leading-6 text-slate-600">{error}</p>
+          <h1 className="text-lg font-extrabold text-navy">Không tải được dữ liệu người dùng</h1>
+          <p className="mt-1 text-sm leading-6 text-slate-700">{error}</p>
           <button type="button" onClick={reload} className="btn-primary mt-4 h-10 px-4">
             <RefreshCw size={17} />
             Tải lại
@@ -119,7 +119,7 @@ export function AdminUsers() {
       <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
         <div>
           <h1 className="text-2xl font-extrabold">Quản lý người dùng</h1>
-          <p className="mt-1 text-sm text-slate-500">Tìm kiếm, lọc, khóa/mở khóa, sửa tên và xóa mềm tài khoản.</p>
+          <p className="mt-1 text-sm text-slate-600">Tìm kiếm, lọc, khóa/mở khóa, sửa tên và xóa mềm tài khoản.</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:flex lg:items-center">
           {error && (
@@ -137,8 +137,8 @@ export function AdminUsers() {
 
       <section className="card p-4">
         <div className="grid gap-3 lg:grid-cols-[1fr_180px_180px]">
-          <div className="flex h-11 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3">
-            <Search size={18} className="text-slate-400" />
+          <div className="flex h-11 items-center gap-3 rounded-xl border border-brand-100 bg-white px-3">
+            <Search size={18} className="text-slate-500" />
             <input className="w-full border-0 bg-transparent text-sm outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm theo tên hoặc email..." />
           </div>
           <select className="input" value={role} onChange={(event) => setRole(event.target.value as RoleFilter)}>
@@ -158,7 +158,7 @@ export function AdminUsers() {
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-[980px] w-full text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-sky-50 text-xs uppercase text-slate-600">
               <tr>
                 <th className="p-4">Người dùng</th>
                 <th className="p-4">Email</th>
@@ -171,15 +171,15 @@ export function AdminUsers() {
             </thead>
             <tbody>
               {paginatedUsers.map((user) => (
-                <tr className="border-t border-slate-100" key={user.id}>
+                <tr className="border-t border-brand-100" key={user.id}>
                   <td className="p-4">
                     <div className="flex items-center gap-3">
                       <div className="grid h-10 w-10 place-items-center rounded-full bg-brand-50 font-bold text-brand-700">{user.fullName[0]}</div>
                       <span className="font-bold">{user.fullName}</span>
                     </div>
                   </td>
-                  <td className="p-4 text-slate-500">{user.email}</td>
-                  <td className="p-4">{user.roles.map((item) => <span className="mr-2 rounded-full bg-slate-100 px-2 py-1 text-xs font-bold" key={item}>{item}</span>)}</td>
+                  <td className="p-4 text-slate-600">{user.email}</td>
+                  <td className="p-4">{user.roles.map((item) => <span className="mr-2 rounded-full bg-sky-100 px-2 py-1 text-xs font-bold" key={item}>{item}</span>)}</td>
                   <td className="p-4">{renderAccessStatus(user)}</td>
                   <td className="p-4">{renderOnlineStatus(user)}</td>
                   <td className="p-4"><span className={`rounded-full px-2 py-1 text-xs font-bold ${user.enabled ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'}`}>{user.enabled ? 'Hoạt động' : 'Đã khóa'}</span></td>
@@ -196,7 +196,7 @@ export function AdminUsers() {
             </tbody>
           </table>
         </div>
-        {!filtered.length && !error && <div className="p-6 text-center text-sm text-slate-500">Không tìm thấy người dùng phù hợp.</div>}
+        {!filtered.length && !error && <div className="p-6 text-center text-sm text-slate-600">Không tìm thấy người dùng phù hợp.</div>}
         {!!filtered.length && (
           <PaginationBar
             currentPage={safePage}
@@ -254,10 +254,10 @@ function renderOnlineStatus(user: User) {
   const online = user.enabled && isOnlineUser(user);
   return (
     <div>
-      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-extrabold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>
+      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-extrabold ${online ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-100 text-slate-700'}`}>
         {online ? 'Đang online' : 'Offline'}
       </span>
-      <p className="mt-1 text-xs font-semibold text-slate-500">{formatLastSeen(user.lastSeenAt)}</p>
+      <p className="mt-1 text-xs font-semibold text-slate-600">{formatLastSeen(user.lastSeenAt)}</p>
     </div>
   );
 }
@@ -265,7 +265,7 @@ function renderOnlineStatus(user: User) {
 function renderAccessStatus(user: User) {
   const expiresAt = user.accessExpiresAt ?? user.proExpiresAt;
   if (!expiresAt) {
-    return <span className="text-slate-500">Chưa có hạn học</span>;
+    return <span className="text-slate-600">Chưa có hạn học</span>;
   }
 
   const remaining = daysLeft(expiresAt);
@@ -283,7 +283,7 @@ function renderAccessStatus(user: User) {
       }`}>
         {expired ? 'Đã hết hạn' : `Còn ${remaining} ngày`}
       </div>
-      <p className="mt-1 text-xs font-semibold text-slate-500">
+      <p className="mt-1 text-xs font-semibold text-slate-600">
         {isPaid ? 'Đã gia hạn' : 'Miễn phí'} đến {formatAccessDate(expiresAt)}
       </p>
     </div>
@@ -292,8 +292,8 @@ function renderAccessStatus(user: User) {
 
 function Summary({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
   return (
-    <div className="min-w-0 rounded-xl border border-slate-200 bg-white px-3 py-3 sm:px-4">
-      <p className="flex items-center gap-2 text-xs font-bold uppercase text-slate-500">{icon}{label}</p>
+    <div className="min-w-0 rounded-xl border border-brand-100 bg-white px-3 py-3 sm:px-4">
+      <p className="flex items-center gap-2 text-xs font-bold uppercase text-slate-600">{icon}{label}</p>
       <p className="mt-1 text-2xl font-extrabold">{value}</p>
     </div>
   );
@@ -321,13 +321,13 @@ function PaginationBar({
   onPageSizeChange: (size: number) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-slate-100 px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t border-brand-100 px-4 py-3 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
       <div className="font-semibold">
         Hiển thị {startItem}-{endItem} / {totalItems}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <select
-          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold outline-none"
+          className="h-9 rounded-lg border border-brand-100 bg-white px-2 text-sm font-semibold outline-none"
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
         >

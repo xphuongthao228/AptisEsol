@@ -33,11 +33,22 @@ public class TestController {
         return ApiResponse.ok(service.saveTest(request));
     }
 
+    @PostMapping("/random")
+    public ApiResponse<CoreDtos.TestResponse> random(@RequestBody(required = false) CoreDtos.RandomTestRequest request) {
+        return ApiResponse.ok(service.createRandomTest(request));
+    }
+
     @PostMapping("/import-csv")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<CoreDtos.TestResponse>> importCsv(@RequestParam("file") MultipartFile file)
             throws Exception {
         return ApiResponse.ok(service.importTests(file));
+    }
+
+    @PostMapping("/{id}/split-writing-collection")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<List<CoreDtos.TestResponse>> splitWritingCollection(@PathVariable Long id) {
+        return ApiResponse.ok(service.splitWritingCollectionTest(id));
     }
 
     @PutMapping("/{id}")

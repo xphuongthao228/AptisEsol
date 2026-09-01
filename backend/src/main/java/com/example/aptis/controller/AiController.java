@@ -50,4 +50,5 @@ public class AiController {
     public ApiResponse<AiDtos.LingoChatResponse> chatWithLingo(@Valid @RequestBody AiDtos.LingoChatRequest request) {
         return ApiResponse.ok(scoringService.chatWithLingo(request));
     }
+
 }

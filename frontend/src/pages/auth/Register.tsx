@@ -97,7 +97,7 @@ export function Register() {
           </div>
         </form>
       )}
-      <p className="mt-7 text-center text-sm text-slate-500">
+      <p className="mt-7 text-center text-sm text-slate-600">
         Đã có tài khoản? <Link className="font-extrabold text-brand-600 hover:text-brand-700" to="/login">Đăng nhập</Link>
       </p>
     </AuthShell>
@@ -116,7 +116,7 @@ function AuthInput({ icon, label, value, onChange, placeholder, type = 'text' }:
     <label className="block">
       <span className="mb-2 block text-sm font-bold text-slate-700">{label}</span>
       <div className="relative">
-        <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-slate-100 text-slate-500">{icon}</span>
+        <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-sky-100 text-slate-600">{icon}</span>
         <input className="input h-14 rounded-2xl !pl-16 text-base" type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />
       </div>
     </label>

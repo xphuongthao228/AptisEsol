@@ -8,13 +8,14 @@ import type { Question, QuestionType, Skill, SkillType, Test, TestMode } from '.
 
 type Tab = 'skills' | 'tests' | 'questions';
 type TestStatus = 'DRAFT' | 'PUBLISHED' | 'ARCHIVED';
+type QuestionImportResult = { questions: Question[]; tests?: Test[] };
 
 const skillTypes: SkillType[] = ['LISTENING', 'SPEAKING', 'READING', 'WRITING', 'GRAMMAR'];
 const questionTypes: QuestionType[] = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TEXT', 'AUDIO', 'SPEAKING'];
 const statuses: TestStatus[] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
 const testModes: Array<{ value: TestMode; label: string }> = [
-  { value: 'PRACTICE', label: 'Luyện tập theo câu hỏi' },
-  { value: 'EXAM', label: 'Bộ đề / Đề thi' }
+  { value: 'PRACTICE', label: 'Luyện tập theo part' },
+  { value: 'EXAM', label: 'Thi thử / Bộ đề' }
 ];
 
 export function AdminContent() {
@@ -31,7 +32,7 @@ export function AdminContent() {
     <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-semibold">Quản lý nội dung</h1>
-        <p className="mt-1 text-sm text-slate-500">Quản lý kỹ năng, bài luyện, câu hỏi và đáp án từ API backend.</p>
+        <p className="mt-1 text-sm text-slate-600">Quản lý kỹ năng, bài luyện, câu hỏi và đáp án từ API backend.</p>
       </div>
 
       <div className="card flex flex-wrap gap-2 p-2">
@@ -45,6 +46,7 @@ export function AdminContent() {
       {tab === 'questions' && (
         <QuestionsPanel
           tests={tests ?? []}
+          setTests={setTests}
           selectedTestId={selectedTestId}
           setSelectedTestId={setSelectedTestId}
           questions={questions ?? []}
@@ -58,7 +60,7 @@ export function AdminContent() {
 
 function TabButton({ active, icon, label, onClick }: { active: boolean; icon: ReactNode; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${active ? 'bg-brand-600 text-white' : 'text-slate-600 hover:bg-slate-50'}`}>
+    <button onClick={onClick} className={`inline-flex h-10 items-center gap-2 rounded-lg px-4 text-sm font-semibold ${active ? 'bg-brand-600 text-white' : 'text-slate-700 hover:bg-sky-50'}`}>
       {icon}{label}
     </button>
   );
@@ -148,11 +150,11 @@ function SkillsPanel({ skills, setSkills }: { skills: Skill[]; setSkills: Dispat
 
       <section className="card overflow-hidden">
         <table className="w-full text-left text-sm">
-          <thead className="bg-slate-50 text-xs uppercase text-slate-500"><tr><th className="p-4">Kỹ năng</th><th className="p-4">Type</th><th className="p-4 text-right">Thao tác</th></tr></thead>
+          <thead className="bg-sky-50 text-xs uppercase text-slate-600"><tr><th className="p-4">Kỹ năng</th><th className="p-4">Type</th><th className="p-4 text-right">Thao tác</th></tr></thead>
           <tbody>
             {skills.map((skill) => (
-              <tr className="border-t border-slate-100" key={skill.id}>
-                <td className="p-4"><p className="font-semibold">{skill.name}</p><p className="text-slate-500">{skill.description}</p></td>
+              <tr className="border-t border-brand-100" key={skill.id}>
+                <td className="p-4"><p className="font-semibold">{skill.name}</p><p className="text-slate-600">{skill.description}</p></td>
                 <td className="p-4"><span className="rounded-full bg-brand-50 px-2 py-1 text-xs font-semibold text-brand-700">{skill.type}</span></td>
                 <td className="p-4">
                   <div className="flex justify-end gap-2">
@@ -178,6 +180,10 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
   const [status, setStatus] = useState<TestStatus>('PUBLISHED');
   const [mode, setMode] = useState<TestMode>('PRACTICE');
   const [featured, setFeatured] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [selectedTestIds, setSelectedTestIds] = useState<number[]>([]);
+  const allSelected = tests.length > 0 && selectedTestIds.length === tests.length;
 
   function fill(test: Test) {
     setEditing(test);
@@ -199,24 +205,89 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
     setStatus('PUBLISHED');
     setMode('PRACTICE');
     setFeatured(false);
+    setErrorMessage('');
   }
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    const payload = { skillId: Number(skillId), title, description, durationMinutes, status, mode, featured };
-    const saved = editing
-      ? await unwrap<Test>(api.put(`/tests/${editing.id}`, payload))
-      : await unwrap<Test>(api.post('/tests', payload));
-    setTests(editing ? tests.map((item) => item.id === saved.id ? saved : item) : [saved, ...tests]);
-    reset();
-    toast.success(editing ? 'Đã cập nhật bài luyện' : 'Đã tạo bài luyện');
+    setErrorMessage('');
+
+    if (!skillId) {
+      const message = 'Hãy chọn kỹ năng trước khi lưu.';
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
+
+    if (!title.trim()) {
+      const message = 'Hãy nhập tên bài luyện.';
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const payload = {
+        skillId: Number(skillId),
+        title: title.trim(),
+        description: description.trim(),
+        durationMinutes,
+        status,
+        mode,
+        featured
+      };
+      const saved = editing
+        ? await unwrap<Test>(api.put(`/tests/${editing.id}`, payload))
+        : await unwrap<Test>(api.post('/tests', payload));
+      setTests(editing ? tests.map((item) => item.id === saved.id ? saved : item) : [saved, ...tests]);
+      reset();
+      toast.success(editing ? 'Đã cập nhật bài luyện' : 'Đã tạo bài luyện');
+    } catch (error: any) {
+      const message = apiErrorMessage(error, editing ? 'Không cập nhật được bài luyện' : 'Không tạo được bài luyện');
+      setErrorMessage(message);
+      toast.error(message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   async function remove(test: Test) {
     if (!window.confirm(`Xóa bài ${test.title}?`)) return;
-    await api.delete(`/tests/${test.id}`);
-    setTests(tests.filter((item) => item.id !== test.id));
-    toast.success('Đã xóa bài luyện');
+    try {
+      await unwrap(api.delete(`/tests/${test.id}`));
+      setTests(tests.filter((item) => item.id !== test.id));
+      setSelectedTestIds((current) => current.filter((id) => id !== test.id));
+      toast.success('Đã xóa bài luyện');
+    } catch (error: any) {
+      toast.error(apiErrorMessage(error, 'Không xóa được bài luyện'));
+    }
+  }
+
+  function toggleSelectedTest(testId: number) {
+    setSelectedTestIds((current) =>
+      current.includes(testId)
+        ? current.filter((id) => id !== testId)
+        : [...current, testId]
+    );
+  }
+
+  function toggleAllTests() {
+    setSelectedTestIds(allSelected ? [] : tests.map((test) => test.id));
+  }
+
+  async function removeSelectedTests() {
+    if (!selectedTestIds.length) return;
+    if (!window.confirm(`Xóa ${selectedTestIds.length} bài luyện đã chọn?`)) return;
+    try {
+      await Promise.all(selectedTestIds.map((testId) => unwrap(api.delete(`/tests/${testId}`))));
+      const selectedSet = new Set(selectedTestIds);
+      setTests(tests.filter((item) => !selectedSet.has(item.id)));
+      setSelectedTestIds([]);
+      toast.success(`Đã xóa ${selectedSet.size} bài luyện`);
+    } catch (error: any) {
+      toast.error(apiErrorMessage(error, 'Không xóa được các bài luyện đã chọn'));
+    }
   }
 
   async function toggleFeatured(test: Test) {
@@ -229,9 +300,13 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
       mode: test.mode ?? 'PRACTICE',
       featured: !test.featured
     };
-    const saved = await unwrap<Test>(api.put(`/tests/${test.id}`, payload));
-    setTests(tests.map((item) => item.id === saved.id ? saved : item));
-    toast.success(saved.featured ? 'Đã đánh dấu đề quan trọng' : 'Đã bỏ đánh dấu quan trọng');
+    try {
+      const saved = await unwrap<Test>(api.put(`/tests/${test.id}`, payload));
+      setTests(tests.map((item) => item.id === saved.id ? saved : item));
+      toast.success(saved.featured ? 'Đã đánh dấu đề quan trọng' : 'Đã bỏ đánh dấu quan trọng');
+    } catch (error: any) {
+      toast.error(apiErrorMessage(error, 'Không cập nhật trạng thái quan trọng'));
+    }
   }
 
   async function importTestsCsv(file: File | undefined) {
@@ -243,9 +318,9 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
         headers: { 'Content-Type': 'multipart/form-data' }
       }));
       setTests([...imported, ...tests]);
-      toast.success(`Đã import ${imported.length} bài luyện/bộ đề`);
+      toast.success(`Đã import ${imported.length} bài luyện/đề thi thử`);
     } catch (error: any) {
-      toast.error(apiErrorMessage(error, 'Không import được bài luyện/bộ đề từ CSV'));
+      toast.error(apiErrorMessage(error, 'Không import được bài luyện/đề thi thử từ CSV'));
     }
   }
 
@@ -272,8 +347,9 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
             <Star size={18} className={featured ? 'fill-amber-400 text-amber-500' : 'text-amber-500'} />
             Đề quan trọng
           </label>
+          {errorMessage && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700">{errorMessage}</div>}
           <div className="flex gap-2">
-            <button className="btn-primary flex-1"><Plus size={18} />Lưu</button>
+            <button className="btn-primary flex-1" disabled={saving}><Plus size={18} />{saving ? 'Đang lưu...' : 'Lưu'}</button>
             {editing && <button type="button" className="btn-secondary" onClick={reset}>Hủy</button>}
           </div>
         </form>
@@ -282,37 +358,65 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
       <section className="space-y-3">
         <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="font-extrabold">Import bài luyện / bộ đề</h3>
-            <p className="text-sm text-slate-500">Dùng file CSV để tạo nhanh các bộ đề, bài luyện theo kỹ năng.</p>
+            <h3 className="font-extrabold">Import bài luyện / đề thi thử</h3>
+            <p className="text-sm text-slate-600">CSV mode PRACTICE sẽ vào luyện theo part, mode EXAM sẽ hiển thị ở Thi thử.</p>
           </div>
-          <label className="btn-primary cursor-pointer justify-center">
-            <UploadCloud size={18} />
-            Upload CSV
-            <input
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={(event) => {
-                importTestsCsv(event.target.files?.[0]);
-                event.target.value = '';
-              }}
-            />
-          </label>
+          <div className="flex flex-wrap gap-2">
+            {tests.length > 0 && (
+              <label className="btn-secondary cursor-pointer justify-center">
+                <input
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-brand-200 text-brand-600"
+                  checked={allSelected}
+                  onChange={toggleAllTests}
+                />
+                Chọn tất cả
+              </label>
+            )}
+            {selectedTestIds.length > 0 && (
+              <button type="button" className="btn-secondary justify-center text-red-600" onClick={removeSelectedTests}>
+                <Trash2 size={18} />
+                Xóa đã chọn ({selectedTestIds.length})
+              </button>
+            )}
+            <label className="btn-primary cursor-pointer justify-center">
+              <UploadCloud size={18} />
+              Upload CSV
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                onChange={(event) => {
+                  importTestsCsv(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
+              />
+            </label>
+          </div>
         </div>
         {tests.map((test) => (
           <div className="card p-4" key={test.id}>
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-              <div>
+              <div className="flex gap-3">
+                <input
+                  type="checkbox"
+                  className="mt-1 h-5 w-5 shrink-0 rounded border-brand-200 text-brand-600"
+                  checked={selectedTestIds.includes(test.id)}
+                  onChange={() => toggleSelectedTest(test.id)}
+                  aria-label={`Chọn ${test.title}`}
+                />
+                <div>
                 <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-brand-600">
-                  <span>{test.skillName} | {test.status} | {(test.mode ?? 'PRACTICE') === 'EXAM' ? 'BỘ ĐỀ' : 'LUYỆN TẬP'}</span>
-                  {test.featured && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-amber-700"><Star size={13} className="fill-amber-400" /> Quan trọng</span>}
+                  <span>{test.skillName} | {test.status} | {(test.mode ?? 'PRACTICE') === 'EXAM' ? 'THI THỬ' : 'LUYỆN THEO PART'}</span>
+                  {test.featured && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-amber-700"><Star size={13} className="fill-amber-400" /> Quan trảng</span>}
                 </p>
                 <h3 className="mt-1 font-semibold">{test.title}</h3>
-                <p className="mt-1 text-sm text-slate-500">{test.description}</p>
-                <p className="mt-2 text-xs text-slate-500">{test.durationMinutes} phút</p>
+                <p className="mt-1 text-sm text-slate-600">{test.description}</p>
+                <p className="mt-2 text-xs text-slate-600">{test.durationMinutes} phít</p>
+                </div>
               </div>
               <div className="flex gap-2">
-                <button className={`btn-secondary h-9 px-3 ${test.featured ? 'text-amber-600' : 'text-slate-500'}`} onClick={() => toggleFeatured(test)} title={test.featured ? 'Bỏ đánh dấu quan trọng' : 'Đánh dấu quan trọng'}>
+                <button className={`btn-secondary h-9 px-3 ${test.featured ? 'text-amber-600' : 'text-slate-600'}`} onClick={() => toggleFeatured(test)} title={test.featured ? 'Bỏ đánh dấu quan trọng' : 'Đánh dấu quan trọng'}>
                   <Star size={16} className={test.featured ? 'fill-amber-400' : ''} />
                 </button>
                 <button className="btn-secondary h-9 px-3" onClick={() => fill(test)}><Pencil size={16} /></button>
@@ -326,8 +430,9 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
   );
 }
 
-function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, setQuestions, loading }: {
+function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, questions, setQuestions, loading }: {
   tests: Test[];
+  setTests: Dispatch<SetStateAction<Test[] | null>>;
   selectedTestId: string;
   setSelectedTestId: (value: string) => void;
   questions: Question[];
@@ -555,10 +660,18 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
       }
       const form = new FormData();
       form.append('file', file);
-      const imported = await unwrap<Question[]>(api.post(`/questions/import-csv?testId=${selectedTestId}`, form));
-      setQuestions([...nextQuestions, ...imported]);
+      const result = await unwrap<QuestionImportResult | Question[]>(api.post(`/questions/import-csv?testId=${selectedTestId}`, form));
+      const imported = Array.isArray(result) ? result : result.questions;
+      const importedTests = Array.isArray(result) ? [] : (result.tests ?? []);
+      if (importedTests.length > 0) {
+        setTests((current) => [...importedTests, ...(current ?? [])]);
+      } else {
+        setQuestions([...nextQuestions, ...imported]);
+      }
       setSelectedQuestionIds([]);
-      toast.success(`Đã import ${imported.length} câu hỏi`);
+      toast.success(importedTests.length > 0
+        ? `Đã tách ${importedTests.length} đề Writing vào Thi thử`
+        : `Đã import ${imported.length} câu hỏi`);
     } catch (error: any) {
       toast.error(apiErrorMessage(error, 'Không upload được câu hỏi từ CSV'));
     }
@@ -574,11 +687,11 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
       .map((answer, index) => ({ content: answer.trim(), originalIndex: index + 1 }))
       .filter((answer) => answer.content);
     if (hasAnswerChoices && rawAnswers.length < 2) {
-      toast.error('Vui lòng nhập ít nhất 2 đáp án');
+      toast.error('Vui láng nhập ít nhất 2 đáp án');
       return;
     }
     if (hasAnswerChoices && !rawAnswers.some((answer) => correctIndexes.includes(answer.originalIndex))) {
-      toast.error('Vui lòng chọn ít nhất một đáp án đúng');
+      toast.error('Vui láng chọn ít nhất một đáp án dùng');
       return;
     }
     const payload = {
@@ -662,22 +775,22 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
           </select>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Loại câu hỏi</span>
+              <span className="text-sm font-bold text-slate-700">Loại câu hỏi</span>
               <select className="input" value={type} onChange={(event) => updateType(event.target.value as QuestionType)}>
                 {questionTypes.map((questionType) => (
                   <option key={questionType} value={questionType}>{questionType}</option>
                 ))}
               </select>
             </label>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-600">
+            <div className="rounded-xl border border-brand-100 bg-sky-50 px-4 py-3 text-sm leading-6 text-slate-700">
               {hasAnswerChoices
                 ? multipleCorrect
                   ? 'Câu nhiều đáp án: tick tất cả đáp án đúng.'
-                  : 'Câu một đáp án: chọn đúng một đáp án đúng.'
+                  : 'Câu một đáp án: chọn dùng một đáp án dùng.'
                 : 'Câu tự luận/speaking không cần nhập đáp án trắc nghiệm.'}
             </div>
           </div>
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <div className="rounded-xl border border-brand-100 bg-sky-50 p-3">
             <div className="mb-3 flex items-center gap-2 text-sm font-bold text-slate-700"><Wand2 size={17} />Tạo nhanh bằng template Aptis</div>
             <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
               <button type="button" className="btn-secondary h-12 px-4 text-sm" onClick={() => applyTemplate('listening_mc')}>Listening radio</button>
@@ -701,7 +814,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
                 <input className="hidden" type="file" accept=".csv,text/csv" onChange={(e) => importCsv(e.target.files?.[0])} />
               </label>
             </div>
-            <p className="mt-2 text-xs text-slate-500">Listening Part 2 theo template dùng type MATCHING_4_PEOPLE, answer1-6 và correct_index_person1-4. Nếu bài đã có câu hỏi, upload sẽ hỏi xóa câu cũ trước khi import.</p>
+            <p className="mt-2 text-xs text-slate-600">Listening Part 2 theo template dùng type MATCHING_4_PEOPLE, answer1-6 và correct_index_person1-4. Nếu bài đã có câu hỏi, upload sẽ hỏi xóa câu cũ trước khi import.</p>
           </div>
           <form onSubmit={save} className="space-y-4">
             <div className="grid gap-3 md:grid-cols-2">
@@ -712,8 +825,8 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
             {selectedTemplate ? (
               <div className="space-y-4">
                 <div className="rounded-xl border border-brand-100 bg-blue-50 p-3">
-                  <p className="text-sm font-bold text-slate-800">Đã chọn template: {selectedTemplateName}</p>
-                  <p className="mt-1 text-xs text-slate-500">Nhập các mục bên dưới, xem trước câu hỏi, rồi bấm Lưu câu hỏi.</p>
+                  <p className="text-sm font-bold text-navy">Đã chọn template: {selectedTemplateName}</p>
+                  <p className="mt-1 text-xs text-slate-600">Nhập các mục bên dưới, xem trước câu hỏi, rồi bấm Lưu câu hỏi.</p>
                 </div>
                 <TemplateEditor data={selectedTemplate} onChange={(next) => setContent(JSON.stringify(next, null, 2))} />
                 <TemplatePreview data={selectedTemplate} />
@@ -725,41 +838,41 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
             <textarea className="input min-h-20 py-3" value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="Giải thích / gợi ý" />
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Điểm câu hỏi</span>
+                <span className="text-sm font-bold text-slate-700">Điểm câu hỏi</span>
                 <input className="input" type="number" min={1} value={points} onChange={(e) => setPoints(Number(e.target.value))} placeholder="VD: 2" />
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Thứ tự hiển thị</span>
+                <span className="text-sm font-bold text-slate-700">Thứ tự hiển thị</span>
                 <input className="input" type="number" min={1} value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))} placeholder="VD: 1" />
               </label>
             </div>
-            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${featured ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-200'}`}>
+            <label className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm font-bold transition ${featured ? 'border-amber-300 bg-amber-50 text-amber-800' : 'border-brand-100 bg-white text-slate-700 hover:border-amber-200'}`}>
               <input
                 type="checkbox"
                 className="h-4 w-4 rounded border-slate-300 text-amber-500 focus:ring-amber-400"
                 checked={featured}
                 onChange={(event) => setFeatured(event.target.checked)}
               />
-              <Star size={18} className={featured ? 'fill-amber-400 text-amber-500' : 'text-slate-400'} />
+              <Star size={18} className={featured ? 'fill-amber-400 text-amber-500' : 'text-slate-500'} />
               Đánh dấu câu hỏi nổi bật
             </label>
             {hasAnswerChoices && (
-              <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <div className="space-y-3 rounded-xl border border-brand-100 bg-sky-50 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-extrabold text-slate-800">Đáp án trắc nghiệm</p>
-                    <p className="text-xs text-slate-500">Nhập đáp án và chọn ô “Đáp án đúng” tương ứng.</p>
+                    <p className="text-sm font-extrabold text-navy">Đáp án trắc nghiệm</p>
+                    <p className="text-xs text-slate-600">Nhập đáp án và chọn ý đáp án đúng tương ứng.</p>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-500">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-600">
                     {multipleCorrect ? 'Nhiều đáp án đúng' : 'Một đáp án đúng'}
                   </span>
                 </div>
                 {answerValues.map((value, index) => {
                   const selected = correctIndexes.includes(index + 1);
                   return (
-                    <div className={`grid gap-2 rounded-xl border p-3 transition md:grid-cols-[1fr_150px] ${selected ? 'border-green-300 bg-green-50' : 'border-slate-200 bg-white'}`} key={index}>
+                    <div className={`grid gap-2 rounded-xl border p-3 transition md:grid-cols-[1fr_150px] ${selected ? 'border-green-300 bg-green-50' : 'border-brand-100 bg-white'}`} key={index}>
                       <input className="input bg-white" value={value} onChange={(e) => answerSetters[index](e.target.value)} placeholder={`Đáp án ${index + 1}`} />
-                      <label className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-sm font-bold ${selected ? 'border-green-500 bg-green-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-brand-200'}`}>
+                      <label className={`flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border px-3 text-sm font-bold ${selected ? 'border-green-500 bg-green-600 text-white' : 'border-brand-100 bg-white text-slate-700 hover:border-brand-200'}`}>
                         <input
                           type={multipleCorrect ? 'checkbox' : 'radio'}
                           name="correct-answer"
@@ -786,7 +899,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
         <div className="card p-4">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
             <div>
-              <p className="text-sm text-slate-500">Bài đang chọn</p>
+              <p className="text-sm text-slate-600">Bài đang chọn</p>
               <h3 className="font-semibold">{selectedTest?.title ?? 'Chưa chọn bài luyện'}</h3>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -799,7 +912,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
             </div>
           </div>
         </div>
-        {loading && <div className="card p-5 text-sm text-slate-500">Đang tải câu hỏi...</div>}
+        {loading && <div className="card p-5 text-sm text-slate-600">Đang tải câu hỏi...</div>}
         {displayedQuestions.map((question) => {
           const template = parseTemplateContent(question.content);
           const templateName = template ? getTemplateName(question.content) : '';
@@ -824,15 +937,15 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
                         <Star size={14} className="fill-amber-400 text-amber-500" /> Nổi bật
                       </span>
                     )}
-                    {topicLabel && <p className="mt-1 text-xs font-bold uppercase text-slate-500">{topicLabel}</p>}
+                    {topicLabel && <p className="mt-1 text-xs font-bold uppercase text-slate-600">{topicLabel}</p>}
                     <h3 className="mt-1 font-semibold">{questionTitle}</h3>
-                    {template?.instructions && <p className="mt-1 line-clamp-2 text-xs text-slate-500">{template.instructions}</p>}
+                    {template?.instructions && <p className="mt-1 line-clamp-2 text-xs text-slate-600">{template.instructions}</p>}
                     {(question.audioUrl || template?.audioUrl) && <p className="mt-1 truncate text-xs text-blue-600">Audio: {question.audioUrl || template?.audioUrl}</p>}
-                    {(question.scriptText || template?.scriptText) && <p className="mt-1 line-clamp-2 text-xs text-slate-500">Script: {question.scriptText || template?.scriptText}</p>}
+                    {(question.scriptText || template?.scriptText) && <p className="mt-1 line-clamp-2 text-xs text-slate-600">Script: {question.scriptText || template?.scriptText}</p>}
                     {!template && (
                       <div className="mt-3 space-y-2">
                         {question.answers.map((answer) => (
-                          <p className={`rounded-lg border px-3 py-2 text-sm ${answer.correct ? 'border-green-200 bg-green-50 text-green-700' : 'border-slate-200 text-slate-600'}`} key={answer.id}>{answer.content}</p>
+                          <p className={`rounded-lg border px-3 py-2 text-sm ${answer.correct ? 'border-green-200 bg-green-50 text-green-700' : 'border-brand-100 text-slate-700'}`} key={answer.id}>{answer.content}</p>
                         ))}
                       </div>
                     )}
@@ -846,7 +959,7 @@ function QuestionsPanel({ tests, selectedTestId, setSelectedTestId, questions, s
             </div>
           );
         })}
-        {selectedTestId && !loading && questions.length === 0 && <div className="card p-5 text-sm text-slate-500">Bài này chưa có câu hỏi.</div>}
+        {selectedTestId && !loading && questions.length === 0 && <div className="card p-5 text-sm text-slate-600">Bài này chưa có câu hỏi.</div>}
       </section>
     </div>
   );
@@ -960,7 +1073,7 @@ function TemplateEditor({ data, onChange }: { data: TemplateData; onChange: (dat
 
   function commonFields(extra?: ReactNode) {
     return (
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+      <div className="space-y-3 rounded-xl border border-brand-100 bg-white p-3">
         <div className="grid grid-cols-2 gap-3">
           <AdminInput label="Tổng số câu" value={String(data.total ?? '')} onChange={(value) => patch('total', Number(value) || 1)} />
           <AdminInput label="Topic / Title" value={data.topic ?? data.title ?? ''} onChange={(value) => data.title !== undefined ? patch('title', value) : patch('topic', value)} />
@@ -1077,14 +1190,14 @@ function TemplateEditor({ data, onChange }: { data: TemplateData; onChange: (dat
     return commonFields(
       <>
         <AdminTextarea label="Hướng dẫn" value={data.instructions ?? ''} onChange={(value) => patch('instructions', value)} />
-        <AdminTextarea label="Prompts - mỗi dòng 1 ô trả lời" value={list(data.prompts)} onChange={(value) => patch('prompts', listValue(value))} />
+        <AdminTextarea label="Prompts - mỗi dòng 1 ý trả lời" value={list(data.prompts)} onChange={(value) => patch('prompts', listValue(value))} />
       </>
     );
   }
 
   if (data.template === 'WRITING_CLUB_COLLECTION') {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm text-slate-600">
+      <div className="rounded-xl border border-brand-100 bg-white p-3 text-sm text-slate-700">
         Template Writing Practice gồm {data.clubs?.length ?? 0} club. Bạn nên sửa dữ liệu bằng file CSV nguồn rồi upload lại để tránh lệch cấu trúc 4 phần.
       </div>
     );
@@ -1096,7 +1209,7 @@ function TemplateEditor({ data, onChange }: { data: TemplateData; onChange: (dat
 function AdminInput({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-bold text-slate-600">{label}</span>
+      <span className="mb-1 block text-xs font-bold text-slate-700">{label}</span>
       <input className="input" value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
@@ -1105,7 +1218,7 @@ function AdminInput({ label, value, onChange }: { label: string; value: string; 
 function AdminTextarea({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-bold text-slate-600">{label}</span>
+      <span className="mb-1 block text-xs font-bold text-slate-700">{label}</span>
       <textarea className="input min-h-24 py-3 text-sm" value={value} onChange={(event) => onChange(event.target.value)} />
     </label>
   );
@@ -1113,9 +1226,9 @@ function AdminTextarea({ label, value, onChange }: { label: string; value: strin
 
 function TemplatePreview({ data }: { data: TemplateData }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-3">
+    <div className="rounded-xl border border-brand-100 bg-white p-3">
       <div className="mb-3 text-sm font-bold text-slate-700">Xem trước câu hỏi</div>
-      <div className="max-h-[620px] overflow-auto rounded-lg border border-slate-100 bg-white">
+      <div className="max-h-[620px] overflow-auto rounded-lg border border-brand-100 bg-white">
         <AdminTemplateRenderer data={data} />
       </div>
     </div>
@@ -1233,9 +1346,9 @@ function AdminTemplateRenderer({ data }: { data: TemplateData }) {
           <div className="border-b p-4 font-bold">Speak question <PreviewNumber /> / {data.total}</div>
           <div className="p-4">
             <img className="mx-auto h-56 w-full max-w-[420px] rounded object-cover" src={data.imageUrl} alt="Speaking prompt" />
-            <div className="mt-4 grid grid-cols-3 gap-2">{(data.tabs ?? []).map((tab: string) => <button type="button" className="rounded border border-slate-200 py-2 text-xs" key={tab}>{tab}</button>)}</div>
+            <div className="mt-4 grid grid-cols-3 gap-2">{(data.tabs ?? []).map((tab: string) => <button type="button" className="rounded border border-brand-100 py-2 text-xs" key={tab}>{tab}</button>)}</div>
             <div className="mt-4 flex items-center justify-between"><h2 className="font-bold">{data.prompt}</h2><button type="button" className="rounded-full bg-red-500 px-4 py-2 text-xs font-bold text-white"><Mic className="mr-1 inline" size={14} />Record</button></div>
-            <div className="mt-4 rounded border bg-slate-50 p-4 text-sm italic text-slate-400">Your speech will appear here...</div>
+            <div className="mt-4 rounded border bg-sky-50 p-4 text-sm italic text-slate-500">Your speech will appear here...</div>
             <button type="button" className="mt-4 w-full rounded border border-brand-600 py-2 text-sm text-brand-600"><MessageCircle className="mr-1 inline" size={14} />Sample Answer</button>
           </div>
         </div>
@@ -1247,7 +1360,7 @@ function AdminTemplateRenderer({ data }: { data: TemplateData }) {
     return (
       <PreviewPaper>
         <h1 className="mb-4 text-xl font-extrabold">{data.title}</h1>
-        <div className="border"><div className="grid grid-cols-[44px_1fr_120px] bg-slate-50 font-bold"><div className="border-r p-2">#</div><div className="border-r p-2">Câu hỏi</div><div className="p-2">Đáp án mẫu</div></div><div className="grid grid-cols-[44px_1fr_120px] border-t"><div className="border-r p-2">1</div><div className="border-r p-2">{data.question}</div><div className="p-2"><button type="button" className="rounded bg-brand-600 px-3 py-2 text-xs text-white">Xem đáp án</button></div></div><div className="border-l-4 border-brand-600 bg-blue-50 p-4 text-sm">{data.sample}</div></div>
+        <div className="border"><div className="grid grid-cols-[44px_1fr_120px] bg-sky-50 font-bold"><div className="border-r p-2">#</div><div className="border-r p-2">Câu hỏi</div><div className="p-2">Đáp án mẫu</div></div><div className="grid grid-cols-[44px_1fr_120px] border-t"><div className="border-r p-2">1</div><div className="border-r p-2">{data.question}</div><div className="p-2"><button type="button" className="rounded bg-brand-600 px-3 py-2 text-xs text-white">Xem đáp án</button></div></div><div className="border-l-4 border-brand-600 bg-blue-50 p-4 text-sm">{data.sample}</div></div>
       </PreviewPaper>
     );
   }
@@ -1257,14 +1370,14 @@ function AdminTemplateRenderer({ data }: { data: TemplateData }) {
       <PreviewPaper>
         <h1 className="mb-4 text-2xl font-extrabold">{data.title}</h1>
         <p className="mb-5 text-sm font-semibold">{data.instructions}</p>
-        {(data.prompts ?? []).map((prompt: string) => <div className="mb-5" key={prompt}><p className="mb-2 text-sm">{prompt}</p><textarea className="min-h-20 w-full rounded border border-slate-300" readOnly /><p className="mt-1 text-right text-sm text-slate-500">Word Count: 0</p></div>)}
+        {(data.prompts ?? []).map((prompt: string) => <div className="mb-5" key={prompt}><p className="mb-2 text-sm">{prompt}</p><textarea className="min-h-20 w-full rounded border border-slate-300" readOnly /><p className="mt-1 text-right text-sm text-slate-600">Word Count: 0</p></div>)}
         <button type="button" className="rounded bg-cyan-500 px-4 py-2 text-sm text-white">Xem đáp án</button>
       </PreviewPaper>
     );
   }
 
   if (data.template === 'WRITING_CLUB_COLLECTION') {
-    const palette = ['bg-amber-400 text-slate-950', 'bg-emerald-700 text-white', 'bg-red-500 text-white', 'bg-sky-500 text-slate-950', 'bg-brand-600 text-white'];
+    const palette = ['bg-amber-400 text-navy', 'bg-emerald-700 text-white', 'bg-red-500 text-white', 'bg-sky-500 text-navy', 'bg-brand-600 text-white'];
     return (
       <PreviewPaper>
         <h1 className="mb-6 text-center text-3xl font-normal">{data.title ?? 'Writing Practice'}</h1>
@@ -1273,7 +1386,7 @@ function AdminTemplateRenderer({ data }: { data: TemplateData }) {
             <button type="button" className={`h-10 rounded px-3 text-sm font-semibold ${palette[index % palette.length]}`} key={`${club.clubName}-${index}`}>{club.clubName}</button>
           ))}
         </div>
-        {(data.clubs?.length ?? 0) > 12 && <p className="mt-4 text-center text-sm text-slate-500">... và {(data.clubs.length - 12)} club khác</p>}
+        {(data.clubs?.length ?? 0) > 12 && <p className="mt-4 text-center text-sm text-slate-600">... và {(data.clubs.length - 12)} club khác</p>}
       </PreviewPaper>
     );
   }
@@ -1282,7 +1395,7 @@ function AdminTemplateRenderer({ data }: { data: TemplateData }) {
 }
 
 function PreviewPaper({ children }: { children: ReactNode }) {
-  return <div className="min-w-[680px] bg-white p-5 text-slate-950">{children}</div>;
+  return <div className="min-w-[680px] bg-white p-5 text-navy">{children}</div>;
 }
 
 function PreviewQuestionCounter({ total }: { total?: number }) {
@@ -1323,6 +1436,10 @@ function apiErrorMessage(error: any, fallback: string) {
     return `${fallback}: tài khoản hiện tại không có quyền ADMIN hoặc phiên đăng nhập đã hết hạn. Hãy đăng xuất rồi đăng nhập lại bằng tài khoản admin.`;
   }
 
+  if (status === 401) {
+    return `${fallback}: phiên đăng nhập admin không còn hợp lệ. Hãy đăng nhập lại bằng tài khoản admin rồi thử lưu lại.`;
+  }
+
   if (errors && typeof errors === 'object') {
     const detail = Object.entries(errors)
       .map(([field, value]) => `${field}: ${String(value)}`)
@@ -1334,3 +1451,4 @@ function apiErrorMessage(error: any, fallback: string) {
   if (status) return `${fallback} (HTTP ${status})`;
   return fallback;
 }
+

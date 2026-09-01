@@ -1,4 +1,4 @@
-import { ArrowRight, Bell, BookOpen, FileAudio, GraduationCap, Plus, Users } from 'lucide-react';
+﻿import { ArrowRight, Bell, BookOpen, FileAudio, GraduationCap, Plus, Users } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
@@ -22,7 +22,7 @@ export function AdminDashboard() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[22px] bg-slate-950 p-8 text-white">
+      <section className="rounded-[22px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>
             <p className="text-sm font-bold uppercase text-blue-200">Admin Control Center</p>
@@ -44,7 +44,7 @@ export function AdminDashboard() {
         {cards.map(({ label, value, icon: Icon, tone }) => (
           <div className="card p-5" key={label}>
             <div className={`mb-4 grid h-11 w-11 place-items-center rounded-xl ${tone}`}><Icon /></div>
-            <p className="text-sm font-semibold text-slate-500">{label}</p>
+            <p className="text-sm font-semibold text-slate-600">{label}</p>
             <p className="mt-1 text-3xl font-extrabold">{loading ? '...' : value}</p>
           </div>
         ))}
@@ -60,17 +60,17 @@ export function AdminDashboard() {
           </div>
           <div className="space-y-3">
             {(tests ?? []).slice(0, 6).map((test) => (
-              <div className="flex items-center justify-between rounded-xl border border-slate-200 p-4" key={test.id}>
+              <div className="flex items-center justify-between rounded-xl border border-brand-100 p-4" key={test.id}>
                 <div>
                   <p className="text-xs font-bold uppercase text-brand-600">{test.skillName} | {test.status}</p>
                   <h3 className="mt-1 font-bold">{test.title}</h3>
-                  <p className="text-sm text-slate-500">{test.durationMinutes} phút</p>
+                  <p className="text-sm text-slate-600">{test.durationMinutes} phút</p>
                 </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">#{test.id}</span>
+                <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-slate-700">#{test.id}</span>
               </div>
             ))}
             {!tests?.length && (
-              <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center text-sm font-semibold text-slate-500">
+              <div className="rounded-xl border border-dashed border-brand-100 p-8 text-center text-sm font-semibold text-slate-600">
                 Chưa có bài luyện nào.
               </div>
             )}
@@ -98,11 +98,11 @@ export function AdminDashboard() {
                   </div>
                   <div>
                     <p className="text-sm font-bold">{user.fullName}</p>
-                    <p className="text-xs text-slate-500">{user.email}</p>
+                    <p className="text-xs text-slate-600">{user.email}</p>
                   </div>
                 </div>
               ))}
-              {!users?.length && <p className="text-sm font-semibold text-slate-500">Chưa có người dùng.</p>}
+              {!users?.length && <p className="text-sm font-semibold text-slate-600">Chưa có người dùng.</p>}
             </div>
           </div>
         </aside>
@@ -113,12 +113,13 @@ export function AdminDashboard() {
 
 function QuickLink({ to, icon, title, text }: { to: string; icon: ReactNode; title: string; text: string }) {
   return (
-    <Link to={to} className="flex items-center gap-3 rounded-xl border border-slate-200 p-4 transition hover:border-brand-200 hover:bg-brand-50">
+    <Link to={to} className="flex items-center gap-3 rounded-xl border border-brand-100 p-4 transition hover:border-brand-200 hover:bg-brand-50">
       <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-brand-700 shadow-soft">{icon}</div>
       <div>
-        <p className="font-extrabold text-slate-900">{title}</p>
-        <p className="text-xs leading-5 text-slate-500">{text}</p>
+        <p className="font-extrabold text-navy">{title}</p>
+        <p className="text-xs leading-5 text-slate-600">{text}</p>
       </div>
     </Link>
   );
 }
+

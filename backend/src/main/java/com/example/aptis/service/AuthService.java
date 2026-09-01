@@ -21,9 +21,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.security.SecureRandom;
 import java.util.UUID;
 
 @Service
@@ -83,6 +83,7 @@ public class AuthService {
         return tokens(user);
     }
 
+    @Transactional
     public AuthDtos.AuthResponse refresh(String refreshToken) {
         RefreshToken token = refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken)
                 .filter(rt -> rt.getExpiresAt().isAfter(Instant.now()))

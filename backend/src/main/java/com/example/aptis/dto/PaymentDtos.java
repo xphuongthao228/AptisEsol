@@ -76,6 +76,7 @@ public class PaymentDtos {
 
         public record SubscriptionResponse(
                         boolean active,
+                        boolean proActive,
                         LocalDateTime expiresAt,
                         long daysLeft) {
         }

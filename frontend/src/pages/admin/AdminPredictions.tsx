@@ -1,4 +1,4 @@
-import { CheckSquare, Copy, Download, FileSearch, Layers, Link2, Pencil, Plus, RotateCcw, Save, Search, Trash2 } from 'lucide-react';
+﻿import { CheckSquare, Copy, Download, FileSearch, Layers, Link2, Pencil, Plus, RotateCcw, Save, Search, Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
@@ -552,8 +552,8 @@ export function AdminPredictions() {
     <div className="space-y-6">
       <section>
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-600">Admin</p>
-        <h1 className="mt-2 text-3xl font-extrabold text-slate-950">Quản lý dự đoán đề</h1>
-        <p className="mt-2 text-slate-500">Tạo nội dung dự đoán đề, sắp xếp ưu tiên và hiển thị cho học viên.</p>
+        <h1 className="mt-2 text-3xl font-extrabold text-navy">Quản lý dự đoán đề</h1>
+        <p className="mt-2 text-slate-600">Tạo nội dung dự đoán đề, sắp xếp ưu tiên và hiển thị cho học viên.</p>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[460px_1fr]">
@@ -564,20 +564,20 @@ export function AdminPredictions() {
             </div>
             <div>
               <h2 className="text-xl font-extrabold">{form.id ? 'Sửa dự đoán' : 'Tạo dự đoán'}</h2>
-              <p className="text-sm text-slate-500">Học viên chỉ thấy mục đang hiện.</p>
+              <p className="text-sm text-slate-600">Học viên chỉ thấy mục đang hiện.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="space-y-2 sm:col-span-1">
-                <span className="text-sm font-bold text-slate-600">Kỹ năng</span>
+                <span className="text-sm font-bold text-slate-700">Kỹ năng</span>
                 <select className="input" value={form.skill} onChange={(event) => setForm((current) => ({ ...current, skill: event.target.value as SkillType }))}>
                   {Object.entries(skillLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
               <label className="space-y-2 sm:col-span-1">
-                <span className="text-sm font-bold text-slate-600">Trạng thái</span>
+                <span className="text-sm font-bold text-slate-700">Trạng thái</span>
                 <select className="input" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as PredictionStatus }))}>
                   <option value="PUBLISHED">Đang hiện</option>
                   <option value="DRAFT">Bản nháp</option>
@@ -585,23 +585,23 @@ export function AdminPredictions() {
                 </select>
               </label>
               <label className="space-y-2 sm:col-span-1">
-                <span className="text-sm font-bold text-slate-600">Ưu tiên</span>
+                <span className="text-sm font-bold text-slate-700">Ưu tiên</span>
                 <input className="input" type="number" min={1} value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: Number(event.target.value) }))} />
               </label>
             </div>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Tiêu đề</span>
+              <span className="text-sm font-bold text-slate-700">Tiêu đề</span>
               <input className="input" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="VD: Chủ đề Speaking dễ gặp tuần này" />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Mô tả ngắn</span>
+              <span className="text-sm font-bold text-slate-700">Mô tả ngắn</span>
               <textarea className="input min-h-[80px]" value={form.summary} onChange={(event) => setForm((current) => ({ ...current, summary: event.target.value }))} placeholder="Tóm tắt dự đoán..." />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Nội dung dự đoán</span>
+              <span className="text-sm font-bold text-slate-700">Nội dung dự đoán</span>
               <textarea className="input min-h-[170px]" value={form.content} onChange={(event) => setForm((current) => ({ ...current, content: event.target.value }))} placeholder="Nhập nội dung chi tiết..." />
             </label>
             <button type="button" className="btn-secondary w-full justify-center" onClick={insertCompositeTemplate}>
@@ -609,13 +609,13 @@ export function AdminPredictions() {
               Tạo khung 4 kỹ năng
             </button>
 
-            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div className="rounded-2xl border border-brand-100 bg-sky-50 p-4">
               <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-slate-700">
                 <Link2 size={17} />
                 Chọn câu hỏi để tạo link
               </div>
               <label className="mb-3 block space-y-2">
-                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Gắn vào mục</span>
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Gắn vào mục</span>
                 <select className="input bg-white" value={selectedSection} onChange={(event) => setSelectedSection(event.target.value as PredictionSectionSkill)}>
                   {predictionSections.map((section) => (
                     <option key={section} value={section}>{sectionLabels[section]}</option>
@@ -623,7 +623,7 @@ export function AdminPredictions() {
                 </select>
               </label>
               <label className="mb-3 block space-y-2">
-                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Part</span>
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Part</span>
                 <select className="input bg-white" value={selectedPart} onChange={(event) => setSelectedPart(Number(event.target.value) as PredictionPart)}>
                   {predictionParts.map((part) => (
                     <option key={part} value={part}>Part {part}</option>
@@ -631,7 +631,7 @@ export function AdminPredictions() {
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Bài luyện</span>
+                <span className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Bài luyện</span>
                 <select className="input bg-white" value={selectedTestId} onChange={(event) => setSelectedTestId(event.target.value ? Number(event.target.value) : '')}>
                   <option value="">Chọn bài có câu hỏi</option>
                   {tests.map((test) => (
@@ -642,20 +642,20 @@ export function AdminPredictions() {
                 </select>
               </label>
               {selectedTestId ? (
-                <div className="mt-3 max-h-56 space-y-2 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2">
+                <div className="mt-3 max-h-56 space-y-2 overflow-y-auto rounded-xl border border-brand-100 bg-white p-2">
                   {questions.length > 0 ? questions.map((question, index) => (
-                    <div key={question.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg p-2 hover:bg-slate-50">
+                    <div key={question.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 rounded-lg p-2 hover:bg-sky-50">
                       <input type="checkbox" checked={selectedQuestionIds.includes(question.id)} onChange={() => toggleQuestion(question.id)} />
                       <button type="button" className="min-w-0 text-left text-sm font-semibold text-slate-700" onClick={() => toggleQuestion(question.id)}>
                         <span className="block truncate">{questionLinkLabel(question, index)}</span>
-                        <span className="block truncate text-xs font-medium text-slate-400">{question.topic || question.content}</span>
+                        <span className="block truncate text-xs font-medium text-slate-500">{question.topic || question.content}</span>
                       </button>
-                      <button type="button" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:text-brand-700" onClick={() => copyQuestionLink(question)} title="Copy link câu hỏi">
+                      <button type="button" className="rounded-lg border border-brand-100 p-2 text-slate-600 hover:text-brand-700" onClick={() => copyQuestionLink(question)} title="Copy link câu hỏi">
                         <Copy size={15} />
                       </button>
                     </div>
                   )) : (
-                    <p className="p-3 text-sm font-semibold text-slate-400">Bài này chưa có câu hỏi.</p>
+                    <p className="p-3 text-sm font-semibold text-slate-500">Bài này chưa có câu hỏi.</p>
                   )}
                 </div>
               ) : null}
@@ -663,35 +663,35 @@ export function AdminPredictions() {
                 <CheckSquare size={18} />
                 Them cau hoi vao {sectionLabels[selectedSection]} Part {selectedPart}
               </button>
-              <div className="mt-4 rounded-xl border border-slate-200 bg-white p-3">
+              <div className="mt-4 rounded-xl border border-brand-100 bg-white p-3">
                 <div className="mb-2 flex items-center justify-between gap-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-500">Cau hoi dang gan</p>
-                  <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{currentQuestionLinks.length}</span>
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-600">Cau hoi dang gan</p>
+                  <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-slate-700">{currentQuestionLinks.length}</span>
                 </div>
                 {currentQuestionLinks.length > 0 ? (
                   <div className="max-h-52 space-y-2 overflow-y-auto">
                     {currentQuestionLinks.map((link, index) => (
-                      <div key={`${linkKey(link)}:${index}`} className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border border-slate-100 p-2">
+                      <div key={`${linkKey(link)}:${index}`} className="grid grid-cols-[1fr_auto] items-center gap-2 rounded-lg border border-brand-100 p-2">
                         <div className="min-w-0">
                           <p className="truncate text-sm font-semibold text-slate-700">{link.label || `Cau hoi ${link.questionId}`}</p>
-                          <p className="text-xs font-medium text-slate-400">
+                          <p className="text-xs font-medium text-slate-500">
                             {link.section ? sectionLabels[link.section] : 'Chung'}{link.part ? ` - Part ${link.part}` : ''} - Bai #{link.testId}, cau #{link.questionId}
                           </p>
                         </div>
-                        <button type="button" className="rounded-lg border border-slate-200 p-2 text-slate-500 hover:border-red-200 hover:text-red-600" onClick={() => removeQuestionLink(index)} title="Xoa cau hoi khoi du doan">
+                        <button type="button" className="rounded-lg border border-brand-100 p-2 text-slate-600 hover:border-red-200 hover:text-red-600" onClick={() => removeQuestionLink(index)} title="Xoa cau hoi khoi du doan">
                           <Trash2 size={15} />
                         </button>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <p className="rounded-lg border border-dashed border-slate-200 p-3 text-sm font-semibold text-slate-400">Chua gan cau hoi nao.</p>
+                  <p className="rounded-lg border border-dashed border-brand-100 p-3 text-sm font-semibold text-slate-500">Chưa gan cau hoi nao.</p>
                 )}
               </div>
             </div>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Tag</span>
+              <span className="text-sm font-bold text-slate-700">Tag</span>
               <input className="input" value={form.tags} onChange={(event) => setForm((current) => ({ ...current, tags: event.target.value }))} placeholder="VD: writing,email,part 4" />
             </label>
 
@@ -709,13 +709,13 @@ export function AdminPredictions() {
         </div>
 
         <div className="card overflow-hidden">
-          <div className="border-b border-slate-100 p-5">
+          <div className="border-b border-brand-100 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-xl font-extrabold">Danh sách dự đoán</h2>
-                <p className="text-sm text-slate-500">{items.length} mục dự đoán</p>
+                <p className="text-sm text-slate-600">{items.length} mục dự đoán</p>
               </div>
-              <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-slate-400 lg:max-w-[320px]">
+              <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-brand-100 bg-white px-4 text-slate-500 lg:max-w-[320px]">
                 <Search size={18} />
                 <input className="w-full bg-transparent text-sm text-slate-700 outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm dự đoán..." />
               </label>
@@ -724,39 +724,39 @@ export function AdminPredictions() {
 
           <div className="max-h-[720px] space-y-3 overflow-y-auto p-5">
             {loading ? (
-              <div className="rounded-2xl border border-slate-200 p-10 text-center font-bold text-slate-500">Đang tải dự đoán...</div>
+              <div className="rounded-2xl border border-brand-100 p-10 text-center font-bold text-slate-600">Đang tải dự đoán...</div>
             ) : filteredItems.length > 0 ? filteredItems.map((item) => (
-              <article key={item.id} className="rounded-2xl border border-slate-200 p-4">
+              <article key={item.id} className="rounded-2xl border border-brand-100 p-4">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-extrabold text-brand-700">{skillLabels[item.skill]}</span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600">{item.status}</span>
+                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-slate-700">{item.status}</span>
                       <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-700">Ưu tiên {item.priority}</span>
                     </div>
-                    <h3 className="mt-3 text-lg font-extrabold text-slate-950">{item.title}</h3>
-                    {item.summary ? <p className="mt-1 text-sm text-slate-500">{item.summary}</p> : null}
-                    {item.tags ? <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">{item.tags}</p> : null}
-                    <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm text-slate-600">{item.content}</p>
+                    <h3 className="mt-3 text-lg font-extrabold text-navy">{item.title}</h3>
+                    {item.summary ? <p className="mt-1 text-sm text-slate-600">{item.summary}</p> : null}
+                    {item.tags ? <p className="mt-2 text-xs font-bold uppercase tracking-[0.12em] text-slate-500">{item.tags}</p> : null}
+                    <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm text-slate-700">{item.content}</p>
                   </div>
                   <div className="flex shrink-0 gap-2">
-                    <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => downloadPredictionWord(item)} title="Export Word">
+                    <button type="button" className="rounded-xl border border-brand-100 p-3 text-slate-700 hover:border-brand-200 hover:text-brand-700" onClick={() => downloadPredictionWord(item)} title="Export Word">
                       <Download size={18} />
                     </button>
-                    <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => duplicatePrediction(item)} title="Copy sang dự đoán mới">
+                    <button type="button" className="rounded-xl border border-brand-100 p-3 text-slate-700 hover:border-brand-200 hover:text-brand-700" onClick={() => duplicatePrediction(item)} title="Copy sang dự đoán mới">
                       <Copy size={18} />
                     </button>
-                    <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => editPrediction(item)}>
+                    <button type="button" className="rounded-xl border border-brand-100 p-3 text-slate-700 hover:border-brand-200 hover:text-brand-700" onClick={() => editPrediction(item)}>
                       <Pencil size={18} />
                     </button>
-                    <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-red-200 hover:text-red-600" onClick={() => deletePrediction(item.id)}>
+                    <button type="button" className="rounded-xl border border-brand-100 p-3 text-slate-700 hover:border-red-200 hover:text-red-600" onClick={() => deletePrediction(item.id)}>
                       <Trash2 size={18} />
                     </button>
                   </div>
                 </div>
               </article>
             )) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center font-bold text-slate-500">Chưa có dự đoán đề nào.</div>
+              <div className="rounded-2xl border border-dashed border-brand-100 p-10 text-center font-bold text-slate-600">Chưa có dự đoán đề nào.</div>
             )}
           </div>
         </div>
@@ -764,3 +764,4 @@ export function AdminPredictions() {
     </div>
   );
 }
+

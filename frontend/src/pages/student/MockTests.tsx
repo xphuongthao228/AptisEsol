@@ -20,6 +20,7 @@
   Info,
   LayoutDashboard,
   List,
+  Lock,
   LogOut,
   Mail,
   Mic,
@@ -29,6 +30,7 @@
   RotateCcw,
   Search,
   Settings,
+  Shuffle,
   Sparkles,
   Star,
   Volume2,
@@ -42,6 +44,7 @@ import toast from 'react-hot-toast';
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
+import type { Question, SubscriptionResponse, Test } from '../../types';
 
 type SpeakingScreen = 'select' | 'fullStart' | 'fullResult' | 'start' | 'instructions' | 'prompt' | 'question' | 'part2Prompt' | 'part2Question' | 'part3Prompt' | 'part3Question' | 'part4Prompt' | 'part4Question' | 'complete' | 'readingStart' | 'readingInstructions' | 'readingQuestion' | 'readingCohesion' | 'readingOpinion' | 'readingLong' | 'readingResult' | 'readingReview' | 'listeningStart' | 'listeningInstructions' | 'listeningQuestion' | 'listeningMatching' | 'listeningShort' | 'listeningMonologues' | 'listeningResult' | 'listeningReview' | 'writingInstructions' | 'writingPart' | 'writingResult' | 'grammarStart' | 'grammarInstructions' | 'grammarQuestion' | 'grammarResult';
 type Part4Phase = 'prepare' | 'recording';
@@ -97,6 +100,7 @@ type SidebarLink = {
 
 type MockCard = {
   id: string;
+  practiceTestId?: number;
   skill: MockSkill;
   label: string;
   title: string;
@@ -219,8 +223,8 @@ type QuestionListItem = {
 const sidebarLinks: SidebarLink[] = [
   { to: '/app', label: 'Tổng quan', icon: LayoutDashboard },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
-  { to: '/app/tests', label: 'Luyện tập', icon: BookOpen },
-  { to: '/app/exams', label: 'Đề thi', icon: FileText },
+  { to: '/app/tests/parts', label: 'Luyện tập', icon: BookOpen },
+  { to: '/app/mock-tests', label: 'Đề thi', icon: FileText },
   { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
   { to: '/app/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/app/renewal', label: 'Gia hạn', icon: CalendarPlus },
@@ -237,6 +241,8 @@ const skillFilters: { key: MockSkill; label: string }[] = [
   { key: 'READING', label: 'Reading' },
   { key: 'GRAMMAR', label: 'Grammar' }
 ];
+
+const FREE_MOCK_TESTS_PER_SKILL = 2;
 
 const mockCards: MockCard[] = [
   {
@@ -415,6 +421,98 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   };
 }
 
+function apiExamTestToCard(item: Test): MockCard | null {
+  if ((item.mode ?? 'PRACTICE') !== 'EXAM' || item.status !== 'PUBLISHED' || !item.title?.trim()) return null;
+  const skill = normalizeExamSkill(item.skillName);
+  if (!skill) return null;
+  const meta = mockCardMeta[skill];
+  const questionCount = item.questionCount ?? 0;
+  const displayQuestionCount = skill === 'WRITING' && questionCount > 0 ? 4 : questionCount;
+  return {
+    id: `test-${item.id}`,
+    practiceTestId: item.id,
+    skill,
+    label: meta.label,
+    title: item.title.trim(),
+    description: item.description?.trim() || 'Đề thi thử được import trong ngân hàng câu hỏi.',
+    questions: displayQuestionCount ? `${displayQuestionCount}` : 'Chưa rõ',
+    minutes: `${item.durationMinutes || 0} phút`,
+    icon: meta.icon,
+    ready: questionCount > 0,
+    color: meta.color,
+    featured: Boolean(item.featured)
+  };
+}
+
+async function apiExamTestsToCards(items: Test[]) {
+  const cards = await Promise.all(items.map(async (item) => {
+    const card = apiExamTestToCard(item);
+    if (!card) return [];
+    if (card.skill !== 'WRITING' || !card.practiceTestId || !card.ready) return [card];
+
+    try {
+      const rows = await unwrap<Question[]>(api.get(`/questions?testId=${card.practiceTestId}`));
+      return writingExamCardsFromQuestions(card, rows);
+    } catch {
+      return [card];
+    }
+  }));
+
+  return cards.flat();
+}
+
+function writingExamCardsFromQuestions(card: MockCard, questions: Question[]) {
+  const cards = [...questions]
+    .sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0))
+    .flatMap((question) => writingExamCardsFromQuestion(card, question));
+
+  return cards.length ? cards : [card];
+}
+
+function writingExamCardsFromQuestion(card: MockCard, question: Question) {
+  try {
+    const data = JSON.parse(question.content);
+    if (data?.template !== 'WRITING_CLUB_COLLECTION' || !Array.isArray(data.clubs)) return [];
+
+    return data.clubs.map((club: Record<string, unknown>, clubIndex: number) => {
+      const clubName = String(club.clubName ?? data.title ?? question.topic ?? card.title).trim() || card.title;
+      const questionData = JSON.stringify({
+        ...data,
+        total: 1,
+        title: clubName,
+        clubs: [club]
+      });
+
+      return {
+        ...card,
+        id: `${card.id}-q${question.id}-club${clubIndex}`,
+        title: clubName,
+        description: card.title,
+        questions: '4',
+        questionData,
+        ready: true,
+        featured: Boolean(card.featured || question.featured)
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+function normalizeExamSkill(value?: string): Exclude<MockSkill, 'FULL'> | null {
+  const normalized = removeVietnameseMarks(String(value ?? '')).toUpperCase();
+  if (normalized.includes('LISTENING') || normalized.includes('NGHE')) return 'LISTENING';
+  if (normalized.includes('SPEAKING') || normalized.includes('NOI')) return 'SPEAKING';
+  if (normalized.includes('READING') || normalized.includes('DOC')) return 'READING';
+  if (normalized.includes('WRITING') || normalized.includes('VIET')) return 'WRITING';
+  if (normalized.includes('GRAMMAR') || normalized.includes('NGU PHAP')) return 'GRAMMAR';
+  return null;
+}
+
+function removeVietnameseMarks(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+
 function hasFeaturedMarker(value?: string) {
   return Boolean(value?.includes(FEATURED_MARKER));
 }
@@ -458,7 +556,7 @@ function getMockCardOrderNumber(card: MockCard) {
     /\bmock\s*test\s*(\d+)\b/i,
     /\btest\s*(\d+)\b/i,
     /#\s*0*(\d+)\b/i,
-    /\b(?:de|đề)\s*0*(\d+)\b/i
+    /\b(?:de|d?)\s*0*(\d+)\b/i
   ];
 
   for (const pattern of patterns) {
@@ -472,10 +570,34 @@ function parseQuestionDataArray(questionData?: string) {
   if (!questionData?.trim()) return [];
   try {
     const parsed = JSON.parse(questionData);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return normalizeQuestionDataObject(parsed as Record<string, unknown>);
+    }
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
+}
+
+function normalizeQuestionDataObject(data: Record<string, unknown>) {
+  if (data.template !== 'WRITING_CLUB_COLLECTION') return [];
+  const clubs = Array.isArray(data.clubs) ? data.clubs : [];
+  return clubs.flatMap((club) => {
+    if (!club || typeof club !== 'object') return [];
+    const clubRow = club as Record<string, unknown>;
+    const parts = Array.isArray(clubRow.parts) ? clubRow.parts : [];
+    return parts
+      .filter((part): part is Record<string, unknown> => Boolean(part && typeof part === 'object'))
+      .map((part, index) => ({
+        ...part,
+        skill: 'WRITING',
+        part: index + 1,
+        clubName: String(clubRow.clubName ?? '').trim(),
+        heading: String(part.instructions ?? part.heading ?? part.title ?? '').trim(),
+        prompt: String(part.mainText ?? part.prompt ?? part.context ?? '').trim(),
+        questions: Array.isArray(part.prompts) ? part.prompts : part.questions
+      }));
+  });
 }
 
 function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Question[] {
@@ -1150,13 +1272,17 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
   }));
   const grouped = new Map<number, Record<string, unknown>[]>();
 
-  rows.forEach((row) => {
-    const partIndex = Math.min(3, Math.max(0, Number(row.part ?? row.questionPart ?? 1) - 1));
+  rows.forEach((row, fallbackIndex) => {
+    const rawPart = row.part ?? row.questionPart ?? fallbackIndex + 1;
+    const parsedPart = Number(rawPart);
+    const partIndex = Number.isFinite(parsedPart)
+      ? Math.min(3, Math.max(0, parsedPart - 1))
+      : Math.min(3, Math.max(0, fallbackIndex));
     grouped.set(partIndex, [...(grouped.get(partIndex) ?? []), row]);
   });
 
   grouped.forEach((partRows, partIndex) => {
-    const current = nextParts[partIndex];
+    const current = nextParts[partIndex] ?? writingParts[partIndex] ?? writingParts[0];
     const first = partRows[0] ?? {};
     const clubName = String(first.clubName ?? card?.description?.replace(/^Bộ đề\s*#\d+\s*-\s*/i, '').replace(/\.$/, '') ?? '').trim();
     const rowQuestions = partRows.flatMap((row) => {
@@ -1177,6 +1303,9 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
     const heading = String(first.heading ?? first.instructions ?? first.title ?? '').trim();
     const context = String(first.context ?? first.mainText ?? '').trim();
     const prompt = String(first.prompt ?? first.content ?? '').trim();
+    const emailPrompts = partIndex === 3 && rowQuestions.length > 0
+      ? { friend: rowQuestions[0] ?? '', president: rowQuestions[1] ?? '' }
+      : current.emailPrompts;
 
     nextParts[partIndex] = {
       ...current,
@@ -1185,12 +1314,7 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
       questions: (partIndex === 0 || partIndex === 2) && rowQuestions.length > 0 ? rowQuestions : current.questions,
       helper: String(first.helper ?? first.wordLimit ?? '').trim() || current.helper,
       sampleAnswers: sampleAnswers.length > 0 ? sampleAnswers : current.sampleAnswers,
-      emailPrompts: partIndex === 3
-        ? {
-            friend: String(partRows.find((row) => String(row.subpart ?? '') === '1')?.prompt ?? '').trim(),
-            president: String(partRows.find((row) => String(row.subpart ?? '') === '2')?.prompt ?? '').trim()
-          }
-        : current.emailPrompts
+      emailPrompts
     };
   });
 
@@ -1498,6 +1622,7 @@ export function MockTests() {
   const [speakingDraftLevel, setSpeakingDraftLevel] = useState<DraftLevel>('B1');
   const [bookmarks, setBookmarks] = useState<string[]>(() => loadMockBookmarks());
   const [questionListOpen, setQuestionListOpen] = useState(false);
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
@@ -1506,6 +1631,26 @@ export function MockTests() {
   const animationFrameRef = useRef<number | null>(null);
   const activeRecordingKeyRef = useRef<string | null>(null);
   const speakingSoundEnabledRef = useRef(true);
+
+  useEffect(() => {
+    if (!accessToken) {
+      setSubscription(null);
+      return;
+    }
+
+    let mounted = true;
+    unwrap<SubscriptionResponse>(api.get('/payments/subscription/me'))
+      .then((data) => {
+        if (mounted) setSubscription(data);
+      })
+      .catch(() => {
+        if (mounted) setSubscription(null);
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [accessToken]);
 
   useEffect(() => {
     setAnswerRevealOpen(false);
@@ -1965,9 +2110,41 @@ export function MockTests() {
     return false;
   }
 
-  function openSpeakingTest(card?: MockCard) {
+  function requireProToStart(_card?: MockCard) {
+    return true;
+  }
+
+  async function hydrateAssessmentCard(card?: MockCard) {
+    if (!card?.practiceTestId || card.questionData?.trim()) return card ?? null;
+    try {
+      const questions = await unwrap<Question[]>(api.get(`/questions?testId=${card.practiceTestId}`));
+      const orderedQuestions = [...questions].sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));
+      const questionData = orderedQuestions.length === 1
+        ? orderedQuestions[0].content
+        : JSON.stringify(orderedQuestions.map((question) => {
+            try {
+              return JSON.parse(question.content);
+            } catch {
+              return {
+                skill: card.skill,
+                prompt: question.content,
+                topic: question.topic,
+                answers: question.answers
+              };
+            }
+          }));
+      return { ...card, questionData };
+    } catch {
+      toast.error('Không tải được dữ liệu đề thi thử.');
+      return card ?? null;
+    }
+  }
+
+  async function openSpeakingTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
-    setSelectedMockCard(card ?? null);
+    if (!requireProToStart(card)) return;
+    const hydratedCard = await hydrateAssessmentCard(card);
+    setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedTest(speakingMockTests[0]);
     setSelectedSkill('SPEAKING');
@@ -1978,9 +2155,11 @@ export function MockTests() {
     setScreen('start');
   }
 
-  function openReadingTest(card?: MockCard) {
+  async function openReadingTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
-    setSelectedMockCard(card ?? null);
+    if (!requireProToStart(card)) return;
+    const hydratedCard = await hydrateAssessmentCard(card);
+    setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('READING');
     setReadingCohesionIndex(0);
@@ -1992,9 +2171,11 @@ export function MockTests() {
     setScreen('readingStart');
   }
 
-  function openListeningTest(card?: MockCard) {
+  async function openListeningTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
-    setSelectedMockCard(card ?? null);
+    if (!requireProToStart(card)) return;
+    const hydratedCard = await hydrateAssessmentCard(card);
+    setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('LISTENING');
     setListeningQuestionIndex(0);
@@ -2006,9 +2187,11 @@ export function MockTests() {
     setScreen('listeningStart');
   }
 
-  function openWritingTest(card?: MockCard) {
+  async function openWritingTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
-    setSelectedMockCard(card ?? null);
+    if (!requireProToStart(card)) return;
+    const hydratedCard = await hydrateAssessmentCard(card);
+    setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('WRITING');
     setWritingPartIndex(0);
@@ -2022,9 +2205,11 @@ export function MockTests() {
     setScreen('writingInstructions');
   }
 
-  function openGrammarTest(card?: MockCard) {
+  async function openGrammarTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
-    setSelectedMockCard(card ?? null);
+    if (!requireProToStart(card)) return;
+    const hydratedCard = await hydrateAssessmentCard(card);
+    setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('GRAMMAR');
     setGrammarQuestionIndex(0);
@@ -2033,9 +2218,11 @@ export function MockTests() {
     setScreen('grammarStart');
   }
 
-  function openFullTest(card?: MockCard) {
+  async function openFullTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
-    setSelectedMockCard(card ?? selectedMockCard);
+    if (!requireProToStart(card)) return;
+    const hydratedCard = await hydrateAssessmentCard(card ?? selectedMockCard ?? undefined);
+    setSelectedMockCard(hydratedCard);
     setIsFullMock(true);
     setSelectedSkill('FULL');
     resetSpeakingSection();
@@ -2175,7 +2362,7 @@ export function MockTests() {
     return {
       overallScore,
       cefrLevel: overallScore >= 40 ? 'B2' : overallScore >= 28 ? 'B1' : overallScore >= 16 ? 'A2' : 'A1',
-      summary: `AI Writing chưa chấm được lúc này (${reason}). Kết quả này là điểm tạm để bài thi full không bị dừng; bạn có thể thử chấm lại sau.`,
+      summary: `AI Writing chưa chấm được lúc này (${reason}). Kết quả này là điểm tạm để bài thi full không bị đứng; bạn có thể thử chấm lại sau.`,
       criteria: [
         { name: 'Task achievement', score: answeredParts === parts.length ? 5 : answeredParts > 0 ? 3 : 0, feedback: `${answeredParts}/${parts.length} phần có nội dung trả lời.` },
         { name: 'Grammar', score: 0, feedback: 'Chưa đánh giá được ngữ pháp vì AI chưa trả kết quả.' },
@@ -2283,7 +2470,7 @@ export function MockTests() {
           ? 'Phần này chưa có file ghi âm nên tính 0 điểm.'
           : unavailable
             ? 'Có file ghi âm nhưng trình duyệt chưa lấy được nội dung nói, nên phần này chỉ được điểm rất thấp.'
-            : 'Có dữ liệu nói nhưng AI chưa trả được chấm chi tiết. Bạn có thể thử chấm lại sau.'
+            : 'Có dữ liệu nói nhưng AI chưa chấm chi tiết được. Bạn có thể thử chấm lại sau.'
       };
     });
     const overallScore = partFeedback.length
@@ -2514,6 +2701,8 @@ export function MockTests() {
             onOpenWriting={openWritingTest}
             onOpenGrammar={openGrammarTest}
             onOpenFull={openFullTest}
+            proActive={Boolean(subscription?.proActive)}
+            authenticated={Boolean(accessToken)}
           />
         </MockSelectLayout>
       ) : (
@@ -3012,104 +3201,30 @@ export function MockTests() {
 }
 
 function MockSelectLayout({ children }: { children: ReactNode }) {
-  const { user, logout } = useAuthStore();
-  const navigate = useNavigate();
-
-  async function signOut() {
-    await logout();
-    navigate('/login');
-  }
-
   return (
-    <div className="min-h-screen bg-[#f7f7fc]">
-      <aside className="fixed left-0 top-0 z-40 hidden h-screen w-[260px] flex-col overflow-hidden bg-[#1e293b] text-white xl:flex">
-        <div className="px-6 py-6">
-          <h1 className="text-2xl font-extrabold tracking-tight">English Prep</h1>
-          <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-slate-400">CHẾ ĐỘ ÔN THI</p>
-        </div>
-
-        <nav className="min-h-0 flex-1 space-y-1.5 overflow-y-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {sidebarLinks.map(({ to, label, icon: Icon }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/app'}
-              className={({ isActive }) => `flex h-11 items-center gap-3 rounded-xl px-4 text-sm font-semibold transition ${
-                isActive ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' : 'text-white/80 hover:bg-[#334155] hover:text-white'
-              }`}
-            >
-              <Icon className="shrink-0" size={21} />
-              <span className="truncate">{label}</span>
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="shrink-0 border-t border-slate-700/60 p-4">
-          <div className="mb-3 rounded-xl border border-white/10 bg-white/5 p-3">
-            <p className="mb-2 text-center text-xs font-bold text-white">Aptis Pro Access</p>
-            <Link to="/app/renewal" className="flex h-10 w-full items-center justify-center rounded-lg bg-brand-600 text-xs font-extrabold text-white hover:bg-brand-700">
-              Nâng cấp Pro
-            </Link>
-          </div>
-          <Link to="/app/contact" className="flex h-10 items-center gap-3 rounded-lg px-4 text-sm text-slate-300 hover:bg-white/10 hover:text-white">
-            <HelpCircle size={20} />
-            Trợ giúp
-          </Link>
-          <button onClick={signOut} className="flex h-10 w-full items-center gap-3 rounded-lg px-4 text-sm text-red-300 hover:bg-white/10 hover:text-red-200">
-            <LogOut size={20} />
-            Đăng xuất
-          </button>
-        </div>
-      </aside>
-
-      <header className="fixed right-0 top-0 z-30 h-16 border-b border-slate-200 bg-white xl:left-[260px]">
-        <div className="flex h-16 items-center justify-between px-4 xl:px-8">
-          <div className="flex min-w-0 items-center gap-4">
-            <Link to="/app" className="text-xl font-extrabold text-brand-600">LingoMaster</Link>
-            <div className="hidden h-8 w-px bg-slate-200 sm:block" />
-            <p className="hidden truncate text-sm italic text-slate-500 sm:block">Aptis Keys - Học thông minh</p>
-          </div>
-          <label className="hidden w-full max-w-[340px] items-center gap-2 rounded-full border border-slate-200 bg-[#f7f7fc] px-4 py-2 text-slate-400 md:flex">
-            <Search size={18} />
-            <span className="text-sm">Tìm kiếm bài học...</span>
-          </label>
-          <div className="flex items-center gap-4">
-            <Bell size={21} className="text-slate-600" />
-            <div className="h-8 w-px bg-slate-200" />
-            <div className="flex items-center gap-3">
-              <div className="grid h-9 w-9 place-items-center rounded-full bg-slate-200 text-sm font-bold text-slate-700">{user?.fullName?.[0] ?? 'd'}</div>
-              <span className="hidden text-sm font-semibold text-slate-800 sm:inline">{user?.fullName ?? 'dien'}</span>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="min-h-screen pb-24 pt-16 xl:ml-[260px]">
-        <div className="mx-auto max-w-[1180px] px-3 py-5 sm:px-4 sm:py-8 xl:px-0">
-          {children}
-        </div>
-      </main>
-
-      <nav className="fixed bottom-0 left-0 right-0 z-30 grid grid-cols-3 border-t border-slate-200 bg-white p-2 xl:hidden">
-        {sidebarLinks.filter((link) => ['/app', '/app/tests', '/app/mock-tests'].includes(link.to)).map(({ to, label, icon: Icon }) => (
-          <NavLink key={to} to={to} end={to === '/app'} className={({ isActive }) => `flex flex-col items-center gap-1 rounded-lg py-2 text-xs font-bold ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-500'}`}>
-            <Icon size={20} />
-            <span className="max-w-full truncate">{label}</span>
-          </NavLink>
-        ))}
-      </nav>
+    <div className="min-h-[calc(100vh-8rem)]">
+      <div className="mx-auto max-w-[1180px]">
+        {children}
+      </div>
     </div>
   );
 }
 
-function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void }) {
+function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull, proActive, authenticated }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void; proActive: boolean; authenticated: boolean }) {
   const [adminCards, setAdminCards] = useState<MockCard[]>(() => loadPublishedAdminMockCards());
+  const [creatingRandom, setCreatingRandom] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const reloadAdminCards = () => {
-      unwrap<ApiMockTest[]>(api.get('/mock-tests'))
-        .then((data) => {
-          const cards = mergeStoredFeatured(data.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card)));
+      Promise.all([
+        unwrap<ApiMockTest[]>(api.get('/mock-tests')),
+        unwrap<Test[]>(api.get('/tests')).catch(() => [])
+      ])
+        .then(async ([mockTests, tests]) => {
+          const mockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
+          const examCards = await apiExamTestsToCards(tests);
+          const cards = mergeStoredFeatured([...mockCards, ...examCards]);
           setAdminCards(cards);
         })
         .catch(() => setAdminCards(loadPublishedAdminMockCards()));
@@ -3129,9 +3244,35 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     .filter((card) => card.skill === selectedSkill)
     .sort(compareMockCards);
 
+  function createRandomMockTest() {
+    if (!authenticated) {
+      toast.error('Bạn cần đăng nhập để chọn đề thi thử random.', { id: 'login-required' });
+      navigate('/login');
+      return;
+    }
+
+    const randomCard = visibleCards.length ? visibleCards[Math.floor(Math.random() * visibleCards.length)] : undefined;
+    if (!randomCard) {
+      toast.error('Chưa có đề thi thử phù hợp để random.');
+      return;
+    }
+
+    setCreatingRandom(true);
+    window.setTimeout(() => {
+      toast.success('Đã chọn đề thi thử random.');
+      if (selectedSkill === 'FULL') onOpenFull(randomCard);
+      if (selectedSkill === 'SPEAKING') onOpenSpeaking(randomCard);
+      if (selectedSkill === 'READING') onOpenReading(randomCard);
+      if (selectedSkill === 'LISTENING') onOpenListening(randomCard);
+      if (selectedSkill === 'WRITING') onOpenWriting(randomCard);
+      if (selectedSkill === 'GRAMMAR') onOpenGrammar(randomCard);
+      setCreatingRandom(false);
+    }, 250);
+  }
+
   return (
     <section>
-      <div className="rounded-2xl border border-slate-200 bg-white p-7 text-slate-950 shadow-soft md:p-8">
+      <div className="rounded-2xl border border-brand-100 bg-white p-7 text-navy shadow-soft md:p-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">
@@ -3139,13 +3280,20 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
               Thi thử Aptis
             </p>
             <h1 className="mt-6 text-4xl font-extrabold leading-tight">Chọn kỹ năng thi thử</h1>
-            <p className="mt-3 max-w-2xl text-lg font-medium leading-8 text-slate-600">
-              Thi thử là bộ đề riêng, mô phỏng giao diện assessment. Chọn Full hoặc từng kỹ năng để vào đúng kiểu bài.
+            <p className="mt-3 max-w-2xl text-lg font-medium leading-8 text-slate-700">
+              Thi thử mô phỏng giao diện assessment. Chọn Full hoặc từng kỹ năng để vào đúng kiểu bài.
             </p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5 md:w-[300px]">
-            <p className="text-sm font-bold text-slate-500">Kỹ năng đang chọn</p>
+          <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5 md:w-[300px]">
+            <p className="text-sm font-bold text-slate-600">Kỹ năng đang chọn</p>
             <p className="mt-3 text-3xl font-extrabold">{skillFilters.find((item) => item.key === selectedSkill)?.label}</p>
+            <button type="button" onClick={createRandomMockTest} disabled={creatingRandom} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-extrabold text-white shadow-soft transition hover:bg-emerald-700 disabled:opacity-70">
+              {creatingRandom ? <RotateCcw className="animate-spin" size={17} /> : <Shuffle size={17} />}
+              {creatingRandom ? 'Đang tạo...' : 'Đề thi thử random'}
+            </button>
+            <p className="mt-3 text-xs font-bold leading-5 text-slate-600">
+              Random từ các đề thi thử đã xuất bản và mở bằng giao diện assessment.
+            </p>
           </div>
         </div>
       </div>
@@ -3158,8 +3306,8 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
             onClick={() => onSkillChange(filter.key)}
             className={`h-12 rounded-xl border px-6 text-sm font-extrabold transition ${
               selectedSkill === filter.key
-                ? 'border-brand-600 bg-brand-600 text-white shadow-lg shadow-brand-600/20'
-                : 'border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'
+                ? 'border-brand-600 bg-brand-600 text-white shadow-lift shadow-brand-600/20'
+                : 'border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'
             }`}
           >
             {filter.label}
@@ -3168,12 +3316,22 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       </div>
 
       <div className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {visibleCards.map((card) => (
-          <MockSkillCard key={card.id} card={card} onOpenSpeaking={onOpenSpeaking} onOpenReading={onOpenReading} onOpenListening={onOpenListening} onOpenWriting={onOpenWriting} onOpenGrammar={onOpenGrammar} onOpenFull={onOpenFull} />
+        {visibleCards.map((card, index) => (
+          <MockSkillCard
+            key={card.id}
+            card={card}
+            proLocked={!proActive && index >= FREE_MOCK_TESTS_PER_SKILL}
+            onOpenSpeaking={onOpenSpeaking}
+            onOpenReading={onOpenReading}
+            onOpenListening={onOpenListening}
+            onOpenWriting={onOpenWriting}
+            onOpenGrammar={onOpenGrammar}
+            onOpenFull={onOpenFull}
+          />
         ))}
       </div>
       {visibleCards.length === 0 && (
-        <div className="mt-7 rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center text-sm font-bold text-slate-500">
+        <div className="mt-7 rounded-2xl border border-dashed border-brand-100 bg-white p-8 text-center text-sm font-bold text-slate-600">
           Chưa có đề thi thử đang hiển thị cho kỹ năng này.
         </div>
       )}
@@ -3181,11 +3339,40 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
   );
 }
 
-function MockSkillCard({ card, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull }: { card: MockCard; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void }) {
+function MockSkillCard({
+  card,
+  proLocked,
+  onOpenSpeaking,
+  onOpenReading,
+  onOpenListening,
+  onOpenWriting,
+  onOpenGrammar,
+  onOpenFull
+}: {
+  card: MockCard;
+  proLocked: boolean;
+  onOpenSpeaking: (card: MockCard) => void;
+  onOpenReading: (card: MockCard) => void;
+  onOpenListening: (card: MockCard) => void;
+  onOpenWriting: (card: MockCard) => void;
+  onOpenGrammar: (card: MockCard) => void;
+  onOpenFull: (card: MockCard) => void;
+}) {
+  const navigate = useNavigate();
   const Icon = card.icon;
   const openCard = card.skill === 'SPEAKING' ? onOpenSpeaking : card.skill === 'READING' ? onOpenReading : card.skill === 'LISTENING' ? onOpenListening : card.skill === 'WRITING' ? onOpenWriting : card.skill === 'GRAMMAR' ? onOpenGrammar : card.skill === 'FULL' ? onOpenFull : undefined;
+  const handleOpen = () => {
+    if (!card.ready) return;
+    if (proLocked) {
+      toast.error('Bạn cần nâng cấp tài khoản để làm bài thi thử này.', { id: 'upgrade-required' });
+      window.setTimeout(() => navigate('/app/renewal'), 900);
+      return;
+    }
+    openCard?.(card);
+  };
+
   return (
-    <article className={`rounded-[24px] border bg-white p-6 shadow-soft ${card.featured ? 'border-amber-400 ring-4 ring-amber-100' : 'border-slate-200'}`}>
+    <article className={`rounded-[24px] border bg-white p-6 shadow-soft ${card.featured ? 'border-amber-400 ring-4 ring-amber-100' : 'border-brand-100'}`}>
       <div className="flex items-start justify-between gap-4">
         <div className={`grid h-14 w-14 place-items-center rounded-2xl ${card.color}`}>
           <Icon size={23} />
@@ -3193,15 +3380,20 @@ function MockSkillCard({ card, onOpenSpeaking, onOpenReading, onOpenListening, o
         <div className="flex flex-wrap justify-end gap-2">
           {card.featured && (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
-              <Star size={13} className="fill-amber-400 text-amber-500" /> Quan trọng
+              <Star size={13} className="fill-amber-400 text-amber-500" /> Quan trảng
             </span>
           )}
-          <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">{card.label}</span>
+          {proLocked && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
+              <Lock size={13} /> Pro
+            </span>
+          )}
+          <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-extrabold text-slate-700">{card.label}</span>
         </div>
       </div>
 
-      <h2 className="mt-6 text-xl font-extrabold text-slate-950">{card.title}</h2>
-      <p className="mt-3 min-h-12 text-sm leading-6 text-slate-500">{card.description}</p>
+      <h2 className="mt-6 text-xl font-extrabold text-navy">{card.title}</h2>
+      <p className="mt-3 min-h-12 text-sm leading-6 text-slate-600">{card.description}</p>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
         <InfoBox icon={<FileQuestion size={17} />} label="Câu hỏi" value={card.questions} />
@@ -3210,13 +3402,13 @@ function MockSkillCard({ card, onOpenSpeaking, onOpenReading, onOpenListening, o
 
       <button
         type="button"
-        onClick={card.ready && openCard ? () => openCard(card) : undefined}
+        onClick={handleOpen}
         disabled={!card.ready}
         className={`mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition ${
-          card.ready ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-slate-100 text-slate-400'
+          proLocked ? 'bg-red-600 text-white hover:bg-red-700' : card.ready ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-sky-100 text-slate-500'
         }`}
       >
-        {card.ready ? 'Vào đề' : 'Sắp có'}
+        {proLocked ? 'Mở khóa Pro' : card.ready ? 'Vào đề' : 'Sắp có'}
         <ArrowRight size={18} />
       </button>
     </article>
@@ -3225,12 +3417,12 @@ function MockSkillCard({ card, onOpenSpeaking, onOpenReading, onOpenListening, o
 
 function InfoBox({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-slate-50 p-4">
-      <div className="flex items-center gap-2 text-sm font-bold text-slate-500">
+    <div className="rounded-2xl bg-sky-50 p-4">
+      <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
         {icon}
         {label}
       </div>
-      <p className="mt-2 text-lg font-extrabold text-slate-950">{value}</p>
+      <p className="mt-2 text-lg font-extrabold text-navy">{value}</p>
     </div>
   );
 }
@@ -3255,7 +3447,7 @@ function BookmarkButton({
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      title={active ? 'Bỏ bookmark câu này' : 'Bookmark câu này'}
+      title={active ? 'B? bookmark câu này' : 'Bookmark câu này'}
       style={{
         height,
         display: 'inline-flex',
@@ -3367,7 +3559,7 @@ function QuestionListPanel({ items, onClose }: { items: QuestionListItem[]; onCl
 function SpeakingTopbar({ part, soundEnabled, onExit, onToggleSound }: { part: number; soundEnabled: boolean; onExit: () => void; onToggleSound: () => void }) {
   const SoundIcon = soundEnabled ? Volume2 : VolumeX;
   return (
-    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div className="mock-speaking-title translate-y-2">
           <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
@@ -3397,7 +3589,7 @@ function SpeakingTopbarWithAudio({ part, soundEnabled, onExit, onToggleSound }: 
   const SoundIcon = soundEnabled ? Volume2 : VolumeX;
 
   return (
-    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div className="mock-speaking-title translate-y-2">
           <p className="text-base font-semibold text-[#d9c7f3]">Speaking</p>
@@ -3425,7 +3617,7 @@ function SpeakingTopbarWithAudio({ part, soundEnabled, onExit, onToggleSound }: 
 
 function ReadingTopbar({ title, onExit }: { title: string; onExit: () => void }) {
   return (
-    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[74px] px-7 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-semibold text-[#d9c7f3]">Reading</p>
@@ -3442,7 +3634,7 @@ function ReadingTopbar({ title, onExit }: { title: string; onExit: () => void })
 
 function ListeningTopbar({ title, onExit }: { title: string; onExit: () => void }) {
   return (
-    <header className="mock-test-topbar h-[66px] px-7 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[66px] px-7 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-semibold text-[#d9c7f3]">Listening</p>
@@ -3459,7 +3651,7 @@ function ListeningTopbar({ title, onExit }: { title: string; onExit: () => void 
 
 function WritingTopbar({ title, onExit }: { title: string; onExit: () => void }) {
   return (
-    <header className="mock-test-topbar h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-medium text-[#d9c7f3]">Writing</p>
@@ -3476,7 +3668,7 @@ function WritingTopbar({ title, onExit }: { title: string; onExit: () => void })
 
 function GrammarTopbar({ onExit }: { onExit: () => void }) {
   return (
-    <header className="mock-test-topbar h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-medium text-[#d9c7f3]">Grammar & Vocabulary</p>
@@ -3493,7 +3685,7 @@ function GrammarTopbar({ onExit }: { onExit: () => void }) {
 
 function FullTopbar({ onExit }: { onExit: () => void }) {
   return (
-    <header className="h-[68px] px-6 text-white shadow-sm" style={{ backgroundColor: '#2b075c' }}>
+    <header className="h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div>
           <p className="text-base font-medium text-[#d9c7f3]">Full Mock Test</p>
@@ -3520,33 +3712,37 @@ function FullStart({ mockCard, onStart }: { mockCard?: MockCard | null; onStart:
   return (
     <main className="min-h-[calc(100vh-68px)] bg-white px-6 py-12 sm:px-[68px]">
       <section className="max-w-[760px]">
-        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
-        <h2 className="mt-3 text-[28px] font-extrabold leading-9 text-slate-950">{mockCard?.title ?? 'Full Aptis Mock Test'}</h2>
-        <p className="mt-2 max-w-[620px] text-lg leading-8 text-slate-500">
+        <p className="text-lg font-medium text-slate-600">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[28px] font-extrabold leading-9 text-navy">{mockCard?.title ?? 'Full Aptis Mock Test'}</h2>
+        <p className="mt-2 max-w-[620px] text-lg leading-8 text-slate-600">
           {mockCard?.description ?? 'Làm lần lượt 5 bài thi thử trong cùng một phiên: Nói, Nghe, Grammar & Vocabulary, Đọc, Viết.'}
         </p>
 
         <div className="mt-8 grid max-w-[480px] grid-cols-2 gap-12">
           <div>
-            <p className="text-base font-medium text-slate-500">Number of Sections</p>
-            <p className="mt-2 text-lg font-extrabold text-slate-950">{mockCard?.questions ?? '5 bài'}</p>
+            <p className="text-base font-medium text-slate-600">Number of Sections</p>
+            <p className="mt-2 text-lg font-extrabold text-navy">{mockCard?.questions ?? '5 bài'}</p>
           </div>
           <div>
-            <p className="text-base font-medium text-slate-500">Time Allowed</p>
-            <p className="mt-2 text-lg font-extrabold text-slate-950">{mockCard?.minutes ?? '162 phút'}</p>
+            <p className="text-base font-medium text-slate-600">Time Allowed</p>
+            <p className="mt-2 text-lg font-extrabold text-navy">{mockCard?.minutes ?? '162 phút'}</p>
           </div>
         </div>
 
-        <div className="mt-8 max-w-[640px] rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mt-8 max-w-[640px] rounded-2xl border border-brand-100 bg-sky-50 p-4">
           {sections.map((section, index) => (
-            <div key={section.name} className={`flex items-center gap-4 py-3 ${index === sections.length - 1 ? '' : 'border-b border-slate-200'}`}>
+            <div key={section.name} className={`flex items-center gap-4 py-3 ${index === sections.length - 1 ? '' : 'border-b border-brand-100'}`}>
               <span className="grid h-9 w-9 place-items-center rounded-full bg-[#2b075c] text-sm font-extrabold text-white">{index + 1}</span>
               <div>
-                <p className="font-extrabold text-slate-950">{section.name}</p>
-                <p className="mt-1 text-sm font-medium text-slate-500">{section.detail}</p>
+                <p className="font-extrabold text-navy">{section.name}</p>
+                <p className="mt-1 text-sm font-medium text-slate-600">{section.detail}</p>
               </div>
             </div>
           ))}
+        </div>
+
+        <div className="mt-8 max-w-[520px]">
+          <MicTestPanel />
         </div>
 
         <button type="button" onClick={onStart} className="mt-8 h-[46px] rounded-xl px-7 text-lg font-semibold text-white hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
@@ -3561,18 +3757,18 @@ function GrammarStart({ onStart }: { onStart: () => void }) {
   return (
     <main className="min-h-[calc(100vh-68px)] bg-white px-6 py-12 sm:px-[68px]">
       <section className="max-w-[620px]">
-        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
-        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-slate-950">Grammar & Vocabulary Practice Test</h2>
-        <p className="mt-2 text-lg text-slate-500">Grammar & Vocabulary - Full Practice</p>
+        <p className="text-lg font-medium text-slate-600">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-navy">Grammar & Vocabulary Practice Test</h2>
+        <p className="mt-2 text-lg text-slate-600">Grammar & Vocabulary - Full Practice</p>
 
         <div className="mt-8 grid max-w-[360px] grid-cols-2 gap-12 sm:gap-20">
           <div>
-            <p className="text-base font-medium text-slate-500">Number of Questions</p>
-            <p className="mt-2 text-lg font-extrabold text-slate-950">30</p>
+            <p className="text-base font-medium text-slate-600">Number of Questions</p>
+            <p className="mt-2 text-lg font-extrabold text-navy">30</p>
           </div>
           <div>
-            <p className="text-base font-medium text-slate-500">Time Allowed</p>
-            <p className="mt-2 text-lg font-extrabold text-slate-950">25 min</p>
+            <p className="text-base font-medium text-slate-600">Time Allowed</p>
+            <p className="mt-2 text-lg font-extrabold text-navy">25 min</p>
           </div>
         </div>
 
@@ -4171,11 +4367,11 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
               <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
                 <ArrowLeft size={18} />
-                Thoat
+                Thoát
               </button>
               <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
                 <RotateCcw size={18} />
-                Lam lai
+                Làm lại
               </button>
             </div>
           </article>
@@ -4231,7 +4427,7 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
                 <div style={{ display: 'grid', gap: 10 }}>
                   {result.corrections.map((correction, index) => (
                     <div key={`${correction}-${index}`} style={{ borderRadius: 14, border: '1px solid #fed7aa', backgroundColor: '#fff7ed', padding: 16 }}>
-                      <p style={{ color: '#9a3412', fontSize: 14, fontWeight: 900, margin: 0 }}>Lỗi {index + 1}</p>
+                      <p style={{ color: '#9a3412', fontSize: 14, fontWeight: 900, margin: 0 }}>Lời {index + 1}</p>
                       <p style={{ color: '#7c2d12', fontSize: 14, lineHeight: '23px', margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{correction}</p>
                     </div>
                   ))}
@@ -4247,11 +4443,11 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
               <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
                 <ArrowLeft size={18} />
-                Thoat
+                Thoát
               </button>
               <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
                 <RotateCcw size={18} />
-                Lam lai
+                Làm lại
               </button>
             </div>
           </article>
@@ -4352,19 +4548,19 @@ function ListeningStart({ onStart }: { onStart: () => void }) {
   return (
     <main className="min-h-[calc(100vh-66px)] bg-white px-6 py-12 sm:px-[90px]">
       <section className="max-w-[560px]">
-        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
-        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-slate-950">Listening Practice Test</h2>
-        <p className="mt-2 text-lg text-slate-500">Listening - Full Practice</p>
+        <p className="text-lg font-medium text-slate-600">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-navy">Listening Practice Test</h2>
+        <p className="mt-2 text-lg text-slate-600">Listening - Full Practice</p>
 
         <div className="mt-8 grid max-w-[360px] grid-cols-2 gap-20">
           <Meta label="Number of Questions" value="17" />
           <Meta label="Time Allowed" value="50 min" />
         </div>
 
-        <h3 className="mt-8 text-xl font-extrabold text-slate-950">Assessment Description</h3>
+        <h3 className="mt-8 text-xl font-extrabold text-navy">Assessment Description</h3>
 
-        <div className="mt-7 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
-          <p className="text-xl font-extrabold text-slate-950">Kiểm tra âm thanh</p>
+        <div className="mt-7 rounded-2xl border border-brand-100 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
+          <p className="text-xl font-extrabold text-navy">Kiểm tra âm thanh</p>
           <button type="button" className="mt-5 inline-flex h-12 items-center gap-3 rounded-xl border border-[#f92918] bg-white px-5 text-lg font-medium text-[#e41d10] hover:bg-red-50">
             <Volume2 size={22} />
             Kiểm tra âm thanh
@@ -4980,29 +5176,29 @@ function ReadingStart({ data, mockCard, onStart }: { data: ReadingTestData; mock
           Reading - Gap Fill
         </div>
 
-        <p className="mt-8 text-lg font-medium text-slate-500">Aptis General Practice Test</p>
-        <h2 className="mt-3 text-[32px] font-extrabold leading-10 text-slate-950">{mockCard?.title ?? 'Reading Practice Test'}</h2>
-        <p className="mt-3 text-xl font-medium text-slate-500">{mockCard?.description ?? 'Đề Reading'}</p>
+        <p className="mt-8 text-lg font-medium text-slate-600">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[32px] font-extrabold leading-10 text-navy">{mockCard?.title ?? 'Reading Practice Test'}</h2>
+        <p className="mt-3 text-xl font-medium text-slate-600">{mockCard?.description ?? 'Đề Reading'}</p>
 
         <div className="mt-8 grid max-w-[460px] grid-cols-2 gap-4">
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-semibold text-slate-500">Number of Questions</p>
-            <p className="mt-3 text-2xl font-extrabold text-slate-950">{questionCount}</p>
+          <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5">
+            <p className="text-sm font-semibold text-slate-600">Number of Questions</p>
+            <p className="mt-3 text-2xl font-extrabold text-navy">{questionCount}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
-            <p className="text-sm font-semibold text-slate-500">Time Allowed</p>
-            <p className="mt-3 text-2xl font-extrabold text-slate-950">{mockCard?.minutes || '35 min'}</p>
+          <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5">
+            <p className="text-sm font-semibold text-slate-600">Time Allowed</p>
+            <p className="mt-3 text-2xl font-extrabold text-navy">{mockCard?.minutes || '35 min'}</p>
           </div>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
-          <p className="text-base font-extrabold text-slate-950">Part 1 - Gap Fill</p>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+        <div className="mt-8 rounded-2xl border border-brand-100 bg-white p-5 shadow-[0_8px_22px_rgba(15,23,42,0.06)]">
+          <p className="text-base font-extrabold text-navy">Part 1 - Gap Fill</p>
+          <p className="mt-2 text-sm leading-6 text-slate-600">
             Read the short texts and choose the correct words to complete each gap.
           </p>
         </div>
 
-        <button type="button" onClick={onStart} className="mt-8 inline-flex h-[52px] items-center justify-center gap-3 rounded-xl px-8 text-lg font-semibold text-white shadow-lg shadow-[#2b075c]/20 hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
+        <button type="button" onClick={onStart} className="mt-8 inline-flex h-[52px] items-center justify-center gap-3 rounded-xl px-8 text-lg font-semibold text-white shadow-lift shadow-[#2b075c]/20 hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
           Start Assessment
           <ArrowRight size={20} />
         </button>
@@ -5290,7 +5486,7 @@ function CohesionSlot({ number, filled, onDropChoice }: { number: number; filled
     >
       <span style={{ color: '#334155', fontSize: 14, fontWeight: 700 }}>{number}</span>
       <span style={{ color: filled ? '#020817' : '#94a3b8', fontSize: 16, lineHeight: '22px' }}>
-        {filled ?? 'Kéo câu vào đây'}
+        {filled ?? 'Kéo câu vào dây'}
       </span>
     </div>
   );
@@ -5438,7 +5634,7 @@ function ReadingResult({ summary, onExit, onReview, onRetry }: { summary: SkillS
             </button>
             <button type="button" onClick={onReview} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#f8fafc', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
               <Eye size={18} />
-              Xem lại từng câu →
+              Xem lại từng câu?
             </button>
             <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
               <RotateCcw size={18} />
@@ -5488,7 +5684,7 @@ function ListeningResult({ summary, onExit, onReview, onRetry }: { summary: Skil
             </button>
             <button type="button" onClick={onReview} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#f8fafc', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
               <Eye size={18} />
-              Xem lại từng câu →
+              Xem lại từng câu?
             </button>
             <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#d81e0c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
               <RotateCcw size={18} />
@@ -5729,7 +5925,7 @@ function FullResult({
               <p style={{ color: '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>Grammar & Vocabulary</p>
               <p style={{ color: '#92400e', fontSize: 18, fontWeight: 900, margin: 0 }}>{grammar.score}/50</p>
               <p style={{ color: '#92400e', fontSize: 16, fontWeight: 900, margin: 0 }}>{grammar.cefr}</p>
-              <p style={{ color: '#92400e', fontSize: 14, margin: 0 }}>Không cộng vào tổng 200</p>
+              <p style={{ color: '#92400e', fontSize: 14, margin: 0 }}>Không cầng vào từng 200</p>
             </div>
           </div>
 
@@ -6106,7 +6302,7 @@ function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = 
           )}
           <button type="button" style={sideActionStyle}>
             <Flag size={17} />
-            Báo lỗi
+            Báo lại
           </button>
         </div>
 
@@ -6170,23 +6366,19 @@ function SpeakingStart({ test, onStart }: { test: typeof speakingMockTests[numbe
   return (
     <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[100px]">
       <section className="max-w-[560px]">
-        <p className="text-lg font-medium text-slate-500">Aptis General Practice Test</p>
-        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-slate-950">{test.title}</h2>
-        <p className="mt-2 text-lg text-slate-500">Speaking - Full Practice</p>
+        <p className="text-lg font-medium text-slate-600">Aptis General Practice Test</p>
+        <h2 className="mt-3 text-[26px] font-extrabold leading-8 text-navy">{test.title}</h2>
+        <p className="mt-2 text-lg text-slate-600">Speaking - Full Practice</p>
 
         <div className="mt-8 grid max-w-[360px] grid-cols-2 gap-20">
           <Meta label="Number of Questions" value={String(test.questions)} />
           <Meta label="Time Allowed" value={`${test.minutes} min`} />
         </div>
 
-        <h3 className="mt-8 text-xl font-extrabold text-slate-950">Assessment Description</h3>
+        <h3 className="mt-8 text-xl font-extrabold text-navy">Assessment Description</h3>
 
-        <div className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
-          <p className="text-xl font-extrabold text-slate-950">Kiểm tra Microphone</p>
-          <button type="button" className="mt-5 inline-flex h-12 items-center gap-3 rounded-xl border border-[#f92918] bg-white px-5 text-lg font-medium text-[#e41d10] hover:bg-red-50">
-            <Mic size={22} />
-            Kiểm tra microphone
-          </button>
+        <div className="mt-8 rounded-2xl border border-brand-100 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
+          <MicTestPanel />
         </div>
 
         <button type="button" onClick={onStart} className="mt-8 h-[50px] rounded-xl px-8 text-lg font-semibold text-white hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
@@ -6373,7 +6565,7 @@ function SpeakingQuestion({ question, index, total, seconds, showAnswer, isReadi
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
-          Báo lỗi
+          Báo lại
         </button>
       </div>
     </main>
@@ -6499,7 +6691,7 @@ function Part2Question({ question, index, total, seconds, showAnswer, isReading,
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
-          Báo lỗi
+          Báo lại
         </button>
       </div>
     </main>
@@ -6632,7 +6824,7 @@ function Part3Question({ question, index, total, seconds, showAnswer, isReading,
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
-          Báo lỗi
+          Báo lại
         </button>
       </div>
     </main>
@@ -6813,7 +7005,7 @@ function Part4Question({ phase, seconds, showAnswer, isReading, microphoneLevel,
         </button>
         <button type="button" style={sideActionStyle}>
           <Flag size={17} />
-          Báo lỗi
+          Báo lại
         </button>
       </div>
     </main>
@@ -6822,7 +7014,7 @@ function Part4Question({ phase, seconds, showAnswer, isReading, microphoneLevel,
 
 const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
   '2-0': {
-    title: 'Dựng bài miêu tả ảnh',
+    title: 'Dạng bài miêu tả ảnh',
     target: 'Mục tiêu: 4-6 câu, khoảng 40-45 giây.',
     fields: [
       { label: 'Mở đầu', prefix: 'In this picture I can see', b1: ['a group of friends', 'several people', 'some young people'], b2: ['a group of friends spending time together', 'several people enjoying a meal together', 'some young people in a relaxed social setting'] },
@@ -6833,7 +7025,7 @@ const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
     ]
   },
   '2-1': {
-    title: 'Dựng bài suy đoán nội dung nói chuyện',
+    title: 'Dạng bài suy đoán nội dung nói chuyện',
     target: 'Mục tiêu: 3-5 câu, khoảng 40-45 giây.',
     fields: [
       { label: 'Trả lời trực tiếp', prefix: 'I think they are talking about', b1: ['their food', 'their weekend plans', 'something funny'], b2: ['their meal and what they want to do later', 'their weekend plans or a funny story', 'something enjoyable that happened recently'] },
@@ -6844,10 +7036,10 @@ const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
     ]
   },
   '2-2': {
-    title: 'Dựng bài ý kiến cá nhân',
+    title: 'Dạng bài ý kiến cá nhân',
     target: 'Mục tiêu: 4-5 câu, khoảng 40-45 giây.',
     fields: [
-      { label: 'Trả lời chính', prefix: 'Yes, I like eating with friends because', b1: ['it is fun', 'I can talk with them', 'it helps me relax'], b2: ['it makes the meal more enjoyable', 'we can talk and share stories', 'it helps me relax after a busy day'] },
+      { label: 'Trả lại chính', prefix: 'Yes, I like eating with friends because', b1: ['it is fun', 'I can talk with them', 'it helps me relax'], b2: ['it makes the meal more enjoyable', 'we can talk and share stories', 'it helps me relax after a busy day'] },
       { label: 'Chi tiết', prefix: 'When we eat together, we can', b1: ['laugh a lot', 'share food', 'talk about our day'], b2: ['laugh together and share our problems', 'try different dishes and enjoy the atmosphere', 'talk about our day and feel closer'] },
       { label: 'Ví dụ cá nhân', prefix: 'For example, I often', b1: ['have dinner with my friends', 'go to a cafe with my classmates', 'eat out at weekends'], b2: ['have dinner with my friends after studying', 'go to a cafe with my classmates at weekends', 'eat out with close friends when we have free time'] },
       { label: 'Cảm xúc', prefix: 'It makes me feel', b1: ['happy', 'comfortable', 'less stressed'], b2: ['happier and less stressed', 'more connected to my friends', 'comfortable because I can be myself'] },
@@ -6855,24 +7047,24 @@ const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
     ]
   },
   '3-0': {
-    title: 'Dựng bài so sánh 2 ảnh',
+    title: 'Dạng bài so sánh 2 ảnh',
     target: 'Mục tiêu: 6-8 câu, khoảng 45 giây.',
     fields: [
       { label: 'Mở đầu chung', prefix: 'These two pictures both show', b1: ['people travelling', 'different ways of travelling', 'people on a journey'], b2: ['people travelling in two different ways', 'two different travel situations', 'different experiences during a journey'] },
-      { label: 'Ảnh 1 - ai / cái gì', prefix: 'First I can see', b1: ['a man and a woman inside a car', 'two people in a car', 'a couple travelling by car'], b2: ['a man and a woman sitting inside a car', 'two people enjoying a comfortable car journey', 'a couple travelling together in a private car'] },
-      { label: 'Ảnh 1 - đang làm gì', prefix: 'They are', b1: ['smiling and looking very relaxed', 'talking and enjoying the trip', 'sitting comfortably'], b2: ['smiling and looking very relaxed while they travel', 'talking together and enjoying the journey', 'sitting comfortably, which makes the trip seem pleasant'] },
-      { label: 'Ảnh 1 - chi tiết', prefix: 'I can also see', b1: ['warm afternoon light through the window', 'sunlight inside the car', 'a bright view outside'], b2: ['warm afternoon light coming through the window', 'soft sunlight inside the car, which creates a calm mood', 'a bright view outside, so the journey looks peaceful'] },
-      { label: 'Ảnh 2 - ai / cái gì', prefix: 'The second picture shows', b1: ['a group of four people on a train', 'some people travelling by train', 'friends sitting on a train'], b2: ['a group of four people sitting together on a train', 'some passengers travelling by train in a shared space', 'friends enjoying a train journey together'] },
-      { label: 'Ảnh 2 - đang làm gì', prefix: 'They are', b1: ['talking and drinking coffee together', 'chatting with each other', 'relaxing during the journey'], b2: ['talking and drinking coffee together during the journey', 'having a conversation while they travel by train', 'relaxing together, which makes the journey feel social'] },
-      { label: 'Ảnh 2 - chi tiết', prefix: 'Around them I notice', b1: ['green fields through the large window', 'large windows and green fields', 'a nice view outside'], b2: ['green fields through the large window', 'large windows with green fields outside, which makes the trip look scenic', 'a beautiful countryside view outside the train'] },
+      { label: 'ảnh 1 - ai / cái gì', prefix: 'First I can see', b1: ['a man and a woman inside a car', 'two people in a car', 'a couple travelling by car'], b2: ['a man and a woman sitting inside a car', 'two people enjoying a comfortable car journey', 'a couple travelling together in a private car'] },
+      { label: 'ảnh 1 - dang làm gì', prefix: 'They are', b1: ['smiling and looking very relaxed', 'talking and enjoying the trip', 'sitting comfortably'], b2: ['smiling and looking very relaxed while they travel', 'talking together and enjoying the journey', 'sitting comfortably, which makes the trip seem pleasant'] },
+      { label: 'ảnh 1 - chi tiết', prefix: 'I can also see', b1: ['warm afternoon light through the window', 'sunlight inside the car', 'a bright view outside'], b2: ['warm afternoon light coming through the window', 'soft sunlight inside the car, which creates a calm mood', 'a bright view outside, so the journey looks peaceful'] },
+      { label: 'ảnh 2 - ai / cái gì', prefix: 'The second picture shows', b1: ['a group of four people on a train', 'some people travelling by train', 'friends sitting on a train'], b2: ['a group of four people sitting together on a train', 'some passengers travelling by train in a shared space', 'friends enjoying a train journey together'] },
+      { label: 'ảnh 2 - dang làm gì', prefix: 'They are', b1: ['talking and drinking coffee together', 'chatting with each other', 'relaxing during the journey'], b2: ['talking and drinking coffee together during the journey', 'having a conversation while they travel by train', 'relaxing together, which makes the journey feel social'] },
+      { label: 'ảnh 2 - chi tiết', prefix: 'Around them I notice', b1: ['green fields through the large window', 'large windows and green fields', 'a nice view outside'], b2: ['green fields through the large window', 'large windows with green fields outside, which makes the trip look scenic', 'a beautiful countryside view outside the train'] },
       { label: 'Nhận xét chung', prefix: 'So the two pictures', b1: ['show two very different journeys', 'show different ways to travel', 'are both about travelling but in different places'], b2: ['show two very different journey experiences', 'compare private travel with a more social train journey', 'suggest that travelling can be relaxing in different ways'] }
     ]
   },
   '3-1': {
-    title: 'Dựng bài nêu ưu điểm',
+    title: 'Dạng bài nêu ưu điểm',
     target: 'Mục tiêu: 4-5 câu, khoảng 45 giây.',
     fields: [
-      { label: 'Trả lời chính', prefix: 'Travelling by car is convenient because', b1: ['you can choose the route', 'you can stop anywhere', 'it is private'], b2: ['you can choose your own route and schedule', 'you can stop whenever you want', 'it gives you more privacy and flexibility'] },
+      { label: 'Trả lại chính', prefix: 'Travelling by car is convenient because', b1: ['you can choose the route', 'you can stop anywhere', 'it is private'], b2: ['you can choose your own route and schedule', 'you can stop whenever you want', 'it gives you more privacy and flexibility'] },
       { label: 'Ưu điểm 1', prefix: 'Another advantage is that', b1: ['you can carry more things', 'it is good for families', 'you feel comfortable'], b2: ['you can carry more luggage without worrying too much', 'it is very useful for families or small groups', 'you can feel more comfortable during the journey'] },
       { label: 'Ví dụ', prefix: 'For example, if I travel with my family, we can', b1: ['bring food and bags', 'stop for photos', 'listen to music'], b2: ['bring food and bags more easily', 'stop to take photos or rest on the way', 'listen to music and talk freely in the car'] },
       { label: 'Điểm cần cân bằng', prefix: 'However, it can be', b1: ['expensive', 'tiring', 'slow in traffic'], b2: ['expensive if the distance is long', 'tiring for the driver', 'slow and stressful when there is heavy traffic'] },
@@ -6880,7 +7072,7 @@ const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
     ]
   },
   '3-2': {
-    title: 'Dựng bài nêu sở thích',
+    title: 'Dạng bài nêu số thích',
     target: 'Mục tiêu: 4-5 câu, khoảng 45 giây.',
     fields: [
       { label: 'Chọn ý', prefix: 'I prefer travelling', b1: ['with other people', 'with my friends', 'with my family'], b2: ['with other people rather than alone', 'with my close friends', 'with my family because it feels safer'] },
@@ -6891,7 +7083,7 @@ const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
     ]
   },
   '4-0': {
-    title: 'Dựng bài trả lời chủ đề',
+    title: 'Dạng bài trả lời chủ đề',
     target: 'Mục tiêu: 5-7 ý, khoảng 2 phút.',
     fields: [
       { label: 'Mở ý', prefix: 'I would like to talk about', b1: ['receiving a gift', 'a special gift I got', 'a present from my friend'], b2: ['a memorable gift I received', 'a gift that was meaningful to me', 'an occasion when someone gave me a thoughtful present'] },
@@ -6927,23 +7119,23 @@ function SpeakingDraftPanel({ part, question, questionIndex, level, text, onClos
   }, [level, part, question, questionIndex, template]);
 
   return (
-    <aside className="mock-speaking-draft-panel fixed bottom-20 right-3 top-[86px] z-40 flex w-[min(760px,calc(100vw-24px))] flex-col overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/18">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-slate-200 px-4">
+    <aside className="mock-speaking-draft-panel fixed bottom-20 right-3 top-[86px] z-40 flex w-[min(760px,calc(100vw-24px))] flex-col overflow-hidden rounded-xl border border-brand-100 bg-white shadow-2xl shadow-slate-900/18">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-brand-100 px-4">
         <div className="flex items-center gap-2">
           <FileText size={18} className="text-[#2b075c]" />
           <h2 className="text-base font-extrabold text-[#2b075c]">Nháp</h2>
         </div>
-        <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Đóng nháp">
+        <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-slate-500 hover:bg-sky-100 hover:text-slate-700" aria-label="Đóng nháp">
           <X size={18} />
         </button>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <div className="border-b border-slate-200 p-4">
+        <div className="border-b border-brand-100 p-4">
           <textarea
             value={text}
             onChange={(event) => onTextChange(event.target.value)}
-            className="min-h-[118px] w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm leading-6 text-slate-800 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+            className="min-h-[118px] w-full resize-y rounded-xl border border-brand-100 bg-sky-50 p-3 text-sm leading-6 text-navy outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
             placeholder="Gõ ý tưởng của bạn ở đây..."
           />
           {notes.length > 0 && (
@@ -6951,7 +7143,7 @@ function SpeakingDraftPanel({ part, question, questionIndex, level, text, onClos
               <p className="mb-2 text-xs font-extrabold uppercase text-[#2b075c]">Gợi ý nhìn khi nói</p>
               <div className="flex flex-wrap gap-2">
                 {notes.map((note, index) => (
-                  <span key={`${note}-${index}`} className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-sm">{note}</span>
+                  <span key={`${note}-${index}`} className="rounded-full bg-white px-3 py-1 text-xs font-bold text-slate-700 shadow-soft">{note}</span>
                 ))}
               </div>
             </div>
@@ -6967,15 +7159,15 @@ function SpeakingDraftPanel({ part, question, questionIndex, level, text, onClos
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="flex items-center gap-2 text-sm font-extrabold uppercase text-[#2b075c]"><Sparkles size={16} /> {template.title}</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">{template.target}</p>
+              <p className="mt-1 text-xs font-semibold text-slate-600">{template.target}</p>
             </div>
-            <div className="grid grid-cols-2 rounded-xl border border-slate-200 bg-white p-1">
+            <div className="grid grid-cols-2 rounded-xl border border-brand-100 bg-white p-1">
               {(['B1', 'B2'] as DraftLevel[]).map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => changeLevel(item)}
-                  className={`h-9 rounded-lg px-4 text-sm font-extrabold ${level === item ? 'bg-[#2b075c] text-white' : 'text-slate-500 hover:bg-slate-50'}`}
+                  className={`h-9 rounded-lg px-4 text-sm font-extrabold ${level === item ? 'bg-[#2b075c] text-white' : 'text-slate-600 hover:bg-sky-50'}`}
                 >
                   {item}
                 </button>
@@ -6987,14 +7179,14 @@ function SpeakingDraftPanel({ part, question, questionIndex, level, text, onClos
             {template.fields.map((field, index) => {
               const options = field[level.toLowerCase() as Lowercase<DraftLevel>];
               return (
-                <label key={field.label} className="block rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+                <label key={field.label} className="block rounded-xl border border-brand-100 bg-white p-3 shadow-soft">
                   <span className="mb-2 block text-sm font-extrabold text-[#2b075c]">{index + 1}. {field.label}</span>
-                  <span className="flex flex-wrap items-center gap-2 text-sm leading-7 text-slate-800">
+                  <span className="flex flex-wrap items-center gap-2 text-sm leading-7 text-navy">
                     <span>{field.prefix}</span>
                     <select
                       value={choices[index] ?? options[0]}
                       onChange={(event) => updateChoice(index, event.target.value)}
-                      className="min-h-9 max-w-full rounded-lg border border-amber-200 bg-amber-50 px-3 text-sm font-semibold text-slate-900 outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
+                      className="min-h-9 max-w-full rounded-lg border border-amber-200 bg-amber-50 px-3 text-sm font-semibold text-navy outline-none focus:border-violet-400 focus:ring-4 focus:ring-violet-100"
                     >
                       {options.map((option) => <option key={option} value={option}>{option}</option>)}
                     </select>
@@ -7006,14 +7198,14 @@ function SpeakingDraftPanel({ part, question, questionIndex, level, text, onClos
           </div>
 
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
-            <p className="mb-2 text-xs font-extrabold uppercase text-emerald-700">Đoạn sẽ chèn</p>
+            <p className="mb-2 text-xs font-extrabold uppercase text-emerald-700">Đoạn số chèn</p>
             {selectedText}
           </div>
         </div>
       </div>
 
-      <footer className="grid shrink-0 grid-cols-2 gap-2 border-t border-slate-200 bg-white p-3">
-        <button type="button" onClick={() => onTextChange('')} className="h-11 rounded-xl border border-slate-200 text-sm font-extrabold text-slate-600 hover:bg-slate-50">
+      <footer className="grid shrink-0 grid-cols-2 gap-2 border-t border-brand-100 bg-white p-3">
+        <button type="button" onClick={() => onTextChange('')} className="h-11 rounded-xl border border-brand-100 text-sm font-extrabold text-slate-700 hover:bg-sky-50">
           Xóa nháp
         </button>
         <button type="button" onClick={() => onInsert(selectedText)} className="h-11 rounded-xl bg-[#2b075c] text-sm font-extrabold text-white hover:opacity-95">
@@ -7159,6 +7351,94 @@ function RecordingWaveform({ level }: { level: number }) {
   );
 }
 
+function MicTestPanel({ compact = false }: { compact?: boolean }) {
+  const [testing, setTesting] = useState(false);
+  const [level, setLevel] = useState(0);
+  const [status, setStatus] = useState('Bấm để kiểm tra mic trước khi thi Speaking.');
+  const streamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  function stopTest() {
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    audioContextRef.current?.close().catch(() => undefined);
+    audioContextRef.current = null;
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setTesting(false);
+    setLevel(0);
+    setStatus('Đã dừng kiểm tra mic.');
+  }
+
+  async function startTest() {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setStatus('Trình duyệt này chưa hỗ trợ kiểm tra microphone.');
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      const audioContext = AudioContextClass ? new AudioContextClass() : null;
+      const analyser = audioContext?.createAnalyser();
+
+      streamRef.current = stream;
+      audioContextRef.current = audioContext;
+      setTesting(true);
+      setStatus('Mic đang hoạt động. Hãy nói thử và nhìn vạch sóng.');
+
+      if (!audioContext || !analyser) return;
+
+      analyser.fftSize = 128;
+      audioContext.createMediaStreamSource(stream).connect(analyser);
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const updateLevel = () => {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+        setLevel(Math.min(1, average / 120));
+        animationFrameRef.current = window.requestAnimationFrame(updateLevel);
+      };
+      updateLevel();
+    } catch {
+      setTesting(false);
+      setLevel(0);
+      setStatus('Không mở được microphone. Hãy cấp quyền mic trong trình duyệt rồi thử lại.');
+    }
+  }
+
+  useEffect(() => stopTest, []);
+
+  return (
+    <div className={`rounded-2xl border border-brand-100 bg-white ${compact ? 'p-3' : 'p-5'} shadow-[0_1px_3px_rgba(15,23,42,0.08)]`}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className={`${compact ? 'text-sm' : 'text-xl'} font-extrabold text-navy`}>Kiểm tra Microphone</p>
+          <p className={`${compact ? 'mt-1 text-xs' : 'mt-2 text-sm'} font-semibold leading-5 text-slate-600`}>{status}</p>
+        </div>
+        <span className={`grid ${compact ? 'h-9 w-9' : 'h-11 w-11'} shrink-0 place-items-center rounded-xl bg-[#f0eef7] text-[#2b075c]`}>
+          <Mic size={compact ? 18 : 22} />
+        </span>
+      </div>
+
+      <div className={`${compact ? 'mt-3' : 'mt-5'} rounded-xl border border-slate-200 bg-sky-50 px-3 py-3`}>
+        <RecordingWaveform level={level} />
+      </div>
+
+      <button
+        type="button"
+        onClick={testing ? stopTest : startTest}
+        className={`${compact ? 'mt-3 h-10 text-sm' : 'mt-5 h-12 text-lg'} inline-flex w-full items-center justify-center gap-3 rounded-xl border border-[#f92918] bg-white px-5 font-bold text-[#e41d10] transition hover:bg-red-50`}
+      >
+        <Mic size={compact ? 18 : 22} />
+        {testing ? 'Dừng kiểm tra mic' : 'Kiểm tra microphone'}
+      </button>
+    </div>
+  );
+}
+
 function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: {
   error: string;
   loading: boolean;
@@ -7174,24 +7454,24 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
           <Mic size={30} />
         </div>
         <div className="text-center">
-          <h2 className="mt-6 text-[26px] font-extrabold leading-8 text-slate-950">Speaking AI Result</h2>
-          <p className="mt-4 text-base leading-7 text-slate-500">Lingo scores from your recorded speaking answers.</p>
+          <h2 className="mt-6 text-[26px] font-extrabold leading-8 text-navy">Speaking AI Result</h2>
+          <p className="mt-4 text-base leading-7 text-slate-600">Lingo scores from your recorded speaking answers.</p>
         </div>
-        {!result && !loading && !error && <p className="mt-8 text-center text-sm font-semibold text-slate-400">Preparing your Speaking score...</p>}
+        {!result && !loading && !error && <p className="mt-8 text-center text-sm font-semibold text-slate-500">Preparing your Speaking score...</p>}
         {loading && (
           <>
-            <div className="mx-auto mt-8 h-2 w-full max-w-[360px] overflow-hidden rounded-full bg-slate-100">
+            <div className="mx-auto mt-8 h-2 w-full max-w-[360px] overflow-hidden rounded-full bg-sky-100">
               <div className="h-full w-2/3 rounded-full bg-[#2b075c]" />
             </div>
-            <p className="mt-5 text-center text-sm font-semibold text-slate-400">Analyzing fluency, grammar and response quality...</p>
+            <p className="mt-5 text-center text-sm font-semibold text-slate-500">Analyzing fluency, grammar and response quality...</p>
             <p className="mt-2 text-center text-sm font-extrabold text-red-600">Đang chấm bài, vui lòng không thao tác gì cho đến khi có kết quả.</p>
           </>
         )}
         {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</div>}
         {result && (
           <div className="mt-8 space-y-5">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5">
-              <p className="text-sm font-bold uppercase text-slate-500">Overall</p>
+            <div className="rounded-xl border border-brand-100 bg-sky-50 p-5">
+              <p className="text-sm font-bold uppercase text-slate-600">Overall</p>
               <div className="mt-2 flex flex-wrap items-end gap-4">
                 <span className="text-4xl font-black text-[#2b075c]">{result.overallScore}/50</span>
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-extrabold text-emerald-700">{result.cefrLevel}</span>
@@ -7200,26 +7480,26 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               {result.criteria.map((item) => (
-                <div key={item.name} className="rounded-xl border border-slate-200 p-4">
+                <div key={item.name} className="rounded-xl border border-brand-100 p-4">
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-extrabold text-slate-900">{item.name}</h3>
+                    <h3 className="font-extrabold text-navy">{item.name}</h3>
                     <span className="font-black text-[#2b075c]">{item.score}/10</span>
                   </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{item.feedback}</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.feedback}</p>
                 </div>
               ))}
             </div>
             {result.parts.length > 0 && (
-              <div className="rounded-xl border border-slate-200 p-5">
-                <p className="text-sm font-extrabold uppercase text-slate-500">Part feedback</p>
+              <div className="rounded-xl border border-brand-100 p-5">
+                <p className="text-sm font-extrabold uppercase text-slate-600">Part feedback</p>
                 <div className="mt-3 grid gap-3">
                   {result.parts.map((part) => (
-                    <div key={part.title} className="rounded-lg bg-slate-50 p-4">
+                    <div key={part.title} className="rounded-lg bg-sky-50 p-4">
                       <div className="flex items-center justify-between gap-3">
-                        <h3 className="font-extrabold text-slate-900">{part.title}</h3>
+                        <h3 className="font-extrabold text-navy">{part.title}</h3>
                         <span className="font-black text-[#2b075c]">{part.score}/50</span>
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{part.feedback}</p>
+                      <p className="mt-2 text-sm leading-6 text-slate-700">{part.feedback}</p>
                     </div>
                   ))}
                 </div>
@@ -7234,8 +7514,8 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
           </div>
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <button type="button" onClick={onRetry} className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-extrabold text-slate-700 hover:bg-slate-50">Practice again</button>
-          <button type="button" onClick={onExit} className="h-11 rounded-xl bg-slate-900 px-5 text-sm font-extrabold text-white hover:bg-slate-800">Exit</button>
+          <button type="button" onClick={onRetry} className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-extrabold text-slate-700 hover:bg-sky-50">Practice again</button>
+          <button type="button" onClick={onExit} className="h-11 rounded-xl bg-[#071426] px-5 text-sm font-extrabold text-white hover:bg-slate-800">Exit</button>
         </div>
       </section>
     </main>
@@ -7334,7 +7614,7 @@ function UtilityIcon({ icon, label, onClick }: { icon: ReactNode; label?: string
     : undefined);
 
   return (
-    <button type="button" aria-label={label} title={label} onClick={handleClick} className="grid h-11 w-11 place-items-center rounded-full border border-[#d8e1ee] bg-white text-[#60708a] hover:bg-slate-50">
+    <button type="button" aria-label={label} title={label} onClick={handleClick} className="grid h-11 w-11 place-items-center rounded-full border border-[#d8e1ee] bg-white text-[#60708a] hover:bg-sky-50">
       {icon}
     </button>
   );
@@ -7348,3 +7628,4 @@ function Meta({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+

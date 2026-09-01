@@ -51,7 +51,7 @@ export function AdminRevenue() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[24px] bg-slate-950 p-8 text-white">
+      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
         <p className="text-sm font-bold uppercase tracking-[0.16em] text-blue-200">Revenue Center</p>
         <h1 className="mt-3 text-3xl font-extrabold">Quản lý doanh thu</h1>
         <p className="mt-3 max-w-2xl text-slate-300">
@@ -67,13 +67,13 @@ export function AdminRevenue() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[1fr_320px]">
-        <div className="rounded-[22px] border border-slate-200 bg-white shadow-soft">
-          <div className="flex flex-col gap-4 border-b border-slate-200 p-5 sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-[22px] border border-brand-100 bg-white shadow-soft">
+          <div className="flex flex-col gap-4 border-b border-brand-100 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h2 className="text-xl font-extrabold text-slate-950">Lịch sử giao dịch</h2>
-              <p className="mt-1 text-sm text-slate-500">Danh sách các giao dịch gia hạn đã được SePay xác nhận.</p>
+              <h2 className="text-xl font-extrabold text-navy">Lịch sử giao dịch</h2>
+              <p className="mt-1 text-sm text-slate-600">Danh sách các giao dịch gia hạn đã được SePay xác nhận.</p>
             </div>
-            <label className="flex h-11 w-full items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 text-slate-400 sm:max-w-[300px]">
+            <label className="flex h-11 w-full items-center gap-2 rounded-xl border border-brand-100 bg-sky-50 px-3 text-slate-500 sm:max-w-[300px]">
               <Search size={18} />
               <input
                 className="w-full bg-transparent text-sm text-slate-700 outline-none"
@@ -86,7 +86,7 @@ export function AdminRevenue() {
 
           <div className="overflow-x-auto">
             {loading ? (
-              <div className="flex items-center justify-center gap-2 p-8 text-sm font-semibold text-slate-500">
+              <div className="flex items-center justify-center gap-2 p-8 text-sm font-semibold text-slate-600">
                 <Loader2 className="animate-spin" size={18} />
                 Đang tải doanh thu...
               </div>
@@ -97,7 +97,7 @@ export function AdminRevenue() {
             ) : (
               <>
                 <table className="min-w-full text-left text-sm">
-                  <thead className="bg-slate-50 text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                  <thead className="bg-sky-50 text-xs font-extrabold uppercase tracking-wider text-slate-600">
                     <tr>
                       <th className="px-5 py-4">Khách hàng</th>
                       <th className="px-5 py-4">Gói</th>
@@ -110,16 +110,16 @@ export function AdminRevenue() {
                     {paginatedTransactions.map((item) => (
                       <tr key={item.id} className="align-top">
                         <td className="px-5 py-4">
-                          <p className="font-extrabold text-slate-950">{item.fullName || 'Chưa nhập tên'}</p>
-                          <p className="mt-1 text-xs text-slate-500">{item.userEmail}</p>
+                          <p className="font-extrabold text-navy">{item.fullName || 'Chưa nhập tên'}</p>
+                          <p className="mt-1 text-xs text-slate-600">{item.userEmail}</p>
                         </td>
                         <td className="px-5 py-4">
                           <span className="rounded-full bg-brand-50 px-3 py-1 text-xs font-bold text-brand-700">{item.packageLabel}</span>
-                          <p className="mt-2 text-xs text-slate-500">{item.days} ngày</p>
+                          <p className="mt-2 text-xs text-slate-600">{item.days} ngày</p>
                         </td>
                         <td className="px-5 py-4 font-extrabold text-green-700">{formatCurrency(item.amount)}</td>
-                        <td className="px-5 py-4 font-mono text-xs font-bold text-slate-600">{item.paymentCode}</td>
-                        <td className="px-5 py-4 text-slate-600">{new Date(item.paidAt ?? item.createdAt).toLocaleString('vi-VN')}</td>
+                        <td className="px-5 py-4 font-mono text-xs font-bold text-slate-700">{item.paymentCode}</td>
+                        <td className="px-5 py-4 text-slate-700">{new Date(item.paidAt ?? item.createdAt).toLocaleString('vi-VN')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -138,7 +138,7 @@ export function AdminRevenue() {
                   />
                 )}
                 {!filtered.length && (
-                  <div className="p-8 text-center text-sm font-semibold text-slate-500">
+                  <div className="p-8 text-center text-sm font-semibold text-slate-600">
                     Chưa có giao dịch doanh thu nào.
                   </div>
                 )}
@@ -148,21 +148,21 @@ export function AdminRevenue() {
         </div>
 
         <aside className="space-y-5">
-          <div className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-soft">
+          <div className="rounded-[22px] border border-brand-100 bg-white p-5 shadow-soft">
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
               <PackageCheck />
             </div>
-            <h2 className="mt-4 text-xl font-extrabold text-slate-950">Gói bán tốt</h2>
+            <h2 className="mt-4 text-xl font-extrabold text-navy">Gói bán tốt</h2>
             <p className="mt-2 text-3xl font-extrabold text-brand-700">{bestPackage.label}</p>
-            <p className="mt-1 text-sm font-semibold text-slate-500">{bestPackage.count} giao dịch</p>
+            <p className="mt-1 text-sm font-semibold text-slate-600">{bestPackage.count} giao dịch</p>
           </div>
 
-          <div className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-soft">
+          <div className="rounded-[22px] border border-brand-100 bg-white p-5 shadow-soft">
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-green-50 text-green-700">
               <CalendarDays />
             </div>
-            <h2 className="mt-4 text-xl font-extrabold text-slate-950">Webhook SePay</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <h2 className="mt-4 text-xl font-extrabold text-navy">Webhook SePay</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-600">
               Khi SePay gửi webhook vào backend, đơn thanh toán sẽ chuyển sang PAID và tự hiện trong bảng doanh thu này.
             </p>
           </div>
@@ -174,10 +174,10 @@ export function AdminRevenue() {
 
 function StatCard({ icon, label, value, tone }: { icon: JSX.Element; label: string; value: string; tone: string }) {
   return (
-    <div className="rounded-[20px] border border-slate-200 bg-white p-5 shadow-soft">
+    <div className="rounded-[20px] border border-brand-100 bg-white p-5 shadow-soft">
       <div className={`mb-4 grid h-11 w-11 place-items-center rounded-xl ${tone}`}>{icon}</div>
-      <p className="text-sm font-semibold text-slate-500">{label}</p>
-      <p className="mt-1 text-2xl font-extrabold text-slate-950">{value}</p>
+      <p className="text-sm font-semibold text-slate-600">{label}</p>
+      <p className="mt-1 text-2xl font-extrabold text-navy">{value}</p>
     </div>
   );
 }
@@ -204,13 +204,13 @@ function PaginationBar({
   onPageSizeChange: (size: number) => void;
 }) {
   return (
-    <div className="flex flex-col gap-3 border-t border-slate-100 px-5 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 border-t border-brand-100 px-5 py-3 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
       <div className="font-semibold">
         Hiển thị {startItem}-{endItem} / {totalItems}
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <select
-          className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-sm font-semibold outline-none"
+          className="h-9 rounded-lg border border-brand-100 bg-white px-2 text-sm font-semibold outline-none"
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
         >
@@ -247,7 +247,7 @@ function PaginationBar({
 function getBestPackage(transactions: PaymentOrder[]) {
   if (!transactions.length) return { label: 'Chưa có', count: 0 };
   const counter = transactions.reduce<Record<string, number>>((map, item) => {
-    const label = textOf(item.packageLabel) || 'Chua ro goi';
+    const label = textOf(item.packageLabel) || 'Chưa ro goi';
     map[label] = (map[label] ?? 0) + 1;
     return map;
   }, {});

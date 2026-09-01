@@ -1,10 +1,30 @@
+﻿import { Crown } from 'lucide-react';
 import { ReactNode, useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Link, Navigate, useParams } from 'react-router-dom';
 import { api, unwrap } from '../api/client';
-import type { SubscriptionResponse } from '../types';
+import type { SkillType, SubscriptionResponse, Test } from '../types';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../utils/subscription';
 
-export function SubscriptionGate({ children }: { children: ReactNode }) {
+type SubscriptionGateProps = {
+  children: ReactNode;
+  requirePro?: boolean;
+  testAccess?: boolean;
+  proTitle?: string;
+  proDescription?: string;
+};
+
+const FREE_EXAMS_PER_SKILL = 2;
+const DEFAULT_PRO_TITLE = 'Tính năng dành cho Pro';
+const DEFAULT_PRO_DESCRIPTION = 'Tính năng này dành cho thành viên Pro. Nâng cấp tài khoản để mở khóa và tiếp tục luyện tập.';
+
+export function SubscriptionGate({
+  children,
+  requirePro = false,
+  testAccess = false,
+  proTitle = DEFAULT_PRO_TITLE,
+  proDescription = DEFAULT_PRO_DESCRIPTION
+}: SubscriptionGateProps) {
+  const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const [checkFailed, setCheckFailed] = useState(false);
@@ -12,17 +32,20 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    unwrap<SubscriptionResponse>(api.get('/payments/subscription/me'))
-      .then((subscription) => {
+    Promise.all([
+      unwrap<SubscriptionResponse>(api.get('/payments/subscription/me')),
+      testAccess ? unwrap<Test[]>(api.get('/tests')) : Promise.resolve([])
+    ])
+      .then(([subscription, tests]) => {
         if (!mounted) return;
         setCheckFailed(false);
-        setAllowed(subscription.active);
+        setAllowed(resolveAccess(subscription, tests, Number(id), requirePro, testAccess));
         if (subscription.active) saveSubscriptionUntil(subscription.expiresAt);
       })
       .catch(() => {
         if (!mounted) return;
         setCheckFailed(true);
-        setAllowed(getSubscriptionStatus().active);
+        setAllowed(!requirePro && !testAccess && getSubscriptionStatus().active);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -31,12 +54,12 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [id, requirePro, testAccess]);
 
   if (loading) {
     return (
-      <div className="rounded-[18px] border border-slate-200 bg-white p-6 text-sm font-semibold text-slate-500 shadow-soft">
-        Đang kiểm tra thời hạn học miễn phí...
+      <div className="rounded-[18px] border border-brand-100 bg-white p-6 text-sm font-semibold text-slate-600 shadow-soft">
+        Đang kiểm tra quyền truy cập...
       </div>
     );
   }
@@ -45,17 +68,81 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
     return <>{children}</>;
   }
 
+  if (requirePro) {
+    return <ProAccessNotice title={proTitle} description={proDescription} />;
+  }
+
   if (checkFailed) {
     return (
       <div className="rounded-[18px] border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 shadow-soft">
-        Không kiểm tra được thời hạn học. Vui lòng tải lại trang hoặc thử lại sau.
+        Không kiểm tra được quyền truy cập. Vui lòng tải lại trang hoặc thử lại sau.
       </div>
     );
   }
 
-  if (!allowed) {
-    return <Navigate to="/app/renewal" replace state={{ reason: 'expired' }} />;
-  }
-
-  return null;
+  return <Navigate to="/app/renewal" replace state={{ reason: requirePro ? 'pro-required' : 'expired' }} />;
 }
+
+function ProAccessNotice({ title, description }: { title: string; description: string }) {
+  return (
+    <section className="rounded-[18px] border border-red-200 bg-white px-6 py-12 text-center shadow-soft sm:px-10">
+      <div className="mx-auto grid h-[72px] w-[72px] place-items-center rounded-full border-2 border-red-200 bg-red-50 text-red-600">
+        <Crown size={34} strokeWidth={2.3} />
+      </div>
+      <h1 className="mt-6 text-2xl font-extrabold text-navy">{title}</h1>
+      <p className="mx-auto mt-3 max-w-xl text-base leading-7 text-slate-600">{description}</p>
+      <Link
+        to="/app/renewal"
+        className="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-red-600 px-8 text-sm font-extrabold text-white shadow-soft transition hover:bg-red-700"
+      >
+        <Crown size={18} />
+        Nâng cấp Pro
+      </Link>
+    </section>
+  );
+}
+
+function resolveAccess(
+  subscription: SubscriptionResponse,
+  tests: Test[],
+  testId: number,
+  requirePro: boolean,
+  testAccess: boolean
+) {
+  if (subscription.proActive) return true;
+  if (!testAccess) return true;
+
+  const test = tests.find((item) => item.id === testId);
+  if (!test || test.mode !== 'EXAM' || test.status !== 'PUBLISHED') return false;
+  if (isRandomTest(test)) return true;
+  if (requirePro || !subscription.active) return false;
+
+  const skill = normalizeSkill(test.skillName);
+  const freeTests = tests
+    .filter((item) => item.mode === 'EXAM' && item.status === 'PUBLISHED')
+    .filter((item) => normalizeSkill(item.skillName) === skill)
+    .sort((left, right) => left.id - right.id)
+    .slice(0, FREE_EXAMS_PER_SKILL);
+
+  return freeTests.some((item) => item.id === testId);
+}
+
+function isRandomTest(test: Test) {
+  const title = test.title.toLowerCase();
+  return title.startsWith('đề thi thử random') || title.startsWith('bộ đề random');
+}
+
+function normalizeSkill(skillName: string): SkillType | '' {
+  const value = removeVietnameseMarks(skillName).toUpperCase();
+  if (value.includes('LISTENING') || value.includes('NGHE')) return 'LISTENING';
+  if (value.includes('SPEAKING') || value.includes('NOI')) return 'SPEAKING';
+  if (value.includes('READING') || value.includes('DOC')) return 'READING';
+  if (value.includes('WRITING') || value.includes('VIET')) return 'WRITING';
+  if (value.includes('GRAMMAR') || value.includes('NGU PHAP')) return 'GRAMMAR';
+  return '';
+}
+
+function removeVietnameseMarks(value: string) {
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+}
+

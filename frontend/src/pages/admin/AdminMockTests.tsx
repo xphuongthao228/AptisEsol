@@ -1,4 +1,4 @@
-import { Copy, Download, FileCheck, Pencil, Plus, RotateCcw, Save, Search, Star, Trash2, UploadCloud } from 'lucide-react';
+﻿import { Copy, Download, FileCheck, Pencil, Plus, RotateCcw, Save, Search, Star, Trash2, UploadCloud } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -149,14 +149,14 @@ function today() {
 }
 
 function loadMockTests() {
-  if (typeof window === 'undefined') return defaultMockTests;
+  if (typeof window === 'undefined') return [];
   try {
     const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) return defaultMockTests;
+    if (!saved) return [];
     const parsed = JSON.parse(saved) as AdminMockTest[];
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : defaultMockTests;
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
-    return defaultMockTests;
+    return [];
   }
 }
 
@@ -625,12 +625,12 @@ export function AdminMockTests() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-3xl border border-brand-100 bg-white p-6 shadow-soft">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-600">Admin</p>
-            <h1 className="mt-2 text-3xl font-extrabold text-slate-950">Quản lí đề thi thử</h1>
-            <p className="mt-2 max-w-2xl text-slate-500">
+            <h1 className="mt-2 text-3xl font-extrabold text-navy">Quản lí đề thi thử</h1>
+            <p className="mt-2 max-w-2xl text-slate-600">
               Tạo và quản lí các bộ thi thử riêng cho Full, Speaking, Listening, Grammar, Reading và Writing.
             </p>
           </div>
@@ -643,27 +643,27 @@ export function AdminMockTests() {
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[420px_1fr]">
-        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-3xl border border-brand-100 bg-white p-6 shadow-soft">
           <div className="mb-5 flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
               <FileCheck size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-950">{form.id ? 'Sửa đề thi thử' : 'Tạo đề thi thử'}</h2>
-              <p className="text-sm text-slate-500">Thông tin hiển thị ở trang chọn đề thi thử.</p>
+              <h2 className="text-xl font-extrabold text-navy">{form.id ? 'Sửa đề thi thử' : 'Tạo đề thi thử'}</h2>
+              <p className="text-sm text-slate-600">Thông tin hiển thị ở trang chọn đề thi thử.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Kỹ năng</span>
+                <span className="text-sm font-bold text-slate-700">Kỹ năng</span>
                 <select className="input" value={form.skill} onChange={(event) => setForm((current) => ({ ...current, skill: event.target.value as MockSkill }))}>
                   {Object.entries(skillLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Trạng thái</span>
+                <span className="text-sm font-bold text-slate-700">Trạng thái</span>
                 <select className="input" value={form.status} onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as MockStatus }))}>
                   <option value="PUBLISHED">Đang hiện</option>
                   <option value="DRAFT">Bản nháp</option>
@@ -672,7 +672,7 @@ export function AdminMockTests() {
             </div>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Tên đề</span>
+              <span className="text-sm font-bold text-slate-700">Tên đề</span>
               <input className="input" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="VD: Speaking Practice Test 2" />
             </label>
 
@@ -687,28 +687,28 @@ export function AdminMockTests() {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Mô tả</span>
+              <span className="text-sm font-bold text-slate-700">Mô tả</span>
               <textarea className="input min-h-[110px]" value={form.description} onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))} placeholder="Mô tả ngắn về bộ thi thử..." />
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Dữ liệu câu hỏi JSON</span>
+              <span className="text-sm font-bold text-slate-700">Dữ liệu câu hỏi JSON</span>
               <textarea
                 className="input min-h-[150px] font-mono text-xs"
                 value={form.questionData}
                 onChange={(event) => setForm((current) => ({ ...current, questionData: event.target.value }))}
                 placeholder='VD: [{"prompt":"Question text","options":["A","B","C"],"answer":"A"}]'
               />
-              <p className="text-xs text-slate-500">Cột CSV tương ứng là questionData. Nhập JSON mảng câu hỏi, đáp án, audioUrl/imageUrl hoặc sampleAnswer tùy kỹ năng.</p>
+              <p className="text-xs text-slate-600">Cột CSV tương ứng là questionData. Nhập JSON mảng câu hỏi, đáp án, audioUrl/imageUrl hoặc sampleAnswer tùy kỹ năng.</p>
             </label>
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Số câu / phần</span>
+                <span className="text-sm font-bold text-slate-700">Số câu / phần</span>
                 <input className="input" value={form.questions} onChange={(event) => setForm((current) => ({ ...current, questions: event.target.value }))} placeholder="VD: 30 câu" />
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Thời gian</span>
+                <span className="text-sm font-bold text-slate-700">Thời gian</span>
                 <input className="input" value={form.minutes} onChange={(event) => setForm((current) => ({ ...current, minutes: event.target.value }))} placeholder="VD: 25 phút" />
               </label>
             </div>
@@ -726,12 +726,12 @@ export function AdminMockTests() {
           </div>
         </div>
 
-        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-100 p-5">
+        <div className="overflow-hidden rounded-3xl border border-brand-100 bg-white shadow-soft">
+          <div className="border-b border-brand-100 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-950">Danh sách đề thi thử</h2>
-                <p className="text-sm text-slate-500">Quản lí trạng thái và thông tin từng bộ đề.</p>
+                <h2 className="text-xl font-extrabold text-navy">Danh sách đề thi thử</h2>
+                <p className="text-sm text-slate-600">Quản lí trạng thái và thông tin từng đề thi thử.</p>
               </div>
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
                 <div className="flex flex-wrap gap-2">
@@ -749,7 +749,7 @@ export function AdminMockTests() {
                     <input className="hidden" type="file" accept=".csv,text/csv" onChange={importCsv} />
                   </label>
                 </div>
-                <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-slate-400 lg:w-[260px]">
+                <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-brand-100 bg-white px-4 text-slate-500 lg:w-[260px]">
                   <Search size={18} />
                   <input className="w-full bg-transparent text-sm text-slate-700 outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đề thi thử..." />
                 </label>
@@ -758,7 +758,7 @@ export function AdminMockTests() {
             <div className="mt-4 flex flex-wrap gap-2">
               <button
                 type="button"
-                className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${selectedSkill === 'ALL' ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' : 'border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'}`}
+                className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${selectedSkill === 'ALL' ? 'bg-brand-600 text-white shadow-lift shadow-brand-600/20' : 'border border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'}`}
                 onClick={() => setSelectedSkill('ALL')}
               >
                 Tất cả
@@ -767,7 +767,7 @@ export function AdminMockTests() {
                 <button
                   key={skill}
                   type="button"
-                  className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${selectedSkill === skill ? 'bg-brand-600 text-white shadow-lg shadow-brand-600/20' : 'border border-slate-200 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'}`}
+                  className={`rounded-xl px-4 py-2 text-sm font-extrabold transition ${selectedSkill === skill ? 'bg-brand-600 text-white shadow-lift shadow-brand-600/20' : 'border border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'}`}
                   onClick={() => setSelectedSkill(skill)}
                 >
                   {skillLabels[skill]}
@@ -775,7 +775,7 @@ export function AdminMockTests() {
               ))}
             </div>
             {filteredItems.length > 0 ? (
-              <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-4 flex flex-col gap-3 rounded-2xl border border-brand-100 bg-sky-50 p-3 sm:flex-row sm:items-center sm:justify-between">
                 <label className="inline-flex cursor-pointer items-center gap-3 text-sm font-extrabold text-slate-700">
                   <input
                     type="checkbox"
@@ -786,10 +786,10 @@ export function AdminMockTests() {
                   Chon tat ca dang loc ({filteredItems.length})
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-sm font-bold text-slate-500">Đã chọn {selectedIds.length} đề</span>
+                  <span className="text-sm font-bold text-slate-600">Đã chọn {selectedIds.length} đề</span>
                   <button
                     type="button"
-                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-extrabold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-white"
+                    className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-extrabold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-brand-100 disabled:text-slate-500 disabled:hover:bg-white"
                     onClick={deleteSelectedMockTests}
                     disabled={selectedIds.length === 0}
                   >
@@ -804,19 +804,19 @@ export function AdminMockTests() {
           <div className="space-y-6 p-5">
             {groupedItems.map((group) => (
               <section key={group.skill} className="space-y-3">
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                <div className="flex items-center justify-between rounded-2xl bg-sky-50 px-4 py-3">
                   <div>
-                    <h3 className="text-lg font-extrabold text-slate-950">{skillLabels[group.skill]}</h3>
-                    <p className="text-sm text-slate-500">{group.items.length} đề thi thử</p>
+                    <h3 className="text-lg font-extrabold text-navy">{skillLabels[group.skill]}</h3>
+                    <p className="text-sm text-slate-600">{group.items.length} đề thi thử</p>
                   </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-700 shadow-sm">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-brand-700 shadow-soft">
                     {group.items.filter((item) => item.status === 'PUBLISHED').length} đang hiện
                   </span>
                 </div>
 
                 <div className="grid gap-4">
                   {group.items.map((item) => (
-                    <article key={item.id} className={`rounded-2xl border p-4 transition hover:border-brand-200 hover:shadow-sm ${selectedIds.includes(item.id) ? 'border-brand-300 bg-brand-50/40' : 'border-slate-200'}`}>
+                    <article key={item.id} className={`rounded-2xl border p-4 transition hover:border-brand-200 hover:shadow-soft ${selectedIds.includes(item.id) ? 'border-brand-300 bg-brand-50/40' : 'border-brand-100'}`}>
                       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                         <div className="flex min-w-0 gap-3">
                           <input
@@ -834,7 +834,7 @@ export function AdminMockTests() {
                             </span>
                             <button
                               type="button"
-                              className={`rounded-full px-3 py-1 text-xs font-extrabold ${item.status === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}
+                              className={`rounded-full px-3 py-1 text-xs font-extrabold ${item.status === 'PUBLISHED' ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-100 text-slate-600'}`}
                               onClick={() => toggleStatus(item)}
                             >
                               {statusLabels[item.status]}
@@ -844,33 +844,33 @@ export function AdminMockTests() {
                                 <Star size={13} className="fill-amber-400" /> Quan trọng
                               </span>
                             )}
-                            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-500">Cập nhật {item.updatedAt}</span>
+                            <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-slate-600">Cập nhật {item.updatedAt}</span>
                           </div>
-                          <h3 className="mt-3 text-lg font-extrabold text-slate-950">{item.title}</h3>
-                          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-500">{item.description || 'Chưa có mô tả.'}</p>
+                          <h3 className="mt-3 text-lg font-extrabold text-navy">{item.title}</h3>
+                          <p className="mt-1 max-w-2xl text-sm leading-6 text-slate-600">{item.description || 'Chưa có mô tả.'}</p>
                           <div className="mt-4 grid max-w-md grid-cols-2 gap-3">
-                            <div className="rounded-2xl bg-slate-50 p-3">
-                              <p className="text-xs font-bold text-slate-500">Câu hỏi</p>
-                              <p className="mt-1 text-lg font-extrabold text-slate-950">{item.questions}</p>
+                            <div className="rounded-2xl bg-sky-50 p-3">
+                              <p className="text-xs font-bold text-slate-600">Câu hỏi</p>
+                              <p className="mt-1 text-lg font-extrabold text-navy">{item.questions}</p>
                             </div>
-                            <div className="rounded-2xl bg-slate-50 p-3">
-                              <p className="text-xs font-bold text-slate-500">Thời gian</p>
-                              <p className="mt-1 text-lg font-extrabold text-slate-950">{item.minutes}</p>
+                            <div className="rounded-2xl bg-sky-50 p-3">
+                              <p className="text-xs font-bold text-slate-600">Thời gian</p>
+                              <p className="mt-1 text-lg font-extrabold text-navy">{item.minutes}</p>
                             </div>
                           </div>
                           </div>
                         </div>
                         <div className="flex shrink-0 gap-2">
-                          <button type="button" className={`rounded-xl border p-3 ${item.featured ? 'border-amber-200 text-amber-600' : 'border-slate-200 text-slate-600'} hover:border-amber-200 hover:text-amber-600`} onClick={() => toggleFeatured(item)} title={item.featured ? 'Bỏ đánh dấu quan trọng' : 'Đánh dấu quan trọng'}>
+                          <button type="button" className={`rounded-xl border p-3 ${item.featured ? 'border-amber-200 text-amber-600' : 'border-brand-100 text-slate-700'} hover:border-amber-200 hover:text-amber-600`} onClick={() => toggleFeatured(item)} title={item.featured ? 'Bỏ đánh dấu quan trọng' : 'Đánh dấu quan trọng'}>
                             <Star size={18} className={item.featured ? 'fill-amber-400' : ''} />
                           </button>
-                          <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => editMockTest(item)} title="Sửa">
+                          <button type="button" className="rounded-xl border border-brand-100 p-3 text-slate-700 hover:border-brand-200 hover:text-brand-700" onClick={() => editMockTest(item)} title="Sửa">
                             <Pencil size={18} />
                           </button>
-                          <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-brand-200 hover:text-brand-700" onClick={() => duplicateMockTest(item)} title="Nhân bản">
+                          <button type="button" className="rounded-xl border border-brand-100 p-3 text-slate-700 hover:border-brand-200 hover:text-brand-700" onClick={() => duplicateMockTest(item)} title="Nhân bản">
                             <Copy size={18} />
                           </button>
-                          <button type="button" className="rounded-xl border border-slate-200 p-3 text-slate-600 hover:border-red-200 hover:text-red-600" onClick={() => deleteMockTest(item.id)} title="Xóa">
+                          <button type="button" className="rounded-xl border border-brand-100 p-3 text-slate-700 hover:border-red-200 hover:text-red-600" onClick={() => deleteMockTest(item.id)} title="Xóa">
                             <Trash2 size={18} />
                           </button>
                         </div>
@@ -882,7 +882,7 @@ export function AdminMockTests() {
             ))}
 
             {filteredItems.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center font-bold text-slate-500">
+              <div className="rounded-2xl border border-dashed border-brand-100 p-10 text-center font-bold text-slate-600">
                 Chưa tìm thấy đề thi thử nào.
               </div>
             ) : null}
@@ -895,9 +895,10 @@ export function AdminMockTests() {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="min-w-[110px] rounded-2xl bg-slate-50 p-4 text-center">
-      <p className="text-2xl font-extrabold text-slate-950">{value}</p>
-      <p className="mt-1 text-xs font-bold text-slate-500">{label}</p>
+    <div className="min-w-[110px] rounded-2xl bg-sky-50 p-4 text-center">
+      <p className="text-2xl font-extrabold text-navy">{value}</p>
+      <p className="mt-1 text-xs font-bold text-slate-600">{label}</p>
     </div>
   );
 }
+

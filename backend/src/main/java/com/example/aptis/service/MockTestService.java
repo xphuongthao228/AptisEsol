@@ -5,6 +5,7 @@ import com.example.aptis.entity.MockTest;
 import com.example.aptis.enums.TestStatus;
 import com.example.aptis.exception.ResourceNotFoundException;
 import com.example.aptis.repository.MockTestRepository;
+import com.example.aptis.util.TextRepair;
 import lombok.RequiredArgsConstructor;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -119,8 +120,9 @@ public class MockTestService {
 
     private MockTestDtos.MockTestResponse response(MockTest mockTest) {
         return new MockTestDtos.MockTestResponse(mockTest.getId(), mockTest.getExternalId(), mockTest.getSkill(),
-                mockTest.getTitle(), mockTest.getDescription(), mockTest.getQuestions(), mockTest.getQuestionData(),
-                mockTest.getMinutes(), mockTest.getStatus(), mockTest.isFeatured(), mockTest.getUpdatedAt());
+                clean(mockTest.getTitle()), clean(mockTest.getDescription()), clean(mockTest.getQuestions()),
+                clean(mockTest.getQuestionData()), clean(mockTest.getMinutes()), mockTest.getStatus(),
+                mockTest.isFeatured(), mockTest.getUpdatedAt());
     }
 
     private String csv(CSVRecord record, String name, String fallback) {
@@ -160,5 +162,9 @@ public class MockTestService {
 
     private String blankToNull(String value) {
         return value == null || value.isBlank() ? null : value.trim();
+    }
+
+    private String clean(String value) {
+        return TextRepair.repair(value);
     }
 }

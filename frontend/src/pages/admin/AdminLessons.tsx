@@ -1,4 +1,4 @@
-import { BookOpen, Pencil, Plus, RotateCcw, Save, Search, Trash2, UploadCloud } from 'lucide-react';
+﻿import { BookOpen, Pencil, Plus, RotateCcw, Save, Search, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
@@ -186,8 +186,8 @@ export function AdminLessons() {
     <div className="space-y-6">
       <section>
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-brand-600">Admin</p>
-        <h1 className="mt-2 text-3xl font-extrabold text-slate-950">Quản lý bài học</h1>
-        <p className="mt-2 text-slate-500">Tạo và cập nhật nội dung bài học cho học viên.</p>
+        <h1 className="mt-2 text-3xl font-extrabold text-navy">Quản lý bài học</h1>
+        <p className="mt-2 text-slate-600">Tạo và cập nhật nội dung bài học cho học viên.</p>
       </section>
 
       <section className="grid gap-6 xl:grid-cols-[460px_1fr]">
@@ -198,14 +198,14 @@ export function AdminLessons() {
             </div>
             <div>
               <h2 className="text-xl font-extrabold">{form.id ? 'Sửa bài học' : 'Tạo bài học'}</h2>
-              <p className="text-sm text-slate-500">Nội dung này được lưu vào backend.</p>
+              <p className="text-sm text-slate-600">Nội dung này được lưu vào backend.</p>
             </div>
           </div>
 
           <div className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Kỹ năng</span>
+                <span className="text-sm font-bold text-slate-700">Kỹ năng</span>
                 <select
                   className="input"
                   value={form.skill}
@@ -217,7 +217,7 @@ export function AdminLessons() {
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Trạng thái</span>
+                <span className="text-sm font-bold text-slate-700">Trạng thái</span>
                 <select
                   className="input"
                   value={form.status}
@@ -232,7 +232,7 @@ export function AdminLessons() {
 
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Loại học liệu</span>
+                <span className="text-sm font-bold text-slate-700">Loại học liệu</span>
                 <select
                   className="input"
                   value={form.resourceType}
@@ -244,7 +244,7 @@ export function AdminLessons() {
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-sm font-bold text-slate-600">Nhãn phần</span>
+                <span className="text-sm font-bold text-slate-700">Nhãn phần</span>
                 <input
                   className="input"
                   value={form.partLabel}
@@ -255,7 +255,7 @@ export function AdminLessons() {
             </div>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Link video/tài liệu</span>
+              <span className="text-sm font-bold text-slate-700">Link video/tài liệu</span>
               <input
                 className="input"
                 value={form.resourceUrl}
@@ -265,7 +265,7 @@ export function AdminLessons() {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Tiêu đề</span>
+              <span className="text-sm font-bold text-slate-700">Tiêu đề</span>
               <input
                 className="input"
                 value={form.title}
@@ -275,7 +275,7 @@ export function AdminLessons() {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Mô tả ngắn</span>
+              <span className="text-sm font-bold text-slate-700">Mô tả ngắn</span>
               <textarea
                 className="input min-h-[90px]"
                 value={form.summary}
@@ -285,7 +285,7 @@ export function AdminLessons() {
             </label>
 
             <label className="space-y-2">
-              <span className="text-sm font-bold text-slate-600">Nội dung bài học</span>
+              <span className="text-sm font-bold text-slate-700">Nội dung bài học</span>
               <textarea
                 className="input min-h-[180px]"
                 value={form.content}
@@ -308,11 +308,11 @@ export function AdminLessons() {
         </div>
 
         <div className="card overflow-hidden">
-          <div className="border-b border-slate-100 p-5">
+          <div className="border-b border-brand-100 p-5">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <h2 className="text-xl font-extrabold">Danh sách bài học</h2>
-                <p className="text-sm text-slate-500">{lessons.length} bài học</p>
+                <p className="text-sm text-slate-600">{lessons.length} bài học</p>
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <label className="btn-primary h-11 cursor-pointer justify-center px-4">
@@ -328,7 +328,7 @@ export function AdminLessons() {
                     }}
                   />
                 </label>
-                <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 text-slate-400 lg:w-[320px]">
+                <label className="flex h-11 w-full items-center gap-3 rounded-xl border border-brand-100 bg-white px-4 text-slate-500 lg:w-[320px]">
                   <Search size={18} />
                   <input
                     className="w-full bg-transparent text-sm text-slate-700 outline-none"
@@ -343,11 +343,11 @@ export function AdminLessons() {
 
           <div className="max-h-[720px] space-y-3 overflow-y-auto p-5">
             {loading ? (
-              <div className="rounded-2xl border border-slate-200 p-10 text-center font-bold text-slate-500">
+              <div className="rounded-2xl border border-brand-100 p-10 text-center font-bold text-slate-600">
                 Đang tải bài học...
               </div>
             ) : filteredLessons.length > 0 ? filteredLessons.map((lesson) => (
-              <article key={lesson.id} className="rounded-2xl border border-slate-200 p-4">
+              <article key={lesson.id} className="rounded-2xl border border-brand-100 p-4">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -355,11 +355,11 @@ export function AdminLessons() {
                         {skillLabels[lesson.skill]}
                       </span>
                       <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${
-                        lesson.status === 'PUBLISHED' ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500'
+                        lesson.status === 'PUBLISHED' ? 'bg-green-50 text-green-700' : 'bg-sky-100 text-slate-600'
                       }`}>
                         {lesson.status === 'PUBLISHED' ? 'Đang hiện' : lesson.status === 'DRAFT' ? 'Bản nháp' : 'Lưu trữ'}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-extrabold text-slate-600">
+                      <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-extrabold text-slate-700">
                         {resourceTypeLabels[lesson.resourceType ?? 'TIP']}
                       </span>
                       {lesson.partLabel && (
@@ -368,10 +368,10 @@ export function AdminLessons() {
                         </span>
                       )}
                     </div>
-                    <h3 className="mt-3 text-lg font-extrabold text-slate-950">{lesson.title}</h3>
-                    {lesson.summary && <p className="mt-2 text-sm leading-6 text-slate-500">{lesson.summary}</p>}
+                    <h3 className="mt-3 text-lg font-extrabold text-navy">{lesson.title}</h3>
+                    {lesson.summary && <p className="mt-2 text-sm leading-6 text-slate-600">{lesson.summary}</p>}
                     {lesson.resourceUrl && <p className="mt-2 max-w-[560px] truncate text-xs font-semibold text-brand-600">{lesson.resourceUrl}</p>}
-                    <p className="mt-3 text-xs font-semibold text-slate-400">
+                    <p className="mt-3 text-xs font-semibold text-slate-500">
                       Cập nhật: {new Date(lesson.updatedAt).toLocaleString('vi-VN')}
                     </p>
                   </div>
@@ -386,9 +386,9 @@ export function AdminLessons() {
                 </div>
               </article>
             )) : (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+              <div className="rounded-2xl border border-dashed border-brand-100 p-10 text-center">
                 <p className="font-extrabold text-slate-700">Chưa có bài học nào</p>
-                <p className="mt-2 text-sm text-slate-500">Tạo bài học đầu tiên từ form bên trái.</p>
+                <p className="mt-2 text-sm text-slate-600">Tạo bài học đầu tiên từ form bên trái.</p>
               </div>
             )}
           </div>
@@ -397,3 +397,4 @@ export function AdminLessons() {
     </div>
   );
 }
+

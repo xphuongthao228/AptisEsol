@@ -25,6 +25,7 @@ const emptyForm: FormState = {
 const audienceLabels: Record<NotificationAudience, string> = {
   ALL: 'Tất cả',
   STUDENT: 'Học viên',
+  PAID_STUDENT: 'Học viên đã gia hạn',
   ADMIN: 'Quản trị viên'
 };
 
@@ -179,7 +180,7 @@ export function AdminNotifications() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[24px] bg-slate-950 p-6 text-white shadow-sm">
+      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-6 text-white shadow-soft">
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.18em] text-blue-100">
@@ -209,14 +210,14 @@ export function AdminNotifications() {
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[420px_1fr]">
-        <form onSubmit={submit} className="rounded-[22px] border border-slate-200 bg-white p-5 shadow-sm">
+        <form onSubmit={submit} className="rounded-[22px] border border-brand-100 bg-white p-5 shadow-soft">
           <div className="mb-5 flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-blue-50 text-brand-600">
               <Bell size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-950">{editingId ? 'Sửa thông báo' : 'Tạo thông báo'}</h2>
-              <p className="text-sm text-slate-500">Nội dung ngắn gọn, dễ hiểu.</p>
+              <h2 className="text-xl font-extrabold text-navy">{editingId ? 'Sửa thông báo' : 'Tạo thông báo'}</h2>
+              <p className="text-sm text-slate-600">Nội dung ngắn gọn, dễ hiểu.</p>
             </div>
           </div>
 
@@ -226,7 +227,7 @@ export function AdminNotifications() {
               value={form.title}
               onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))}
               placeholder="Ví dụ: Lịch bảo trì hệ thống"
-              className="h-12 w-full rounded-xl border border-slate-200 px-4 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+              className="h-12 w-full rounded-xl border border-brand-100 px-4 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             />
           </label>
 
@@ -237,7 +238,7 @@ export function AdminNotifications() {
               onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
               rows={5}
               placeholder="Nhập nội dung thông báo..."
-              className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+              className="w-full resize-none rounded-xl border border-brand-100 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
             />
           </label>
 
@@ -247,7 +248,7 @@ export function AdminNotifications() {
               <select
                 value={form.audience}
                 onChange={(event) => setForm((current) => ({ ...current, audience: event.target.value as NotificationAudience }))}
-                className="h-12 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                className="h-12 w-full rounded-xl border border-brand-100 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
               >
                 {Object.entries(audienceLabels).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
@@ -259,7 +260,7 @@ export function AdminNotifications() {
               <select
                 value={form.level}
                 onChange={(event) => setForm((current) => ({ ...current, level: event.target.value as NotificationLevel }))}
-                className="h-12 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
+                className="h-12 w-full rounded-xl border border-brand-100 px-3 text-sm outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
               >
                 {Object.entries(levelLabels).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
@@ -269,7 +270,7 @@ export function AdminNotifications() {
           </div>
 
           <div className="mb-5 grid gap-3 sm:grid-cols-2">
-            <label className="flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+            <label className="flex items-center justify-between rounded-xl bg-sky-50 px-4 py-3">
               <span className="text-sm font-bold text-slate-700">Hiển thị thông báo</span>
               <input
                 type="checkbox"
@@ -305,7 +306,7 @@ export function AdminNotifications() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="h-12 rounded-xl border border-slate-200 px-4 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                className="h-12 rounded-xl border border-brand-100 px-4 text-sm font-bold text-slate-700 hover:bg-sky-50"
               >
                 Hủy
               </button>
@@ -313,31 +314,31 @@ export function AdminNotifications() {
           </div>
         </form>
 
-        <div className="rounded-[22px] border border-slate-200 bg-white shadow-sm">
-          <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+        <div className="rounded-[22px] border border-brand-100 bg-white shadow-soft">
+          <div className="flex items-center justify-between border-b border-brand-100 px-5 py-4">
             <div>
-              <h2 className="text-xl font-extrabold text-slate-950">Danh sách thông báo</h2>
-              <p className="text-sm text-slate-500">Thông báo đã ghim sẽ nằm trên cùng.</p>
+              <h2 className="text-xl font-extrabold text-navy">Danh sách thông báo</h2>
+              <p className="text-sm text-slate-600">Thông báo đã ghim sẽ nằm trên cùng.</p>
             </div>
             <button
               onClick={loadNotifications}
-              className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border border-brand-100 px-4 py-2 text-sm font-bold text-slate-700 hover:bg-sky-50"
             >
               Tải lại
             </button>
           </div>
 
           <div className="max-h-[680px] space-y-3 overflow-y-auto p-5">
-            {loading && <div className="rounded-2xl bg-slate-50 p-6 text-center text-sm font-semibold text-slate-500">Đang tải thông báo...</div>}
+            {loading && <div className="rounded-2xl bg-sky-50 p-6 text-center text-sm font-semibold text-slate-600">Đang tải thông báo...</div>}
             {!loading && items.length === 0 && (
-              <div className="rounded-2xl border border-dashed border-slate-200 p-10 text-center">
+              <div className="rounded-2xl border border-dashed border-brand-100 p-10 text-center">
                 <Bell className="mx-auto mb-3 text-slate-300" size={36} />
                 <p className="font-bold text-slate-700">Chưa có thông báo nào</p>
-                <p className="mt-1 text-sm text-slate-500">Tạo thông báo đầu tiên ở form bên trái.</p>
+                <p className="mt-1 text-sm text-slate-600">Tạo thông báo đầu tiên ở form bên trái.</p>
               </div>
             )}
             {!loading && items.map((notification) => (
-              <article key={notification.id} className={`rounded-2xl border p-4 transition hover:shadow-sm ${notification.pinned ? 'border-blue-200 bg-blue-50/40' : 'border-slate-200 hover:border-brand-200'}`}>
+              <article key={notification.id} className={`rounded-2xl border p-4 transition hover:shadow-soft ${notification.pinned ? 'border-blue-200 bg-blue-50/40' : 'border-brand-100 hover:border-brand-200'}`}>
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div className="min-w-0">
                     <div className="mb-2 flex flex-wrap items-center gap-2">
@@ -350,29 +351,29 @@ export function AdminNotifications() {
                       <span className={`rounded-full px-2.5 py-1 text-xs font-extrabold ring-1 ${levelStyles[notification.level]}`}>
                         {levelLabels[notification.level]}
                       </span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                      <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                         {audienceLabels[notification.audience]}
                       </span>
-                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${notification.active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold ${notification.active ? 'bg-emerald-50 text-emerald-700' : 'bg-sky-100 text-slate-600'}`}>
                         {notification.active ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
                         {notification.active ? 'Đang bật' : 'Đã tắt'}
                       </span>
                     </div>
-                    <h3 className="text-lg font-extrabold text-slate-950">{notification.title}</h3>
-                    <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-600">{notification.message}</p>
-                    <p className="mt-3 text-xs font-semibold text-slate-400">Tạo lúc {formatDate(notification.createdAt)}</p>
+                    <h3 className="text-lg font-extrabold text-navy">{notification.title}</h3>
+                    <p className="mt-1 whitespace-pre-line text-sm leading-6 text-slate-700">{notification.message}</p>
+                    <p className="mt-3 text-xs font-semibold text-slate-500">Tạo lúc {formatDate(notification.createdAt)}</p>
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <button
                       onClick={() => togglePinned(notification)}
-                      className={`grid h-10 w-10 place-items-center rounded-xl border ${notification.pinned ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                      className={`grid h-10 w-10 place-items-center rounded-xl border ${notification.pinned ? 'border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100' : 'border-brand-100 text-slate-700 hover:bg-sky-50'}`}
                       title={notification.pinned ? 'Bỏ ghim thông báo' : 'Ghim thông báo lên đầu'}
                     >
                       {notification.pinned ? <PinOff size={18} /> : <Pin size={18} />}
                     </button>
                     <button
                       onClick={() => edit(notification)}
-                      className="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"
+                      className="grid h-10 w-10 place-items-center rounded-xl border border-brand-100 text-slate-700 hover:bg-sky-50"
                       title="Sửa thông báo"
                     >
                       <Pencil size={18} />

@@ -2,10 +2,16 @@ package com.example.aptis.service;
 
 import com.example.aptis.dto.PaymentDtos;
 import com.example.aptis.entity.PaymentOrder;
+import com.example.aptis.entity.Question;
+import com.example.aptis.entity.Test;
 import com.example.aptis.entity.User;
 import com.example.aptis.enums.PaymentStatus;
+import com.example.aptis.enums.TestMode;
+import com.example.aptis.enums.TestStatus;
 import com.example.aptis.exception.ResourceNotFoundException;
 import com.example.aptis.repository.PaymentOrderRepository;
+import com.example.aptis.repository.QuestionRepository;
+import com.example.aptis.repository.TestRepository;
 import com.example.aptis.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,9 +32,12 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class PaymentService {
     private static final Pattern PAYMENT_CODE_PATTERN = Pattern.compile("APTIS[A-Z0-9]{7,32}");
+    private static final int FREE_EXAMS_PER_SKILL = 2;
 
     private final PaymentOrderRepository paymentOrders;
     private final UserRepository users;
+    private final TestRepository tests;
+    private final QuestionRepository questions;
 
     @Value("${app.payment.bank-id}")
     private String bankId;
@@ -102,8 +111,9 @@ public class PaymentService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         LocalDateTime expiresAt = effectiveAccessExpiresAt(user);
         boolean active = expiresAt != null && expiresAt.isAfter(LocalDateTime.now());
+        boolean proActive = user.getProExpiresAt() != null && user.getProExpiresAt().isAfter(LocalDateTime.now());
         long daysLeft = active ? java.time.temporal.ChronoUnit.DAYS.between(LocalDateTime.now(), expiresAt) + 1 : 0;
-        return new PaymentDtos.SubscriptionResponse(active, expiresAt, daysLeft);
+        return new PaymentDtos.SubscriptionResponse(active, proActive, expiresAt, daysLeft);
     }
 
     @Transactional(readOnly = true)
@@ -114,6 +124,63 @@ public class PaymentService {
                     return expiresAt != null && expiresAt.isAfter(LocalDateTime.now());
                 })
                 .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean hasProAccess(String email) {
+        return users.findByEmailAndDeletedAtIsNull(email)
+                .map(user -> user.getProExpiresAt() != null && user.getProExpiresAt().isAfter(LocalDateTime.now()))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean canAccessQuestions(String email, Long testId) {
+        return testId != null && canAccessTest(email, testId);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean canAccessQuestion(String email, Long questionId) {
+        return questions.findById(questionId)
+                .map(Question::getTest)
+                .map(Test::getId)
+                .map(testId -> canAccessTest(email, testId))
+                .orElse(false);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean canAccessTest(String email, Long testId) {
+        User user = users.findByEmailAndDeletedAtIsNull(email).orElse(null);
+        if (user == null) {
+            return false;
+        }
+        if (user.getProExpiresAt() != null && user.getProExpiresAt().isAfter(LocalDateTime.now())) {
+            return true;
+        }
+
+        Test test = tests.findById(testId).orElse(null);
+        if (test == null || test.getDeletedAt() != null || test.getMode() != TestMode.EXAM
+                || test.getStatus() != TestStatus.PUBLISHED) {
+            return false;
+        }
+        if (isGeneratedRandomTest(test)) {
+            return true;
+        }
+
+        LocalDateTime expiresAt = effectiveAccessExpiresAt(user);
+        if (expiresAt == null || !expiresAt.isAfter(LocalDateTime.now())) {
+            return false;
+        }
+
+        return tests.findBySkillIdAndModeAndStatusAndDeletedAtIsNullOrderByIdAsc(
+                test.getSkill().getId(), TestMode.EXAM, TestStatus.PUBLISHED)
+                .stream()
+                .limit(FREE_EXAMS_PER_SKILL)
+                .anyMatch(freeTest -> freeTest.getId().equals(testId));
+    }
+
+    private boolean isGeneratedRandomTest(Test test) {
+        String title = test.getTitle();
+        return title != null && (title.startsWith("Đề thi thử Random") || title.startsWith("Bộ đề Random"));
     }
 
     @Transactional

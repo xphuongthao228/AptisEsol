@@ -1,4 +1,4 @@
-import { FileSearch, Link2, Sparkles, Target } from 'lucide-react';
+﻿import { FileSearch, Link2, Sparkles, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
@@ -78,13 +78,13 @@ export function Predictions() {
   return (
     <div className="space-y-6">
       <section className="card overflow-hidden">
-        <div className="grid gap-6 bg-slate-950 p-7 text-white lg:grid-cols-[1fr_300px] lg:items-center">
+        <div className="grid gap-6 bg-[linear-gradient(135deg,#06204a,#0057d9)] p-7 text-white lg:grid-cols-[1fr_300px] lg:items-center">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold text-brand-100">
               <FileSearch size={18} />
               Dự đoán đề
             </span>
-            <h1 className="mt-5 text-3xl font-extrabold md:text-4xl">Trong tam on thi Aptis</h1>
+            <h1 className="mt-5 text-3xl font-extrabold md:text-4xl">Trọng tâm ôn thi Aptis</h1>
             <p className="mt-3 max-w-2xl text-lg text-slate-300">
               Xem các chủ đề, dạng bài và gợi ý ôn tập mới nhất do admin cập nhật.
             </p>
@@ -102,7 +102,7 @@ export function Predictions() {
             key={filter}
             type="button"
             className={`shrink-0 rounded-2xl px-5 py-3 text-sm font-extrabold transition ${
-              activeSkill === filter ? 'bg-brand-600 text-white shadow-soft' : 'border border-slate-200 bg-white text-slate-600 hover:border-brand-200 hover:text-brand-700'
+              activeSkill === filter ? 'bg-brand-600 text-white shadow-soft' : 'border border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'
             }`}
             onClick={() => setActiveSkill(filter)}
           >
@@ -112,7 +112,7 @@ export function Predictions() {
       </section>
 
       {loading ? (
-        <div className="card p-10 text-center font-bold text-slate-500">Đang tải dự đoán đề...</div>
+        <div className="card p-10 text-center font-bold text-slate-600">Đang tải dự đoán đề...</div>
       ) : visibleItems.length > 0 ? (
         <section className="grid gap-5 lg:grid-cols-2">
           {visibleItems.map((item) => <PredictionCard key={item.id} item={item} />)}
@@ -121,7 +121,7 @@ export function Predictions() {
         <div className="card p-10 text-center">
           <Sparkles className="mx-auto text-brand-600" />
           <h2 className="mt-4 text-xl font-extrabold">Chưa có dự đoán đề</h2>
-          <p className="mt-2 text-slate-500">Admin chưa đăng nội dung cho mục này.</p>
+          <p className="mt-2 text-slate-600">Admin chưa đăng nội dung cho mục này.</p>
         </div>
       )}
     </div>
@@ -139,14 +139,14 @@ function PredictionCard({ item }: { item: Prediction }) {
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
           <Target size={22} />
         </div>
-        <span className="inline-flex h-8 items-center rounded-full bg-slate-100 px-3 text-xs font-extrabold text-slate-600">
+        <span className="inline-flex h-8 items-center rounded-full bg-sky-100 px-3 text-xs font-extrabold text-slate-700">
           {skillLabels[item.skill]}
         </span>
       </div>
-      <h2 className="mt-5 text-2xl font-extrabold text-slate-950">{item.title}</h2>
-      {item.summary ? <p className="mt-2 text-slate-500">{item.summary}</p> : null}
+      <h2 className="mt-5 text-2xl font-extrabold text-navy">{item.title}</h2>
+      {item.summary ? <p className="mt-2 text-slate-600">{item.summary}</p> : null}
       {parsed.text ? (
-        <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm leading-7 text-slate-700">
+        <div className="mt-5 rounded-2xl bg-sky-50 p-4 text-sm leading-7 text-slate-700">
           <p className="whitespace-pre-line">{parsed.text}</p>
         </div>
       ) : null}
@@ -159,7 +159,7 @@ function PredictionCard({ item }: { item: Prediction }) {
           <div className="space-y-4">
             {predictionSections.map((section) => groupedLinks[section].length > 0 ? (
               <div key={section}>
-                <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">{sectionLabels[section]}</p>
+                <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-600">{sectionLabels[section]}</p>
                 <div className="space-y-3">
                   {predictionParts.map((part) => {
                     const partLinks = groupedLinks[section].filter((link) => link.part === part);
@@ -182,7 +182,7 @@ function PredictionCard({ item }: { item: Prediction }) {
             ) : null)}
             {ungroupedLinks.length > 0 ? (
               <div>
-                <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">Câu hỏi chung</p>
+                <p className="mb-2 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-600">Câu hỏi chung</p>
                 <div className="space-y-2">
                   {ungroupedLinks.map((link) => <QuestionLink key={`general-${link.testId}-${link.questionId}`} link={link} />)}
                 </div>
@@ -206,7 +206,7 @@ function QuestionLink({ link }: { link: PredictionQuestionLink }) {
   return (
     <Link
       to={`/app/tests/${link.testId}?questionId=${link.questionId}`}
-      className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:text-brand-700"
+      className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-soft transition hover:text-brand-700"
     >
       <span>{link.label || `Câu hỏi ${link.questionId}`}</span>
       <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-brand-600">Mở câu</span>

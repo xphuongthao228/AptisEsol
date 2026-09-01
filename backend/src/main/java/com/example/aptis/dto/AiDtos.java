@@ -60,4 +60,5 @@ public class AiDtos {
 
     public record LingoChatResponse(String reply) {
     }
+
 }

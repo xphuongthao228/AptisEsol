@@ -5,6 +5,7 @@ import com.example.aptis.dto.CoreDtos;
 import com.example.aptis.entity.*;
 import com.example.aptis.enums.MediaType;
 import com.example.aptis.enums.QuestionType;
+import com.example.aptis.enums.RoleName;
 import com.example.aptis.enums.SkillType;
 import com.example.aptis.enums.TestMode;
 import com.example.aptis.enums.TestStatus;
@@ -17,6 +18,7 @@ import org.apache.commons.csv.CSVRecord;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,14 +30,19 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class CoreService {
     private static final int EXAM_POINT_PER_QUESTION = 2;
+    private static final String RANDOM_TEST_TITLE_PREFIX = "Đề thi thử Random";
+    private static final String LEGACY_RANDOM_TEST_TITLE_PREFIX = "Bộ đề Random";
 
     private final UserRepository users;
     private final SkillRepository skills;
@@ -132,6 +139,7 @@ public class CoreService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public CoreDtos.TestResponse test(Long id) {
         Test test = tests.findById(id).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
         return mapper.test(test, questions.countByTestIdAndDeletedAtIsNull(test.getId()));
@@ -142,6 +150,44 @@ public class CoreService {
         applyTest(test, request);
         Test saved = tests.save(test);
         return mapper.test(saved, questions.countByTestIdAndDeletedAtIsNull(saved.getId()));
+    }
+
+    @Transactional
+    public CoreDtos.TestResponse createRandomTest(CoreDtos.RandomTestRequest request) {
+        CoreDtos.RandomTestRequest safeRequest = request == null ? new CoreDtos.RandomTestRequest(null, null, null) : request;
+        SkillType skillType = safeRequest.skill() == null ? SkillType.LISTENING : safeRequest.skill();
+        TestMode mode = safeRequest.mode() == null ? TestMode.EXAM : safeRequest.mode();
+        Skill skill = skills.findByType(skillType)
+                .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
+        List<Question> questionBank = new ArrayList<>(questions.findQuestionBank(skillType, mode, TestStatus.PUBLISHED).stream()
+                .filter(question -> !isGeneratedRandomTest(question.getTest()))
+                .toList());
+        if (questionBank.isEmpty()) {
+            throw new ResourceNotFoundException("Chưa có câu hỏi đã xuất bản để tạo đề thi thử random.");
+        }
+
+        Collections.shuffle(questionBank);
+        int requestedCount = safeRequest.questionCount() != null && safeRequest.questionCount() > 0
+                ? safeRequest.questionCount()
+                : defaultRandomQuestionCount(skillType);
+        int questionCount = Math.min(requestedCount, questionBank.size());
+
+        Test randomTest = new Test();
+        randomTest.setSkill(skill);
+        randomTest.setTitle("%s - %s".formatted(RANDOM_TEST_TITLE_PREFIX, skill.getName()));
+        randomTest.setDescription("Đề được tạo tự động bằng cách random câu hỏi từ ngân hàng câu hỏi đã xuất bản.");
+        randomTest.setDurationMinutes(defaultRandomDuration(skillType));
+        randomTest.setStatus(TestStatus.PUBLISHED);
+        randomTest.setMode(mode);
+        randomTest.setFeatured(false);
+        Test savedTest = tests.save(randomTest);
+
+        for (int index = 0; index < questionCount; index++) {
+            Question copy = copyQuestion(questionBank.get(index), savedTest, index + 1);
+            questions.save(copy);
+        }
+
+        return mapper.test(savedTest, questionCount);
     }
 
     public CoreDtos.TestResponse updateTest(Long id, CoreDtos.TestRequest request) {
@@ -155,6 +201,58 @@ public class CoreService {
         Test test = tests.findById(id).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
         test.setDeletedAt(LocalDateTime.now());
         tests.save(test);
+    }
+
+    @Transactional
+    public List<CoreDtos.TestResponse> splitWritingCollectionTest(Long id) {
+        Test source = tests.findById(id).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
+        if (source.getDeletedAt() != null) {
+            throw new ResourceNotFoundException("Test not found");
+        }
+        List<Question> sourceQuestions = questions.findByTestIdAndDeletedAtIsNullOrderBySortOrderAsc(id);
+        if (source.getSkill() == null || source.getSkill().getType() != SkillType.WRITING
+                || !isWritingCollectionQuestions(sourceQuestions)) {
+            throw new IllegalArgumentException("Test này không phải Writing collection có thể tách thành nhiều đề.");
+        }
+
+        List<CoreDtos.TestResponse> splitTests = new ArrayList<>();
+        for (Question sourceQuestion : sourceQuestions) {
+            String title = cleanTopic(firstNonBlank(sourceQuestion.getTopic(), source.getTitle()));
+            Test test = new Test();
+            test.setSkill(source.getSkill());
+            test.setTitle(title);
+            test.setDescription(firstNonBlank(source.getDescription(), title));
+            test.setDurationMinutes(source.getDurationMinutes());
+            test.setStatus(source.getStatus());
+            test.setMode(source.getMode() == null ? TestMode.EXAM : source.getMode());
+            test.setFeatured(sourceQuestion.isFeatured() || source.isFeatured());
+            Test savedTest = tests.save(test);
+
+            Question copy = copyQuestion(sourceQuestion, savedTest, 1);
+            questions.save(copy);
+            splitTests.add(mapper.test(savedTest, 1));
+        }
+
+        source.setDeletedAt(LocalDateTime.now());
+        tests.save(source);
+        return splitTests;
+    }
+
+    private boolean isWritingCollectionQuestions(List<Question> sourceQuestions) {
+        if (sourceQuestions == null || sourceQuestions.size() < 2) {
+            return false;
+        }
+        Map<String, Boolean> topics = new LinkedHashMap<>();
+        for (Question question : sourceQuestions) {
+            String topic = cleanTopic(question.getTopic());
+            String content = question.getContent() == null ? "" : question.getContent();
+            if (question.getType() != QuestionType.TEXT || topic.isBlank()
+                    || !content.contains("\"template\":\"WRITING_")) {
+                return false;
+            }
+            topics.put(topic, Boolean.TRUE);
+        }
+        return topics.size() == sourceQuestions.size();
     }
 
     private void applyTest(Test test, CoreDtos.TestRequest request) {
@@ -171,36 +269,90 @@ public class CoreService {
         test.setFeatured(Boolean.TRUE.equals(request.featured()));
     }
 
+    private Question copyQuestion(Question source, Test targetTest, int sortOrder) {
+        Question copy = new Question();
+        copy.setTest(targetTest);
+        copy.setType(source.getType());
+        copy.setContent(source.getContent());
+        copy.setTopic(source.getTopic());
+        copy.setAudioUrl(source.getAudioUrl());
+        copy.setScriptText(source.getScriptText());
+        copy.setExplanation(source.getExplanation());
+        copy.setPoints(source.getPoints());
+        copy.setSortOrder(sortOrder);
+        copy.setFeatured(source.isFeatured());
+
+        source.getAnswers().forEach(sourceAnswer -> {
+            Answer answer = new Answer();
+            answer.setQuestion(copy);
+            answer.setContent(sourceAnswer.getContent());
+            answer.setCorrect(sourceAnswer.isCorrect());
+            answer.setSortOrder(sourceAnswer.getSortOrder());
+            copy.getAnswers().add(answer);
+        });
+
+        return copy;
+    }
+
+    private int defaultRandomQuestionCount(SkillType skillType) {
+        return switch (skillType) {
+            case LISTENING -> 17;
+            case SPEAKING, WRITING -> 4;
+            case READING, GRAMMAR -> 25;
+        };
+    }
+
+    private int defaultRandomDuration(SkillType skillType) {
+        return switch (skillType) {
+            case LISTENING, WRITING -> 50;
+            case SPEAKING -> 12;
+            case READING, GRAMMAR -> 35;
+        };
+    }
+
+    private boolean isGeneratedRandomTest(Test test) {
+        return test.getTitle() != null
+                && (test.getTitle().startsWith(RANDOM_TEST_TITLE_PREFIX)
+                        || test.getTitle().startsWith(LEGACY_RANDOM_TEST_TITLE_PREFIX));
+    }
+
     @Transactional
     public List<CoreDtos.TestResponse> importTests(MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("CSV file is empty");
         }
         List<CoreDtos.TestResponse> imported = new ArrayList<>();
+        List<CSVRecord> records = new ArrayList<>();
         try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
-            Iterable<CSVRecord> records = CSVFormat.DEFAULT.builder()
+            Iterable<CSVRecord> parsedRecords = CSVFormat.DEFAULT.builder()
                     .setHeader()
                     .setSkipHeaderRecord(true)
                     .setTrim(true)
                     .build()
                     .parse(reader);
-            for (CSVRecord record : records) {
-                try {
-                    Skill skill = skillForType(parseSkillType(requiredCsv(record, "skill")));
-                    Test test = new Test();
-                    test.setSkill(skill);
-                    test.setTitle(requiredCsv(record, "title"));
-                    test.setDescription(csv(record, "description", ""));
-                    test.setDurationMinutes(parseInteger(record, "duration_minutes", 30));
-                    test.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
-                    test.setMode(parseTestMode(csv(record, "mode", "PRACTICE")));
-                    test.setFeatured(parseBoolean(csv(record, "featured", "false")));
-                    Test saved = tests.save(test);
-                    imported.add(mapper.test(saved, 0));
-                } catch (RuntimeException ex) {
-                    throw new IllegalArgumentException(
-                            "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
-                }
+            for (CSVRecord record : parsedRecords) {
+                records.add(record);
+            }
+        }
+        if (isWritingCollectionRows(records)) {
+            return importWritingRowsAsExamTests(records);
+        }
+        for (CSVRecord record : records) {
+            try {
+                Skill skill = skillForType(parseSkillType(requiredCsv(record, "skill")));
+                Test test = new Test();
+                test.setSkill(skill);
+                test.setTitle(requiredCsv(record, "title"));
+                test.setDescription(csv(record, "description", ""));
+                test.setDurationMinutes(parseInteger(record, "duration_minutes", 30));
+                test.setStatus(parseTestStatus(csv(record, "status", "PUBLISHED")));
+                test.setMode(parseTestMode(csv(record, "mode", "PRACTICE")));
+                test.setFeatured(parseBoolean(csv(record, "featured", "false")));
+                Test saved = tests.save(test);
+                imported.add(mapper.test(saved, 0));
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException(
+                        "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage(), ex);
             }
         }
         return imported;
@@ -383,93 +535,52 @@ public class CoreService {
     }
 
     @Transactional
-    public List<CoreDtos.QuestionResponse> importQuestions(Long testId, MultipartFile file) throws Exception {
+    public CoreDtos.QuestionImportResponse importQuestions(Long testId, MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("CSV file is empty");
         }
         Test test = tests.findById(testId).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
-        List<Question> imported = new ArrayList<>();
-        List<String> speakingPart3Items = new ArrayList<>();
-        Question speakingPart3Question = null;
-        int speakingPart3Total = 0;
+        List<CSVRecord> records = new ArrayList<>();
         try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
-            Iterable<CSVRecord> records = CSVFormat.DEFAULT.builder()
+            Iterable<CSVRecord> parsedRecords = CSVFormat.DEFAULT.builder()
                     .setHeader()
                     .setSkipHeaderRecord(true)
                     .setTrim(true)
                     .build()
                     .parse(reader);
-            for (CSVRecord record : records) {
-                try {
-                    Question q = new Question();
-                    q.setTest(test);
-                    String rawType = csv(record, "type", "SINGLE_CHOICE").trim().toUpperCase();
-                    boolean listeningPart2 = isListeningPart2Type(rawType);
-                    boolean listeningPart3 = isListeningPart3Type(rawType);
-                    boolean listeningPart4 = isListeningPart4Type(rawType);
-                    boolean speakingTemplate = isSpeakingTemplateType(rawType);
-                    boolean grammarTemplate = isGrammarTemplateType(rawType);
-                    q.setType(
-                            (listeningPart2 || listeningPart3 || listeningPart4 || speakingTemplate || grammarTemplate)
-                                    ? QuestionType.TEXT
-                                    : parseQuestionType(rawType));
-                    q.setTopic(cleanTopic(csv(record, "topic", "")));
-                    q.setAudioUrl(firstNonBlank(csv(record, "audio_url", ""), csv(record, "audioUrl", "")));
-                    q.setScriptText(firstNonBlank(csv(record, "script_text", ""), csv(record, "scriptText", "")));
-                    q.setExplanation(csv(record, "explanation", ""));
-                    q.setPoints(parseInteger(record, "points", 1));
-                    q.setSortOrder(parseInteger(record, "sort_order", imported.size() + 1));
-                    q.setFeatured(parseBoolean(csv(record, "featured", "false")));
-                    if (rawType.equals("SPEAKING_PART3") && hasSpeakingPart3Columns(record)) {
-                        if (speakingPart3Question == null) {
-                            speakingPart3Question = q;
-                        }
-                        if (speakingPart3Total == 0) {
-                            speakingPart3Total = parseInteger(record, "total", 0);
-                        }
-                        speakingPart3Items.add(buildSpeakingPart3QuestionItem(record, speakingPart3Items.size()));
-                        continue;
-                    }
-                    if (listeningPart2) {
-                        String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
-                        q.setScriptText(paragraph);
-                        q.setContent(buildListeningPart2Template(record, q));
-                    } else if (listeningPart3) {
-                        String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
-                        q.setScriptText(paragraph);
-                        q.setContent(buildListeningPart3Template(record, q));
-                    } else if (listeningPart4) {
-                        String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
-                        q.setScriptText(paragraph);
-                        q.setContent(buildListeningPart4Template(record, q));
-                    } else if (speakingTemplate) {
-                        q.setContent(requiredCsv(record, "content"));
-                    } else {
-                        q.setContent(requiredCsv(record, "content"));
-                    }
+            for (CSVRecord record : parsedRecords) {
+                records.add(record);
+            }
+        }
+        if (records.isEmpty()) {
+            throw new IllegalArgumentException("CSV does not contain any question rows");
+        }
+        if (shouldSplitWritingRowsIntoTests(test, records)) {
+            return importWritingRowsAsTests(test, records);
+        }
 
-                    if (q.getType() != QuestionType.TEXT && q.getType() != QuestionType.SPEAKING) {
-                        int correctIndex = parseInteger(record, "correct_index", 1);
-                        if (correctIndex < 1 || correctIndex > 4) {
-                            throw new IllegalArgumentException("correct_index must be from 1 to 4");
-                        }
-                        for (int i = 1; i <= 4; i++) {
-                            String content = csv(record, "answer" + i, "");
-                            if (!content.isBlank()) {
-                                Answer answer = new Answer();
-                                answer.setQuestion(q);
-                                answer.setContent(content);
-                                answer.setCorrect(i == correctIndex);
-                                answer.setSortOrder(i);
-                                q.getAnswers().add(answer);
-                            }
-                        }
+        List<Question> imported = new ArrayList<>();
+        List<String> speakingPart3Items = new ArrayList<>();
+        Question speakingPart3Question = null;
+        int speakingPart3Total = 0;
+        for (CSVRecord record : records) {
+            try {
+                String rawType = csv(record, "type", "SINGLE_CHOICE").trim().toUpperCase();
+                Question q = buildQuestionFromCsv(record, test, imported.size() + 1);
+                if (rawType.equals("SPEAKING_PART3") && hasSpeakingPart3Columns(record)) {
+                    if (speakingPart3Question == null) {
+                        speakingPart3Question = q;
                     }
-                    imported.add(questions.save(q));
-                } catch (RuntimeException ex) {
-                    throw new IllegalArgumentException(
-                            "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage());
+                    if (speakingPart3Total == 0) {
+                        speakingPart3Total = parseInteger(record, "total", 0);
+                    }
+                    speakingPart3Items.add(buildSpeakingPart3QuestionItem(record, speakingPart3Items.size()));
+                    continue;
                 }
+                imported.add(questions.save(q));
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException(
+                        "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage());
             }
         }
         if (!speakingPart3Items.isEmpty()) {
@@ -481,7 +592,145 @@ public class CoreService {
         if (imported.isEmpty()) {
             throw new IllegalArgumentException("CSV does not contain any question rows");
         }
-        return imported.stream().map(mapper::question).toList();
+        return new CoreDtos.QuestionImportResponse(imported.stream().map(mapper::question).toList(), List.of());
+    }
+
+    private boolean shouldSplitWritingRowsIntoTests(Test selectedTest, List<CSVRecord> records) {
+        if (selectedTest.getSkill() == null || selectedTest.getSkill().getType() != SkillType.WRITING || records.size() < 2) {
+            return false;
+        }
+        return isWritingCollectionRows(records);
+    }
+
+    private boolean isWritingCollectionRows(List<CSVRecord> records) {
+        if (records == null || records.size() < 2) {
+            return false;
+        }
+        Map<String, Boolean> topics = new LinkedHashMap<>();
+        for (CSVRecord record : records) {
+            String rawType = csv(record, "type", "SINGLE_CHOICE").trim().toUpperCase();
+            String topic = cleanTopic(csv(record, "topic", ""));
+            String content = csv(record, "content", "");
+            if (!rawType.equals("TEXT") || topic.isBlank() || !content.contains("\"template\":\"WRITING_")) {
+                return false;
+            }
+            topics.put(topic, Boolean.TRUE);
+        }
+        return topics.size() == records.size();
+    }
+
+    private List<CoreDtos.TestResponse> importWritingRowsAsExamTests(List<CSVRecord> records) {
+        Skill skill = skillForType(SkillType.WRITING);
+        List<CoreDtos.TestResponse> importedTests = new ArrayList<>();
+        for (CSVRecord record : records) {
+            try {
+                String title = cleanTopic(requiredCsv(record, "topic"));
+                Test test = new Test();
+                test.setSkill(skill);
+                test.setTitle(title);
+                test.setDescription(title);
+                test.setDurationMinutes(30);
+                test.setStatus(TestStatus.PUBLISHED);
+                test.setMode(TestMode.EXAM);
+                test.setFeatured(parseBoolean(csv(record, "featured", "false")));
+                Test savedTest = tests.save(test);
+
+                Question question = buildQuestionFromCsv(record, savedTest, 1);
+                question.setSortOrder(1);
+                questions.save(question);
+                importedTests.add(mapper.test(savedTest, 1));
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException(
+                        "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage());
+            }
+        }
+        return importedTests;
+    }
+
+    private CoreDtos.QuestionImportResponse importWritingRowsAsTests(Test selectedTest, List<CSVRecord> records) {
+        List<Question> importedQuestions = new ArrayList<>();
+        List<CoreDtos.TestResponse> importedTests = new ArrayList<>();
+        for (CSVRecord record : records) {
+            try {
+                String title = cleanTopic(requiredCsv(record, "topic"));
+                Test test = new Test();
+                test.setSkill(selectedTest.getSkill());
+                test.setTitle(title);
+                test.setDescription(firstNonBlank(selectedTest.getDescription(), title));
+                test.setDurationMinutes(selectedTest.getDurationMinutes());
+                test.setStatus(selectedTest.getStatus());
+                test.setMode(selectedTest.getMode() == null ? TestMode.EXAM : selectedTest.getMode());
+                test.setFeatured(parseBoolean(csv(record, "featured", String.valueOf(selectedTest.isFeatured()))));
+                Test savedTest = tests.save(test);
+
+                Question question = buildQuestionFromCsv(record, savedTest, 1);
+                question.setSortOrder(1);
+                Question savedQuestion = questions.save(question);
+                importedQuestions.add(savedQuestion);
+                importedTests.add(mapper.test(savedTest, 1));
+            } catch (RuntimeException ex) {
+                throw new IllegalArgumentException(
+                        "CSV row " + record.getRecordNumber() + " error: " + ex.getMessage());
+            }
+        }
+        return new CoreDtos.QuestionImportResponse(
+                importedQuestions.stream().map(mapper::question).toList(),
+                importedTests);
+    }
+
+    private Question buildQuestionFromCsv(CSVRecord record, Test test, int defaultSortOrder) {
+        Question q = new Question();
+        q.setTest(test);
+        String rawType = csv(record, "type", "SINGLE_CHOICE").trim().toUpperCase();
+        boolean listeningPart2 = isListeningPart2Type(rawType);
+        boolean listeningPart3 = isListeningPart3Type(rawType);
+        boolean listeningPart4 = isListeningPart4Type(rawType);
+        boolean speakingTemplate = isSpeakingTemplateType(rawType) || hasSpeakingTemplateContent(record);
+        boolean grammarTemplate = isGrammarTemplateType(rawType);
+        q.setType((listeningPart2 || listeningPart3 || listeningPart4 || speakingTemplate || grammarTemplate)
+                ? QuestionType.TEXT
+                : parseQuestionType(rawType));
+        q.setTopic(cleanTopic(csv(record, "topic", "")));
+        q.setAudioUrl(firstNonBlank(csv(record, "audio_url", ""), csv(record, "audioUrl", "")));
+        q.setScriptText(firstNonBlank(csv(record, "script_text", ""), csv(record, "scriptText", "")));
+        q.setExplanation(csv(record, "explanation", ""));
+        q.setPoints(parseInteger(record, "points", 1));
+        q.setSortOrder(parseInteger(record, "sort_order", defaultSortOrder));
+        q.setFeatured(parseBoolean(csv(record, "featured", "false")));
+        if (listeningPart2) {
+            String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
+            q.setScriptText(paragraph);
+            q.setContent(buildListeningPart2Template(record, q));
+        } else if (listeningPart3) {
+            String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
+            q.setScriptText(paragraph);
+            q.setContent(buildListeningPart3Template(record, q));
+        } else if (listeningPart4) {
+            String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
+            q.setScriptText(paragraph);
+            q.setContent(buildListeningPart4Template(record, q));
+        } else {
+            q.setContent(requiredCsv(record, "content"));
+        }
+
+        if (q.getType() != QuestionType.TEXT && q.getType() != QuestionType.SPEAKING) {
+            int correctIndex = parseInteger(record, "correct_index", 1);
+            if (correctIndex < 1 || correctIndex > 4) {
+                throw new IllegalArgumentException("correct_index must be from 1 to 4");
+            }
+            for (int i = 1; i <= 4; i++) {
+                String content = csv(record, "answer" + i, "");
+                if (!content.isBlank()) {
+                    Answer answer = new Answer();
+                    answer.setQuestion(q);
+                    answer.setContent(content);
+                    answer.setCorrect(i == correctIndex);
+                    answer.setSortOrder(i);
+                    q.getAnswers().add(answer);
+                }
+            }
+        }
+        return q;
     }
 
     private boolean isListeningPart2Type(String rawType) {
@@ -521,6 +770,14 @@ public class CoreService {
                 || rawType.equals("SPEAKING_PART2")
                 || rawType.equals("SPEAKING_PART3")
                 || rawType.equals("SPEAKING_PART4");
+    }
+
+    private boolean hasSpeakingTemplateContent(CSVRecord record) {
+        String content = csv(record, "content", "").trim();
+        return content.contains("\"template\":\"SPEAKING_PART1\"")
+                || content.contains("\"template\":\"SPEAKING_PART2\"")
+                || content.contains("\"template\":\"SPEAKING_PART3\"")
+                || content.contains("\"template\":\"SPEAKING_PART4\"");
     }
 
     private boolean hasSpeakingPart3Columns(CSVRecord record) {
@@ -966,8 +1223,14 @@ public class CoreService {
         for (CoreDtos.SubmitAnswerRequest item : request.answers()) {
             Question q = questions.findById(item.questionId())
                     .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+            if (!Objects.equals(q.getTest().getId(), test.getId())) {
+                throw new IllegalArgumentException("Question does not belong to this test");
+            }
             max += EXAM_POINT_PER_QUESTION;
             Answer selected = item.answerId() == null ? null : answers.findById(item.answerId()).orElse(null);
+            if (selected != null && !Objects.equals(selected.getQuestion().getId(), q.getId())) {
+                throw new IllegalArgumentException("Answer does not belong to this question");
+            }
             boolean correct = selected != null && selected.isCorrect();
             SubmissionAnswer sa = new SubmissionAnswer();
             sa.setSubmission(submission);
@@ -1003,9 +1266,42 @@ public class CoreService {
     }
 
     @Transactional(readOnly = true)
-    public CoreDtos.SubmissionResponse submission(Long id) {
-        return mapper.submission(
-                submissions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Submission not found")));
+    public List<CoreDtos.LeaderboardRowResponse> leaderboard() {
+        List<SubmissionRepository.LeaderboardProjection> rows = submissions.leaderboard(RoleName.STUDENT);
+        List<CoreDtos.LeaderboardRowResponse> result = new ArrayList<>();
+        long previousScore = Long.MIN_VALUE;
+        int previousRank = 0;
+        int index = 0;
+
+        for (SubmissionRepository.LeaderboardProjection row : rows) {
+            index++;
+            long score = row.getScore() == null ? 0 : row.getScore();
+            int rank = score == previousScore ? previousRank : index;
+            previousScore = score;
+            previousRank = rank;
+
+            result.add(new CoreDtos.LeaderboardRowResponse(
+                    rank,
+                    row.getUserId(),
+                    row.getFullName(),
+                    row.getEmail(),
+                    score,
+                    score,
+                    row.getSubmissions() == null ? 0 : row.getSubmissions(),
+                    row.getLatestSubmissionAt()));
+        }
+
+        return result;
+    }
+
+    @Transactional(readOnly = true)
+    public CoreDtos.SubmissionResponse submission(Long id, String email, boolean admin) {
+        Submission submission = submissions.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Submission not found"));
+        if (!admin && !submission.getUser().getEmail().equalsIgnoreCase(email)) {
+            throw new AccessDeniedException("Submission belongs to another user");
+        }
+        return mapper.submission(submission);
     }
 
     public List<CoreDtos.ProgressResponse> myProgress(String email) {

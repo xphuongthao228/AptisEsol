@@ -3,9 +3,13 @@ package com.example.aptis.controller;
 import com.example.aptis.dto.ApiResponse;
 import com.example.aptis.dto.CoreDtos;
 import com.example.aptis.service.CoreService;
+import com.example.aptis.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -16,16 +20,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class QuestionController {
     private final CoreService service;
+    private final PaymentService paymentService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN') or @paymentService.hasActiveAccess(authentication.name)")
-    public ApiResponse<List<CoreDtos.QuestionResponse>> all(@RequestParam(required = false) Long testId) {
+    public ApiResponse<List<CoreDtos.QuestionResponse>> all(Authentication auth,
+            @RequestParam(required = false) Long testId) {
+        if (!isAdmin(auth) && !paymentService.canAccessQuestions(auth.getName(), testId)) {
+            throw new AccessDeniedException("Test requires Pro access");
+        }
         return ApiResponse.ok(service.questions(testId));
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN') or @paymentService.hasActiveAccess(authentication.name)")
-    public ApiResponse<CoreDtos.QuestionResponse> one(@PathVariable Long id) {
+    public ApiResponse<CoreDtos.QuestionResponse> one(Authentication auth, @PathVariable Long id) {
+        if (!isAdmin(auth) && !paymentService.canAccessQuestion(auth.getName(), id)) {
+            throw new AccessDeniedException("Question requires Pro access");
+        }
         return ApiResponse.ok(service.question(id));
     }
 
@@ -37,7 +47,7 @@ public class QuestionController {
 
     @PostMapping("/import-csv")
     @PreAuthorize("hasRole('ADMIN')")
-    public ApiResponse<List<CoreDtos.QuestionResponse>> importCsv(@RequestParam Long testId,
+    public ApiResponse<CoreDtos.QuestionImportResponse> importCsv(@RequestParam Long testId,
             @RequestParam("file") MultipartFile file) throws Exception {
         return ApiResponse.ok(service.importQuestions(testId, file));
     }
@@ -54,5 +64,11 @@ public class QuestionController {
     public ApiResponse<Void> delete(@PathVariable Long id) {
         service.deleteQuestion(id);
         return ApiResponse.message("Deleted", null);
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        return auth.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_ADMIN"::equals);
     }
 }

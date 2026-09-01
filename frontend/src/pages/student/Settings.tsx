@@ -1,9 +1,16 @@
 import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Lock, Mail, Save, ShieldCheck, UserRound } from 'lucide-react';
+import { Check, Lock, Mail, Monitor, Moon, Save, ShieldCheck, Sun, UserRound, type LucideIcon } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { User } from '../../types';
+import { ThemePreference, useThemePreference } from '../../utils/theme';
+
+const themeOptions: Array<{ value: ThemePreference; label: string; description: string; icon: LucideIcon }> = [
+  { value: 'light', label: 'Sáng', description: 'Giao diện nền sáng, dễ nhìn ban ngày.', icon: Sun },
+  { value: 'dark', label: 'Tối', description: 'Giao diện nền tối, dịu mắt khi học buổi tối.', icon: Moon },
+  { value: 'auto', label: 'Auto', description: 'Tự đổi theo chế độ của thiết bị.', icon: Monitor }
+];
 
 export function Settings() {
   const user = useAuthStore((state) => state.user);
@@ -14,6 +21,7 @@ export function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
+  const { preference, resolvedTheme, setPreference } = useThemePreference();
 
   useEffect(() => {
     setFullName(user?.fullName ?? '');
@@ -65,8 +73,8 @@ export function Settings() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-        <div className="bg-slate-950 px-6 py-7 text-white sm:px-8">
+      <section className="overflow-hidden rounded-[28px] border border-brand-100 bg-white shadow-soft">
+        <div className="bg-[linear-gradient(135deg,#06204a,#0057d9)] px-6 py-7 text-white sm:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.24em] text-brand-200">Tài khoản học viên</p>
@@ -87,14 +95,54 @@ export function Settings() {
           </div>
         </div>
 
-        <div className="grid gap-0 divide-y divide-slate-100 md:grid-cols-2 md:divide-x md:divide-y-0">
+        <div className="grid gap-0 divide-y divide-slate-100 md:grid-cols-3 md:divide-x md:divide-y-0">
           <SummaryCard icon={<UserRound size={22} />} title="Hồ sơ" text="Tên hiển thị và email." />
           <SummaryCard icon={<ShieldCheck size={22} />} title="Bảo mật" text="Đổi mật khẩu đăng nhập." />
+          <SummaryCard
+            icon={resolvedTheme === 'dark' ? <Moon size={22} /> : <Sun size={22} />}
+            title="Giao diện"
+            text={preference === 'auto' ? 'Auto theo thiết bị.' : preference === 'dark' ? 'Đang dùng nền tối.' : 'Đang dùng nền sáng.'}
+          />
         </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <form onSubmit={saveProfile} className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-[24px] border border-brand-100 bg-white p-6 shadow-soft lg:col-span-2">
+          <SectionTitle icon={<Monitor size={20} />} title="Giao diện" subtitle="Chọn màu sáng, tối hoặc tự động theo thiết bị của bạn." />
+
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {themeOptions.map((option) => {
+              const Icon = option.icon;
+              const active = preference === option.value;
+
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => setPreference(option.value)}
+                  className={`flex min-h-[108px] items-start gap-4 rounded-2xl border p-4 text-left transition ${
+                    active
+                      ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-soft'
+                      : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 hover:bg-sky-50'
+                  }`}
+                >
+                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${active ? 'bg-brand-600 text-white' : 'bg-sky-50 text-brand-600'}`}>
+                    <Icon size={20} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-3">
+                      <span className="text-base font-extrabold">{option.label}</span>
+                      {active && <Check size={18} className="shrink-0" />}
+                    </span>
+                    <span className="mt-1 block text-sm font-semibold leading-6 text-slate-600">{option.description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <form onSubmit={saveProfile} className="rounded-[24px] border border-brand-100 bg-white p-6 shadow-soft">
           <SectionTitle icon={<UserRound size={20} />} title="Hồ sơ học viên" subtitle="Thông tin hiển thị trên tài khoản của bạn." />
 
           <div className="mt-6 space-y-4">
@@ -104,7 +152,7 @@ export function Settings() {
             </label>
             <label className="block">
               <span className="mb-2 block text-sm font-extrabold text-slate-700">Email</span>
-              <div className="flex h-13 items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 text-slate-500">
+              <div className="flex h-13 items-center gap-3 rounded-2xl border border-brand-100 bg-sky-50 px-4 text-slate-600">
                 <Mail size={18} />
                 <span className="truncate">{user?.email}</span>
               </div>
@@ -117,7 +165,7 @@ export function Settings() {
           </button>
         </form>
 
-        <form onSubmit={savePassword} className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={savePassword} className="rounded-[24px] border border-brand-100 bg-white p-6 shadow-soft">
           <SectionTitle icon={<Lock size={20} />} title="Đổi mật khẩu" subtitle="Dùng mật khẩu mới có ít nhất 6 ký tự." />
 
           <div className="mt-6 space-y-4">
@@ -126,7 +174,7 @@ export function Settings() {
             <PasswordInput label="Nhập lại mật khẩu mới" value={confirmPassword} onChange={setConfirmPassword} />
           </div>
 
-          <button className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 text-sm font-extrabold text-white hover:bg-slate-800" disabled={passwordSaving}>
+          <button className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#06204a,#0057d9)] text-sm font-extrabold text-white hover:bg-slate-800" disabled={passwordSaving}>
             <ShieldCheck size={18} />
             {passwordSaving ? 'Đang đổi...' : 'Đổi mật khẩu'}
           </button>
@@ -141,8 +189,8 @@ function SummaryCard({ icon, title, text }: { icon: ReactNode; title: string; te
     <div className="flex items-center gap-4 p-5">
       <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>
       <div className="min-w-0">
-        <h2 className="font-extrabold text-slate-950">{title}</h2>
-        <p className="mt-1 truncate text-sm text-slate-500">{text}</p>
+        <h2 className="font-extrabold text-navy">{title}</h2>
+        <p className="mt-1 truncate text-sm text-slate-600">{text}</p>
       </div>
     </div>
   );
@@ -153,8 +201,8 @@ function SectionTitle({ icon, title, subtitle }: { icon: ReactNode; title: strin
     <div className="flex items-center gap-3">
       <div className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>
       <div>
-        <h2 className="text-xl font-extrabold text-slate-950">{title}</h2>
-        <p className="mt-0.5 text-sm text-slate-500">{subtitle}</p>
+        <h2 className="text-xl font-extrabold text-navy">{title}</h2>
+        <p className="mt-0.5 text-sm text-slate-600">{subtitle}</p>
       </div>
     </div>
   );

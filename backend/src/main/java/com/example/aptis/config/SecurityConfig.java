@@ -53,10 +53,12 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/sepay/webhook").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/tests/random").permitAll()
+                        .requestMatchers("/api/tests", "/api/tests/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/skills",
-                                "/api/tests",
                                 "/api/lessons",
                                 "/api/predictions",
                                 "/api/mock-tests")

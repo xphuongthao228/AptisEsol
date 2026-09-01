@@ -53,8 +53,8 @@ export function Contact() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-7">
-      <section className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm">
-        <div className="bg-slate-950 px-6 py-8 text-white sm:px-8">
+      <section className="overflow-hidden rounded-[28px] border border-brand-100 bg-white shadow-soft">
+        <div className="bg-[linear-gradient(135deg,#06204a,#0057d9)] px-6 py-8 text-white sm:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-[0.24em] text-brand-200">Liên hệ</p>
@@ -65,7 +65,7 @@ export function Contact() {
             </div>
             <div className="rounded-3xl border border-white/10 bg-white/10 p-4">
               <div className="flex items-center gap-3">
-                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-slate-950">
+                <div className="grid h-12 w-12 place-items-center rounded-2xl bg-white text-navy">
                   <Mail size={22} />
                 </div>
                 <div>
@@ -81,22 +81,22 @@ export function Contact() {
           {contactCards.map((card) => (
             <div key={card.title} className="p-5">
               <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">{card.icon}</div>
-              <h2 className="mt-4 font-extrabold text-slate-950">{card.title}</h2>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{card.text}</p>
+              <h2 className="mt-4 font-extrabold text-navy">{card.title}</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-700">{card.text}</p>
             </div>
           ))}
         </div>
       </section>
 
       <section className="grid gap-5 lg:grid-cols-[1fr_300px]">
-        <div className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-[24px] border border-brand-100 bg-white p-6 shadow-soft">
           <div className="flex items-center gap-3">
             <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
               <Users size={22} />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-950">Tham gia cộng đồng</h2>
-              <p className="mt-1 text-sm text-slate-500">Vào group để nhận thông báo, hỏi bài và trao đổi kinh nghiệm học Aptis.</p>
+              <h2 className="text-xl font-extrabold text-navy">Tham gia cộng đồng</h2>
+              <p className="mt-1 text-sm text-slate-600">Vào group để nhận thông báo, hỏi bài và trao đổi kinh nghiệm học Aptis.</p>
             </div>
           </div>
 
@@ -112,27 +112,27 @@ export function Contact() {
           </div>
         </div>
 
-        <div className="rounded-[24px] border border-slate-200 bg-white p-5 text-center shadow-sm">
-          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 text-slate-800">
+        <div className="rounded-[24px] border border-brand-100 bg-white p-5 text-center shadow-soft">
+          <div className="mx-auto mb-3 grid h-11 w-11 place-items-center rounded-2xl bg-sky-100 text-navy">
             <QrCode size={22} />
           </div>
-          <h2 className="font-extrabold text-slate-950">QR Zalo</h2>
-          <img src={zaloQrUrl} alt="QR cộng đồng Zalo Tự ôn Aptis" className="mx-auto mt-4 w-full max-w-[220px] rounded-2xl border border-slate-100 bg-white p-2" />
-          <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" className="mt-4 block break-all rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-brand-700">
+          <h2 className="font-extrabold text-navy">QR Zalo</h2>
+          <img src={zaloQrUrl} alt="QR cộng đồng Zalo Tự ôn Aptis" className="mx-auto mt-4 w-full max-w-[220px] rounded-2xl border border-brand-100 bg-white p-2" />
+          <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" className="mt-4 block break-all rounded-2xl bg-sky-50 px-3 py-2 text-sm font-bold text-brand-700">
             zalo.me/g/n1f3m9mamomr1vnhs6lw
           </a>
         </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-        <form onSubmit={submitContact} className="rounded-[24px] border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={submitContact} className="rounded-[24px] border border-brand-100 bg-white p-6 shadow-soft">
           <div className="flex items-center gap-3">
             <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-50 text-emerald-700">
               <Send size={20} />
             </div>
             <div>
-              <h2 className="text-xl font-extrabold text-slate-950">Tạo nội dung liên hệ</h2>
-              <p className="mt-0.5 text-sm text-slate-500">Nội dung sẽ được mở bằng ứng dụng email trên máy của bạn.</p>
+              <h2 className="text-xl font-extrabold text-navy">Tạo nội dung liên hệ</h2>
+              <p className="mt-0.5 text-sm text-slate-600">Nội dung sẽ được mở bằng ứng dụng email trên máy của bạn.</p>
             </div>
           </div>
 
@@ -159,17 +159,17 @@ export function Contact() {
         </form>
 
         <aside className="space-y-4">
-          <div className="rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft">
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-slate-100 text-slate-800">
+              <div className="grid h-11 w-11 place-items-center rounded-2xl bg-sky-100 text-navy">
                 <UserRound size={20} />
               </div>
               <div className="min-w-0">
-                <h2 className="font-extrabold text-slate-950">Thông tin tài khoản</h2>
-                <p className="truncate text-sm text-slate-500">{user?.email ?? 'Email học viên'}</p>
+                <h2 className="font-extrabold text-navy">Thông tin tài khoản</h2>
+                <p className="truncate text-sm text-slate-600">{user?.email ?? 'Email học viên'}</p>
               </div>
             </div>
-            <p className="mt-4 text-sm leading-6 text-slate-600">
+            <p className="mt-4 text-sm leading-6 text-slate-700">
               Email gửi đi sẽ tự kèm tên và email tài khoản hiện tại để admin dễ đối chiếu.
             </p>
           </div>

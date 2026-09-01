@@ -5,6 +5,7 @@ import { ArrowRight, LockKeyhole, Mail } from 'lucide-react';
 import { AuthShell } from './AuthShell';
 import { useAuthStore } from '../../store/authStore';
 import { userHasRole } from '../../utils/roles';
+import { repairMojibake } from '../../utils/textRepair';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -27,8 +28,11 @@ export function Login() {
       toast.success('Đăng nhập thành công');
       const nextUser = useAuthStore.getState().user ?? user;
       navigate(userHasRole(nextUser, 'ADMIN') ? '/admin' : '/');
-    } catch {
-      toast.error('Tài khoản hoặc mật khẩu không đúng');
+    } catch (error) {
+      const message = error instanceof Error && error.message
+        ? repairMojibake(error.message)
+        : 'Tài khoản hoặc mật khẩu không đúng';
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -42,7 +46,7 @@ export function Login() {
         <label className="block">
           <span className="mb-2 block text-sm font-bold text-slate-700">Email</span>
           <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-slate-100 text-slate-500">
+            <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-sky-100 text-slate-600">
               <Mail size={18} />
             </span>
             <input
@@ -58,7 +62,7 @@ export function Login() {
         <label className="block">
           <span className="mb-2 block text-sm font-bold text-slate-700">Mật khẩu</span>
           <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-slate-100 text-slate-500">
+            <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-sky-100 text-slate-600">
               <LockKeyhole size={18} />
             </span>
             <input
@@ -81,7 +85,7 @@ export function Login() {
           {loading ? 'Đang xử lý...' : 'Đăng nhập'} {!loading && <ArrowRight size={19} />}
         </button>
       </form>
-      <p className="mt-7 text-center text-sm text-slate-500">
+      <p className="mt-7 text-center text-sm text-slate-600">
         Chưa có tài khoản? <Link className="font-extrabold text-brand-600 hover:text-brand-700" to="/register">Đăng ký</Link>
       </p>
     </AuthShell>

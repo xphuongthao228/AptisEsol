@@ -77,7 +77,7 @@ export function ForgotPassword() {
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-700">Email</span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-slate-100 text-slate-500">
+              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-sky-100 text-slate-600">
                 <Mail size={18} />
               </span>
               <input
@@ -104,7 +104,7 @@ export function ForgotPassword() {
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-700">Mã OTP</span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-slate-100 text-slate-500">
+              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-sky-100 text-slate-600">
                 <ShieldCheck size={18} />
               </span>
               <input
@@ -122,7 +122,7 @@ export function ForgotPassword() {
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-700">Mật khẩu mới</span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-slate-100 text-slate-500">
+              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-sky-100 text-slate-600">
                 <KeyRound size={18} />
               </span>
               <input
@@ -141,7 +141,7 @@ export function ForgotPassword() {
           <label className="block">
             <span className="mb-2 block text-sm font-bold text-slate-700">Nhập lại mật khẩu mới</span>
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-slate-100 text-slate-500">
+              <span className="pointer-events-none absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-xl bg-sky-100 text-slate-600">
                 <KeyRound size={18} />
               </span>
               <input
@@ -169,7 +169,7 @@ export function ForgotPassword() {
             {loading ? 'Đang gửi...' : 'Gửi lại mã OTP'}
           </button>
           <button
-            className="h-11 w-full rounded-2xl border border-slate-200 font-bold text-slate-600 hover:bg-slate-50"
+            className="h-11 w-full rounded-2xl border border-brand-100 font-bold text-slate-700 hover:bg-sky-50"
             type="button"
             disabled={loading}
             onClick={() => setOtpSent(false)}
@@ -179,7 +179,7 @@ export function ForgotPassword() {
         </form>
       )}
 
-      <p className="mt-7 text-center text-sm text-slate-500">
+      <p className="mt-7 text-center text-sm text-slate-600">
         <Link className="inline-flex items-center gap-2 font-extrabold text-brand-600 hover:text-brand-700" to="/login">
           <ArrowLeft size={16} /> Quay lại đăng nhập
         </Link>

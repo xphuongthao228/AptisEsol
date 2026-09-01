@@ -95,9 +95,36 @@ export interface Submission {
   id: number;
   testId: number;
   testTitle: string;
+  skillName: string;
   totalScore: number;
   maxScore: number;
   createdAt: string;
+  answers: SubmissionAnswer[];
+}
+
+export interface SubmissionAnswer {
+  id: number;
+  questionId: number;
+  questionNumber: number;
+  questionContent: string;
+  topic: string | null;
+  selectedAnswer: string | null;
+  textAnswer: string | null;
+  correctAnswer: string | null;
+  correct: boolean;
+  score: number;
+  explanation: string | null;
+}
+
+export interface LeaderboardRow {
+  rank: number;
+  userId: number;
+  fullName: string;
+  email: string;
+  score: number;
+  correctAnswers: number;
+  submissions: number;
+  latestSubmissionAt: string | null;
 }
 
 export interface Progress {
@@ -135,11 +162,12 @@ export interface RevenueSummary {
 
 export interface SubscriptionResponse {
   active: boolean;
+  proActive: boolean;
   expiresAt: string | null;
   daysLeft: number;
 }
 
-export type NotificationAudience = 'ALL' | 'STUDENT' | 'ADMIN';
+export type NotificationAudience = 'ALL' | 'STUDENT' | 'PAID_STUDENT' | 'ADMIN';
 export type NotificationLevel = 'INFO' | 'SUCCESS' | 'WARNING' | 'DANGER';
 
 export interface AppNotification {

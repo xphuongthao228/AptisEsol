@@ -38,8 +38,8 @@ export function VerifyEmail() {
 
   return (
     <AuthShell title="Xác nhận email" subtitle="Hoàn tất bước bảo mật trước khi đăng nhập Aptis ESOL.">
-      <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5 text-center">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white shadow-sm">{icon}</div>
+      <div className="mt-6 rounded-2xl border border-brand-100 bg-sky-50 p-5 text-center">
+        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-white shadow-soft">{icon}</div>
         <p className="mt-4 text-sm font-semibold text-slate-700">{message}</p>
       </div>
       <Link className="btn-primary mt-5 flex w-full justify-center" to="/login">Về trang đăng nhập</Link>

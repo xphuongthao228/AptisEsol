@@ -7,8 +7,11 @@ import { router } from './routes/router';
 import './styles.css';
 import type { HeartbeatResponse } from './types';
 import { useAuthStore } from './store/authStore';
+import { applyThemePreference } from './utils/theme';
 
 const VISITOR_ID_KEY = 'aptis-esol-visitor-id';
+
+applyThemePreference();
 
 function OnlineHeartbeat() {
   const accessToken = useAuthStore((state) => state.accessToken);

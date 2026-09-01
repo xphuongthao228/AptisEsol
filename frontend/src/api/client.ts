@@ -1,4 +1,4 @@
-import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+﻿import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
 import type { ApiResponse, AuthResponse } from '../types';
 
@@ -6,6 +6,7 @@ const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
 export const api = axios.create({ baseURL });
 const authApi = axios.create({ baseURL });
+const REFRESH_SKEW_SECONDS = 90;
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
   _retry?: boolean;
@@ -13,48 +14,17 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
 
 let refreshPromise: Promise<AuthResponse> | null = null;
 
-function clearAuthSession() {
-  useAuthStore.setState({
-    user: null,
-    accessToken: null,
-    refreshToken: null
-  });
-}
-
-function redirectToLogin() {
-  if (typeof window === 'undefined') return;
-  if (window.location.pathname === '/login') return;
-  window.location.replace('/login');
-}
-
-function shouldRedirectToLogin(url: string) {
-  if (url.includes('/auth/login') || url.includes('/auth/register')) return false;
-  if (url.includes('/auth/heartbeat')) return false;
-
-  const currentPath = typeof window === 'undefined' ? '' : window.location.pathname;
-  const isLearningPage =
-    currentPath.startsWith('/app/tests') ||
-    currentPath.startsWith('/app/exams') ||
-    currentPath.startsWith('/app/mock-tests');
-
-  const isLearningRequest =
-    url.includes('/tests') ||
-    url.includes('/questions') ||
-    url.includes('/submissions') ||
-    url.includes('/ai/') ||
-    url.includes('/payments/subscription/me');
-
-  return !(isLearningPage && isLearningRequest);
-}
-
-function isPublicGetRequest(config: InternalAxiosRequestConfig) {
+function isPublicRequest(config: InternalAxiosRequestConfig) {
   const method = (config.method ?? 'get').toLowerCase();
+  const url = config.url ?? '';
+  if (isPublicAuthRequest(method, url)) return true;
+  if (method === 'post' && url === '/tests/random') return true;
   if (method !== 'get') return false;
 
-  const url = config.url ?? '';
   return (
     url === '/tests' ||
     url.startsWith('/tests?') ||
+    /^\/tests\/[^/?]+/.test(url) ||
     url === '/skills' ||
     url.startsWith('/skills?') ||
     url === '/lessons' ||
@@ -63,14 +33,57 @@ function isPublicGetRequest(config: InternalAxiosRequestConfig) {
     url.startsWith('/predictions?') ||
     url === '/mock-tests' ||
     url.startsWith('/mock-tests?') ||
+    url === '/submissions/leaderboard' ||
+    url.startsWith('/submissions/leaderboard?') ||
     url === '/notifications/public' ||
     url.startsWith('/notifications/public?')
   );
 }
 
-api.interceptors.request.use((config) => {
-  const token = useAuthStore.getState().accessToken;
-  if (token && !isPublicGetRequest(config)) config.headers.Authorization = `Bearer ${token}`;
+function isPublicAuthRequest(method: string, url: string) {
+  if (url === '/auth/heartbeat' || url === '/auth/me' || url === '/auth/change-password') {
+    return false;
+  }
+
+  return url.startsWith('/auth/')
+    && (
+      method === 'get' ||
+      url === '/auth/login' ||
+      url === '/auth/register' ||
+      url === '/auth/verify-registration-otp' ||
+      url === '/auth/resend-verification' ||
+      url === '/auth/forgot-password' ||
+      url === '/auth/reset-password' ||
+      url === '/auth/refresh-token' ||
+      url === '/auth/logout'
+    );
+}
+
+api.interceptors.request.use(async (config) => {
+  if (isPublicRequest(config)) {
+    delete config.headers.Authorization;
+    return config;
+  }
+
+  const { accessToken, refreshToken } = useAuthStore.getState();
+  let token = accessToken;
+
+  if (refreshToken && (!token || shouldRefreshAccessToken(token))) {
+    try {
+      refreshPromise ??= refreshAccessToken(refreshToken);
+      const data = await refreshPromise;
+      useAuthStore.setState({
+        user: data.user,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken
+      });
+      token = data.accessToken;
+    } finally {
+      refreshPromise = null;
+    }
+  }
+
+  if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
 
@@ -79,12 +92,12 @@ api.interceptors.response.use(
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
     const status = error.response?.status;
-    const { refreshToken, accessToken, user } = useAuthStore.getState();
+    const { refreshToken } = useAuthStore.getState();
     const url = originalRequest?.url ?? '';
-    const hasSession = Boolean(accessToken || refreshToken || user);
 
     // 403 = không có quyền / hết hạn gói học. Không refresh và tuyệt đối không logout.
-    // Chỉ thử refresh khi access token thực sự bị 401.
+    // Chỉ thử refresh khi access token thực sự bị 401. Nếu refresh thất bại,
+    // giữ nguyên phiên hiện tại để admin không bị đá khỏi màn đang cập nhật.
     const canRefresh =
       status === 401 &&
       Boolean(originalRequest) &&
@@ -96,10 +109,6 @@ api.interceptors.response.use(
       !url.includes('/auth/refresh-token');
 
     if (!canRefresh || !originalRequest || !refreshToken) {
-      if (status === 401 && hasSession && shouldRedirectToLogin(url)) {
-        clearAuthSession();
-        redirectToLogin();
-      }
       return Promise.reject(error);
     }
 
@@ -120,11 +129,6 @@ api.interceptors.response.use(
       originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
       return api(originalRequest);
     } catch (refreshError) {
-      const refreshStatus = axios.isAxiosError(refreshError) ? refreshError.response?.status : undefined;
-      if ((refreshStatus === 400 || refreshStatus === 401 || refreshStatus === 403) && shouldRedirectToLogin(url)) {
-        clearAuthSession();
-        redirectToLogin();
-      }
       return Promise.reject(refreshError);
     } finally {
       refreshPromise = null;
@@ -135,6 +139,25 @@ api.interceptors.response.use(
 async function refreshAccessToken(refreshToken: string) {
   const response = await authApi.post<ApiResponse<AuthResponse>>('/auth/refresh-token', { refreshToken });
   return response.data.data;
+}
+
+function shouldRefreshAccessToken(token: string) {
+  const expiresAt = getJwtExpiresAt(token);
+  if (!expiresAt) return false;
+  return expiresAt - Date.now() <= REFRESH_SKEW_SECONDS * 1000;
+}
+
+function getJwtExpiresAt(token: string) {
+  try {
+    const [, payload] = token.split('.');
+    if (!payload) return 0;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    const parsed = JSON.parse(atob(padded));
+    return typeof parsed.exp === 'number' ? parsed.exp * 1000 : 0;
+  } catch {
+    return 0;
+  }
 }
 
 export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> {

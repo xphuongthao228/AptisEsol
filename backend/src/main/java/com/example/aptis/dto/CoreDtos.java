@@ -36,6 +36,9 @@ public class CoreDtos {
             Integer durationMinutes, TestStatus status, TestMode mode, Boolean featured, int questionCount) {
     }
 
+    public record RandomTestRequest(SkillType skill, TestMode mode, Integer questionCount) {
+    }
+
     public record LessonRequest(@NotNull SkillType skill, @NotBlank String title, String summary,
             String content, TestStatus status, LessonResourceType resourceType, String resourceUrl, String partLabel) {
     }
@@ -69,14 +72,26 @@ public class CoreDtos {
             Integer points, Integer sortOrder, Boolean featured, List<AnswerResponse> answers) {
     }
 
+    public record QuestionImportResponse(List<QuestionResponse> questions, List<TestResponse> tests) {
+    }
+
     public record SubmitAnswerRequest(@NotNull Long questionId, Long answerId, String textAnswer) {
     }
 
     public record SubmissionRequest(@NotNull Long testId, List<SubmitAnswerRequest> answers) {
     }
 
-    public record SubmissionResponse(Long id, Long testId, String testTitle, Integer totalScore, Integer maxScore,
-            LocalDateTime createdAt) {
+    public record SubmissionAnswerResponse(Long id, Long questionId, Integer questionNumber, String questionContent,
+            String topic, String selectedAnswer, String textAnswer, String correctAnswer, Boolean correct,
+            Integer score, String explanation) {
+    }
+
+    public record SubmissionResponse(Long id, Long testId, String testTitle, String skillName, Integer totalScore,
+            Integer maxScore, LocalDateTime createdAt, List<SubmissionAnswerResponse> answers) {
+    }
+
+    public record LeaderboardRowResponse(Integer rank, Long userId, String fullName, String email,
+            Long score, Long correctAnswers, Long submissions, LocalDateTime latestSubmissionAt) {
     }
 
     public record ProgressResponse(Long skillId, String skillName, Integer completedTests, Integer bestScore) {
