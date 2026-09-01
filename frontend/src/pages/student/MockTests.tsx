@@ -3683,12 +3683,9 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     };
   }, []);
 
-  const importedVisibleCards = adminCards
+  const visibleCards = adminCards
     .filter((card) => card.skill === selectedSkill)
     .sort(compareMockCards);
-  const visibleCards = importedVisibleCards.length > 0
-    ? importedVisibleCards
-    : mockCards.filter((card) => card.skill === selectedSkill);
 
   function createRandomMockTest() {
     if (!authenticated) {
