@@ -30,6 +30,12 @@ public class SubmissionController {
         return ApiResponse.ok(service.submit(auth.getName(), request));
     }
 
+    @PostMapping("/practice-score")
+    public ApiResponse<CoreDtos.SubmissionAnswerResponse> savePracticeScore(Authentication auth,
+            @Valid @RequestBody CoreDtos.PracticeScoreRequest request) {
+        return ApiResponse.ok(service.savePracticeScore(auth.getName(), request));
+    }
+
     @GetMapping("/my-results")
     public ApiResponse<List<CoreDtos.SubmissionResponse>> mine(Authentication auth) {
         return ApiResponse.ok(service.myResults(auth.getName()));

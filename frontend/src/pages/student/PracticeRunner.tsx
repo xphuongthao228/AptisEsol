@@ -412,6 +412,7 @@ export function PracticeRunner() {
     const templateResult = evaluateTemplateAnswer(mergedTemplateData, value);
     if (templateResult !== null) {
       setCheckedAnswers({ ...checkedAnswers, [activeQuestion.id]: templateResult });
+      recordPartPracticeScore(activeQuestion, templateResult, null, value);
       toast[templateResult ? 'success' : 'error'](templateResult ? 'Chính xác!' : 'Chưa đúng, xem lại các lựa chọn.');
       return;
     }
@@ -425,7 +426,18 @@ export function PracticeRunner() {
     const selectedAnswer = activeQuestion.answers.find((answer) => String(answer.id) === value);
     const isCorrect = Boolean(selectedAnswer?.correct);
     setCheckedAnswers({ ...checkedAnswers, [activeQuestion.id]: isCorrect });
+    recordPartPracticeScore(activeQuestion, isCorrect, selectedAnswer?.id ?? null, null);
     toast[isCorrect ? 'success' : 'error'](isCorrect ? 'Chính xác!' : 'Chưa đúng, xem lại đáp án đúng.');
+  }
+
+  function recordPartPracticeScore(question: Question, correct: boolean, answerId: number | null, textAnswer: string | null) {
+    if (isMockTestRunner) return;
+    void unwrap(api.post('/submissions/practice-score', {
+      questionId: question.id,
+      answerId,
+      textAnswer,
+      correct
+    })).catch(() => undefined);
   }
 
   function getCurrentAnswerValueForCheck(data: TemplateData | null, value?: string) {

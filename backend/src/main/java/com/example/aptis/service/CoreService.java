@@ -37,6 +37,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +61,7 @@ public class CoreService {
     private final LessonRepository lessons;
     private final PredictionRepository predictions;
     private final SubmissionRepository submissions;
+    private final PracticeScoreRepository practiceScores;
     private final ProgressRepository progress;
     private final MediaFileRepository mediaFiles;
     private final LeaderboardSettingsRepository leaderboardSettings;
@@ -1743,6 +1745,47 @@ public class CoreService {
         return mapper.submission(saved);
     }
 
+    @Transactional
+    public CoreDtos.SubmissionAnswerResponse savePracticeScore(String email, CoreDtos.PracticeScoreRequest request) {
+        User user = users.findByEmailAndDeletedAtIsNull(email).orElseThrow();
+        Question question = questions.findById(request.questionId())
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+        Answer selected = request.answerId() == null ? null : answers.findById(request.answerId()).orElse(null);
+        if (selected != null && !Objects.equals(selected.getQuestion().getId(), question.getId())) {
+            throw new IllegalArgumentException("Answer does not belong to this question");
+        }
+
+        boolean correct = selected != null
+                ? selected.isCorrect()
+                : Boolean.TRUE.equals(request.correct());
+        PracticeScore score = practiceScores.findByUserIdAndQuestionId(user.getId(), question.getId())
+                .orElseGet(PracticeScore::new);
+        score.setUser(user);
+        score.setQuestion(question);
+        score.setCorrect(correct);
+        score.setScore(correct ? EXAM_POINT_PER_QUESTION : 0);
+        practiceScores.save(score);
+
+        String selectedAnswer = selected == null ? null : selected.getContent();
+        String correctAnswer = question.getAnswers().stream()
+                .filter(Answer::isCorrect)
+                .map(Answer::getContent)
+                .findFirst()
+                .orElse(null);
+        return new CoreDtos.SubmissionAnswerResponse(
+                score.getId(),
+                question.getId(),
+                question.getSortOrder(),
+                question.getContent(),
+                question.getTopic(),
+                selectedAnswer,
+                request.textAnswer(),
+                correctAnswer,
+                correct,
+                score.getScore(),
+                question.getExplanation());
+    }
+
     @Transactional(readOnly = true)
     public List<CoreDtos.SubmissionResponse> myResults(String email) {
         User user = users.findByEmailAndDeletedAtIsNull(email).orElseThrow();
@@ -1756,28 +1799,48 @@ public class CoreService {
 
     @Transactional(readOnly = true)
     public List<CoreDtos.LeaderboardRowResponse> leaderboard() {
-        List<SubmissionRepository.LeaderboardProjection> rows = submissions.leaderboard(RoleName.STUDENT);
+        Map<Long, LeaderboardAccumulator> scores = new LinkedHashMap<>();
+        submissions.leaderboard(RoleName.STUDENT).forEach(row -> {
+            LeaderboardAccumulator item = scores.computeIfAbsent(row.getUserId(), id ->
+                    new LeaderboardAccumulator(row.getUserId(), row.getFullName(), row.getEmail()));
+            item.add(row.getScore(), row.getSubmissions(), row.getLatestSubmissionAt());
+        });
+        practiceScores.leaderboard(RoleName.STUDENT).forEach(row -> {
+            LeaderboardAccumulator item = scores.computeIfAbsent(row.getUserId(), id ->
+                    new LeaderboardAccumulator(row.getUserId(), row.getFullName(), row.getEmail()));
+            item.add(row.getScore(), row.getSubmissions(), row.getLatestSubmissionAt());
+        });
+
+        List<LeaderboardAccumulator> rows = scores.values().stream()
+                .filter(row -> row.score > 0)
+                .sorted(Comparator
+                        .comparingLong(LeaderboardAccumulator::score).reversed()
+                        .thenComparingLong(LeaderboardAccumulator::submissions)
+                        .thenComparing(LeaderboardAccumulator::latestSubmissionAt,
+                                Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(LeaderboardAccumulator::fullName, String.CASE_INSENSITIVE_ORDER))
+                .toList();
         List<CoreDtos.LeaderboardRowResponse> result = new ArrayList<>();
         long previousScore = Long.MIN_VALUE;
         int previousRank = 0;
         int index = 0;
 
-        for (SubmissionRepository.LeaderboardProjection row : rows) {
+        for (LeaderboardAccumulator row : rows) {
             index++;
-            long score = row.getScore() == null ? 0 : row.getScore();
+            long score = row.score();
             int rank = score == previousScore ? previousRank : index;
             previousScore = score;
             previousRank = rank;
 
             result.add(new CoreDtos.LeaderboardRowResponse(
                     rank,
-                    row.getUserId(),
-                    row.getFullName(),
-                    row.getEmail(),
+                    row.userId(),
+                    row.fullName(),
+                    row.email(),
                     score,
                     score,
-                    row.getSubmissions() == null ? 0 : row.getSubmissions(),
-                    row.getLatestSubmissionAt()));
+                    row.submissions(),
+                    row.latestSubmissionAt()));
         }
 
         return result;
@@ -1798,6 +1861,53 @@ public class CoreService {
         settings.setExamDate(request.examAt() != null ? request.examAt().toLocalDate() : request.examDate());
         LeaderboardSettings saved = leaderboardSettings.save(settings);
         return new CoreDtos.LeaderboardSettingsResponse(saved.getExamDate(), saved.getExamAt());
+    }
+
+    private static final class LeaderboardAccumulator {
+        private final Long userId;
+        private final String fullName;
+        private final String email;
+        private long score;
+        private long submissions;
+        private LocalDateTime latestSubmissionAt;
+
+        private LeaderboardAccumulator(Long userId, String fullName, String email) {
+            this.userId = userId;
+            this.fullName = fullName;
+            this.email = email;
+        }
+
+        private void add(Long score, Long submissions, LocalDateTime latestSubmissionAt) {
+            this.score += score == null ? 0 : score;
+            this.submissions += submissions == null ? 0 : submissions;
+            if (latestSubmissionAt != null && (this.latestSubmissionAt == null || latestSubmissionAt.isAfter(this.latestSubmissionAt))) {
+                this.latestSubmissionAt = latestSubmissionAt;
+            }
+        }
+
+        private Long userId() {
+            return userId;
+        }
+
+        private String fullName() {
+            return fullName;
+        }
+
+        private String email() {
+            return email;
+        }
+
+        private long score() {
+            return score;
+        }
+
+        private long submissions() {
+            return submissions;
+        }
+
+        private LocalDateTime latestSubmissionAt() {
+            return latestSubmissionAt;
+        }
     }
 
     @Transactional(readOnly = true)

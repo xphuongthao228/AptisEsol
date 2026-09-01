@@ -82,6 +82,9 @@ public class CoreDtos {
     public record SubmissionRequest(@NotNull Long testId, List<SubmitAnswerRequest> answers) {
     }
 
+    public record PracticeScoreRequest(@NotNull Long questionId, Long answerId, String textAnswer, Boolean correct) {
+    }
+
     public record SubmissionAnswerResponse(Long id, Long questionId, Integer questionNumber, String questionContent,
             String topic, String selectedAnswer, String textAnswer, String correctAnswer, Boolean correct,
             Integer score, String explanation) {

@@ -16,16 +16,16 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             select u.id as userId,
                    u.fullName as fullName,
                    u.email as email,
-                   count(sa.id) as score,
+                   coalesce(sum(s.totalScore), 0) as score,
                    count(distinct s.id) as submissions,
                    max(s.createdAt) as latestSubmissionAt
             from User u
             join u.roles r
             left join Submission s on s.user = u
-            left join SubmissionAnswer sa on sa.submission = s and sa.correct = true
             where u.deletedAt is null and r.name = :role
             group by u.id, u.fullName, u.email
-            order by count(sa.id) desc, count(distinct s.id) asc, max(s.createdAt) asc, u.fullName asc
+            having coalesce(sum(s.totalScore), 0) > 0
+            order by coalesce(sum(s.totalScore), 0) desc, count(distinct s.id) asc, max(s.createdAt) asc, u.fullName asc
             """)
     List<LeaderboardProjection> leaderboard(@Param("role") RoleName role);
 
