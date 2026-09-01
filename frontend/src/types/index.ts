@@ -129,6 +129,7 @@ export interface LeaderboardRow {
 
 export interface LeaderboardSettings {
   examDate: string | null;
+  examAt: string | null;
 }
 
 export interface Progress {

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -15,4 +16,7 @@ import java.time.LocalDate;
 public class LeaderboardSettings extends BaseEntity {
     @Column(name = "exam_date")
     private LocalDate examDate;
+
+    @Column(name = "exam_at")
+    private LocalDateTime examAt;
 }

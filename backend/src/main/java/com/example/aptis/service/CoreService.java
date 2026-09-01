@@ -1467,17 +1467,18 @@ public class CoreService {
     @Transactional(readOnly = true)
     public CoreDtos.LeaderboardSettingsResponse leaderboardSettings() {
         return leaderboardSettings.findTopByOrderByIdAsc()
-                .map(settings -> new CoreDtos.LeaderboardSettingsResponse(settings.getExamDate()))
-                .orElseGet(() -> new CoreDtos.LeaderboardSettingsResponse(null));
+                .map(settings -> new CoreDtos.LeaderboardSettingsResponse(settings.getExamDate(), settings.getExamAt()))
+                .orElseGet(() -> new CoreDtos.LeaderboardSettingsResponse(null, null));
     }
 
     @Transactional
     public CoreDtos.LeaderboardSettingsResponse updateLeaderboardSettings(CoreDtos.LeaderboardSettingsRequest request) {
         LeaderboardSettings settings = leaderboardSettings.findTopByOrderByIdAsc()
                 .orElseGet(LeaderboardSettings::new);
-        settings.setExamDate(request.examDate());
+        settings.setExamAt(request.examAt());
+        settings.setExamDate(request.examAt() != null ? request.examAt().toLocalDate() : request.examDate());
         LeaderboardSettings saved = leaderboardSettings.save(settings);
-        return new CoreDtos.LeaderboardSettingsResponse(saved.getExamDate());
+        return new CoreDtos.LeaderboardSettingsResponse(saved.getExamDate(), saved.getExamAt());
     }
 
     @Transactional(readOnly = true)

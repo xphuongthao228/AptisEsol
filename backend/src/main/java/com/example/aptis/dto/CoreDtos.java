@@ -95,10 +95,10 @@ public class CoreDtos {
             Long score, Long correctAnswers, Long submissions, LocalDateTime latestSubmissionAt) {
     }
 
-    public record LeaderboardSettingsRequest(LocalDate examDate) {
+    public record LeaderboardSettingsRequest(LocalDate examDate, LocalDateTime examAt) {
     }
 
-    public record LeaderboardSettingsResponse(LocalDate examDate) {
+    public record LeaderboardSettingsResponse(LocalDate examDate, LocalDateTime examAt) {
     }
 
     public record ProgressResponse(Long skillId, String skillName, Integer completedTests, Integer bestScore) {

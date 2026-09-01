@@ -92,6 +92,19 @@ type SpeakingScorePartPayload = {
   audioSizeBytes?: number;
 };
 
+type SpeakingPart4Topic = {
+  title: string;
+  image?: string;
+  questions: string[];
+};
+
+type SpeakingTestData = {
+  part1: string[];
+  part2: string[];
+  part3: string[];
+  part4: SpeakingPart4Topic;
+};
+
 type SidebarLink = {
   to: string;
   label: string;
@@ -610,6 +623,98 @@ function normalizeQuestionDataObject(data: Record<string, unknown>) {
         questions: Array.isArray(part.prompts) ? part.prompts : part.questions
       }));
   });
+}
+
+function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
+  const rows = parseQuestionDataArray(card?.questionData)
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .filter((item) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      const template = String(item.template ?? '').toUpperCase();
+      return !skill || skill === 'SPEAKING' || template.startsWith('SPEAKING_') || card?.skill === 'SPEAKING';
+    });
+
+  const part1 = rows.filter((item) => getSpeakingPart(item) === '1').flatMap((item) => speakingQuestionsFromItem(item));
+  const part2 = rows.filter((item) => getSpeakingPart(item) === '2').flatMap((item) => speakingQuestionsFromItem(item));
+  const part3 = rows.filter((item) => getSpeakingPart(item) === '3').flatMap((item) => speakingQuestionsFromItem(item));
+  const part4Row = rows.find((item) => getSpeakingPart(item) === '4');
+  const part4Questions = part4Row ? speakingQuestionsFromItem(part4Row) : [];
+  const part4Title = String(part4Row?.title ?? part4Row?.topic ?? part4Row?.prompt ?? '').trim();
+  const part4Image = String(part4Row?.imageUrl ?? part4Row?.image ?? part4Row?.picture ?? '').trim();
+
+  return {
+    part1: part1.length > 0 ? part1 : speakingQuestions,
+    part2: part2.length > 0 ? part2 : part2Questions,
+    part3: part3.length > 0 ? part3 : part3Questions,
+    part4: {
+      title: part4Title || part4Topic.title,
+      image: part4Image || part4Topic.image,
+      questions: part4Questions.length > 0 ? part4Questions : part4Topic.questions
+    }
+  };
+}
+
+function getSpeakingPart(item: Record<string, unknown>) {
+  const part = String(item.part ?? '').trim();
+  if (part) return part.replace(/^part\s*/i, '');
+
+  const template = String(item.template ?? '').trim().toUpperCase();
+  if (template === 'SPEAKING_PART1') return '1';
+  if (template === 'SPEAKING_PART2') return '2';
+  if (template === 'SPEAKING_PART3') return '3';
+  if (template === 'SPEAKING_PART4') return '4';
+
+  const searchableText = `${item.topic ?? ''} ${item.title ?? ''} ${item.prompt ?? ''}`.toLowerCase();
+  const partMatch = searchableText.match(/\bpart\s*([1-4])\b/);
+  if (partMatch?.[1]) return partMatch[1];
+  return '';
+}
+
+function speakingQuestionsFromItem(item: Record<string, unknown>) {
+  const items = Array.isArray(item.items) ? item.items : [];
+  const questionItems = Array.isArray(item.questions) ? item.questions : [];
+  const promptItems = Array.isArray(item.prompts) ? item.prompts : [];
+  const objectQuestions = [...items, ...questionItems, ...promptItems].flatMap((value) => {
+    if (!value || typeof value !== 'object') return [];
+    const row = value as Record<string, unknown>;
+    return [
+      row.question,
+      row.prompt,
+      row.question1,
+      row.question2,
+      row.question3
+    ].map((text) => String(text ?? '').trim()).filter(Boolean);
+  });
+  if (objectQuestions.length > 0) return objectQuestions;
+
+  const directQuestions = asStringArray(item.questions);
+  if (directQuestions.length > 0) return directQuestions;
+
+  const prompts = asStringArray(item.prompts);
+  if (prompts.length > 0) return prompts;
+
+  const itemQuestions = items.flatMap((value) => {
+    if (value && typeof value === 'object') {
+      const row = value as Record<string, unknown>;
+      return [
+        row.question,
+        row.prompt,
+        row.question1,
+        row.question2,
+        row.question3
+      ].map((text) => String(text ?? '').trim()).filter(Boolean);
+    }
+    return [String(value ?? '').trim()].filter(Boolean);
+  });
+  if (itemQuestions.length > 0) return itemQuestions;
+
+  return [
+    item.question,
+    item.prompt,
+    item.question1,
+    item.question2,
+    item.question3
+  ].map((value) => String(value ?? '').trim()).filter(Boolean);
 }
 
 function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Question[] {
@@ -1770,6 +1875,7 @@ export function MockTests() {
   const animationFrameRef = useRef<number | null>(null);
   const activeRecordingKeyRef = useRef<string | null>(null);
   const speakingSoundEnabledRef = useRef(true);
+  const activeSpeakingData = useMemo(() => getSpeakingTestDataFromCard(selectedMockCard), [selectedMockCard]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -2168,12 +2274,12 @@ export function MockTests() {
             : screen === 'part4Prompt'
               ? part4PromptSpeechText
               : screen === 'part2Question'
-                ? part2Questions[part2QuestionIndex]
+                ? activeSpeakingData.part2[part2QuestionIndex]
                 : screen === 'part3Question'
-                  ? part3Questions[part3QuestionIndex]
+                  ? activeSpeakingData.part3[part3QuestionIndex]
                   : screen === 'part4Question'
-                    ? `Topic. ${part4Topic.title}. ${part4Topic.questions.join(' ')}`
-                    : speakingQuestions[questionIndex];
+                    ? `Topic. ${activeSpeakingData.part4.title}. ${activeSpeakingData.part4.questions.join(' ')}`
+                    : activeSpeakingData.part1[questionIndex];
     setSpeechReady(false);
     if (screen === 'question') setRecordingSeconds(30);
     if (screen === 'part2Question') setRecordingSeconds(45);
@@ -2205,7 +2311,7 @@ export function MockTests() {
     window.speechSynthesis.speak(utterance);
 
     return () => window.speechSynthesis.cancel();
-  }, [part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, speakingSoundEnabled]);
+  }, [activeSpeakingData, part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, speakingSoundEnabled]);
 
   useEffect(() => {
     if ((screen !== 'question' && screen !== 'part2Question' && screen !== 'part3Question' && screen !== 'part4Question') || !speechReady) return;
@@ -2555,19 +2661,19 @@ export function MockTests() {
     };
 
     const items = [
-        ...speakingQuestions.map((question, index) => ({
+        ...activeSpeakingData.part1.map((question, index) => ({
           key: `part1-${index}`,
           title: `Speaking Part 1 - Question ${index + 1}`,
           prompt: question,
           transcript: transcriptForAi(`part1-${index}`)
         })),
-        ...part2Questions.map((question, index) => ({
+        ...activeSpeakingData.part2.map((question, index) => ({
           key: `part2-${index}`,
           title: `Speaking Part 2 - Question ${index + 1}`,
           prompt: question,
           transcript: transcriptForAi(`part2-${index}`)
         })),
-        ...part3Questions.map((question, index) => ({
+        ...activeSpeakingData.part3.map((question, index) => ({
           key: `part3-${index}`,
           title: `Speaking Part 3 - Question ${index + 1}`,
           prompt: question,
@@ -2576,7 +2682,7 @@ export function MockTests() {
         {
           key: 'part4',
           title: 'Speaking Part 4',
-          prompt: `${part4Topic.title}\n${part4Topic.questions.join('\n')}`,
+          prompt: `${activeSpeakingData.part4.title}\n${activeSpeakingData.part4.questions.join('\n')}`,
           transcript: transcriptForAi('part4')
         }
       ];
@@ -2682,7 +2788,7 @@ export function MockTests() {
     if (screen === 'prompt') setScreen('question');
     if (screen === 'question' && !speechReady) return;
     if (screen === 'question') {
-      if (questionIndex < speakingQuestions.length - 1) {
+      if (questionIndex < activeSpeakingData.part1.length - 1) {
         setQuestionIndex((value) => value + 1);
       } else {
         setPart2QuestionIndex(0);
@@ -2691,7 +2797,7 @@ export function MockTests() {
     }
     if (screen === 'part2Question' && !speechReady) return;
     if (screen === 'part2Question') {
-      if (part2QuestionIndex < part2Questions.length - 1) {
+      if (part2QuestionIndex < activeSpeakingData.part2.length - 1) {
         setPart2QuestionIndex((value) => value + 1);
       } else {
         setPart3QuestionIndex(0);
@@ -2700,7 +2806,7 @@ export function MockTests() {
     }
     if (screen === 'part3Question' && !speechReady) return;
     if (screen === 'part3Question') {
-      if (part3QuestionIndex < part3Questions.length - 1) {
+      if (part3QuestionIndex < activeSpeakingData.part3.length - 1) {
         setPart3QuestionIndex((value) => value + 1);
       } else {
         setPart4Phase('prepare');
@@ -2731,7 +2837,7 @@ export function MockTests() {
       else setScreen('prompt');
     }
     if (screen === 'complete') {
-      setQuestionIndex(speakingQuestions.length - 1);
+      setQuestionIndex(activeSpeakingData.part1.length - 1);
       setScreen('question');
     }
   }
@@ -2835,19 +2941,19 @@ export function MockTests() {
     }
 
     return [
-      ...speakingQuestions.map((question, index) => questionItem(`speaking:part1:${index + 1}`, `Part 1 - Question ${index + 1}`, question, screen === 'question' && questionIndex === index, () => {
+      ...activeSpeakingData.part1.map((question, index) => questionItem(`speaking:part1:${index + 1}`, `Part 1 - Question ${index + 1}`, question, screen === 'question' && questionIndex === index, () => {
         setQuestionIndex(index);
         setScreen('question');
       })),
-      ...part2Questions.map((question, index) => questionItem(`speaking:part2:${index + 1}`, `Part 2 - Question ${index + 1}`, question, screen === 'part2Question' && part2QuestionIndex === index, () => {
+      ...activeSpeakingData.part2.map((question, index) => questionItem(`speaking:part2:${index + 1}`, `Part 2 - Question ${index + 1}`, question, screen === 'part2Question' && part2QuestionIndex === index, () => {
         setPart2QuestionIndex(index);
         setScreen('part2Question');
       })),
-      ...part3Questions.map((question, index) => questionItem(`speaking:part3:${index + 1}`, `Part 3 - Question ${index + 1}`, question, screen === 'part3Question' && part3QuestionIndex === index, () => {
+      ...activeSpeakingData.part3.map((question, index) => questionItem(`speaking:part3:${index + 1}`, `Part 3 - Question ${index + 1}`, question, screen === 'part3Question' && part3QuestionIndex === index, () => {
         setPart3QuestionIndex(index);
         setScreen('part3Question');
       })),
-      questionItem('speaking:part4:1', 'Part 4', part4Topic.title, screen === 'part4Question' || screen === 'part4Prompt', () => {
+      questionItem('speaking:part4:1', 'Part 4', activeSpeakingData.part4.title, screen === 'part4Question' || screen === 'part4Prompt', () => {
         setPart4Phase('prepare');
         setScreen('part4Question');
       })
@@ -3078,9 +3184,9 @@ export function MockTests() {
           {screen === 'part4Prompt' && <SpeakingPrompt part={4} />}
           {screen === 'question' && (
             <SpeakingQuestion
-              question={speakingQuestions[questionIndex]}
+              question={activeSpeakingData.part1[questionIndex]}
               index={questionIndex}
-              total={speakingQuestions.length}
+              total={activeSpeakingData.part1.length}
               seconds={recordingSeconds}
               showAnswer={answerRevealOpen}
               isReading={!speechReady}
@@ -3091,9 +3197,9 @@ export function MockTests() {
           )}
           {screen === 'part2Question' && (
             <Part2Question
-              question={part2Questions[part2QuestionIndex]}
+              question={activeSpeakingData.part2[part2QuestionIndex]}
               index={part2QuestionIndex}
-              total={part2Questions.length}
+              total={activeSpeakingData.part2.length}
               seconds={recordingSeconds}
               showAnswer={answerRevealOpen}
               isReading={!speechReady}
@@ -3105,9 +3211,9 @@ export function MockTests() {
           )}
           {screen === 'part3Question' && (
             <Part3Question
-              question={part3Questions[part3QuestionIndex]}
+              question={activeSpeakingData.part3[part3QuestionIndex]}
               index={part3QuestionIndex}
-              total={part3Questions.length}
+              total={activeSpeakingData.part3.length}
               seconds={recordingSeconds}
               showAnswer={answerRevealOpen}
               isReading={!speechReady}
@@ -3119,6 +3225,7 @@ export function MockTests() {
           )}
           {screen === 'part4Question' && (
             <Part4Question
+              topic={activeSpeakingData.part4}
               phase={part4Phase}
               seconds={recordingSeconds}
               showAnswer={answerRevealOpen}
@@ -3133,7 +3240,7 @@ export function MockTests() {
             <SpeakingDraftPanel
               level={speakingDraftLevel}
               part={screen === 'part2Question' ? 2 : screen === 'part3Question' ? 3 : 4}
-              question={screen === 'part2Question' ? part2Questions[part2QuestionIndex] : screen === 'part3Question' ? part3Questions[part3QuestionIndex] : part4Topic.title}
+              question={screen === 'part2Question' ? activeSpeakingData.part2[part2QuestionIndex] : screen === 'part3Question' ? activeSpeakingData.part3[part3QuestionIndex] : activeSpeakingData.part4.title}
               questionIndex={screen === 'part2Question' ? part2QuestionIndex : screen === 'part3Question' ? part3QuestionIndex : 0}
               text={speakingDraftText}
               onClose={() => setSpeakingDraftOpen(false)}
@@ -7041,7 +7148,7 @@ function Part3Question({ question, index, total, seconds, showAnswer, isReading,
   );
 }
 
-function Part4Question({ phase, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { phase: Part4Phase; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
+function Part4Question({ topic, phase, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { topic: SpeakingPart4Topic; phase: Part4Phase; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
   const isPreparing = phase === 'prepare';
 
   return (
@@ -7087,21 +7194,23 @@ function Part4Question({ phase, seconds, showAnswer, isReading, microphoneLevel,
               padding: '26px 26px 24px'
             }}
           >
-            <h3 style={{ color: '#020817', fontSize: 22, fontWeight: 900, margin: 0 }}>Topic: {part4Topic.title}</h3>
-            <img
-              src={part4Topic.image}
-              alt="Receiving a gift"
-              style={{
-                display: 'block',
-                width: 'min(560px, 100%)',
-                height: 280,
-                objectFit: 'cover',
-                borderRadius: 12,
-                marginTop: 20
-              }}
-            />
+            <h3 style={{ color: '#020817', fontSize: 22, fontWeight: 900, margin: 0 }}>Topic: {topic.title}</h3>
+            {topic.image && (
+              <img
+                src={topic.image}
+                alt={topic.title}
+                style={{
+                  display: 'block',
+                  width: 'min(560px, 100%)',
+                  height: 280,
+                  objectFit: 'cover',
+                  borderRadius: 12,
+                  marginTop: 20
+                }}
+              />
+            )}
             <div style={{ marginTop: 20, color: '#26324a', fontSize: 18, lineHeight: '32px' }}>
-              {part4Topic.questions.map((question) => (
+              {topic.questions.map((question) => (
                 <p key={question} style={{ margin: 0 }}>&middot; {question}</p>
               ))}
             </div>
