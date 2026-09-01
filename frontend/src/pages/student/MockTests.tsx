@@ -756,7 +756,7 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
 
   const gapRows = rows.filter((item) => getReadingPart(item) === '1');
   const gaps = gapRows.flatMap((item) => readingGapRowsFromItem(item))
-    .filter((item) => item.options.length > 0 && item.answer);
+    .filter((item) => item.options.length > 0 && (item.prompt || item.questionStart || item.questionEnd));
 
   const cohesionRows = rows.filter((item) => ['2', '3'].includes(getReadingPart(item))
     || String(item.template ?? '').trim().toUpperCase() === 'READING_SENTENCE_ORDER');
@@ -828,15 +828,30 @@ function getReadingPart(item: Record<string, unknown>) {
 function readingGapRowsFromItem(item: Record<string, unknown>): ReadingGapQuestion[] {
   const nestedRows = Array.isArray(item.rows) ? item.rows : [];
   if (nestedRows.length > 0) {
+    const sharedOptions = asStringArray(item.answerOptions).length > 0 ? asStringArray(item.answerOptions) : asStringArray(item.options);
+    const correctAnswers = asStringArray(item.correctAnswers);
     return nestedRows
-      .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === 'object'))
-      .map((row) => ({
-        prompt: String(row.prompt ?? '').trim() || undefined,
-        questionStart: String(row.questionStart ?? '').trim() || undefined,
-        questionEnd: String(row.questionEnd ?? '').trim() || undefined,
-        options: asStringArray(row.answerOptions).length > 0 ? asStringArray(row.answerOptions) : asStringArray(row.options),
-        answer: String(row.correctAnswer ?? row.answer ?? '').trim()
-      }));
+      .map((row, index) => {
+        if (row && typeof row === 'object') {
+          const rowData = row as Record<string, unknown>;
+          return {
+            prompt: String(rowData.prompt ?? '').trim() || undefined,
+            questionStart: String(rowData.questionStart ?? '').trim() || undefined,
+            questionEnd: String(rowData.questionEnd ?? '').trim() || undefined,
+            options: asStringArray(rowData.answerOptions).length > 0 ? asStringArray(rowData.answerOptions) : asStringArray(rowData.options).length > 0 ? asStringArray(rowData.options) : sharedOptions,
+            answer: String(rowData.correctAnswer ?? rowData.answer ?? correctAnswers[index] ?? '').trim()
+          };
+        }
+
+        const parts = String(row ?? '').split(/_{2,}/);
+        return {
+          prompt: String(row ?? '').trim() || undefined,
+          questionStart: (parts[0] ?? '').trim(),
+          questionEnd: parts.slice(1).join('___').trim(),
+          options: sharedOptions,
+          answer: correctAnswers[index] ?? ''
+        };
+      });
   }
 
   return [{
@@ -851,6 +866,9 @@ function readingGapRowsFromItem(item: Record<string, unknown>): ReadingGapQuesti
 function readingCorrectOrderFromItem(item?: Record<string, unknown>) {
   const correctSentences = asStringArray(item?.correctSentences);
   if (correctSentences.length > 0) return correctSentences;
+
+  const sentences = asStringArray(item?.sentences);
+  if (sentences.length > 0) return sentences;
 
   const items = Array.isArray(item?.items) ? item?.items : [];
   return items.map((item) => {
