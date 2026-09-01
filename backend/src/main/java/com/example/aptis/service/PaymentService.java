@@ -51,7 +51,7 @@ public class PaymentService {
     @Value("${app.payment.sepay-webhook-token:}")
     private String sepayWebhookToken;
 
-    @Value("${app.subscription.free-trial-days:1}")
+    @Value("${app.subscription.free-trial-days:0}")
     private int freeTrialDays;
 
     @Transactional
@@ -166,11 +166,6 @@ public class PaymentService {
             return true;
         }
 
-        LocalDateTime expiresAt = effectiveAccessExpiresAt(user);
-        if (expiresAt == null || !expiresAt.isAfter(LocalDateTime.now())) {
-            return false;
-        }
-
         return tests.findBySkillIdAndModeAndStatusAndDeletedAtIsNullOrderByIdAsc(
                 test.getSkill().getId(), TestMode.EXAM, TestStatus.PUBLISHED)
                 .stream()
@@ -244,7 +239,9 @@ public class PaymentService {
     }
 
     private LocalDateTime effectiveAccessExpiresAt(User user) {
-        LocalDateTime trialExpiresAt = user.getCreatedAt() == null ? null : user.getCreatedAt().plusDays(freeTrialDays);
+        LocalDateTime trialExpiresAt = freeTrialDays > 0 && user.getCreatedAt() != null
+                ? user.getCreatedAt().plusDays(freeTrialDays)
+                : null;
         LocalDateTime proExpiresAt = user.getProExpiresAt();
 
         if (trialExpiresAt == null)

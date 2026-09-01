@@ -19,12 +19,14 @@ import java.util.stream.Collectors;
 public class DtoMapper {
     private static final int EXAM_POINT_PER_QUESTION = 2;
 
-    @Value("${app.subscription.free-trial-days:2}")
+    @Value("${app.subscription.free-trial-days:0}")
     private int freeTrialDays;
 
     public AuthDtos.UserResponse user(User user) {
         Set<RoleName> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
-        LocalDateTime trialExpiresAt = user.getCreatedAt() == null ? null : user.getCreatedAt().plusDays(freeTrialDays);
+        LocalDateTime trialExpiresAt = freeTrialDays > 0 && user.getCreatedAt() != null
+                ? user.getCreatedAt().plusDays(freeTrialDays)
+                : null;
         LocalDateTime proExpiresAt = user.getProExpiresAt();
         LocalDateTime accessExpiresAt = proExpiresAt;
         if (accessExpiresAt == null || (trialExpiresAt != null && trialExpiresAt.isAfter(accessExpiresAt))) {

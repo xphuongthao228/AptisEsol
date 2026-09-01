@@ -115,7 +115,7 @@ function resolveAccess(
   const test = tests.find((item) => item.id === testId);
   if (!test || test.mode !== 'EXAM' || test.status !== 'PUBLISHED') return false;
   if (isRandomTest(test)) return true;
-  if (requirePro || !subscription.active) return false;
+  if (requirePro) return false;
 
   const skill = normalizeSkill(test.skillName);
   const freeTests = tests

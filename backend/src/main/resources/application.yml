@@ -45,7 +45,7 @@ app:
     gas-secret: ${GAS_MAIL_SECRET:}
 
   subscription:
-    free-trial-days: ${FREE_TRIAL_DAYS:1}
+    free-trial-days: ${FREE_TRIAL_DAYS:0}
 
   seed:
     admin-email: ${SEED_ADMIN_EMAIL:admin@aptis.com}

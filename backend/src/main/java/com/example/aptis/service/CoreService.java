@@ -64,7 +64,7 @@ public class CoreService {
     @Value("${app.upload-dir}")
     private String uploadDir;
 
-    @Value("${app.subscription.free-trial-days:1}")
+    @Value("${app.subscription.free-trial-days:0}")
     private int freeTrialDays;
 
     public List<AuthDtos.UserResponse> users() {
@@ -96,7 +96,9 @@ public class CoreService {
     }
 
     private LocalDateTime effectiveAccessExpiresAt(User user) {
-        LocalDateTime trialExpiresAt = user.getCreatedAt() == null ? null : user.getCreatedAt().plusDays(freeTrialDays);
+        LocalDateTime trialExpiresAt = freeTrialDays > 0 && user.getCreatedAt() != null
+                ? user.getCreatedAt().plusDays(freeTrialDays)
+                : null;
         LocalDateTime proExpiresAt = user.getProExpiresAt();
 
         if (trialExpiresAt == null)
