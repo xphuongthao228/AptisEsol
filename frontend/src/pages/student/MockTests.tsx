@@ -612,6 +612,27 @@ function mergeStoredFeatured(cards: MockCard[]) {
   });
 }
 
+function mergeMockCardsByIdentity(cards: MockCard[]) {
+  const merged = new Map<string, MockCard>();
+  cards.forEach((card) => {
+    const id = card.id.replace(/^(api|admin|test)-/, '');
+    const key = `${card.skill}|${card.title.trim().toLowerCase()}|${id}`;
+    const titleKey = `${card.skill}|${card.title.trim().toLowerCase()}`;
+    if (!merged.has(key)) {
+      merged.set(key, card);
+      return;
+    }
+
+    const current = merged.get(key);
+    merged.set(key, current?.practiceTestId && !card.practiceTestId ? current : { ...current, ...card });
+    merged.set(titleKey, merged.get(key) ?? card);
+  });
+
+  return [...merged.values()].filter((card, index, all) =>
+    all.findIndex((item) => item.skill === card.skill && item.title.trim().toLowerCase() === card.title.trim().toLowerCase()) === index
+  );
+}
+
 function compareMockCards(left: MockCard, right: MockCard) {
   const featuredCompare = Number(Boolean(right.featured)) - Number(Boolean(left.featured));
   if (featuredCompare !== 0) return featuredCompare;
@@ -3667,7 +3688,8 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
         .then(async ([mockTests, tests]) => {
           const mockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
           const examCards = await apiExamTestsToCards(tests);
-          const cards = mergeStoredFeatured([...mockCards, ...examCards]);
+          const localCards = loadPublishedAdminMockCards();
+          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...mockCards, ...examCards, ...localCards]));
           setAdminCards(cards);
         })
         .catch(() => setAdminCards(loadPublishedAdminMockCards()));
