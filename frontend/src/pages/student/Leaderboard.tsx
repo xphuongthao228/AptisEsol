@@ -14,14 +14,14 @@ const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
 export function Leaderboard() {
   const { data, loading, error } = useApi<LeaderboardRow[]>(() => unwrap(api.get('/submissions/leaderboard')), []);
   const [query, setQuery] = useState('');
-  const [examAt, setExamAt] = useState('');
-  const [savingExamAt, setSavingExamAt] = useState(false);
+  const [examDate, setExamDate] = useState('');
+  const [savingExamDate, setSavingExamDate] = useState(false);
   const user = useAuthStore((state) => state.user);
   const isAdmin = userHasRole(user, 'ADMIN');
 
   useEffect(() => {
     unwrap<LeaderboardSettings>(api.get('/submissions/leaderboard/settings'))
-      .then((settings) => setExamAt(toDateTimeInputValue(settings.examAt, settings.examDate)))
+      .then((settings) => setExamDate(toDateInputValue(settings.examAt, settings.examDate)))
       .catch(() => undefined);
   }, []);
 
@@ -33,19 +33,19 @@ export function Leaderboard() {
   }, [query, rows]);
   const topThree = rows.slice(0, 3);
 
-  async function saveExamAt() {
-    setSavingExamAt(true);
+  async function saveExamDate() {
+    setSavingExamDate(true);
     try {
       const saved = await unwrap<LeaderboardSettings>(api.put('/submissions/leaderboard/settings', {
-        examAt: examAt ? `${examAt}:00` : null,
-        examDate: examAt ? examAt.slice(0, 10) : null
+        examAt: null,
+        examDate: examDate || null
       }));
-      setExamAt(toDateTimeInputValue(saved.examAt, saved.examDate));
+      setExamDate(toDateInputValue(saved.examAt, saved.examDate));
       toast.success('Đã cập nhật ngày thi');
     } catch (saveError) {
       toast.error(saveError instanceof Error ? saveError.message : 'Không lưu được ngày thi');
     } finally {
-      setSavingExamAt(false);
+      setSavingExamDate(false);
     }
   }
 
@@ -84,24 +84,24 @@ export function Leaderboard() {
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-extrabold text-navy">Thời gian thi</h2>
             <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-              {examAt ? formatDateTime(examAt) : 'Admin chưa đặt thời gian thi.'}
+              {examDate ? formatDateOnly(examDate) : 'Admin chưa đặt thời gian thi.'}
             </p>
             {isAdmin && (
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                 <input
-                  type="datetime-local"
-                  value={examAt}
-                  onChange={(event) => setExamAt(event.target.value)}
+                  type="date"
+                  value={examDate}
+                  onChange={(event) => setExamDate(event.target.value)}
                   className="h-10 rounded-lg border border-brand-100 bg-white px-3 text-sm font-bold text-navy outline-none focus:border-brand-400 focus:ring-4 focus:ring-brand-100"
                 />
                 <button
                   type="button"
-                  onClick={saveExamAt}
-                  disabled={savingExamAt}
+                  onClick={saveExamDate}
+                  disabled={savingExamDate}
                   className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-extrabold text-white transition hover:bg-brand-700 disabled:opacity-70"
                 >
                   <Save size={16} />
-                  {savingExamAt ? 'Đang lưu...' : 'Lưu'}
+                  {savingExamDate ? 'Đang lưu...' : 'Lưu'}
                 </button>
               </div>
             )}
@@ -268,19 +268,18 @@ function formatDate(value: string | null) {
   }).format(date);
 }
 
-function toDateTimeInputValue(examAt?: string | null, examDate?: string | null) {
-  const value = examAt || (examDate ? `${examDate}T00:00:00` : '');
+function toDateInputValue(examAt?: string | null, examDate?: string | null) {
+  const value = examDate || examAt || '';
   if (!value) return '';
-  return value.slice(0, 16);
+  return value.slice(0, 10);
 }
 
-function formatDateTime(value: string | null) {
+function formatDateOnly(value: string | null) {
   if (!value) return 'Admin chưa đặt thời gian thi.';
-  const date = new Date(value);
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  const date = year && month && day ? new Date(year, month - 1, day) : new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric'
