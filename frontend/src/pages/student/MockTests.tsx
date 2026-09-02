@@ -170,6 +170,23 @@ type ListeningPart1Question = {
   correctAnswer?: string;
 };
 
+type ListeningMatchingData = {
+  prompt: string;
+  options: string[];
+  speakers: string[];
+  answerKey: Record<string, string>;
+  audioUrl?: string;
+};
+
+type ListeningShortData = {
+  topic: string;
+  prompt: string;
+  statements: string[];
+  options: string[];
+  answerKey: string[];
+  audioUrl?: string;
+};
+
 type ReadingGapQuestion = {
   prompt?: string;
   questionStart?: string;
@@ -896,6 +913,7 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
     .filter((item): item is Record<string, unknown> => item && typeof item === 'object')
     .filter((item) => {
       const skill = String(item.skill ?? '').toUpperCase();
+      const template = String(item.template ?? '').trim().toUpperCase();
       const part = String(item.part ?? '').trim().toLowerCase();
       const section = String(item.section ?? '').trim().toLowerCase();
 
@@ -905,7 +923,7 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
         ? part === '1' || part === 'part1'
         : !section || section === 'q1_13';
 
-      return (!skill || skill === 'LISTENING') && isPart1;
+      return (!skill || skill === 'LISTENING') && isPart1 && !['LISTENING_PEOPLE_MATCH', 'LISTENING_OPINION_MATCH'].includes(template);
     })
     .reduce<ListeningPart1Question[]>((questions, item) => {
       const options = listeningOptionsFromItem(item);
@@ -920,6 +938,83 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
       });
       return questions;
     }, []);
+}
+
+function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatchingData {
+  const rows = parseQuestionDataArray(card?.questionData)
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .filter((item) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      const template = String(item.template ?? '').trim().toUpperCase();
+      const part = String(item.part ?? '').trim().toLowerCase().replace(/^part\s*/, '');
+      const section = String(item.section ?? '').trim().toLowerCase();
+      return (!skill || skill === 'LISTENING') && (template === 'LISTENING_PEOPLE_MATCH' || part === '2' || section === 'q14');
+    });
+
+  const row = rows[0];
+  if (!row) {
+    return {
+      prompt: 'Protect the environment',
+      options: listeningMatchingOptions,
+      speakers: ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'],
+      answerKey: listeningMatchingAnswerKey
+    };
+  }
+
+  const options = asStringArray(row.options).length > 0 ? asStringArray(row.options) : listeningOptionsFromItem(row);
+  const speakers = asStringArray(row.rows).length > 0 ? asStringArray(row.rows) : ['Speaker A', 'Speaker B', 'Speaker C', 'Speaker D'];
+  const correctAnswers = asStringArray(row.correctAnswers);
+  const answerKey = speakers.reduce<Record<string, string>>((result, speaker, index) => {
+    result[speaker] = correctAnswers[index] ?? '';
+    return result;
+  }, {});
+
+  return {
+    prompt: String(row.topic ?? row.prompt ?? row.content ?? 'Protect the environment').trim(),
+    options: options.length > 0 ? options : listeningMatchingOptions,
+    speakers,
+    answerKey,
+    audioUrl: listeningAudioUrlsFromItem(row)[0] || undefined
+  };
+}
+
+function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortData {
+  const rows = parseQuestionDataArray(card?.questionData)
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .filter((item) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      const template = String(item.template ?? '').trim().toUpperCase();
+      const part = String(item.part ?? '').trim().toLowerCase().replace(/^part\s*/, '');
+      const section = String(item.section ?? '').trim().toLowerCase();
+      return (!skill || skill === 'LISTENING') && (template === 'LISTENING_OPINION_MATCH' || part === '3' || section === 'q15');
+    });
+
+  const row = rows[0];
+  if (!row) {
+    return {
+      topic: 'There is too much information on the Internet',
+      prompt: 'Who expresses which opinion?',
+      statements: listeningShortStatements,
+      options: listeningSpeakerOptions,
+      answerKey: listeningShortAnswerKey
+    };
+  }
+
+  const statements = asStringArray(row.statements).length > 0
+    ? asStringArray(row.statements)
+    : splitLines(String(row.content ?? row.prompt ?? '')).filter(Boolean);
+  const options = asStringArray(row.options).length > 0 ? asStringArray(row.options) : listeningOptionsFromItem(row);
+  const correctAnswers = asStringArray(row.correctAnswers);
+  const directCorrectAnswer = listeningCorrectAnswerFromItem(row);
+
+  return {
+    topic: String(row.topic ?? row.title ?? 'Listening Part 3').trim(),
+    prompt: String(row.instructions ?? (statements.length > 1 ? 'Who expresses which opinion?' : '')).trim(),
+    statements: statements.length > 0 ? statements : listeningShortStatements,
+    options: options.length > 0 ? options : listeningSpeakerOptions,
+    answerKey: correctAnswers.length > 0 ? correctAnswers : directCorrectAnswer ? [directCorrectAnswer] : listeningShortAnswerKey,
+    audioUrl: listeningAudioUrlsFromItem(row)[0] || undefined
+  };
 }
 
 function listeningOptionsFromItem(item: Record<string, unknown>) {
@@ -944,7 +1039,10 @@ function listeningOptionsFromItem(item: Record<string, unknown>) {
     item.optionD,
     item.answer1,
     item.answer2,
-    item.answer3
+    item.answer3,
+    item.answer4,
+    item.answer5,
+    item.answer6
   ].map((option) => String(option ?? '').trim()).filter(Boolean);
 }
 
@@ -1018,6 +1116,13 @@ function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): s
 function stringValue(value: unknown) {
   if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
   return '';
+}
+
+function splitLines(value: string) {
+  return value
+    .split(/\r?\n|[;|]/)
+    .map((line) => line.replace(/^\s*(?:\d+[\).:-]?|[-*])\s*/, '').trim())
+    .filter(Boolean);
 }
 
 function listeningAudioByPartFromCard(card?: MockCard | null) {
@@ -2047,21 +2152,25 @@ function scoreListeningAnswers(
   matchingAnswers: Record<string, string>,
   shortAnswers: Record<number, string>,
   monologueAnswers: Record<string, string>,
-  part1AnswerKey: string[] = listeningPart1AnswerKey
+  part1AnswerKey: string[] = listeningPart1AnswerKey,
+  matchingAnswerKey: Record<string, string> = listeningMatchingAnswerKey,
+  shortAnswerKey: string[] = listeningShortAnswerKey
 ): SkillScoreSummary {
   const part1Correct = part1AnswerKey.filter((answer, index) => sameAnswer(part1Answers[index], answer)).length;
-  const matchingCorrect = Object.entries(listeningMatchingAnswerKey).filter(([speaker, answer]) => sameAnswer(matchingAnswers[speaker], answer)).length;
-  const shortCorrect = listeningShortAnswerKey.filter((answer, index) => sameAnswer(shortAnswers[index], answer)).length;
+  const matchingCorrect = Object.entries(matchingAnswerKey).filter(([speaker, answer]) => sameAnswer(matchingAnswers[speaker], answer)).length;
+  const shortCorrect = shortAnswerKey.filter((answer, index) => sameAnswer(shortAnswers[index], answer)).length;
   const monologueCorrect = Object.entries(listeningMonologueAnswerKey).filter(([key, answer]) => sameAnswer(monologueAnswers[key], answer)).length;
   const rows = [
     { part: 'Part 1 - Word Recognition', correct: `${part1Correct}/${part1AnswerKey.length}`, score: `${scoreFromCorrect(part1Correct, part1AnswerKey.length, 26)}/26` },
-    { part: 'Part 2 - Matching Information', correct: `${matchingCorrect}/4`, score: `${scoreFromCorrect(matchingCorrect, 4, 8)}/8` },
-    { part: 'Part 3 - Short Conversations', correct: `${shortCorrect}/4`, score: `${scoreFromCorrect(shortCorrect, 4, 8)}/8` },
+    { part: 'Part 2 - Matching Information', correct: `${matchingCorrect}/${Object.keys(matchingAnswerKey).length || 4}`, score: `${scoreFromCorrect(matchingCorrect, Object.keys(matchingAnswerKey).length || 4, 8)}/8` },
+    { part: 'Part 3 - Short Conversations', correct: `${shortCorrect}/${shortAnswerKey.length || 4}`, score: `${scoreFromCorrect(shortCorrect, shortAnswerKey.length || 4, 8)}/8` },
     { part: 'Part 4 - Monologues', correct: `${monologueCorrect}/4`, score: `${scoreFromCorrect(monologueCorrect, 4, 8)}/8` }
   ];
   const correct = part1Correct + matchingCorrect + shortCorrect + monologueCorrect;
-  const total = part1AnswerKey.length + 12;
-  const score = scoreFromCorrect(part1Correct, part1AnswerKey.length, 26) + scoreFromCorrect(matchingCorrect, 4, 8) + scoreFromCorrect(shortCorrect, 4, 8) + scoreFromCorrect(monologueCorrect, 4, 8);
+  const matchingTotal = Object.keys(matchingAnswerKey).length || 4;
+  const shortTotal = shortAnswerKey.length || 4;
+  const total = part1AnswerKey.length + matchingTotal + shortTotal + 4;
+  const score = scoreFromCorrect(part1Correct, part1AnswerKey.length, 26) + scoreFromCorrect(matchingCorrect, matchingTotal, 8) + scoreFromCorrect(shortCorrect, shortTotal, 8) + scoreFromCorrect(monologueCorrect, 4, 8);
   return { correct, total, score: clampScore50(score), maxScore: 50, cefr: cefrFromListeningCorrect25(correctToAptis25(correct, total)), rows };
 }
 
@@ -3141,8 +3250,10 @@ export function MockTests() {
     return fromAdmin.length > 0 ? fromAdmin : listeningPart1Questions;
   }, [selectedMockCard]);
   const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
+  const activeListeningMatchingData = useMemo(() => getListeningMatchingDataFromCard(selectedMockCard), [selectedMockCard]);
+  const activeListeningShortData = useMemo(() => getListeningShortDataFromCard(selectedMockCard), [selectedMockCard]);
   const activeListeningAudioByPart = useMemo(() => listeningAudioByPartFromCard(selectedMockCard), [selectedMockCard]);
-  const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey);
+  const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey, activeListeningMatchingData.answerKey, activeListeningShortData.answerKey);
   const activeGrammarQuestions = useMemo(() => grammarQuestionsFromCard(selectedMockCard), [selectedMockCard]);
   const grammarSummary = scoreGrammarAnswers(grammarAnswers, activeGrammarQuestions);
   const activeWritingParts = useMemo(() => writingPartsFromCard(selectedMockCard), [selectedMockCard]);
@@ -3417,6 +3528,7 @@ export function MockTests() {
               audioUrl={activeListeningAudioByPart['2']}
               answers={listeningMatchingAnswers}
               bookmarkActive={isBookmarked(bookmarkKey('listening-part2', 1))}
+              data={activeListeningMatchingData}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
               onAnswer={(speaker, answer) => setListeningMatchingAnswers((currentAnswers) => ({ ...currentAnswers, [speaker]: answer }))}
@@ -3428,6 +3540,7 @@ export function MockTests() {
               audioUrl={activeListeningAudioByPart['3']}
               answers={listeningShortAnswers}
               bookmarkActive={isBookmarked(bookmarkKey('listening-part3', 1))}
+              data={activeListeningShortData}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
               onAnswer={(index, answer) => setListeningShortAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))}
@@ -5315,6 +5428,7 @@ function ListeningMatching({
   audioUrl,
   answers,
   bookmarkActive,
+  data,
   showAnswer,
   timeRemaining,
   onAnswer,
@@ -5323,13 +5437,15 @@ function ListeningMatching({
   audioUrl?: string;
   answers: Record<string, string>;
   bookmarkActive: boolean;
+  data: ListeningMatchingData;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (speaker: string, answer: string) => void;
   onToggleBookmark: () => void;
 }) {
-  const speakers = ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'];
-  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
+  const speakers = data.speakers.length > 0 ? data.speakers : ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'];
+  const options = data.options.length > 0 ? data.options : listeningMatchingOptions;
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl || data.audioUrl);
 
   return (
     <main
@@ -5372,7 +5488,7 @@ function ListeningMatching({
 
         <div style={{ marginTop: 58 }}>
           <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>
-            Listen to four people and match each person to the correct information.
+            {data.prompt}
           </p>
           <button
             type="button"
@@ -5396,13 +5512,13 @@ function ListeningMatching({
             {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
           </button>
 
-          <div style={{ display: 'grid', gap: 14, marginTop: 26, width: 'min(625px, 100%)' }}>
-            {speakers.map((speaker, index) => (
+          <div style={{ display: 'grid', gap: 14, marginTop: 26, width: 'min(695px, 100%)' }}>
+            {speakers.map((speaker) => (
               <label
                 key={speaker}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '104px 1fr',
+                  gridTemplateColumns: '116px 1fr',
                   alignItems: 'center',
                   gap: 18,
                   color: '#020817',
@@ -5415,25 +5531,25 @@ function ListeningMatching({
                   value={answers[speaker] ?? ''}
                   onChange={(event) => onAnswer(speaker, event.target.value)}
                   style={{
-                    height: 38,
+                    height: 40,
                     width: '100%',
-                    borderRadius: 4,
+                    borderRadius: 5,
                     border: '1px solid #dce3ee',
                     backgroundColor: '#ffffff',
                     padding: '0 12px',
                     color: '#020817',
-                    fontSize: 15,
+                    fontSize: 16,
                     outline: 'none'
                   }}
                 >
                   <option value=""></option>
-                  {listeningMatchingOptions.map((option) => (
+                  {options.map((option) => (
                     <option key={option} value={option}>{option}</option>
                   ))}
                 </select>
                 {showAnswer && (
                   <span style={{ gridColumn: '2', color: '#1e3a8a', fontSize: 14, lineHeight: '20px' }}>
-                    <b>Đáp án:</b> {listeningMatchingAnswerKey[speaker] ?? 'Chưa có đáp án mẫu'}
+                    <b>Đáp án:</b> {data.answerKey[speaker] ?? 'Chưa có đáp án mẫu'}
                   </span>
                 )}
               </label>
@@ -5449,6 +5565,7 @@ function ListeningShortConversations({
   audioUrl,
   answers,
   bookmarkActive,
+  data,
   showAnswer,
   timeRemaining,
   onAnswer,
@@ -5457,12 +5574,15 @@ function ListeningShortConversations({
   audioUrl?: string;
   answers: Record<number, string>;
   bookmarkActive: boolean;
+  data: ListeningShortData;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (index: number, answer: string) => void;
   onToggleBookmark: () => void;
 }) {
-  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
+  const statements = data.statements.length > 0 ? data.statements : listeningShortStatements;
+  const options = data.options.length > 0 ? data.options : listeningSpeakerOptions;
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl || data.audioUrl);
 
   return (
     <main
@@ -5475,8 +5595,8 @@ function ListeningShortConversations({
       <section style={{ width: 'min(820px, 100%)', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
-            <p style={{ color: '#020817', fontSize: 20, fontWeight: 500, margin: 0 }}>Listening</p>
-            <h2 style={{ color: '#020817', fontSize: 34, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question 1 of 1</h2>
+            <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 3</p>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question 1 of 1</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -5504,7 +5624,7 @@ function ListeningShortConversations({
         </div>
 
         <div style={{ marginTop: 52 }}>
-          <p style={{ color: '#020817', fontSize: 19, lineHeight: '28px', margin: 0 }}>There is too much information on the Internet</p>
+          {data.topic && <p style={{ color: '#020817', fontSize: 19, lineHeight: '28px', margin: 0 }}>{data.topic}</p>}
           <button
             type="button"
             onClick={toggleAudio}
@@ -5527,15 +5647,15 @@ function ListeningShortConversations({
             {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
           </button>
 
-          <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: '44px 0 30px' }}>Who expresses which opinion?</p>
+          {data.prompt && <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: '44px 0 30px' }}>{data.prompt}</p>}
 
-          <div style={{ display: 'grid', gap: 28, width: 'min(590px, 100%)' }}>
-            {listeningShortStatements.map((statement, index) => (
+          <div style={{ display: 'grid', gap: 28, width: 'min(650px, 100%)' }}>
+            {statements.map((statement, statementIndex) => (
               <label
                 key={statement}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 116px',
+                  gridTemplateColumns: '1fr 128px',
                   alignItems: 'center',
                   gap: 16,
                   color: '#020817',
@@ -5544,13 +5664,13 @@ function ListeningShortConversations({
                   fontWeight: 400
                 }}
               >
-                <span>{index + 1}. {statement}</span>
+                <span>{statementIndex + 1}. {statement}</span>
                 <select
-                  value={answers[index] ?? ''}
-                  onChange={(event) => onAnswer(index, event.target.value)}
+                  value={answers[statementIndex] ?? ''}
+                  onChange={(event) => onAnswer(statementIndex, event.target.value)}
                   style={{
-                    height: 36,
-                    width: 116,
+                    height: 40,
+                    width: 128,
                     borderRadius: 12,
                     border: '1px solid #dce3ee',
                     backgroundColor: '#ffffff',
@@ -5561,13 +5681,13 @@ function ListeningShortConversations({
                   }}
                 >
                   <option value=""></option>
-                  {listeningSpeakerOptions.map((option) => (
+                  {options.map((option) => (
                     <option key={option} value={option}>{option}</option>
                   ))}
                 </select>
                 {showAnswer && (
                   <span style={{ gridColumn: '1 / -1', color: '#1e3a8a', fontSize: 14, lineHeight: '20px' }}>
-                    <b>Đáp án:</b> {listeningShortAnswerKey[index] ?? 'Chưa có đáp án mẫu'}
+                    <b>Đáp án:</b> {data.answerKey[statementIndex] ?? 'Chưa có đáp án mẫu'}
                   </span>
                 )}
               </label>

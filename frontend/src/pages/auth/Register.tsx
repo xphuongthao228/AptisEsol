@@ -9,7 +9,11 @@ import { AuthShell } from './AuthShell';
 
 function otpErrorMessage(error: any, fallback: string) {
   if (!error?.response) {
-    return 'Không kết nối được backend OTP. Hãy kiểm tra backend có đang chạy ở http://localhost:8080 không.';
+    return 'Không thể kết nối hệ thống. Vui lòng thử lại sau.';
+  }
+
+  if (error.response.status === 401 || error.response.status >= 500) {
+    return 'Không thể gửi mã OTP lúc này. Vui lòng thử lại sau.';
   }
 
   return error.response.data?.message ?? error.message ?? fallback;

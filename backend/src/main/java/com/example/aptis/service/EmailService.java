@@ -252,15 +252,16 @@ public class EmailService {
 
                 } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
+                        log.error("Email delivery was interrupted while sending {} to {}", mailType, recipient, e);
 
                         throw new IllegalStateException(
-                                        "Quá trình gửi email bị gián đoạn",
+                                        "Không gửi được email lúc này. Vui lòng thử lại sau.",
                                         e);
 
                 } catch (Exception e) {
+                        log.error("Email delivery failed while sending {} to {}", mailType, recipient, e);
                         throw new IllegalStateException(
-                                        "Không gửi được email qua Google Apps Script: "
-                                                        + e.getMessage(),
+                                        "Không gửi được email lúc này. Vui lòng thử lại sau.",
                                         e);
                 }
         }
@@ -268,22 +269,22 @@ public class EmailService {
         private void ensureGoogleAppsScriptConfigured() {
                 if (gasMailUrl == null || gasMailUrl.isBlank()) {
                         throw new IllegalStateException(
-                                        "Chưa cấu hình GAS_MAIL_URL");
+                                        "Không gửi được email lúc này. Vui lòng thử lại sau.");
                 }
 
                 if (gasMailSecret == null || gasMailSecret.isBlank()) {
                         throw new IllegalStateException(
-                                        "Chưa cấu hình GAS_MAIL_SECRET");
+                                        "Không gửi được email lúc này. Vui lòng thử lại sau.");
                 }
 
                 if (!gasMailUrl.startsWith("https://script.google.com/")) {
                         throw new IllegalStateException(
-                                        "GAS_MAIL_URL không hợp lệ");
+                                        "Không gửi được email lúc này. Vui lòng thử lại sau.");
                 }
 
                 if (!gasMailUrl.endsWith("/exec")) {
                         throw new IllegalStateException(
-                                        "GAS_MAIL_URL phải là URL triển khai kết thúc bằng /exec");
+                                        "Không gửi được email lúc này. Vui lòng thử lại sau.");
                 }
         }
 

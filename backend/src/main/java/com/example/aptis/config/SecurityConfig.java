@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -54,6 +55,23 @@ public class SecurityConfig {
     private String cors;
 
     @Bean
+    @Order(1)
+    SecurityFilterChain publicAuthFilterChain(HttpSecurity http) throws Exception {
+        return http.securityMatcher(PUBLIC_AUTH_ENDPOINTS)
+                .csrf(csrf -> csrf.disable())
+                .cors(corsCustomizer -> corsCustomizer.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .headers(headers -> headers
+                        .contentSecurityPolicy(
+                                policy -> policy.policyDirectives("default-src 'self'; frame-ancestors 'self'"))
+                        .httpStrictTransportSecurity(hsts -> hsts.includeSubDomains(true).preload(true))
+                        .frameOptions(frame -> frame.sameOrigin()))
+                .build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain filterChain(HttpSecurity http, AuthenticationProvider provider) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .cors(corsCustomizer -> corsCustomizer.configurationSource(corsConfigurationSource()))

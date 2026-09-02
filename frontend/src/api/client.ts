@@ -178,7 +178,7 @@ export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Pro
       if (message) {
         error.message = message;
       } else if (error.response?.status === 401 && isAuthEndpoint(error.config?.url ?? '')) {
-        error.message = 'Backend đang từ chối endpoint đăng ký/OTP (401). Hãy kiểm tra VITE_API_URL và redeploy backend mới nhất.';
+        error.message = 'Không thể xử lý yêu cầu lúc này. Vui lòng thử lại sau.';
       } else if (error.response?.status === 401) {
         error.message = 'Không xác thực được yêu cầu. Phiên hiện tại vẫn được giữ; vui lòng thử tải lại trang.';
       } else if (error.response?.status === 403) {
