@@ -95,6 +95,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/tests/random").permitAll()
                         .requestMatchers("/api/tests", "/api/tests/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard/settings").permitAll()
                         .requestMatchers(HttpMethod.GET,

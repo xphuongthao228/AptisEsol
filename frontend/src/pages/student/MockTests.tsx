@@ -2152,10 +2152,23 @@ function limitWords(value: string, maxWords: number) {
 function normalizeAudioUrl(value?: string) {
   const cleaned = String(value ?? '').trim().replace(/^["']|["']$/g, '');
   if (!cleaned) return '';
-  if (/^(https?:|blob:|data:)/i.test(cleaned)) return cleaned;
 
   const apiBaseUrl = String(api.defaults.baseURL ?? '').replace(/\/+$/, '');
   const apiOrigin = apiBaseUrl.replace(/\/api$/i, '');
+
+  if (/^https?:\/\//i.test(cleaned)) {
+    try {
+      const url = new URL(cleaned);
+      const host = url.hostname.toLowerCase();
+      if ((host === 'aptiskey.com' || host === 'www.aptiskey.com') && apiBaseUrl) {
+        return `${apiBaseUrl}/media/proxy-audio?url=${encodeURIComponent(cleaned)}`;
+      }
+    } catch {
+      return cleaned;
+    }
+    return cleaned;
+  }
+  if (/^(blob:|data:)/i.test(cleaned)) return cleaned;
   if (!apiOrigin) return cleaned;
 
   if (cleaned.startsWith('/api/')) return `${apiOrigin}${cleaned}`;
@@ -3276,7 +3289,9 @@ export function MockTests() {
       const fallback = buildSpeakingFallbackScore(payload.parts);
       setSpeakingScore(fallback);
       setSpeakingScoreError('');
-      toast.error(message.includes('Cannot deserialize') ? 'AI Speaking đang tạm bận. Bạn thử chấm lại sau ít phút nhé.' : message);
+      if (!nextScreen) {
+        toast.error(message.includes('Cannot deserialize') ? 'AI Speaking đang tạm bận. Bạn thử chấm lại sau ít phút nhé.' : message);
+      }
       if (nextScreen) setScreen(nextScreen);
     } finally {
       setSpeakingScoreLoading(false);
@@ -5381,6 +5396,14 @@ function WritingEmailBox({
 }
 
 function ListeningStart({ onStart }: { onStart: () => void }) {
+  async function checkSound() {
+    try {
+      await playSpeakingBeep();
+    } catch {
+      toast.error('Không phát được âm thanh kiểm tra. Hãy kiểm tra loa/trình duyệt.');
+    }
+  }
+
   return (
     <main className="min-h-[calc(100vh-66px)] bg-white px-6 py-12 sm:px-[90px]">
       <section className="max-w-[560px]">
@@ -5397,7 +5420,7 @@ function ListeningStart({ onStart }: { onStart: () => void }) {
 
         <div className="mt-7 rounded-2xl border border-brand-100 bg-white p-5 shadow-[0_1px_3px_rgba(15,23,42,0.08)]">
           <p className="text-xl font-extrabold text-navy">Kiểm tra âm thanh</p>
-          <button type="button" className="mt-5 inline-flex h-12 items-center gap-3 rounded-xl border border-[#f92918] bg-white px-5 text-lg font-medium text-[#e41d10] hover:bg-red-50">
+          <button type="button" onClick={checkSound} className="mt-5 inline-flex h-12 items-center gap-3 rounded-xl border border-[#f92918] bg-white px-5 text-lg font-medium text-[#e41d10] hover:bg-red-50">
             <Volume2 size={22} />
             Kiểm tra âm thanh
           </button>
