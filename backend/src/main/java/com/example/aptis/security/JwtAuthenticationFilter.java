@@ -19,6 +19,28 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
+    private static final String[] PUBLIC_AUTH_PATHS = {
+            "/api/auth/login",
+            "/api/auth/register",
+            "/api/auth/verify-registration-otp",
+            "/api/auth/resend-verification",
+            "/api/auth/forgot-password",
+            "/api/auth/reset-password",
+            "/api/auth/refresh-token",
+            "/api/auth/logout",
+            "/api/auth/verify-email"
+    };
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        for (String publicPath : PUBLIC_AUTH_PATHS) {
+            if (path.equals(publicPath)) {
+                return true;
+            }
+        }
+        return "OPTIONS".equalsIgnoreCase(request.getMethod());
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
