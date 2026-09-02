@@ -187,6 +187,18 @@ type ListeningShortData = {
   audioUrl?: string;
 };
 
+type ListeningMonologueQuestion = {
+  prompt: string;
+  options: string[];
+  answer?: string;
+  correctAnswer?: string;
+};
+
+type ListeningMonologueData = {
+  audioUrl?: string;
+  questions: ListeningMonologueQuestion[];
+};
+
 type ReadingGapQuestion = {
   prompt?: string;
   questionStart?: string;
@@ -1018,6 +1030,71 @@ function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortDa
   };
 }
 
+function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonologueData[] {
+  const rows = parseQuestionDataArray(card?.questionData)
+    .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
+    .filter((item, rowIndex) => {
+      const skill = String(item.skill ?? '').toUpperCase();
+      const template = String(item.template ?? '').trim().toUpperCase();
+      const variant = String(item.variant ?? '').trim().toUpperCase();
+      const part = String(item.part ?? '').trim().toLowerCase().replace(/^part\s*/, '');
+      const section = String(item.section ?? '').trim().toLowerCase();
+      const isPart4Template = template === 'LISTENING_AUDIO_MC' && variant !== 'PART1' && !['q1_13', 'q14', 'q15'].includes(section);
+      return (!skill || skill === 'LISTENING') && (part === '4' || section === 'q16' || section === 'q17' || (isPart4Template && rowIndex >= 15));
+    });
+
+  const monologues = rows.reduce<ListeningMonologueData[]>((result, row) => {
+    const groups = Array.isArray(row.groups) ? row.groups : [];
+    const questions = groups.flatMap((group) => {
+      if (!group || typeof group !== 'object') return [];
+      const groupRow = group as Record<string, unknown>;
+      const prompt = String(groupRow.prompt ?? groupRow.question ?? '').trim();
+      const options = asStringArray(groupRow.options).length > 0 ? asStringArray(groupRow.options) : listeningOptionsFromItem(groupRow);
+      if (!prompt || options.length === 0) return [];
+      return [{
+        prompt,
+        options,
+        answer: String(groupRow.answer ?? '').trim() || undefined,
+        correctAnswer: String(groupRow.correctAnswer ?? '').trim() || undefined
+      }];
+    });
+
+    if (questions.length > 0) {
+      result.push({
+        audioUrl: listeningAudioUrlsFromItem(row)[0] || undefined,
+        questions
+      });
+      return result;
+    }
+
+    const prompt = String(row.prompt ?? row.question ?? row.content ?? '').trim();
+    const options = listeningOptionsFromItem(row);
+    if (!prompt || options.length === 0) return result;
+
+    result.push({
+      audioUrl: listeningAudioUrlsFromItem(row)[0] || undefined,
+      questions: [{
+        prompt,
+        options,
+        answer: String(row.answer ?? '').trim() || undefined,
+        correctAnswer: listeningCorrectAnswerFromItem(row) || undefined
+      }]
+    });
+    return result;
+  }, []);
+
+  return monologues.length > 0 ? monologues : listeningMonologues.map((recording) => ({ ...recording, audioUrl: undefined }));
+}
+
+function getListeningMonologueAnswerKey(monologues: ListeningMonologueData[]) {
+  return monologues.reduce<Record<string, string>>((result, recording, recordingIndex) => {
+    recording.questions.forEach((question, questionIndex) => {
+      result[`${recordingIndex}-${questionIndex}`] = question.correctAnswer ?? question.answer ?? listeningMonologueAnswerKey[`${recordingIndex}-${questionIndex}`] ?? '';
+    });
+    return result;
+  }, {});
+}
+
 function listeningOptionsFromItem(item: Record<string, unknown>) {
   if (Array.isArray(item.options)) return item.options.map(String).map((option) => option.trim()).filter(Boolean);
 
@@ -1128,7 +1205,7 @@ function splitLines(value: string) {
 
 function listeningAudioByPartFromCard(card?: MockCard | null) {
   const rows = parseQuestionDataArray(card?.questionData);
-  return rows.reduce<Record<string, string>>((result, item) => {
+  return rows.reduce<Record<string, string>>((result, item, rowIndex) => {
     if (!item || typeof item !== 'object') return result;
 
     const row = item as Record<string, unknown>;
@@ -1140,6 +1217,8 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
 
     const rawPart = String(row.part ?? '').trim().toLowerCase();
     const section = String(row.section ?? '').trim().toLowerCase();
+    const template = String(row.template ?? '').trim().toUpperCase();
+    const variant = String(row.variant ?? '').trim().toUpperCase();
     let key = rawPart ? rawPart.replace('part', '') : '';
 
     // Map the source Listening sections to the four Aptis UI parts.
@@ -1149,9 +1228,18 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
       else if (section === 'q16') key = '4-0';
       else if (section === 'q17') key = '4-1';
       else if (section === 'q1_13') key = '1';
+      else if (template === 'LISTENING_PEOPLE_MATCH') key = '2';
+      else if (template === 'LISTENING_OPINION_MATCH') key = '3';
+      else if (template === 'LISTENING_AUDIO_MC' && variant !== 'PART1' && rowIndex >= 15) key = `4-${rowIndex - 15}`;
     }
 
-    if (key) result[key] = audioUrls[0];
+    if (key === '4') {
+      const recordingIndex = Object.keys(result).filter((itemKey) => /^4-\d+$/.test(itemKey)).length;
+      result[`4-${recordingIndex}`] = audioUrls[0];
+      if (!result['4']) result['4'] = audioUrls[0];
+    } else if (key) {
+      result[key] = audioUrls[0];
+    }
     if (key === '4' && audioUrls.length > 1) {
       audioUrls.forEach((audioUrl, index) => {
         result[`4-${index}`] = audioUrl;
@@ -2155,23 +2243,25 @@ function scoreListeningAnswers(
   monologueAnswers: Record<string, string>,
   part1AnswerKey: string[] = listeningPart1AnswerKey,
   matchingAnswerKey: Record<string, string> = listeningMatchingAnswerKey,
-  shortAnswerKey: string[] = listeningShortAnswerKey
+  shortAnswerKey: string[] = listeningShortAnswerKey,
+  monologueAnswerKey: Record<string, string> = listeningMonologueAnswerKey
 ): SkillScoreSummary {
   const part1Correct = part1AnswerKey.filter((answer, index) => sameAnswer(part1Answers[index], answer)).length;
   const matchingCorrect = Object.entries(matchingAnswerKey).filter(([speaker, answer]) => sameAnswer(matchingAnswers[speaker], answer)).length;
   const shortCorrect = shortAnswerKey.filter((answer, index) => sameAnswer(shortAnswers[index], answer)).length;
-  const monologueCorrect = Object.entries(listeningMonologueAnswerKey).filter(([key, answer]) => sameAnswer(monologueAnswers[key], answer)).length;
+  const monologueCorrect = Object.entries(monologueAnswerKey).filter(([key, answer]) => sameAnswer(monologueAnswers[key], answer)).length;
+  const monologueTotal = Object.keys(monologueAnswerKey).length || 4;
   const rows = [
     { part: 'Part 1 - Word Recognition', correct: `${part1Correct}/${part1AnswerKey.length}`, score: `${scoreFromCorrect(part1Correct, part1AnswerKey.length, 26)}/26` },
     { part: 'Part 2 - Matching Information', correct: `${matchingCorrect}/${Object.keys(matchingAnswerKey).length || 4}`, score: `${scoreFromCorrect(matchingCorrect, Object.keys(matchingAnswerKey).length || 4, 8)}/8` },
     { part: 'Part 3 - Short Conversations', correct: `${shortCorrect}/${shortAnswerKey.length || 4}`, score: `${scoreFromCorrect(shortCorrect, shortAnswerKey.length || 4, 8)}/8` },
-    { part: 'Part 4 - Monologues', correct: `${monologueCorrect}/4`, score: `${scoreFromCorrect(monologueCorrect, 4, 8)}/8` }
+    { part: 'Part 4 - Monologues', correct: `${monologueCorrect}/${monologueTotal}`, score: `${scoreFromCorrect(monologueCorrect, monologueTotal, 8)}/8` }
   ];
   const correct = part1Correct + matchingCorrect + shortCorrect + monologueCorrect;
   const matchingTotal = Object.keys(matchingAnswerKey).length || 4;
   const shortTotal = shortAnswerKey.length || 4;
-  const total = part1AnswerKey.length + matchingTotal + shortTotal + 4;
-  const score = scoreFromCorrect(part1Correct, part1AnswerKey.length, 26) + scoreFromCorrect(matchingCorrect, matchingTotal, 8) + scoreFromCorrect(shortCorrect, shortTotal, 8) + scoreFromCorrect(monologueCorrect, 4, 8);
+  const total = part1AnswerKey.length + matchingTotal + shortTotal + monologueTotal;
+  const score = scoreFromCorrect(part1Correct, part1AnswerKey.length, 26) + scoreFromCorrect(matchingCorrect, matchingTotal, 8) + scoreFromCorrect(shortCorrect, shortTotal, 8) + scoreFromCorrect(monologueCorrect, monologueTotal, 8);
   return { correct, total, score: clampScore50(score), maxScore: 50, cefr: cefrFromListeningCorrect25(correctToAptis25(correct, total)), rows };
 }
 
@@ -3253,8 +3343,10 @@ export function MockTests() {
   const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
   const activeListeningMatchingData = useMemo(() => getListeningMatchingDataFromCard(selectedMockCard), [selectedMockCard]);
   const activeListeningShortData = useMemo(() => getListeningShortDataFromCard(selectedMockCard), [selectedMockCard]);
+  const activeListeningMonologues = useMemo(() => getListeningMonologuesFromCard(selectedMockCard), [selectedMockCard]);
+  const activeListeningMonologueAnswerKey = useMemo(() => getListeningMonologueAnswerKey(activeListeningMonologues), [activeListeningMonologues]);
   const activeListeningAudioByPart = useMemo(() => listeningAudioByPartFromCard(selectedMockCard), [selectedMockCard]);
-  const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey, activeListeningMatchingData.answerKey, activeListeningShortData.answerKey);
+  const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey, activeListeningMatchingData.answerKey, activeListeningShortData.answerKey, activeListeningMonologueAnswerKey);
   const activeGrammarQuestions = useMemo(() => grammarQuestionsFromCard(selectedMockCard), [selectedMockCard]);
   const grammarSummary = scoreGrammarAnswers(grammarAnswers, activeGrammarQuestions);
   const activeWritingParts = useMemo(() => writingPartsFromCard(selectedMockCard), [selectedMockCard]);
@@ -3287,7 +3379,7 @@ export function MockTests() {
         )),
         questionItem(bookmarkKey('listening-part2', 1), 'Part 2', 'Matching Information', screen === 'listeningMatching', () => setScreen('listeningMatching')),
         questionItem(bookmarkKey('listening-part3', 1), 'Part 3', 'Short Conversations', screen === 'listeningShort', () => setScreen('listeningShort')),
-        ...listeningMonologues.map((_, index) => questionItem(
+        ...activeListeningMonologues.map((_, index) => questionItem(
           bookmarkKey('listening-part4', index + 1),
           `Part 4 - Recording ${index + 1}`,
           'Monologues',
@@ -3550,10 +3642,11 @@ export function MockTests() {
           )}
           {screen === 'listeningMonologues' && (
             <ListeningMonologues
-              audioUrl={activeListeningAudioByPart[`4-${listeningMonologueIndex}`] ?? activeListeningAudioByPart['4']}
+              audioUrl={activeListeningMonologues[listeningMonologueIndex]?.audioUrl ?? activeListeningAudioByPart[`4-${listeningMonologueIndex}`] ?? activeListeningAudioByPart['4']}
               answers={listeningMonologueAnswers}
               bookmarkActive={isBookmarked(bookmarkKey('listening-part4', listeningMonologueIndex + 1))}
               index={listeningMonologueIndex}
+              recording={activeListeningMonologues[listeningMonologueIndex] ?? activeListeningMonologues[0]}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
               onAnswer={(questionIndex, answer) => setListeningMonologueAnswers((currentAnswers) => ({ ...currentAnswers, [`${listeningMonologueIndex}-${questionIndex}`]: answer }))}
@@ -3576,6 +3669,8 @@ export function MockTests() {
               part1AnswerKey={activeListeningPart1AnswerKey}
               matchingAnswers={listeningMatchingAnswers}
               monologueAnswers={listeningMonologueAnswers}
+              monologueAnswerKey={activeListeningMonologueAnswerKey}
+              monologues={activeListeningMonologues}
               part1Answers={listeningAnswers}
               part1Questions={activeListeningPart1Questions}
               shortAnswers={listeningShortAnswers}
@@ -3802,7 +3897,7 @@ export function MockTests() {
                 else setScreen('listeningShort');
               }}
               onNext={() => {
-                if (listeningMonologueIndex < listeningMonologues.length - 1) {
+                if (listeningMonologueIndex < activeListeningMonologues.length - 1) {
                   setListeningMonologueIndex((value) => value + 1);
                 } else if (isFullMock) {
                   resetGrammarSection();
@@ -5705,6 +5800,7 @@ function ListeningMonologues({
   answers,
   bookmarkActive,
   index,
+  recording,
   showAnswer,
   timeRemaining,
   onAnswer,
@@ -5714,14 +5810,15 @@ function ListeningMonologues({
   answers: Record<string, string>;
   bookmarkActive: boolean;
   index: number;
+  recording: ListeningMonologueData;
   showAnswer?: boolean;
   timeRemaining: string;
   onAnswer: (questionIndex: number, answer: string) => void;
   onToggleBookmark: () => void;
 }) {
   const labels = ['A', 'B', 'C'];
-  const currentRecording = listeningMonologues[index];
-  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl);
+  const currentRecording = recording ?? listeningMonologues[index] ?? listeningMonologues[0];
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl || currentRecording.audioUrl);
 
   return (
     <main
@@ -5735,7 +5832,7 @@ function ListeningMonologues({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 4</p>
-            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Recording {index + 1} of {listeningMonologues.length}</h2>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Recording {index + 1}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -5843,7 +5940,7 @@ function ListeningMonologues({
               </div>
               {showAnswer && (
                 <InlineAnswer>
-                  {listeningMonologueAnswerKey[`${index}-${questionIndex}`] ?? (question as { answer?: string; correctAnswer?: string }).answer ?? (question as { answer?: string; correctAnswer?: string }).correctAnswer ?? 'Chưa có đáp án mẫu'}
+                  {(question as { answer?: string; correctAnswer?: string }).correctAnswer ?? (question as { answer?: string; correctAnswer?: string }).answer ?? listeningMonologueAnswerKey[`${index}-${questionIndex}`] ?? 'Chưa có đáp án mẫu'}
                 </InlineAnswer>
               )}
             </div>
@@ -6449,6 +6546,8 @@ function ListeningReview({
   part1AnswerKey,
   matchingAnswers,
   monologueAnswers,
+  monologueAnswerKey,
+  monologues,
   part1Answers,
   part1Questions,
   shortAnswers,
@@ -6457,6 +6556,8 @@ function ListeningReview({
   part1AnswerKey: string[];
   matchingAnswers: Record<string, string>;
   monologueAnswers: Record<string, string>;
+  monologueAnswerKey: Record<string, string>;
+  monologues: ListeningMonologueData[];
   part1Answers: Record<number, string>;
   part1Questions: ListeningPart1Question[];
   shortAnswers: Record<number, string>;
@@ -6469,12 +6570,6 @@ function ListeningReview({
     'Speaker D ...': 'has already done this activity before'
   };
   const shortCorrectAnswers = ['Woman', 'Man', 'Both', 'Woman'];
-  const monologueCorrectAnswers: Record<string, string> = {
-    '0-0': 'It is different from his earlier works',
-    '0-1': 'The writer should go back to his original genre',
-    '1-0': 'To make a good impression.',
-    '1-1': 'Our definition of it is changing.'
-  };
   const groups = [
     {
       title: 'Part 1 - Word Recognition',
@@ -6502,13 +6597,13 @@ function ListeningReview({
     },
     {
       title: 'Part 4 - Monologues',
-      rows: listeningMonologues.flatMap((recording, recordingIndex) =>
+      rows: monologues.flatMap((recording, recordingIndex) =>
         recording.questions.map((question, questionIndex) => {
           const key = `${recordingIndex}-${questionIndex}`;
           return {
             question: `Recording ${recordingIndex + 1}: ${question.prompt}`,
             user: monologueAnswers[key] || 'Chưa chọn',
-            answer: monologueCorrectAnswers[key]
+            answer: monologueAnswerKey[key]
           };
         })
       )
