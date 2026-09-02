@@ -5,6 +5,7 @@ import type { ApiResponse, AuthResponse } from '../types';
 const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 
 export const api = axios.create({ baseURL });
+export const publicApi = axios.create({ baseURL });
 const authApi = axios.create({ baseURL });
 const REFRESH_SKEW_SECONDS = 90;
 

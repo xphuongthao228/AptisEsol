@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, KeyRound, LockKeyhole, Mail, UserRound } from 'lucide-react';
-import { api, unwrap } from '../../api/client';
+import { publicApi, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import { AuthShell } from './AuthShell';
 
@@ -46,7 +46,7 @@ export function Register() {
     event.preventDefault();
     setLoading(true);
     try {
-      await unwrap<void>(api.post('/auth/verify-registration-otp', { email, otp }));
+      await unwrap<void>(publicApi.post('/auth/verify-registration-otp', { email, otp }));
       toast.success('Đăng ký thành công. Bạn có thể đăng nhập.');
       navigate('/login');
     } catch (error: any) {
@@ -59,7 +59,7 @@ export function Register() {
   async function resendOtp() {
     setLoading(true);
     try {
-      const result = await unwrap<{ emailSent: boolean; devOtp: string | null }>(api.post('/auth/resend-verification', { email }));
+      const result = await unwrap<{ emailSent: boolean; devOtp: string | null }>(publicApi.post('/auth/resend-verification', { email }));
       setDevOtp(result.devOtp);
       if (result.devOtp) setOtp(result.devOtp);
       toast.success(result.emailSent ? 'Đã gửi lại mã OTP.' : 'Mail chưa cấu hình, đã tạo lại mã OTP test.');

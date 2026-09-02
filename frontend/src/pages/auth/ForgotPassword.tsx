@@ -3,7 +3,7 @@ import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, KeyRound, Mail, ShieldCheck } from 'lucide-react';
 import { AuthShell } from './AuthShell';
-import { api, unwrap } from '../../api/client';
+import { publicApi, unwrap } from '../../api/client';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -33,7 +33,7 @@ export function ForgotPassword() {
     setLoading(true);
     try {
       const result = await unwrap<{ emailSent: boolean; devOtp: string | null }>(
-        api.post('/auth/forgot-password', { email: cleanEmail })
+        publicApi.post('/auth/forgot-password', { email: cleanEmail })
       );
       setDevOtp(result.devOtp);
       if (result.devOtp) setOtp(result.devOtp);
@@ -56,7 +56,7 @@ export function ForgotPassword() {
     setLoading(true);
     try {
       await unwrap<void>(
-        api.post('/auth/reset-password', {
+        publicApi.post('/auth/reset-password', {
           email: email.trim(),
           otp: otp.trim(),
           newPassword

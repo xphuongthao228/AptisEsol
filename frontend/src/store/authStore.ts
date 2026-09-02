@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { api, unwrap } from '../api/client';
+import { api, publicApi, unwrap } from '../api/client';
 import type { AuthResponse, OtpResponse, User } from '../types';
 
 interface AuthState {
@@ -20,11 +20,11 @@ export const useAuthStore = create<AuthState>()(
       accessToken: null,
       refreshToken: null,
       login: async (email, password) => {
-        const data = await unwrap<AuthResponse>(api.post('/auth/login', { email, password }));
+        const data = await unwrap<AuthResponse>(publicApi.post('/auth/login', { email, password }));
         set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken });
       },
       register: async (fullName, email, password) => {
-        return unwrap<OtpResponse>(api.post('/auth/register', { fullName, email, password }));
+        return unwrap<OtpResponse>(publicApi.post('/auth/register', { fullName, email, password }));
       },
       setUser: (user) => set({ user }),
       logout: async () => {
