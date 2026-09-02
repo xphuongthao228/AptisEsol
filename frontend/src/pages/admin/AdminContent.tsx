@@ -735,7 +735,7 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
   async function remove(question: Question) {
     if (!window.confirm('Xóa câu hỏi này?')) return;
     try {
-      await api.delete(`/questions/${question.id}`);
+      await unwrap(api.delete(`/questions/${question.id}`));
       setQuestions(questions.filter((item) => item.id !== question.id));
       setSelectedQuestionIds(selectedQuestionIds.filter((id) => id !== question.id));
       toast.success('Đã xóa câu hỏi');
@@ -761,11 +761,12 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
     }
     if (!window.confirm(`Xóa ${selectedQuestionIds.length} câu hỏi đã chọn?`)) return;
 
+    const idsToDelete = [...selectedQuestionIds];
     try {
-      await Promise.all(selectedQuestionIds.map((questionId) => api.delete(`/questions/${questionId}`)));
-      setQuestions(questions.filter((question) => !selectedQuestionIds.includes(question.id)));
+      await Promise.all(idsToDelete.map((questionId) => unwrap(api.delete(`/questions/${questionId}`))));
+      setQuestions(questions.filter((question) => !idsToDelete.includes(question.id)));
       setSelectedQuestionIds([]);
-      toast.success(`Đã xóa ${selectedQuestionIds.length} câu hỏi`);
+      toast.success(`Đã xóa ${idsToDelete.length} câu hỏi`);
     } catch (error: any) {
       toast.error(apiErrorMessage(error, 'Không xóa được các câu hỏi đã chọn'));
     }
@@ -1440,11 +1441,11 @@ function apiErrorMessage(error: any, fallback: string) {
   const errors = error?.response?.data?.errors;
 
   if (status === 403) {
-    return `${fallback}: tài khoản hiện tại không có quyền ADMIN hoặc phiên đăng nhập đã hết hạn. Hãy đăng xuất rồi đăng nhập lại bằng tài khoản admin.`;
+    return `${fallback}: tài khoản hiện tại không có quyền ADMIN. Hãy đăng nhập bằng tài khoản quản trị rồi thử lại.`;
   }
 
   if (status === 401) {
-    return `${fallback}: phiên đăng nhập admin không còn hợp lệ. Hãy đăng nhập lại bằng tài khoản admin rồi thử lưu lại.`;
+    return `${fallback}: phiên đăng nhập không còn hợp lệ. Hãy đăng nhập lại bằng tài khoản admin rồi thử lại.`;
   }
 
   if (errors && typeof errors === 'object') {

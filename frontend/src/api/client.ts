@@ -67,12 +67,17 @@ function isPublicAuthRequest(method: string, url: string) {
 }
 
 api.interceptors.request.use(async (config) => {
+  const { accessToken, refreshToken } = useAuthStore.getState();
+
   if (isPublicRequest(config)) {
-    delete config.headers.Authorization;
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`;
+    } else {
+      delete config.headers.Authorization;
+    }
     return config;
   }
 
-  const { accessToken, refreshToken } = useAuthStore.getState();
   let token = accessToken;
 
   if (refreshToken && (!token || shouldRefreshAccessToken(token))) {
