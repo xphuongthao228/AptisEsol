@@ -29,6 +29,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.text.Normalizer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.InputStreamReader;
@@ -549,7 +550,7 @@ public class CoreService {
         String rawType = text(item, "type", "TEXT").trim().toUpperCase();
         q.setType(questionTypeForImportedFullTest(rawType));
         q.setTopic(cleanTopic(text(item, "topic", "")));
-        q.setAudioUrl(firstNonBlank(text(item, "audio_url", ""), text(item, "audioUrl", "")));
+        q.setAudioUrl(jsonAudioUrl(item));
         q.setScriptText(firstNonBlank(text(item, "script_text", ""), text(item, "scriptText", "")));
         q.setExplanation(text(item, "explanation", ""));
         q.setPoints(intValue(item, "points", 1));
@@ -588,7 +589,7 @@ public class CoreService {
             data.put("prompt", rawContent);
         }
         if (!data.hasNonNull("audioUrl")) {
-            data.put("audioUrl", firstNonBlank(text(item, "audio_url", ""), text(item, "audioUrl", "")));
+            data.put("audioUrl", jsonAudioUrl(item));
         }
         if (!data.hasNonNull("scriptText")) {
             data.put("scriptText", firstNonBlank(text(item, "script_text", ""), text(item, "scriptText", "")));
@@ -622,7 +623,7 @@ public class CoreService {
                     data.put(field, value);
                 }
             }
-            String audioUrl = firstNonBlank(text(source, "audio_url", ""), text(source, "audioUrl", ""));
+            String audioUrl = jsonAudioUrl(source);
             if (!audioUrl.isBlank() && !data.hasNonNull("audioUrl")) {
                 data.put("audioUrl", audioUrl);
             }
@@ -673,6 +674,32 @@ public class CoreService {
         }
         String value = node.get(field).asText(defaultValue);
         return "NaN".equalsIgnoreCase(value) ? defaultValue : value;
+    }
+
+    private String textAny(JsonNode node, String... fields) {
+        for (String field : fields) {
+            String value = text(node, field, "");
+            if (!value.isBlank()) return value;
+        }
+        return "";
+    }
+
+    private String jsonAudioUrl(JsonNode node) {
+        return textAny(node,
+                "audioUrl",
+                "audio_url",
+                "audio",
+                "audioLink",
+                "audio_link",
+                "linkAudio",
+                "link_audio",
+                "linkAudioNghe",
+                "link_audio_nghe",
+                "recordingUrl",
+                "recording_url",
+                "fileUrl",
+                "file_url",
+                "url");
     }
 
     private int intValue(JsonNode node, String field, int defaultValue) {
@@ -1178,7 +1205,7 @@ public class CoreService {
                 ? QuestionType.TEXT
                 : parseQuestionType(rawType));
         q.setTopic(cleanTopic(csv(record, "topic", "")));
-        q.setAudioUrl(firstNonBlank(csv(record, "audio_url", ""), csv(record, "audioUrl", "")));
+        q.setAudioUrl(csvAudioUrl(record));
         q.setScriptText(firstNonBlank(csv(record, "script_text", ""), csv(record, "scriptText", "")));
         q.setExplanation(csv(record, "explanation", ""));
         q.setPoints(parseInteger(record, "points", 1));
@@ -1624,8 +1651,9 @@ public class CoreService {
         if (record.isMapped(name) && record.isSet(name)) {
             return record.get(name);
         }
+        String normalizedName = normalizeCsvHeader(name);
         for (Map.Entry<String, String> entry : record.toMap().entrySet()) {
-            if (normalizeCsvHeader(entry.getKey()).equalsIgnoreCase(name)) {
+            if (normalizeCsvHeader(entry.getKey()).equals(normalizedName)) {
                 return entry.getValue();
             }
         }
@@ -1636,12 +1664,40 @@ public class CoreService {
         if (record.isMapped(name)) {
             return true;
         }
+        String normalizedName = normalizeCsvHeader(name);
         return record.toMap().keySet().stream()
-                .anyMatch(header -> normalizeCsvHeader(header).equalsIgnoreCase(name));
+                .anyMatch(header -> normalizeCsvHeader(header).equals(normalizedName));
     }
 
     private String normalizeCsvHeader(String header) {
-        return header == null ? "" : header.replace("\uFEFF", "").trim();
+        String value = header == null ? "" : header.replace("\uFEFF", "").trim();
+        return Normalizer.normalize(value, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .replaceAll("[^A-Za-z0-9]", "")
+                .toLowerCase();
+    }
+
+    private String csvAudioUrl(CSVRecord record) {
+        for (String name : List.of(
+                "audio_url",
+                "audioUrl",
+                "audio",
+                "audio_link",
+                "audioLink",
+                "link_audio",
+                "linkAudio",
+                "link_audio_nghe",
+                "linkAudioNghe",
+                "Link audio nghe",
+                "recording_url",
+                "recordingUrl",
+                "file_url",
+                "fileUrl",
+                "url")) {
+            String value = csv(record, name, "");
+            if (!value.isBlank()) return value;
+        }
+        return "";
     }
 
     private String firstNonBlank(String first, String second) {

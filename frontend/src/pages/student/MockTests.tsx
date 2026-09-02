@@ -294,6 +294,7 @@ const skillFilters: { key: MockSkill; label: string }[] = [
 ];
 
 const FREE_MOCK_TESTS_PER_SKILL = 2;
+const fullRequiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
 
 const mockCards: MockCard[] = [
   {
@@ -520,7 +521,6 @@ async function apiExamTestsToCards(items: Test[]) {
 }
 
 function createFullExamCards(cards: MockCard[]) {
-  const requiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
   const groups = new Map<string, MockCard[]>();
   cards.forEach((card) => {
     if (card.skill === 'FULL' || !card.practiceTestId || !card.ready) return;
@@ -531,9 +531,9 @@ function createFullExamCards(cards: MockCard[]) {
 
   return [...groups.values()].flatMap((group) => {
     const bySkill = new Map(group.map((card) => [card.skill, card]));
-    if (!requiredSkills.every((skill) => bySkill.has(skill))) return [];
+    if (!fullRequiredSkills.every((skill) => bySkill.has(skill))) return [];
 
-    const skillTestIds = requiredSkills.reduce<Partial<Record<Exclude<MockSkill, 'FULL'>, number>>>((result, skill) => {
+    const skillTestIds = fullRequiredSkills.reduce<Partial<Record<Exclude<MockSkill, 'FULL'>, number>>>((result, skill) => {
       const id = bySkill.get(skill)?.practiceTestId;
       if (id) result[skill] = id;
       return result;
@@ -564,6 +564,19 @@ function normalizeFullTestTitle(title: string) {
     .replace(/\s+/g, ' ')
     .trim();
   return normalized || removeVietnameseMarks(title).toLowerCase().trim();
+}
+
+function fullSkillTestIdsFromExamTests(tests: Test[]) {
+  const cards = tests
+    .map(apiExamTestToCard)
+    .filter((card): card is MockCard => Boolean(card && card.skill !== 'FULL' && card.practiceTestId && card.ready))
+    .sort((first, second) => Number(second.featured) - Number(first.featured) || first.practiceTestId! - second.practiceTestId!);
+
+  return fullRequiredSkills.reduce<Partial<Record<Exclude<MockSkill, 'FULL'>, number>>>((result, skill) => {
+    const card = cards.find((item) => item.skill === skill);
+    if (card?.practiceTestId) result[skill] = card.practiceTestId;
+    return result;
+  }, {});
 }
 
 function writingExamCardsFromQuestions(card: MockCard, questions: Question[]) {
@@ -1142,6 +1155,14 @@ function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): s
     'audioUrl',
     'audio_url',
     'audio',
+    'audioLink',
+    'audio_link',
+    'linkAudio',
+    'link_audio',
+    'linkAudioNghe',
+    'link_audio_nghe',
+    'recordingUrl',
+    'recording_url',
     'url',
     'fileUrl',
     'file_url',
@@ -2872,9 +2893,13 @@ export function MockTests() {
 
   async function hydrateAssessmentCard(card?: MockCard) {
     if (!card || card.questionData?.trim()) return card ?? null;
-    if (card.skill === 'FULL' && card.skillTestIds) {
+    if (card.skill === 'FULL') {
       try {
-        const skillEntries = Object.entries(card.skillTestIds) as Array<[Exclude<MockSkill, 'FULL'>, number]>;
+        const skillTestIds = card.skillTestIds && Object.keys(card.skillTestIds).length > 0
+          ? card.skillTestIds
+          : fullSkillTestIdsFromExamTests(await unwrap<Test[]>(api.get('/tests')));
+        const skillEntries = Object.entries(skillTestIds) as Array<[Exclude<MockSkill, 'FULL'>, number]>;
+        if (skillEntries.length === 0) return card;
         const groups = await Promise.all(skillEntries.map(async ([skill, testId]) => ({
           skill,
           questions: await unwrap<Question[]>(api.get(`/questions?testId=${testId}`))
@@ -2884,7 +2909,7 @@ export function MockTests() {
             .sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0))
             .map((question) => questionToMockData(question, skill))
         ));
-        return { ...card, questionData };
+        return { ...card, skillTestIds, questionData };
       } catch {
         toast.error('Không tải được dữ liệu full test.');
         return card;
