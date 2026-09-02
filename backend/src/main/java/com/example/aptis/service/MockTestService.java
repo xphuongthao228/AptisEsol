@@ -95,7 +95,7 @@ public class MockTestService {
                     mockTest.setQuestions(csv(record, "questions", ""));
                     mockTest.setQuestionData(csv(record, "questionData", ""));
                     mockTest.setMinutes(csv(record, "minutes", ""));
-                    mockTest.setStatus(parseStatus(csv(record, "status", "PUBLISHED")));
+                    mockTest.setStatus(TestStatus.PUBLISHED);
                     mockTest.setFeatured(parseBoolean(csv(record, "featured", "false")));
                     imported.add(response(mockTests.save(mockTest)));
                 } catch (RuntimeException ex) {

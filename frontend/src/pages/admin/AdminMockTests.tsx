@@ -641,7 +641,7 @@ export function AdminMockTests() {
           questions,
           questionData: (row[indexes.questionData] ?? '').trim(),
           minutes,
-          status: normalizeStatus(row[indexes.status] ?? 'PUBLISHED'),
+          status: 'PUBLISHED',
           featured: parseCsvBoolean(row[indexes.featured] ?? ''),
           updatedAt: (row[indexes.updatedAt] ?? '').trim() || today()
         });

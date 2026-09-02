@@ -747,6 +747,11 @@ function questionToMockData(question: Question, skill: MockSkill) {
 
 function normalizeQuestionDataObject(data: Record<string, unknown>) {
   if (data.template !== 'WRITING_CLUB_COLLECTION') {
+    const directSkill = normalizeMockSkill(String(data.skill ?? ''));
+    if (directSkill && Array.isArray(data.parts)) {
+      return normalizeQuestionSection(data.parts, directSkill);
+    }
+
     const skillSections: Array<[MockSkill, string[]]> = [
       ['SPEAKING', ['speaking']],
       ['LISTENING', ['listening']],
@@ -784,6 +789,30 @@ function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPar
   if (typeof value !== 'object') return [];
 
   const row = value as Record<string, unknown>;
+  const rowPart = String(row.part ?? inheritedPart ?? '').trim();
+  if (Array.isArray(row.parts)) {
+    return normalizeQuestionSection(row.parts, skill, rowPart);
+  }
+
+  if (Array.isArray(row.questions) && (rowPart || row.skill || row.topic || row.audioUrl || row.audio_url || row.template)) {
+    const parentFields = {
+      skill: row.skill ?? skill,
+      ...(rowPart ? { part: rowPart } : {}),
+      ...(row.topic ? { topic: row.topic } : {}),
+      ...(row.title ? { title: row.title } : {}),
+      ...(row.instructions ? { instructions: row.instructions } : {}),
+      ...(row.audioUrl ? { audioUrl: row.audioUrl } : {}),
+      ...(row.audio_url ? { audio_url: row.audio_url } : {}),
+      ...(row.scriptText ? { scriptText: row.scriptText } : {}),
+      ...(row.script_text ? { script_text: row.script_text } : {}),
+      ...(row.explanation ? { explanation: row.explanation } : {})
+    };
+    return row.questions.flatMap((question) => {
+      if (!question || typeof question !== 'object') return [];
+      return normalizeQuestionSection({ ...parentFields, ...(question as Record<string, unknown>) }, skill, rowPart);
+    });
+  }
+
   const partRows = Object.entries(row).filter(([key, child]) =>
     /^part\s*\d+$/i.test(key) && Boolean(child && typeof child === 'object')
   );
@@ -808,7 +837,7 @@ function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPar
   return [{
     ...row,
     skill: row.skill ?? skill,
-    ...(inheritedPart && !row.part ? { part: inheritedPart } : {})
+    ...(rowPart && !row.part ? { part: rowPart } : {})
   }];
 }
 
@@ -1140,6 +1169,12 @@ function listeningOptionsFromItem(item: Record<string, unknown>) {
 function listeningCorrectAnswerFromItem(item: Record<string, unknown>) {
   const direct = String(item.correctAnswer ?? item.answer ?? '').trim();
   if (direct) return direct;
+
+  const correctIndex = Number.parseInt(String(item.correctIndex ?? item.correct_index ?? '').trim(), 10);
+  if (Number.isFinite(correctIndex) && correctIndex > 0) {
+    const indexedAnswer = String(item[`answer${correctIndex}`] ?? '').trim();
+    if (indexedAnswer) return indexedAnswer;
+  }
 
   if (!Array.isArray(item.answers)) return '';
   const correct = item.answers.find((answer) => Boolean(answer && typeof answer === 'object' && (answer as Record<string, unknown>).correct));
