@@ -937,7 +937,8 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
         correctAnswer: listeningCorrectAnswerFromItem(item) || undefined
       });
       return questions;
-    }, []);
+    }, [])
+    .slice(0, 13);
 }
 
 function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatchingData {
@@ -3247,7 +3248,7 @@ export function MockTests() {
   const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers, activeReadingData);
   const activeListeningPart1Questions = useMemo(() => {
     const fromAdmin = listeningQuestionsFromCard(selectedMockCard);
-    return fromAdmin.length > 0 ? fromAdmin : listeningPart1Questions;
+    return (fromAdmin.length > 0 ? fromAdmin : listeningPart1Questions).slice(0, 13);
   }, [selectedMockCard]);
   const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
   const activeListeningMatchingData = useMemo(() => getListeningMatchingDataFromCard(selectedMockCard), [selectedMockCard]);
