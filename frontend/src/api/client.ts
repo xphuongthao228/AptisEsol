@@ -15,6 +15,11 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
 
 let refreshPromise: Promise<AuthResponse> | null = null;
 
+publicApi.interceptors.request.use((config) => {
+  delete config.headers.Authorization;
+  return config;
+});
+
 function isPublicRequest(config: InternalAxiosRequestConfig) {
   const method = (config.method ?? 'get').toLowerCase();
   const url = config.url ?? '';

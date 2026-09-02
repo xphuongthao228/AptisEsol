@@ -20,6 +20,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
     private static final String[] PUBLIC_AUTH_PATHS = {
+            "/auth/login",
+            "/auth/register",
+            "/auth/verify-registration-otp",
+            "/auth/resend-verification",
+            "/auth/forgot-password",
+            "/auth/reset-password",
+            "/auth/refresh-token",
+            "/auth/logout",
+            "/auth/verify-email",
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/verify-registration-otp",

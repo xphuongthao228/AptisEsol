@@ -30,6 +30,15 @@ import java.util.List;
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
     private static final String[] PUBLIC_AUTH_ENDPOINTS = {
+            "/auth/login",
+            "/auth/register",
+            "/auth/verify-registration-otp",
+            "/auth/resend-verification",
+            "/auth/forgot-password",
+            "/auth/reset-password",
+            "/auth/refresh-token",
+            "/auth/logout",
+            "/auth/verify-email",
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/verify-registration-otp",
@@ -56,6 +65,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_AUTH_ENDPOINTS).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/verify-email").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/heartbeat").authenticated()
                         .requestMatchers(
