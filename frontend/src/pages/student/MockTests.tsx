@@ -656,23 +656,37 @@ function mergeStoredFeatured(cards: MockCard[]) {
 
 function mergeMockCardsByIdentity(cards: MockCard[]) {
   const merged = new Map<string, MockCard>();
+  const byTitle = new Map<string, MockCard>();
   cards.forEach((card) => {
     const id = card.id.replace(/^(api|admin|test)-/, '');
     const key = `${card.skill}|${card.title.trim().toLowerCase()}|${id}`;
     const titleKey = `${card.skill}|${card.title.trim().toLowerCase()}`;
-    if (!merged.has(key)) {
-      merged.set(key, card);
-      return;
-    }
+    const currentByTitle = byTitle.get(titleKey);
+    byTitle.set(titleKey, currentByTitle ? preferredMockCard(currentByTitle, card) : card);
 
     const current = merged.get(key);
-    merged.set(key, current?.practiceTestId && !card.practiceTestId ? current : { ...current, ...card });
-    merged.set(titleKey, merged.get(key) ?? card);
+    merged.set(key, current ? preferredMockCard(current, card) : card);
   });
 
-  return [...merged.values()].filter((card, index, all) =>
-    all.findIndex((item) => item.skill === card.skill && item.title.trim().toLowerCase() === card.title.trim().toLowerCase()) === index
-  );
+  return [...byTitle.values()];
+}
+
+function preferredMockCard(current: MockCard, next: MockCard) {
+  const currentHasUploadedData = Boolean(current.questionData?.trim());
+  const nextHasUploadedData = Boolean(next.questionData?.trim());
+  if (nextHasUploadedData && !currentHasUploadedData) return { ...current, ...next };
+  if (currentHasUploadedData && !nextHasUploadedData) {
+    return { ...next, ...current, featured: Boolean(current.featured || next.featured) };
+  }
+
+  const currentIsMockUpload = current.id.startsWith('api-') || current.id.startsWith('admin-');
+  const nextIsMockUpload = next.id.startsWith('api-') || next.id.startsWith('admin-');
+  if (nextIsMockUpload && !currentIsMockUpload) return { ...current, ...next };
+  if (currentIsMockUpload && !nextIsMockUpload) {
+    return { ...next, ...current, featured: Boolean(current.featured || next.featured) };
+  }
+
+  return { ...current, ...next, featured: Boolean(current.featured || next.featured) };
 }
 
 function compareMockCards(left: MockCard, right: MockCard) {
