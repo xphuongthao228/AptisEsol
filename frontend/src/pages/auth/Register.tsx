@@ -7,6 +7,14 @@ import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import { AuthShell } from './AuthShell';
 
+function otpErrorMessage(error: any, fallback: string) {
+  if (!error?.response) {
+    return 'Không kết nối được backend OTP. Hãy kiểm tra backend có đang chạy ở http://localhost:8080 không.';
+  }
+
+  return error.response.data?.message ?? error.message ?? fallback;
+}
+
 export function Register() {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -28,7 +36,7 @@ export function Register() {
       setStep('otp');
       toast.success(result.emailSent ? 'Đã gửi mã OTP về Gmail/email của bạn.' : 'Mail chưa cấu hình, đã tạo mã OTP test.');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Không thể gửi mã OTP');
+      toast.error(otpErrorMessage(error, 'Không thể gửi mã OTP'));
     } finally {
       setLoading(false);
     }
@@ -42,7 +50,7 @@ export function Register() {
       toast.success('Đăng ký thành công. Bạn có thể đăng nhập.');
       navigate('/login');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Mã OTP không đúng');
+      toast.error(otpErrorMessage(error, 'Mã OTP không đúng'));
     } finally {
       setLoading(false);
     }
@@ -56,7 +64,7 @@ export function Register() {
       if (result.devOtp) setOtp(result.devOtp);
       toast.success(result.emailSent ? 'Đã gửi lại mã OTP.' : 'Mail chưa cấu hình, đã tạo lại mã OTP test.');
     } catch (error: any) {
-      toast.error(error?.response?.data?.message ?? 'Không thể gửi lại mã OTP');
+      toast.error(otpErrorMessage(error, 'Không thể gửi lại mã OTP'));
     } finally {
       setLoading(false);
     }

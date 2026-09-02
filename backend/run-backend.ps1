@@ -29,8 +29,8 @@ if (Test-Path $envFile) {
     Write-Host "backend/.env not found. Using application.yml defaults." -ForegroundColor Yellow
 }
 
-if ($env:MAIL_ENABLED -eq "true" -and [string]::IsNullOrWhiteSpace($env:MAIL_PASSWORD)) {
-    Write-Host "MAIL_PASSWORD is empty. Gmail OTP will not send until you fill backend/.env." -ForegroundColor Yellow
+if ($env:MAIL_ENABLED -eq "true" -and ([string]::IsNullOrWhiteSpace($env:GAS_MAIL_URL) -or [string]::IsNullOrWhiteSpace($env:GAS_MAIL_SECRET))) {
+    Write-Host "GAS_MAIL_URL or GAS_MAIL_SECRET is empty. Email OTP will not send until you fill backend/.env." -ForegroundColor Yellow
 }
 
 $mvnCommand = Get-Command mvn -ErrorAction SilentlyContinue

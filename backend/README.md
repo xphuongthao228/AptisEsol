@@ -73,17 +73,26 @@ Speaking:  A1 4, A2 16, B1 26, B2 41, C1 48
 
 ## Gmail OTP verification
 
-Registration now sends a 6-digit OTP to the user's Gmail/email. The account is activated only after the user enters the correct OTP. For Gmail SMTP, create a Google App Password, then run the backend with these variables:
+Registration creates a 6-digit OTP. The account is activated only after the user enters the correct OTP.
+
+For local testing without sending email, disable mail delivery:
 
 ```powershell
-$env:MAIL_ENABLED="true"
-$env:MAIL_USERNAME="your-gmail@gmail.com"
-$env:MAIL_PASSWORD="your-google-app-password"
-$env:FRONTEND_URL="http://localhost:5173"
+$env:MAIL_ENABLED="false"
 mvn spring-boot:run
 ```
 
-If `MAIL_ENABLED=false`, the backend still creates the OTP and prints it in the backend log for local testing.
+When `MAIL_ENABLED=false`, the backend still creates the OTP and returns it to the frontend as a test OTP.
+
+To send real email, deploy the Google Apps Script mail endpoint and run with:
+
+```powershell
+$env:MAIL_ENABLED="true"
+$env:GAS_MAIL_URL="https://script.google.com/macros/s/your-deployment-id/exec"
+$env:GAS_MAIL_SECRET="your-shared-secret"
+$env:FRONTEND_URL="http://localhost:5173"
+mvn spring-boot:run
+```
 
 You can also put the same variables in `backend/.env` and start with:
 

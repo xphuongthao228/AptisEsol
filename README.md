@@ -22,7 +22,8 @@ Or run backend with `.env`:
 ```powershell
 cd backend
 Copy-Item .env.example .env
-# Edit .env and fill MAIL_PASSWORD
+# For local OTP testing, set MAIL_ENABLED=false.
+# For real email OTP, fill GAS_MAIL_URL and GAS_MAIL_SECRET.
 .\run-backend.ps1
 ```
 
