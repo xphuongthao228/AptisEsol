@@ -659,7 +659,9 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
       if (questions.length > 0) {
         const replaceExisting = window.confirm(`Bài này đang có ${questions.length} câu hỏi. Bấm OK để xóa câu cũ rồi import lại, hoặc Cancel để import thêm vào cuối.`);
         if (replaceExisting) {
-          await Promise.all(questions.map((question) => api.delete(`/questions/${question.id}`)));
+          for (const question of questions) {
+            await unwrap(api.delete(`/questions/${question.id}`));
+          }
           nextQuestions = [];
           setQuestions([]);
           setSelectedQuestionIds([]);
@@ -762,12 +764,20 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
     if (!window.confirm(`Xóa ${selectedQuestionIds.length} câu hỏi đã chọn?`)) return;
 
     const idsToDelete = [...selectedQuestionIds];
+    const deletedIds: number[] = [];
     try {
-      await Promise.all(idsToDelete.map((questionId) => unwrap(api.delete(`/questions/${questionId}`))));
-      setQuestions(questions.filter((question) => !idsToDelete.includes(question.id)));
+      for (const questionId of idsToDelete) {
+        await unwrap(api.delete(`/questions/${questionId}`));
+        deletedIds.push(questionId);
+      }
+      setQuestions(questions.filter((question) => !deletedIds.includes(question.id)));
       setSelectedQuestionIds([]);
-      toast.success(`Đã xóa ${idsToDelete.length} câu hỏi`);
+      toast.success(`Đã xóa ${deletedIds.length} câu hỏi`);
     } catch (error: any) {
+      if (deletedIds.length) {
+        setQuestions(questions.filter((question) => !deletedIds.includes(question.id)));
+        setSelectedQuestionIds(idsToDelete.filter((questionId) => !deletedIds.includes(questionId)));
+      }
       toast.error(apiErrorMessage(error, 'Không xóa được các câu hỏi đã chọn'));
     }
   }

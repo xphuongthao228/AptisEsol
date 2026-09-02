@@ -13,6 +13,8 @@ import java.util.Optional;
 public interface PracticeScoreRepository extends JpaRepository<PracticeScore, Long> {
     Optional<PracticeScore> findByUserIdAndQuestionId(Long userId, Long questionId);
 
+    void deleteByQuestionId(Long questionId);
+
     @Query("""
             select ps.user.id as userId,
                    ps.user.fullName as fullName,

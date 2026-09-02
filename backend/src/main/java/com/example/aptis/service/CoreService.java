@@ -61,6 +61,7 @@ public class CoreService {
     private final LessonRepository lessons;
     private final PredictionRepository predictions;
     private final SubmissionRepository submissions;
+    private final SubmissionAnswerRepository submissionAnswers;
     private final PracticeScoreRepository practiceScores;
     private final ProgressRepository progress;
     private final MediaFileRepository mediaFiles;
@@ -1005,8 +1006,11 @@ public class CoreService {
         return mapper.question(questions.save(q));
     }
 
+    @Transactional
     public void deleteQuestion(Long id) {
         Question q = questions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+        practiceScores.deleteByQuestionId(id);
+        submissionAnswers.deleteByQuestionId(id);
         questions.delete(q);
     }
 

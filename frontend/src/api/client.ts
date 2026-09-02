@@ -68,16 +68,6 @@ function isPublicAuthRequest(method: string, url: string) {
 
 api.interceptors.request.use(async (config) => {
   const { accessToken, refreshToken } = useAuthStore.getState();
-
-  if (isPublicRequest(config)) {
-    if (accessToken) {
-      config.headers.Authorization = `Bearer ${accessToken}`;
-    } else {
-      delete config.headers.Authorization;
-    }
-    return config;
-  }
-
   let token = accessToken;
 
   if (refreshToken && (!token || shouldRefreshAccessToken(token))) {
@@ -95,7 +85,20 @@ api.interceptors.request.use(async (config) => {
     }
   }
 
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (isPublicRequest(config)) {
+    if (token && !shouldRefreshAccessToken(token)) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
+    }
+    return config;
+  }
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  } else {
+    delete config.headers.Authorization;
+  }
   return config;
 });
 
