@@ -865,11 +865,35 @@ function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPar
     );
   }
 
-  return [{
+  const normalizedRow = normalizeImportedQuestionRow({
     ...row,
     skill: row.skill ?? skill,
     ...(rowPart && !row.part ? { part: rowPart } : {})
-  }];
+  });
+  if (normalizedRow.template === 'WRITING_CLUB_COLLECTION') {
+    return normalizeQuestionDataObject(normalizedRow);
+  }
+  return [normalizedRow];
+}
+
+function normalizeImportedQuestionRow(row: Record<string, unknown>) {
+  const content = String(row.content ?? '').trim();
+  if (!content || (!content.startsWith('{') && !content.startsWith('['))) return row;
+
+  try {
+    const parsed = JSON.parse(content);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return row;
+    return {
+      ...(parsed as Record<string, unknown>),
+      ...row
+    };
+  } catch {
+    return row;
+  }
+}
+
+function hasImportedQuestionData(card?: MockCard | null) {
+  return Boolean(card?.questionData?.trim());
 }
 
 function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
@@ -913,6 +937,9 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
 }
 
 function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 2): string {
+  const contentImage = speakingImageFromContent(item.content, imageNumber);
+  if (contentImage) return contentImage;
+
   const directKeys = imageNumber === 2
     ? ['imageUrl2', 'image2Url', 'urlpic2', 'urlPic2', 'image2', 'picture2']
     : ['imageUrl', 'image1Url', 'urlpic1', 'urlPic1', 'image', 'image1', 'picture', 'picture1'];
@@ -930,6 +957,43 @@ function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 
   for (const nested of nestedItems) {
     if (!nested || typeof nested !== 'object') continue;
     const value: string = speakingImageFromItem(nested as Record<string, unknown>, imageNumber);
+    if (value) return value;
+  }
+
+  return '';
+}
+
+function speakingImageFromContent(content: unknown, imageNumber?: 1 | 2): string {
+  const text = String(content ?? '').trim();
+  if (!text) return '';
+
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object') return '';
+    return speakingImageFromTemplateData(parsed as Record<string, unknown>, imageNumber);
+  } catch {
+    return '';
+  }
+}
+
+function speakingImageFromTemplateData(data: Record<string, unknown>, imageNumber?: 1 | 2): string {
+  const directKeys = imageNumber === 2
+    ? ['imageUrl2', 'image2Url', 'urlpic2', 'urlPic2', 'image2', 'picture2']
+    : ['imageUrl', 'image1Url', 'urlpic1', 'urlPic1', 'image', 'image1', 'picture', 'picture1'];
+
+  for (const key of directKeys) {
+    const value = String(data[key] ?? '').trim();
+    if (value) return value;
+  }
+
+  const nestedRows = [
+    ...(Array.isArray(data.questions) ? data.questions : []),
+    ...(Array.isArray(data.items) ? data.items : []),
+    ...(Array.isArray(data.prompts) ? data.prompts : [])
+  ];
+  for (const nested of nestedRows) {
+    if (!nested || typeof nested !== 'object') continue;
+    const value = speakingImageFromTemplateData(nested as Record<string, unknown>, imageNumber);
     if (value) return value;
   }
 
@@ -1082,6 +1146,7 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
 }
 
 function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatchingData {
+  const hasImportedData = hasImportedQuestionData(card);
   const rows = parseQuestionDataArray(card?.questionData)
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .filter((item) => {
@@ -1094,6 +1159,14 @@ function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatc
 
   const row = rows[0];
   if (!row) {
+    if (hasImportedData) {
+      return {
+        prompt: '',
+        options: [],
+        speakers: [],
+        answerKey: {}
+      };
+    }
     return {
       prompt: 'Protect the environment',
       options: listeningMatchingOptions,
@@ -1120,6 +1193,7 @@ function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatc
 }
 
 function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortData {
+  const hasImportedData = hasImportedQuestionData(card);
   const rows = parseQuestionDataArray(card?.questionData)
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .filter((item) => {
@@ -1132,6 +1206,15 @@ function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortDa
 
   const row = rows[0];
   if (!row) {
+    if (hasImportedData) {
+      return {
+        topic: '',
+        prompt: '',
+        statements: [],
+        options: [],
+        answerKey: []
+      };
+    }
     return {
       topic: 'There is too much information on the Internet',
       prompt: 'Who expresses which opinion?',
@@ -1159,6 +1242,7 @@ function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortDa
 }
 
 function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonologueData[] {
+  const hasImportedData = hasImportedQuestionData(card);
   const rows = parseQuestionDataArray(card?.questionData)
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .filter((item, rowIndex) => {
@@ -1211,7 +1295,11 @@ function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonolo
     return result;
   }, []);
 
-  return monologues.length > 0 ? monologues : listeningMonologues.map((recording) => ({ ...recording, audioUrl: undefined }));
+  return monologues.length > 0
+    ? monologues
+    : hasImportedData
+      ? []
+      : listeningMonologues.map((recording) => ({ ...recording, audioUrl: undefined }));
 }
 
 function getListeningMonologueAnswerKey(monologues: ListeningMonologueData[]) {
@@ -1396,6 +1484,7 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
 }
 
 function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[] {
+  const hasImportedData = hasImportedQuestionData(card);
   const rows = parseQuestionDataArray(card?.questionData)
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .filter((item) => {
@@ -1449,7 +1538,7 @@ function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[]
     return questions;
   }, []);
 
-  return questions.length > 0 ? questions : grammarQuestions;
+  return questions.length > 0 ? questions : hasImportedData ? [] : grammarQuestions;
 }
 
 function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
@@ -2085,6 +2174,7 @@ type WritingPartData = typeof writingParts[number] & {
 };
 
 function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
+  const hasImportedData = hasImportedQuestionData(card);
   const rows = parseQuestionDataArray(card?.questionData)
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .filter((item) => {
@@ -2092,7 +2182,7 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
       return !skill || skill === 'WRITING';
     });
 
-  if (rows.length === 0) return writingParts;
+  if (rows.length === 0) return hasImportedData ? [] : writingParts;
 
   const nextParts: WritingPartData[] = writingParts.map((part) => ({
     ...part,
@@ -2735,6 +2825,9 @@ export function MockTests() {
       if (activeTestId) {
         params.set('testId', String(activeTestId));
       }
+      if (selectedMockCard?.id) {
+        params.set('mockId', selectedMockCard.id);
+      }
       if (isFullMock) {
         params.set('full', '1');
       }
@@ -2765,15 +2858,20 @@ export function MockTests() {
     }
 
     setSearchParams(params, { replace: screen === 'select' });
-  }, [grammarQuestionIndex, isFullMock, listeningMonologueIndex, listeningQuestionIndex, part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, selectedMockCard?.practiceTestId, selectedSkill, setSearchParams, urlTestId, writingPartIndex]);
+  }, [grammarQuestionIndex, isFullMock, listeningMonologueIndex, listeningQuestionIndex, part2QuestionIndex, part3QuestionIndex, part4Phase, questionIndex, screen, selectedMockCard?.id, selectedMockCard?.practiceTestId, selectedSkill, setSearchParams, urlTestId, writingPartIndex]);
 
   useEffect(() => {
     const syncFromBrowserHistory = () => {
       const params = new URLSearchParams(window.location.search);
       const nextTestId = readTestId(params.get('testId'));
+      const nextMockId = params.get('mockId') ?? '';
       setScreen(readScreen(params.get('screen')));
       setSelectedSkill(readSkill(params.get('skill')));
-      setSelectedMockCard((current) => current?.practiceTestId === nextTestId ? current : null);
+      setSelectedMockCard((current) =>
+        (nextMockId && current?.id === nextMockId) || (!nextMockId && current?.practiceTestId === nextTestId)
+          ? current
+          : null
+      );
       setIsFullMock(params.get('full') === '1');
       setQuestionIndex(readQuestionIndex(params.get('question')));
       setPart2QuestionIndex(readPart2QuestionIndex(params.get('part2Question')));
@@ -2792,8 +2890,9 @@ export function MockTests() {
   useEffect(() => {
     const isAssessmentScreen = screen !== 'select';
     const selectedTestId = urlTestId;
+    const selectedMockId = searchParams.get('mockId') ?? '';
     const targetSkill = skillFromAssessmentScreen(screen) ?? selectedSkill;
-    if (!isAssessmentScreen || selectedMockCard || (!selectedTestId && targetSkill === 'FULL')) return;
+    if (!isAssessmentScreen || selectedMockCard || (!selectedTestId && !selectedMockId && targetSkill === 'FULL')) return;
 
     let cancelled = false;
 
@@ -2802,7 +2901,17 @@ export function MockTests() {
       try {
         let card: MockCard | null = null;
 
-        if (selectedTestId) {
+        if (selectedMockId) {
+          const [mockTests, tests] = await Promise.all([
+            unwrap<ApiMockTest[]>(api.get('/mock-tests')).catch(() => []),
+            unwrap<Test[]>(api.get('/tests')).catch(() => [])
+          ]);
+          const mockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
+          const examCards = await apiExamTestsToCards(tests);
+          const localCards = loadPublishedAdminMockCards();
+          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...mockCards, ...examCards, ...localCards]));
+          card = cards.find((item) => item.id === selectedMockId) ?? null;
+        } else if (selectedTestId) {
           card = apiExamTestToCard(await unwrap<Test>(api.get(`/tests/${selectedTestId}`)));
         } else {
           const tests = await unwrap<Test[]>(api.get('/tests'));
@@ -2829,7 +2938,7 @@ export function MockTests() {
     return () => {
       cancelled = true;
     };
-  }, [screen, selectedMockCard, selectedSkill, urlTestId]);
+  }, [screen, searchParams, selectedMockCard, selectedSkill, urlTestId]);
 
   useEffect(() => {
     speakingSoundEnabledRef.current = speakingSoundEnabled;
@@ -3525,7 +3634,11 @@ export function MockTests() {
   const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers, activeReadingData);
   const activeListeningPart1Questions = useMemo(() => {
     const fromAdmin = listeningQuestionsFromCard(selectedMockCard);
-    return (fromAdmin.length > 0 ? fromAdmin : listeningPart1Questions).slice(0, 13);
+    return (fromAdmin.length > 0
+      ? fromAdmin
+      : hasImportedQuestionData(selectedMockCard)
+        ? []
+        : listeningPart1Questions).slice(0, 13);
   }, [selectedMockCard]);
   const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
   const activeListeningMatchingData = useMemo(() => getListeningMatchingDataFromCard(selectedMockCard), [selectedMockCard]);
