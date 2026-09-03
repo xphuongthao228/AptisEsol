@@ -672,6 +672,15 @@ function mergeMockCardsByIdentity(cards: MockCard[]) {
 }
 
 function preferredMockCard(current: MockCard, next: MockCard) {
+  const currentIsApiUpload = current.id.startsWith('api-');
+  const nextIsApiUpload = next.id.startsWith('api-');
+  if (currentIsApiUpload && !nextIsApiUpload) {
+    return { ...next, ...current, featured: Boolean(current.featured || next.featured) };
+  }
+  if (nextIsApiUpload && !currentIsApiUpload) {
+    return { ...current, ...next, featured: Boolean(current.featured || next.featured) };
+  }
+
   const currentHasUploadedData = Boolean(current.questionData?.trim());
   const nextHasUploadedData = Boolean(next.questionData?.trim());
   if (nextHasUploadedData && !currentHasUploadedData) return { ...current, ...next };
@@ -944,6 +953,9 @@ function getSpeakingPart(item: Record<string, unknown>) {
 }
 
 function speakingQuestionsFromItem(item: Record<string, unknown>) {
+  const contentQuestions = speakingQuestionsFromContent(item.content);
+  if (contentQuestions.length > 0) return contentQuestions;
+
   const items = Array.isArray(item.items) ? item.items : [];
   const questionItems = Array.isArray(item.questions) ? item.questions : [];
   const promptItems = Array.isArray(item.prompts) ? item.prompts : [];
@@ -951,7 +963,6 @@ function speakingQuestionsFromItem(item: Record<string, unknown>) {
     if (!value || typeof value !== 'object') return [];
     const row = value as Record<string, unknown>;
     return [
-      row.content,
       row.question,
       row.prompt,
       row.question1,
@@ -971,7 +982,6 @@ function speakingQuestionsFromItem(item: Record<string, unknown>) {
     if (value && typeof value === 'object') {
       const row = value as Record<string, unknown>;
       return [
-        row.content,
         row.question,
         row.prompt,
         row.question1,
@@ -984,12 +994,56 @@ function speakingQuestionsFromItem(item: Record<string, unknown>) {
   if (itemQuestions.length > 0) return itemQuestions;
 
   return [
-    item.content,
     item.question,
     item.prompt,
     item.question1,
     item.question2,
     item.question3
+  ].map((value) => String(value ?? '').trim()).filter(Boolean);
+}
+
+function speakingQuestionsFromContent(content: unknown) {
+  const text = String(content ?? '').trim();
+  if (!text) return [];
+
+  try {
+    const parsed = JSON.parse(text);
+    if (!parsed || typeof parsed !== 'object') return [text];
+    const data = parsed as Record<string, unknown>;
+    return speakingQuestionsFromTemplateData(data);
+  } catch {
+    return [text];
+  }
+}
+
+function speakingQuestionsFromTemplateData(data: Record<string, unknown>) {
+  const rows = [
+    ...(Array.isArray(data.questions) ? data.questions : []),
+    ...(Array.isArray(data.items) ? data.items : []),
+    ...(Array.isArray(data.prompts) ? data.prompts : [])
+  ];
+
+  const questions = rows.flatMap((value) => {
+    if (value && typeof value === 'object') {
+      const row = value as Record<string, unknown>;
+      return [
+        row.question,
+        row.prompt,
+        row.question1,
+        row.question2,
+        row.question3
+      ].map((text) => String(text ?? '').trim()).filter(Boolean);
+    }
+    return [String(value ?? '').trim()].filter(Boolean);
+  });
+  if (questions.length > 0) return questions;
+
+  return [
+    data.question,
+    data.prompt,
+    data.question1,
+    data.question2,
+    data.question3
   ].map((value) => String(value ?? '').trim()).filter(Boolean);
 }
 
