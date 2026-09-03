@@ -800,6 +800,10 @@ function normalizeQuestionDataObject(data: Record<string, unknown>) {
 function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPart = ''): Record<string, unknown>[] {
   if (!value) return [];
   if (Array.isArray(value)) return value.flatMap((item) => normalizeQuestionSection(item, skill, inheritedPart));
+  if (typeof value === 'string' || typeof value === 'number') {
+    const prompt = String(value).trim();
+    return prompt ? [{ skill, ...(inheritedPart ? { part: inheritedPart } : {}), prompt }] : [];
+  }
   if (typeof value !== 'object') return [];
 
   const row = value as Record<string, unknown>;
@@ -822,7 +826,11 @@ function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPar
       ...(row.explanation ? { explanation: row.explanation } : {})
     };
     return row.questions.flatMap((question) => {
-      if (!question || typeof question !== 'object') return [];
+      if (!question) return [];
+      if (typeof question !== 'object') {
+        const prompt = String(question).trim();
+        return prompt ? [{ ...parentFields, prompt }] : [];
+      }
       return normalizeQuestionSection({ ...parentFields, ...(question as Record<string, unknown>) }, skill, rowPart);
     });
   }
@@ -864,7 +872,14 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
       return !skill || skill === 'SPEAKING' || template.startsWith('SPEAKING_') || card?.skill === 'SPEAKING';
     });
 
-  const part1 = rows.filter((item) => getSpeakingPart(item) === '1').flatMap((item) => speakingQuestionsFromItem(item));
+  const hasImportedRows = rows.length > 0;
+  const explicitPartRows = rows.filter((item) => getSpeakingPart(item));
+  const unpartedRows = rows.filter((item) => !getSpeakingPart(item));
+  const part1Rows = explicitPartRows.length > 0
+    ? rows.filter((item) => getSpeakingPart(item) === '1')
+    : unpartedRows;
+
+  const part1 = part1Rows.flatMap((item) => speakingQuestionsFromItem(item));
   const part2Rows = rows.filter((item) => getSpeakingPart(item) === '2');
   const part2Row = part2Rows[0];
   const part2 = part2Row ? speakingQuestionsFromItem(part2Row) : [];
@@ -876,14 +891,14 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   const part4Image = part4Row ? speakingImageFromItem(part4Row, 1) : '';
 
   return {
-    part1: part1.length > 0 ? part1 : speakingQuestions,
-    part2: part2.length > 0 ? part2 : part2Questions,
-    part2Image: part2Image || part2ImageUrls[0],
-    part3: part3.length > 0 ? part3 : part3Questions,
+    part1: part1.length > 0 ? part1 : hasImportedRows ? [] : speakingQuestions,
+    part2: part2.length > 0 ? part2 : hasImportedRows ? [] : part2Questions,
+    part2Image: part2Image || (hasImportedRows ? '' : part2ImageUrls[0]),
+    part3: part3.length > 0 ? part3 : hasImportedRows ? [] : part3Questions,
     part4: {
-      title: part4Title || part4Topic.title,
-      image: part4Image || part4Topic.image,
-      questions: part4Questions.length > 0 ? part4Questions : part4Topic.questions
+      title: part4Title || (hasImportedRows ? '' : part4Topic.title),
+      image: part4Image || (hasImportedRows ? '' : part4Topic.image),
+      questions: part4Questions.length > 0 ? part4Questions : hasImportedRows ? [] : part4Topic.questions
     }
   };
 }
@@ -936,6 +951,7 @@ function speakingQuestionsFromItem(item: Record<string, unknown>) {
     if (!value || typeof value !== 'object') return [];
     const row = value as Record<string, unknown>;
     return [
+      row.content,
       row.question,
       row.prompt,
       row.question1,
@@ -955,6 +971,7 @@ function speakingQuestionsFromItem(item: Record<string, unknown>) {
     if (value && typeof value === 'object') {
       const row = value as Record<string, unknown>;
       return [
+        row.content,
         row.question,
         row.prompt,
         row.question1,
@@ -967,6 +984,7 @@ function speakingQuestionsFromItem(item: Record<string, unknown>) {
   if (itemQuestions.length > 0) return itemQuestions;
 
   return [
+    item.content,
     item.question,
     item.prompt,
     item.question1,
@@ -2164,7 +2182,10 @@ function limitWords(value: string, maxWords: number) {
 }
 
 function normalizeAudioUrl(value?: string) {
-  const cleaned = String(value ?? '').trim().replace(/^["']|["']$/g, '');
+  const cleaned = String(value ?? '')
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/\\([_*.()[\]`#+\-=!>])/g, '$1');
   if (!cleaned) return '';
 
   const apiBaseUrl = String(api.defaults.baseURL ?? '').replace(/\/+$/, '');

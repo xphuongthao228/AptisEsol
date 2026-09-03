@@ -856,7 +856,37 @@ function getQuestionAudioUrl(question: Question, templateData: TemplateData | nu
 }
 
 function normalizeAudioUrl(value?: string) {
-  return (value ?? '').trim().replace(/^["']|["']$/g, '');
+  const cleaned = (value ?? '')
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .replace(/\\([_*.()[\]`#+\-=!>])/g, '$1');
+  if (!cleaned) return '';
+
+  const apiBaseUrl = String(api.defaults.baseURL ?? '').replace(/\/+$/, '');
+  const apiOrigin = apiBaseUrl.replace(/\/api$/i, '');
+
+  if (/^https?:\/\//i.test(cleaned)) {
+    try {
+      const url = new URL(cleaned);
+      const host = url.hostname.toLowerCase();
+      if ((host === 'aptiskey.com' || host === 'www.aptiskey.com') && apiBaseUrl) {
+        return `${apiBaseUrl}/media/proxy-audio?url=${encodeURIComponent(cleaned)}`;
+      }
+    } catch {
+      return cleaned;
+    }
+    return cleaned;
+  }
+
+  if (/^(blob:|data:)/i.test(cleaned)) return cleaned;
+  if (!apiOrigin) return cleaned;
+
+  if (cleaned.startsWith('/api/')) return `${apiOrigin}${cleaned}`;
+  if (cleaned.startsWith('api/')) return `${apiOrigin}/${cleaned}`;
+  if (cleaned.startsWith('/media/')) return `${apiOrigin}/api${cleaned}`;
+  if (cleaned.startsWith('media/')) return `${apiOrigin}/api/${cleaned}`;
+  if (cleaned.startsWith('/')) return `${apiOrigin}${cleaned}`;
+  return cleaned;
 }
 
 function getSharedAudioUrl(questions: Question[]) {
