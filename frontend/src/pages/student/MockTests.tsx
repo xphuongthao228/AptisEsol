@@ -114,6 +114,8 @@ type SidebarLink = {
 
 type MockCard = {
   id: string;
+  externalId?: string;
+  sourceUpdatedAt?: string;
   practiceTestId?: number;
   skillTestIds?: Partial<Record<Exclude<MockSkill, 'FULL'>, number>>;
   skill: MockSkill;
@@ -139,10 +141,12 @@ type StoredAdminMockTest = {
   minutes?: string;
   status?: 'PUBLISHED' | 'DRAFT';
   featured?: boolean;
+  updatedAt?: string;
 };
 
 type ApiMockTest = {
   id: number;
+  externalId?: string;
   skill: MockSkill | 'GRAMMAR_VOCABULARY';
   title: string;
   description?: string;
@@ -151,6 +155,7 @@ type ApiMockTest = {
   minutes?: string;
   status?: 'PUBLISHED' | 'DRAFT';
   featured?: boolean;
+  updatedAt?: string;
 };
 
 const FEATURED_MARKER = '[[APTIS_FEATURED_MOCK_TEST]]';
@@ -397,6 +402,8 @@ function loadPublishedAdminMockCards() {
         const description = item.description?.trim() ?? '';
         return {
           id: item.id ? `admin-${item.id}` : `admin-${item.skill}-${item.title}`,
+          externalId: item.id,
+          sourceUpdatedAt: item.updatedAt,
           skill,
           label: meta.label,
           title: item.title.trim(),
@@ -457,8 +464,11 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   if (!skill || !item.title?.trim()) return null;
   const meta = mockCardMeta[skill];
   const description = item.description?.trim() ?? '';
+  const externalId = item.externalId?.trim();
   return {
-    id: `api-${item.id}`,
+    id: externalId ? `api-${externalId}` : `api-${item.id}`,
+    externalId,
+    sourceUpdatedAt: item.updatedAt,
     skill,
     label: meta.label,
     title: item.title.trim(),
@@ -654,10 +664,24 @@ function mergeStoredFeatured(cards: MockCard[]) {
   });
 }
 
+function removeLocalCardsShadowedByApi(cards: MockCard[]) {
+  const apiCards = cards.filter((card) => card.id.startsWith('api-'));
+  return cards.filter((card) => {
+    if (!card.id.startsWith('admin-')) return true;
+    return !apiCards.some((apiCard) =>
+      apiCard.skill === card.skill
+      && (
+        Boolean(apiCard.externalId && card.externalId && apiCard.externalId === card.externalId)
+        || apiCard.title.trim().toLowerCase() === card.title.trim().toLowerCase()
+      )
+    );
+  });
+}
+
 function mergeMockCardsByIdentity(cards: MockCard[]) {
   const merged = new Map<string, MockCard>();
   const byTitle = new Map<string, MockCard>();
-  cards.forEach((card) => {
+  removeLocalCardsShadowedByApi(cards).forEach((card) => {
     const id = card.id.replace(/^(api|admin|test)-/, '');
     const key = `${card.skill}|${card.title.trim().toLowerCase()}|${id}`;
     const titleKey = `${card.skill}|${card.title.trim().toLowerCase()}`;
@@ -674,6 +698,15 @@ function mergeMockCardsByIdentity(cards: MockCard[]) {
 function preferredMockCard(current: MockCard, next: MockCard) {
   const currentIsApiUpload = current.id.startsWith('api-');
   const nextIsApiUpload = next.id.startsWith('api-');
+  if (currentIsApiUpload && nextIsApiUpload) {
+    const currentUpdatedAt = getMockCardUpdatedAt(current);
+    const nextUpdatedAt = getMockCardUpdatedAt(next);
+    if (currentUpdatedAt !== nextUpdatedAt) {
+      return currentUpdatedAt > nextUpdatedAt
+        ? { ...next, ...current, featured: Boolean(current.featured || next.featured) }
+        : { ...current, ...next, featured: Boolean(current.featured || next.featured) };
+    }
+  }
   if (currentIsApiUpload && !nextIsApiUpload) {
     return { ...next, ...current, featured: Boolean(current.featured || next.featured) };
   }
@@ -696,6 +729,11 @@ function preferredMockCard(current: MockCard, next: MockCard) {
   }
 
   return { ...current, ...next, featured: Boolean(current.featured || next.featured) };
+}
+
+function getMockCardUpdatedAt(card: MockCard) {
+  const value = card.sourceUpdatedAt ? Date.parse(card.sourceUpdatedAt) : NaN;
+  return Number.isFinite(value) ? value : 0;
 }
 
 function compareMockCards(left: MockCard, right: MockCard) {
@@ -894,6 +932,50 @@ function normalizeImportedQuestionRow(row: Record<string, unknown>) {
 
 function hasImportedQuestionData(card?: MockCard | null) {
   return Boolean(card?.questionData?.trim());
+}
+
+function skillCardFromFullMockCard(card: MockCard | null | undefined, skill: Exclude<MockSkill, 'FULL'>): MockCard | null {
+  if (!card) return null;
+  if (card.skill === skill) return card;
+  if (card.skill !== 'FULL' || !card.questionData?.trim()) return null;
+  try {
+    const parsed = JSON.parse(card.questionData);
+    const section = findSkillSection(parsed, skill);
+    if (!section) return null;
+    const meta = mockCardMeta[skill];
+    return {
+      ...card,
+      id: `${card.id}:${skill.toLowerCase()}`,
+      skill,
+      label: meta.label,
+      icon: meta.icon,
+      color: meta.color,
+      questionData: JSON.stringify([section])
+    };
+  } catch {
+    return null;
+  }
+}
+
+function findSkillSection(value: unknown, skill: Exclude<MockSkill, 'FULL'>): Record<string, unknown> | null {
+  if (!value) return null;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const section = findSkillSection(item, skill);
+      if (section) return section;
+    }
+    return null;
+  }
+  if (typeof value !== 'object') return null;
+
+  const row = value as Record<string, unknown>;
+  if (normalizeMockSkill(String(row.skill ?? '')) === skill) return row;
+
+  for (const key of ['sections', 'skills', 'tests', 'data', 'questionData']) {
+    const section = findSkillSection(row[key], skill);
+    if (section) return section;
+  }
+  return null;
 }
 
 function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
@@ -1112,8 +1194,17 @@ function speakingQuestionsFromTemplateData(data: Record<string, unknown>) {
 }
 
 function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Question[] {
+  const rawPart1Questions = collectImportedRowsBySkillPart(card?.questionData, 'LISTENING', '1')
+    .reduce<ListeningPart1Question[]>((result, item) => {
+      const question = listeningPart1QuestionFromItem(item);
+      if (question) result.push(question);
+      return result;
+    }, [])
+    .slice(0, 13);
+  if (rawPart1Questions.length > 0) return rawPart1Questions;
+
   const rows = parseQuestionDataArray(card?.questionData);
-  return rows
+  const questions = rows
     .filter((item): item is Record<string, unknown> => item && typeof item === 'object')
     .filter((item) => {
       const skill = String(item.skill ?? '').toUpperCase();
@@ -1130,19 +1221,99 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
       return (!skill || skill === 'LISTENING') && isPart1 && !['LISTENING_PEOPLE_MATCH', 'LISTENING_OPINION_MATCH'].includes(template);
     })
     .reduce<ListeningPart1Question[]>((questions, item) => {
+      const question = listeningPart1QuestionFromItem(item);
+      if (question) questions.push(question);
+      return questions;
+    }, [])
+    .slice(0, 13);
+  if (questions.length > 0) return questions;
+
+  return collectImportedRowsBySkillPart(card?.questionData, 'LISTENING', '1')
+    .reduce<ListeningPart1Question[]>((result, item) => {
       const options = listeningOptionsFromItem(item);
       const prompt = String(item.prompt ?? item.question ?? item.content ?? item.topic ?? '').trim();
-      if (!prompt || options.length === 0) return questions;
-      questions.push({
+      if (!prompt || options.length === 0) return result;
+      result.push({
         prompt,
         options,
         audioUrl: listeningAudioUrlsFromItem(item)[0] || undefined,
         answer: String(item.answer ?? '').trim() || undefined,
         correctAnswer: listeningCorrectAnswerFromItem(item) || undefined
       });
-      return questions;
+      return result;
     }, [])
     .slice(0, 13);
+}
+
+function listeningPart1QuestionFromItem(item: Record<string, unknown>): ListeningPart1Question | null {
+  const options = listeningOptionsFromItem(item);
+  const prompt = String(item.prompt ?? item.question ?? item.content ?? item.topic ?? '').trim();
+  if (!prompt || options.length === 0) return null;
+  return {
+    prompt,
+    options,
+    audioUrl: listeningAudioUrlsFromItem(item)[0] || undefined,
+    answer: String(item.answer ?? '').trim() || undefined,
+    correctAnswer: listeningCorrectAnswerFromItem(item) || undefined
+  };
+}
+
+function collectImportedRowsBySkillPart(questionData: string | undefined, targetSkill: MockSkill, targetPart: string) {
+  if (!questionData?.trim()) return [];
+  try {
+    const parsed = JSON.parse(questionData);
+    return collectRowsBySkillPart(parsed, targetSkill, targetPart);
+  } catch {
+    return [];
+  }
+}
+
+function collectRowsBySkillPart(value: unknown, targetSkill: MockSkill, targetPart: string, inheritedSkill = '', inheritedPart = ''): Record<string, unknown>[] {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectRowsBySkillPart(item, targetSkill, targetPart, inheritedSkill, inheritedPart));
+  }
+  if (typeof value !== 'object') return [];
+
+  const row = normalizeImportedQuestionRow(value as Record<string, unknown>);
+  const currentSkill = normalizeMockSkill(String(row.skill ?? inheritedSkill)) ?? inheritedSkill;
+  const currentPart = normalizePartValue(row.part ?? inheritedPart);
+  const parentFields = {
+    skill: currentSkill || targetSkill,
+    ...(currentPart ? { part: currentPart } : {}),
+    ...(row.topic ? { topic: row.topic } : {}),
+    ...(row.title ? { title: row.title } : {}),
+    ...(row.instructions ? { instructions: row.instructions } : {}),
+    ...(row.audioUrl ? { audioUrl: row.audioUrl } : {}),
+    ...(row.audio_url ? { audio_url: row.audio_url } : {}),
+    ...(row.scriptText ? { scriptText: row.scriptText } : {}),
+    ...(row.script_text ? { script_text: row.script_text } : {})
+  };
+
+  if (Array.isArray(row.parts)) {
+    return row.parts.flatMap((part) => collectRowsBySkillPart(part, targetSkill, targetPart, currentSkill, currentPart));
+  }
+
+  if (Array.isArray(row.questions)) {
+    if (currentSkill === targetSkill && currentPart === targetPart) {
+      return row.questions.flatMap((question) => {
+        if (!question) return [];
+        if (typeof question !== 'object') {
+          const prompt = String(question).trim();
+          return prompt ? [{ ...parentFields, prompt }] : [];
+        }
+        return [{ ...parentFields, ...normalizeImportedQuestionRow(question as Record<string, unknown>) }];
+      });
+    }
+    return row.questions.flatMap((question) => collectRowsBySkillPart(question, targetSkill, targetPart, currentSkill, currentPart));
+  }
+
+  if (currentSkill === targetSkill && currentPart === targetPart) return [{ ...parentFields, ...row }];
+  return [];
+}
+
+function normalizePartValue(value: unknown) {
+  return String(value ?? '').trim().toLowerCase().replace(/^part\s*/, '');
 }
 
 function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatchingData {
@@ -1418,7 +1589,7 @@ function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): s
     });
   });
 
-  return Array.from(new Set(urls.map((url) => normalizeAudioUrl(url)).filter(Boolean)));
+  return Array.from(new Set(urls.filter(Boolean)));
 }
 
 function stringValue(value: unknown) {
@@ -2630,7 +2801,12 @@ export function MockTests() {
   const animationFrameRef = useRef<number | null>(null);
   const activeRecordingKeyRef = useRef<string | null>(null);
   const speakingSoundEnabledRef = useRef(true);
-  const activeSpeakingData = useMemo(() => getSpeakingTestDataFromCard(selectedMockCard), [selectedMockCard]);
+  const activeSpeakingCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'SPEAKING'), [selectedMockCard]);
+  const activeListeningCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'LISTENING'), [selectedMockCard]);
+  const activeReadingCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'READING'), [selectedMockCard]);
+  const activeGrammarCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'GRAMMAR'), [selectedMockCard]);
+  const activeWritingCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'WRITING'), [selectedMockCard]);
+  const activeSpeakingData = useMemo(() => getSpeakingTestDataFromCard(activeSpeakingCard), [activeSpeakingCard]);
 
   useEffect(() => {
     if (!accessToken) {
@@ -3630,28 +3806,41 @@ export function MockTests() {
     }
   }
 
-  const activeReadingData = useMemo(() => getReadingTestDataFromCard(selectedMockCard), [selectedMockCard]);
+  const activeReadingData = useMemo(() => getReadingTestDataFromCard(activeReadingCard), [activeReadingCard]);
   const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers, activeReadingData);
   const activeListeningPart1Questions = useMemo(() => {
-    const fromAdmin = listeningQuestionsFromCard(selectedMockCard);
+    const fromAdmin = listeningQuestionsFromCard(activeListeningCard);
     return (fromAdmin.length > 0
       ? fromAdmin
-      : hasImportedQuestionData(selectedMockCard)
+      : hasImportedQuestionData(activeListeningCard)
         ? []
         : listeningPart1Questions).slice(0, 13);
-  }, [selectedMockCard]);
+  }, [activeListeningCard]);
   const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
-  const activeListeningMatchingData = useMemo(() => getListeningMatchingDataFromCard(selectedMockCard), [selectedMockCard]);
-  const activeListeningShortData = useMemo(() => getListeningShortDataFromCard(selectedMockCard), [selectedMockCard]);
-  const activeListeningMonologues = useMemo(() => getListeningMonologuesFromCard(selectedMockCard), [selectedMockCard]);
+  const activeListeningMatchingData = useMemo(() => getListeningMatchingDataFromCard(activeListeningCard), [activeListeningCard]);
+  const activeListeningShortData = useMemo(() => getListeningShortDataFromCard(activeListeningCard), [activeListeningCard]);
+  const activeListeningMonologues = useMemo(() => getListeningMonologuesFromCard(activeListeningCard), [activeListeningCard]);
   const activeListeningMonologueAnswerKey = useMemo(() => getListeningMonologueAnswerKey(activeListeningMonologues), [activeListeningMonologues]);
-  const activeListeningAudioByPart = useMemo(() => listeningAudioByPartFromCard(selectedMockCard), [selectedMockCard]);
+  const activeListeningAudioByPart = useMemo(() => listeningAudioByPartFromCard(activeListeningCard), [activeListeningCard]);
+  const activeListeningPart1AudioUrls = useMemo(() =>
+    collectImportedRowsBySkillPart(activeListeningCard?.questionData, 'LISTENING', '1')
+      .map((item) => listeningAudioUrlsFromItem(item)[0] || '')
+      .filter(Boolean),
+    [activeListeningCard]
+  );
   const listeningSummary = scoreListeningAnswers(listeningAnswers, listeningMatchingAnswers, listeningShortAnswers, listeningMonologueAnswers, activeListeningPart1AnswerKey, activeListeningMatchingData.answerKey, activeListeningShortData.answerKey, activeListeningMonologueAnswerKey);
-  const activeGrammarQuestions = useMemo(() => grammarQuestionsFromCard(selectedMockCard), [selectedMockCard]);
+  const activeGrammarQuestions = useMemo(() => grammarQuestionsFromCard(activeGrammarCard), [activeGrammarCard]);
   const grammarSummary = scoreGrammarAnswers(grammarAnswers, activeGrammarQuestions);
-  const activeWritingParts = useMemo(() => writingPartsFromCard(selectedMockCard), [selectedMockCard]);
+  const activeWritingParts = useMemo(() => writingPartsFromCard(activeWritingCard), [activeWritingCard]);
   const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
   const questionListItems = buildCurrentQuestionListItems();
+
+  useEffect(() => {
+    setListeningQuestionIndex((current) => {
+      if (activeListeningPart1Questions.length === 0) return 0;
+      return Math.min(current, activeListeningPart1Questions.length - 1);
+    });
+  }, [activeListeningPart1Questions.length]);
 
   function questionItem(key: string, label: string, detail: string, active: boolean, onSelect: () => void): QuestionListItem {
     return {
@@ -3908,7 +4097,10 @@ export function MockTests() {
               bookmarkActive={isBookmarked(bookmarkKey('listening-part1', listeningQuestionIndex + 1))}
               correctAnswer={activeListeningPart1AnswerKey[listeningQuestionIndex]}
               index={listeningQuestionIndex}
-              question={activeListeningPart1Questions[listeningQuestionIndex]}
+              question={{
+                ...activeListeningPart1Questions[listeningQuestionIndex],
+                audioUrl: activeListeningPart1Questions[listeningQuestionIndex]?.audioUrl || activeListeningPart1AudioUrls[listeningQuestionIndex]
+              }}
               showAnswer={answerRevealOpen}
               timeRemaining={formatReadingTime(listeningSeconds)}
               total={activeListeningPart1Questions.length}
@@ -4169,8 +4361,12 @@ export function MockTests() {
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onPrevious={() => {
-                setListeningQuestionIndex(activeListeningPart1Questions.length - 1);
-                setScreen('listeningQuestion');
+                if (activeListeningPart1Questions.length > 0) {
+                  setListeningQuestionIndex(activeListeningPart1Questions.length - 1);
+                  setScreen('listeningQuestion');
+                } else {
+                  setScreen('listeningInstructions');
+                }
               }}
               onNext={() => setScreen('listeningShort')}
             />
@@ -4286,7 +4482,7 @@ function MockSelectLayout({ children }: { children: ReactNode }) {
 }
 
 function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull, proActive, authenticated }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void; proActive: boolean; authenticated: boolean }) {
-  const [adminCards, setAdminCards] = useState<MockCard[]>(() => loadPublishedAdminMockCards());
+  const [adminCards, setAdminCards] = useState<MockCard[]>([]);
   const [creatingRandom, setCreatingRandom] = useState(false);
   const navigate = useNavigate();
 
@@ -5693,7 +5889,7 @@ function ListeningQuestion({
   bookmarkActive: boolean;
   correctAnswer?: string;
   index: number;
-  question: ListeningPart1Question;
+  question?: ListeningPart1Question;
   showAnswer?: boolean;
   timeRemaining: string;
   total: number;
@@ -5701,7 +5897,10 @@ function ListeningQuestion({
   onToggleBookmark: () => void;
 }) {
   const labels = ['A', 'B', 'C'];
-  const { playing, playsLeft, toggleAudio } = useAudioPlayer(question.audioUrl);
+  const { playing, playsLeft, toggleAudio } = useAudioPlayer(question?.audioUrl);
+  const prompt = question?.prompt?.trim() || 'Không tìm thấy câu nghe trong đề import.';
+  const options = question?.options ?? [];
+  const displayTotal = total || options.length;
 
   return (
     <main
@@ -5715,7 +5914,7 @@ function ListeningQuestion({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 1</p>
-            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question {index + 1} of {total}</h2>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question {displayTotal ? index + 1 : 0} of {displayTotal}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -5743,7 +5942,7 @@ function ListeningQuestion({
         </div>
 
         <div style={{ marginTop: 58 }}>
-          <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>{question.prompt}</p>
+          <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>{prompt}</p>
           <button
             type="button"
             onClick={toggleAudio}
@@ -5776,7 +5975,7 @@ function ListeningQuestion({
               boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
             }}
           >
-            {question.options.map((option, optionIndex) => {
+            {options.map((option, optionIndex) => {
               const selected = answer === option;
               return (
                 <button
@@ -5819,7 +6018,7 @@ function ListeningQuestion({
           </div>
           {showAnswer && (
             <InlineAnswer>
-              {correctAnswer ?? (question as { answer?: string; correctAnswer?: string }).answer ?? (question as { answer?: string; correctAnswer?: string }).correctAnswer ?? 'Chưa có đáp án mẫu'}
+              {correctAnswer ?? question?.answer ?? question?.correctAnswer ?? 'Chưa có đáp án mẫu'}
             </InlineAnswer>
           )}
         </div>

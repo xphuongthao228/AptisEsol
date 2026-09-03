@@ -199,8 +199,16 @@ function fromApiMockTest(item: ApiMockTest): AdminMockTest {
   };
 }
 
-function isSameMockTest(left: Pick<AdminMockTest, 'id' | 'skill' | 'title'>, right: Pick<AdminMockTest, 'id' | 'skill' | 'title'>) {
-  return left.id === right.id || (left.skill === right.skill && left.title.trim().toLowerCase() === right.title.trim().toLowerCase());
+function identityExternalId(item: Pick<AdminMockTest, 'id' | 'externalId'>) {
+  return item.externalId?.trim() || (isBackendId(item.id) ? '' : item.id.trim());
+}
+
+function isSameMockTest(left: Pick<AdminMockTest, 'id' | 'externalId' | 'skill' | 'title'>, right: Pick<AdminMockTest, 'id' | 'externalId' | 'skill' | 'title'>) {
+  const leftExternalId = identityExternalId(left);
+  const rightExternalId = identityExternalId(right);
+  return Boolean(leftExternalId && rightExternalId && leftExternalId === rightExternalId)
+    || left.id === right.id
+    || (left.skill === right.skill && left.title.trim().toLowerCase() === right.title.trim().toLowerCase());
 }
 
 function preserveFeaturedFromStored(next: AdminMockTest, storedItems: AdminMockTest[]) {
@@ -221,7 +229,6 @@ function mergeApiAndStoredMockTests(apiItems: AdminMockTest[], storedItems: Admi
     merged[existingIndex] = {
       ...apiItem,
       featured: Boolean(apiItem.featured || stored.featured),
-      status: stored.status,
       updatedAt: stored.updatedAt > apiItem.updatedAt ? stored.updatedAt : apiItem.updatedAt
     };
   });
@@ -609,8 +616,7 @@ export function AdminMockTests() {
         headers: { 'Content-Type': 'multipart/form-data' }
       }));
       const imported = importedFromApi.map(fromApiMockTest);
-      const importedIds = new Set(imported.map((item) => item.id));
-      persist([...imported, ...items.filter((item) => !importedIds.has(item.id))]);
+      persist([...imported, ...items.filter((item) => !imported.some((importedItem) => isSameMockTest(importedItem, item)))]);
       toast.success(`Đã import ${imported.length} đề thi thử`);
     } catch {
       try {
@@ -653,8 +659,7 @@ export function AdminMockTests() {
         return;
       }
 
-      const importedIds = new Set(imported.map((item) => item.id));
-      persist([...imported, ...items.filter((item) => !importedIds.has(item.id))]);
+      persist([...imported, ...items.filter((item) => !imported.some((importedItem) => isSameMockTest(importedItem, item)))]);
       toast.success(`Đã import ${imported.length} đề thi thử vào bộ nhớ trình duyệt`);
       } catch {
       toast.error('Không đọc được file CSV');
