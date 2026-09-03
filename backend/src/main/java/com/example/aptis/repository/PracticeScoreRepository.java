@@ -29,6 +29,26 @@ public interface PracticeScoreRepository extends JpaRepository<PracticeScore, Lo
             """)
     List<PracticeScoreProjection> leaderboard(@Param("role") RoleName role);
 
+    @Query("""
+            select ps.user.id as userId,
+                   ps.user.fullName as fullName,
+                   ps.user.email as email,
+                   coalesce(sum(ps.score), 0) as score,
+                   count(ps.id) as submissions,
+                   max(ps.updatedAt) as latestSubmissionAt
+            from PracticeScore ps
+            join ps.user.roles r
+            where ps.user.deletedAt is null
+              and r.name = :role
+              and ps.updatedAt >= :startAt
+              and ps.updatedAt < :endAt
+            group by ps.user.id, ps.user.fullName, ps.user.email
+            """)
+    List<PracticeScoreProjection> leaderboardBetween(
+            @Param("role") RoleName role,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt);
+
     interface PracticeScoreProjection {
         Long getUserId();
         String getFullName();

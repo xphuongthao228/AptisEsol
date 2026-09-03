@@ -29,6 +29,26 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             """)
     List<LeaderboardProjection> leaderboard(@Param("role") RoleName role);
 
+    @Query("""
+            select u.id as userId,
+                   u.fullName as fullName,
+                   u.email as email,
+                   coalesce(sum(s.totalScore), 0) as score,
+                   count(distinct s.id) as submissions,
+                   max(s.createdAt) as latestSubmissionAt
+            from User u
+            join u.roles r
+            left join Submission s on s.user = u and s.createdAt >= :startAt and s.createdAt < :endAt
+            where u.deletedAt is null and r.name = :role
+            group by u.id, u.fullName, u.email
+            having coalesce(sum(s.totalScore), 0) > 0
+            order by coalesce(sum(s.totalScore), 0) desc, count(distinct s.id) asc, max(s.createdAt) asc, u.fullName asc
+            """)
+    List<LeaderboardProjection> leaderboardBetween(
+            @Param("role") RoleName role,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt);
+
     interface LeaderboardProjection {
         Long getUserId();
         String getFullName();

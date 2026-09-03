@@ -35,7 +35,9 @@ import java.nio.file.Path;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -51,6 +53,7 @@ import java.util.zip.ZipInputStream;
 @RequiredArgsConstructor
 public class CoreService {
     private static final int EXAM_POINT_PER_QUESTION = 2;
+    private static final int LEADERBOARD_PERIOD_DAYS = 10;
     private static final String RANDOM_TEST_TITLE_PREFIX = "Đề thi thử Random";
     private static final String LEGACY_RANDOM_TEST_TITLE_PREFIX = "Bộ đề Random";
 
@@ -1860,12 +1863,23 @@ public class CoreService {
     @Transactional(readOnly = true)
     public List<CoreDtos.LeaderboardRowResponse> leaderboard() {
         Map<Long, LeaderboardAccumulator> scores = new LinkedHashMap<>();
-        submissions.leaderboard(RoleName.STUDENT).forEach(row -> {
+        LocalDate startDate = leaderboardPeriodStart();
+        LocalDateTime startAt = startDate == null ? null : startDate.atStartOfDay();
+        LocalDateTime endAt = startDate == null ? null : startDate.plusDays(LEADERBOARD_PERIOD_DAYS).atStartOfDay();
+
+        List<SubmissionRepository.LeaderboardProjection> submissionRows = startAt == null
+                ? submissions.leaderboard(RoleName.STUDENT)
+                : submissions.leaderboardBetween(RoleName.STUDENT, startAt, endAt);
+        List<PracticeScoreRepository.PracticeScoreProjection> practiceRows = startAt == null
+                ? practiceScores.leaderboard(RoleName.STUDENT)
+                : practiceScores.leaderboardBetween(RoleName.STUDENT, startAt, endAt);
+
+        submissionRows.forEach(row -> {
             LeaderboardAccumulator item = scores.computeIfAbsent(row.getUserId(), id ->
                     new LeaderboardAccumulator(row.getUserId(), row.getFullName(), row.getEmail()));
             item.add(row.getScore(), row.getSubmissions(), row.getLatestSubmissionAt());
         });
-        practiceScores.leaderboard(RoleName.STUDENT).forEach(row -> {
+        practiceRows.forEach(row -> {
             LeaderboardAccumulator item = scores.computeIfAbsent(row.getUserId(), id ->
                     new LeaderboardAccumulator(row.getUserId(), row.getFullName(), row.getEmail()));
             item.add(row.getScore(), row.getSubmissions(), row.getLatestSubmissionAt());
@@ -1904,6 +1918,24 @@ public class CoreService {
         }
 
         return result;
+    }
+
+    private LocalDate leaderboardPeriodStart() {
+        LocalDate configuredStart = leaderboardSettings.findTopByOrderByIdAsc()
+                .map(settings -> settings.getExamAt() != null
+                        ? settings.getExamAt().toLocalDate()
+                        : settings.getExamDate())
+                .orElse(null);
+        if (configuredStart == null) {
+            return null;
+        }
+        LocalDate today = LocalDate.now();
+        if (today.isBefore(configuredStart)) {
+            return configuredStart;
+        }
+        long elapsedDays = ChronoUnit.DAYS.between(configuredStart, today);
+        long completedPeriods = elapsedDays / LEADERBOARD_PERIOD_DAYS;
+        return configuredStart.plusDays(completedPeriods * LEADERBOARD_PERIOD_DAYS);
     }
 
     @Transactional(readOnly = true)

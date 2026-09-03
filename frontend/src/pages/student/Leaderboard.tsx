@@ -31,6 +31,8 @@ export function Leaderboard() {
     if (!keyword) return rows;
     return rows.filter((row) => `${row.fullName} ${row.email}`.toLowerCase().includes(keyword));
   }, [query, rows]);
+  const periodStartDate = useMemo(() => currentPeriodStart(examDate), [examDate]);
+  const examEndDate = useMemo(() => addDays(periodStartDate, 9), [periodStartDate]);
   const topThree = rows.slice(0, 3);
 
   async function saveExamDate() {
@@ -82,9 +84,19 @@ export function Leaderboard() {
             <CalendarDays size={22} />
           </span>
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-extrabold text-navy">Ngày bắt đầu thi</h2>
-            <p className="mt-1 text-sm font-semibold leading-6 text-slate-700">
-              {examDate ? formatDateOnly(examDate) : 'Admin chưa đặt ngày bắt đầu thi.'}
+            <h2 className="text-base font-extrabold text-navy">Kỳ thi 10 ngày</h2>
+            <div className="mt-2 grid gap-2 text-sm font-semibold leading-6 text-slate-700 sm:grid-cols-2">
+              <p>
+                <span className="block text-xs font-extrabold uppercase text-slate-500">Ngày bắt đầu thi</span>
+                {periodStartDate ? formatDateOnly(periodStartDate) : 'Admin chưa đặt.'}
+              </p>
+              <p>
+                <span className="block text-xs font-extrabold uppercase text-slate-500">Ngày kết thúc thi</span>
+                {examEndDate ? formatDateOnly(examEndDate) : 'Admin chưa đặt.'}
+              </p>
+            </div>
+            <p className="mt-2 text-xs font-bold leading-5 text-brand-700">
+              Bảng xếp hạng chỉ tính tổng điểm trong đủ 10 ngày của kỳ thi.
             </p>
             {isAdmin && (
               <div className="mt-3 flex flex-col gap-2 sm:flex-row">
@@ -272,6 +284,43 @@ function toDateInputValue(examAt?: string | null, examDate?: string | null) {
   const value = examDate || examAt || '';
   if (!value) return '';
   return value.slice(0, 10);
+}
+
+function addDays(value: string | null, days: number) {
+  if (!value) return '';
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  const date = year && month && day ? new Date(year, month - 1, day) : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  date.setDate(date.getDate() + days);
+  const normalizedYear = date.getFullYear();
+  const normalizedMonth = String(date.getMonth() + 1).padStart(2, '0');
+  const normalizedDay = String(date.getDate()).padStart(2, '0');
+  return `${normalizedYear}-${normalizedMonth}-${normalizedDay}`;
+}
+
+function currentPeriodStart(value: string | null) {
+  if (!value) return '';
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  const configuredStart = year && month && day ? new Date(year, month - 1, day) : new Date(value);
+  if (Number.isNaN(configuredStart.getTime())) return '';
+  configuredStart.setHours(0, 0, 0, 0);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (today < configuredStart) return toDateValue(configuredStart);
+
+  const millisecondsPerDay = 24 * 60 * 60 * 1000;
+  const elapsedDays = Math.floor((today.getTime() - configuredStart.getTime()) / millisecondsPerDay);
+  const completedPeriods = Math.floor(elapsedDays / 10);
+  configuredStart.setDate(configuredStart.getDate() + completedPeriods * 10);
+  return toDateValue(configuredStart);
+}
+
+function toDateValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 function formatDateOnly(value: string | null) {

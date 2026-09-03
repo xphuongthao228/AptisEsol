@@ -2193,8 +2193,21 @@ function normalizeAudioUrl(value?: string) {
   return cleaned;
 }
 
+function audioPlaybackUrls(value?: string) {
+  const cleaned = String(value ?? '').trim().replace(/^["']|["']$/g, '');
+  const normalized = normalizeAudioUrl(cleaned);
+  const urls = [normalized];
+
+  if (/^https?:\/\//i.test(cleaned) && cleaned !== normalized) {
+    urls.push(cleaned);
+  }
+
+  return Array.from(new Set(urls.filter(Boolean)));
+}
+
 function useAudioPlayer(audioUrl?: string) {
-  const playableAudioUrl = normalizeAudioUrl(audioUrl);
+  const playableAudioUrls = audioPlaybackUrls(audioUrl);
+  const playableAudioUrlKey = playableAudioUrls.join('|');
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playCount, setPlayCount] = useState(0);
@@ -2204,42 +2217,52 @@ function useAudioPlayer(audioUrl?: string) {
     audioRef.current = null;
     setPlaying(false);
     setPlayCount(0);
-  }, [playableAudioUrl]);
+  }, [playableAudioUrlKey]);
 
   useEffect(() => () => {
     audioRef.current?.pause();
   }, []);
 
   async function toggleAudio() {
-    if (!playableAudioUrl) {
+    if (playableAudioUrls.length === 0) {
       toast.error('Chưa có file nghe cho câu này.');
       return;
     }
 
     try {
-      if (!audioRef.current) {
+      if (playing) {
+        audioRef.current?.pause();
+        setPlaying(false);
+        return;
+      }
+
+      if (playCount >= 2) {
+        toast.error('Bạn chỉ được nghe tối đa 2 lần cho mỗi file nghe.');
+        return;
+      }
+
+      let lastError: unknown = null;
+      for (const playableAudioUrl of playableAudioUrls) {
         const audio = new Audio(playableAudioUrl);
         audio.preload = 'auto';
         audio.onended = () => setPlaying(false);
-        audio.onerror = () => {
-          setPlaying(false);
-          toast.error('Không phát được file nghe. Kiểm tra lại link audioUrl.');
-        };
-        audioRef.current = audio;
+        audio.onerror = () => setPlaying(false);
+
+        try {
+          audioRef.current?.pause();
+          audioRef.current = audio;
+          await audio.play();
+          setPlayCount((count) => count + 1);
+          setPlaying(true);
+          return;
+        } catch (error) {
+          lastError = error;
+          audio.pause();
+          audioRef.current = null;
+        }
       }
 
-      if (playing) {
-        audioRef.current.pause();
-        setPlaying(false);
-      } else {
-        if (playCount >= 2) {
-          toast.error('Bạn chỉ được nghe tối đa 2 lần cho mỗi file nghe.');
-          return;
-        }
-        await audioRef.current.play();
-        setPlayCount((count) => count + 1);
-        setPlaying(true);
-      }
+      throw lastError;
     } catch {
       setPlaying(false);
       toast.error('Không phát được file nghe. Kiểm tra lại link audioUrl hoặc quyền truy cập file.');
