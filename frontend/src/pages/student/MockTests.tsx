@@ -103,6 +103,7 @@ type SpeakingTestData = {
   part2: string[];
   part2Image: string;
   part3: string[];
+  part3Images: [string, string];
   part4: SpeakingPart4Topic;
 };
 
@@ -916,18 +917,40 @@ function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPar
 
 function normalizeImportedQuestionRow(row: Record<string, unknown>) {
   const content = String(row.content ?? '').trim();
-  if (!content || (!content.startsWith('{') && !content.startsWith('['))) return row;
+  const baseRow = normalizeImportedQuestionAliases(row);
+  if (!content || (!content.startsWith('{') && !content.startsWith('['))) return baseRow;
 
   try {
     const parsed = JSON.parse(content);
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return row;
-    return {
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return baseRow;
+    return normalizeImportedQuestionAliases({
       ...(parsed as Record<string, unknown>),
       ...row
-    };
+    });
   } catch {
-    return row;
+    return baseRow;
   }
+}
+
+function normalizeImportedQuestionAliases(row: Record<string, unknown>) {
+  const next = { ...row };
+  if (!next.template && next.type) next.template = next.type;
+  if (!next.audioUrl) next.audioUrl = valueByFlexibleKey(next, 'audioUrl');
+  if (!next.audioUrl) next.audioUrl = valueByFlexibleKey(next, 'audio_url');
+  if (!next.imageUrl) next.imageUrl = valueByFlexibleKey(next, 'imageUrl') ?? valueByFlexibleKey(next, 'image_url') ?? valueByFlexibleKey(next, 'link ảnh') ?? valueByFlexibleKey(next, 'url ảnh');
+  if (!next.imageUrl2) next.imageUrl2 = valueByFlexibleKey(next, 'imageUrl2') ?? valueByFlexibleKey(next, 'image_url2') ?? valueByFlexibleKey(next, 'link ảnh 2') ?? valueByFlexibleKey(next, 'url ảnh 2');
+  if (!next.scriptText) next.scriptText = valueByFlexibleKey(next, 'scriptText') ?? valueByFlexibleKey(next, 'script_text');
+
+  const template = String(next.template ?? next.type ?? '').toUpperCase();
+  if (!next.skill && template.startsWith('LISTENING')) next.skill = 'LISTENING';
+  if (!next.part && template === 'LISTENING_PART2') next.part = '2';
+  if (!next.part && template === 'LISTENING_PART3') next.part = '3';
+  if (!next.part && template === 'LISTENING_PART4') next.part = '4';
+  if (!next.part && template === 'LISTENING_AUDIO_MC') next.part = '1';
+  if (template === 'LISTENING_PART2') next.template = 'LISTENING_PEOPLE_MATCH';
+  if (template === 'LISTENING_PART3') next.template = 'LISTENING_OPINION_MATCH';
+  if (template === 'LISTENING_PART4') next.template = 'LISTENING_AUDIO_MC';
+  return next;
 }
 
 function hasImportedQuestionData(card?: MockCard | null) {
@@ -999,7 +1022,9 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   const part2Row = part2Rows[0];
   const part2 = part2Row ? speakingQuestionsFromItem(part2Row) : [];
   const part2Image = part2Row ? speakingImageFromItem(part2Row, 1) : '';
-  const part3 = rows.filter((item) => getSpeakingPart(item) === '3').flatMap((item) => speakingQuestionsFromItem(item));
+  const part3Rows = rows.filter((item) => getSpeakingPart(item) === '3');
+  const part3 = part3Rows.flatMap((item) => speakingQuestionsFromItem(item));
+  const part3Images = speakingImagesFromItems(part3Rows);
   const part4Row = rows.find((item) => getSpeakingPart(item) === '4');
   const part4Questions = part4Row ? speakingQuestionsFromItem(part4Row) : [];
   const part4Title = String(part4Row?.title ?? part4Row?.topic ?? part4Row?.prompt ?? '').trim();
@@ -1010,6 +1035,10 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
     part2: part2.length > 0 ? part2 : hasImportedRows ? [] : part2Questions,
     part2Image: part2Image || (hasImportedRows ? '' : part2ImageUrls[0]),
     part3: part3.length > 0 ? part3 : hasImportedRows ? [] : part3Questions,
+    part3Images: [
+      part3Images[0] || (hasImportedRows ? '' : '/images/speaking/part3/de01_1.png'),
+      part3Images[1] || (hasImportedRows ? '' : '/images/speaking/part3/de01_2.png')
+    ],
     part4: {
       title: part4Title || (hasImportedRows ? '' : part4Topic.title),
       image: part4Image || (hasImportedRows ? '' : part4Topic.image),
@@ -1018,16 +1047,28 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   };
 }
 
+function speakingImagesFromItems(items: Record<string, unknown>[]) {
+  const urls: string[] = [];
+  items.forEach((item) => {
+    [speakingImageFromItem(item, 1), speakingImageFromItem(item, 2), ...speakingAllImagesFromItem(item)]
+      .filter(Boolean)
+      .forEach((url) => {
+        if (!urls.includes(url)) urls.push(url);
+      });
+  });
+  return urls.slice(0, 2);
+}
+
 function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 2): string {
   const contentImage = speakingImageFromContent(item.content, imageNumber);
   if (contentImage) return contentImage;
 
   const directKeys = imageNumber === 2
-    ? ['imageUrl2', 'image2Url', 'urlpic2', 'urlPic2', 'image2', 'picture2']
-    : ['imageUrl', 'image1Url', 'urlpic1', 'urlPic1', 'image', 'image1', 'picture', 'picture1'];
+    ? ['imageUrl2', 'image_url2', 'image2Url', 'image_2_url', 'urlpic2', 'urlPic2', 'image2', 'image_2', 'picture2', 'picture_2', 'photo2', 'photo_2', 'linkAnh2', 'link_anh_2', 'link ảnh 2', 'url ảnh 2']
+    : ['imageUrl', 'image_url', 'image1Url', 'image_1_url', 'urlpic1', 'urlPic1', 'urlpic', 'image', 'image1', 'image_1', 'picture', 'picture1', 'picture_1', 'photo', 'photo1', 'photo_1', 'linkAnh', 'link_anh', 'link ảnh', 'url ảnh'];
 
   for (const key of directKeys) {
-    const value = String(item[key] ?? '').trim();
+    const value = stringValue(valueByFlexibleKey(item, key));
     if (value) return value;
   }
 
@@ -1045,6 +1086,66 @@ function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 
   return '';
 }
 
+function speakingAllImagesFromItem(item: Record<string, unknown>, depth = 0): string[] {
+  if (depth > 3) return [];
+  const directKeys = [
+    'imageUrl',
+    'image_url',
+    'imageUrl1',
+    'image_url1',
+    'imageUrl2',
+    'image_url2',
+    'image1Url',
+    'image2Url',
+    'image',
+    'image1',
+    'image2',
+    'picture',
+    'picture1',
+    'picture2',
+    'photo',
+    'photo1',
+    'photo2',
+    'urlpic',
+    'urlpic1',
+    'urlpic2',
+    'urlPic',
+    'urlPic1',
+    'urlPic2',
+    'linkAnh',
+    'linkAnh1',
+    'linkAnh2',
+    'link_anh',
+    'link_anh_1',
+    'link_anh_2',
+    'link ảnh',
+    'link ảnh 1',
+    'link ảnh 2',
+    'url ảnh',
+    'url ảnh 1',
+    'url ảnh 2'
+  ];
+  const urls = directKeys
+    .map((key) => stringValue(valueByFlexibleKey(item, key)))
+    .filter(Boolean);
+
+  const nestedKeys = ['questions', 'items', 'prompts', 'images', 'pictures', 'photos'];
+  nestedKeys.forEach((key) => {
+    const value = item[key];
+    if (!Array.isArray(value)) return;
+    value.forEach((entry) => {
+      if (entry && typeof entry === 'object') {
+        urls.push(...speakingAllImagesFromItem(entry as Record<string, unknown>, depth + 1));
+      } else {
+        const url = stringValue(entry);
+        if (url) urls.push(url);
+      }
+    });
+  });
+
+  return Array.from(new Set(urls));
+}
+
 function speakingImageFromContent(content: unknown, imageNumber?: 1 | 2): string {
   const text = String(content ?? '').trim();
   if (!text) return '';
@@ -1060,11 +1161,11 @@ function speakingImageFromContent(content: unknown, imageNumber?: 1 | 2): string
 
 function speakingImageFromTemplateData(data: Record<string, unknown>, imageNumber?: 1 | 2): string {
   const directKeys = imageNumber === 2
-    ? ['imageUrl2', 'image2Url', 'urlpic2', 'urlPic2', 'image2', 'picture2']
-    : ['imageUrl', 'image1Url', 'urlpic1', 'urlPic1', 'image', 'image1', 'picture', 'picture1'];
+    ? ['imageUrl2', 'image_url2', 'image2Url', 'image_2_url', 'urlpic2', 'urlPic2', 'image2', 'image_2', 'picture2', 'picture_2', 'photo2', 'photo_2', 'linkAnh2', 'link_anh_2', 'link ảnh 2', 'url ảnh 2']
+    : ['imageUrl', 'image_url', 'image1Url', 'image_1_url', 'urlpic1', 'urlPic1', 'urlpic', 'image', 'image1', 'image_1', 'picture', 'picture1', 'picture_1', 'photo', 'photo1', 'photo_1', 'linkAnh', 'link_anh', 'link ảnh', 'url ảnh'];
 
   for (const key of directKeys) {
-    const value = String(data[key] ?? '').trim();
+    const value = stringValue(valueByFlexibleKey(data, key));
     if (value) return value;
   }
 
@@ -1247,7 +1348,7 @@ function listeningQuestionsFromCard(card?: MockCard | null): ListeningPart1Quest
 
 function listeningPart1QuestionFromItem(item: Record<string, unknown>): ListeningPart1Question | null {
   const options = listeningOptionsFromItem(item);
-  const prompt = String(item.prompt ?? item.question ?? item.content ?? item.topic ?? '').trim();
+  const prompt = String(item.prompt ?? item.question ?? item.question1 ?? item.content ?? item.topic ?? '').trim();
   if (!prompt || options.length === 0) return null;
   return {
     prompt,
@@ -1348,7 +1449,7 @@ function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatc
 
   const options = asStringArray(row.options).length > 0 ? asStringArray(row.options) : listeningOptionsFromItem(row);
   const speakers = asStringArray(row.rows).length > 0 ? asStringArray(row.rows) : ['Speaker A', 'Speaker B', 'Speaker C', 'Speaker D'];
-  const correctAnswers = asStringArray(row.correctAnswers);
+  const correctAnswers = listeningCorrectAnswersFromIndexedPeople(row);
   const answerKey = speakers.reduce<Record<string, string>>((result, speaker, index) => {
     result[speaker] = correctAnswers[index] ?? '';
     return result;
@@ -1397,9 +1498,13 @@ function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortDa
 
   const statements = asStringArray(row.statements).length > 0
     ? asStringArray(row.statements)
-    : splitLines(String(row.content ?? row.prompt ?? '')).filter(Boolean);
+    : indexedValues(row, 'statement').length > 0
+      ? indexedValues(row, 'statement')
+      : splitLines(String(row.content ?? row.prompt ?? '')).filter(Boolean);
   const options = asStringArray(row.options).length > 0 ? asStringArray(row.options) : listeningOptionsFromItem(row);
-  const correctAnswers = asStringArray(row.correctAnswers);
+  const correctAnswers = asStringArray(row.correctAnswers).length > 0
+    ? asStringArray(row.correctAnswers)
+    : indexedValues(row, 'correct_statement');
   const directCorrectAnswer = listeningCorrectAnswerFromItem(row);
 
   return {
@@ -1450,7 +1555,7 @@ function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonolo
       return result;
     }
 
-    const prompt = String(row.prompt ?? row.question ?? row.content ?? '').trim();
+    const prompt = String(row.prompt ?? row.question ?? row.question1 ?? row.content ?? '').trim();
     const options = listeningOptionsFromItem(row);
     if (!prompt || options.length === 0) return result;
 
@@ -1502,6 +1607,14 @@ function listeningOptionsFromItem(item: Record<string, unknown>) {
     item.optionB,
     item.optionC,
     item.optionD,
+    item.q1_answer1,
+    item.q1_answer2,
+    item.q1_answer3,
+    item.q1_answer4,
+    item.q2_answer1,
+    item.q2_answer2,
+    item.q2_answer3,
+    item.q2_answer4,
     item.answer1,
     item.answer2,
     item.answer3,
@@ -1512,7 +1625,7 @@ function listeningOptionsFromItem(item: Record<string, unknown>) {
 }
 
 function listeningCorrectAnswerFromItem(item: Record<string, unknown>) {
-  const direct = String(item.correctAnswer ?? item.answer ?? '').trim();
+  const direct = String(item.correctAnswer ?? item.correct_answer ?? item.correct_answer1 ?? item.answer ?? '').trim();
   if (direct) return direct;
 
   const correctIndex = Number.parseInt(String(item.correctIndex ?? item.correct_index ?? '').trim(), 10);
@@ -1528,6 +1641,31 @@ function listeningCorrectAnswerFromItem(item: Record<string, unknown>) {
   return String(row.content ?? row.text ?? row.label ?? row.answer ?? '').trim();
 }
 
+function indexedValues(item: Record<string, unknown>, prefix: string) {
+  return Object.keys(item)
+    .filter((key) => key.toLowerCase().startsWith(prefix.toLowerCase()))
+    .sort((first, second) => {
+      const firstIndex = Number.parseInt(first.replace(/\D+/g, ''), 10);
+      const secondIndex = Number.parseInt(second.replace(/\D+/g, ''), 10);
+      return (Number.isFinite(firstIndex) ? firstIndex : 0) - (Number.isFinite(secondIndex) ? secondIndex : 0);
+    })
+    .map((key) => String(item[key] ?? '').trim())
+    .filter(Boolean);
+}
+
+function listeningCorrectAnswersFromIndexedPeople(item: Record<string, unknown>) {
+  const direct = asStringArray(item.correctAnswers);
+  if (direct.length > 0) return direct;
+
+  return [1, 2, 3, 4].map((personIndex) => {
+    const correctIndex = Number.parseInt(String(item[`correct_index_person${personIndex}`] ?? '').trim(), 10);
+    if (Number.isFinite(correctIndex) && correctIndex > 0) {
+      return String(item[`answer${correctIndex}`] ?? '').trim();
+    }
+    return String(item[`correct_person${personIndex}`] ?? item[`correctPerson${personIndex}`] ?? '').trim();
+  }).filter(Boolean);
+}
+
 function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): string[] {
   if (depth > 3) return [];
 
@@ -1541,6 +1679,20 @@ function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): s
     'link_audio',
     'linkAudioNghe',
     'link_audio_nghe',
+    'link nghe',
+    'link audio',
+    'link audio nghe',
+    'audio nghe',
+    'file nghe',
+    'url nghe',
+    'nguon nghe',
+    'nguồn nghe',
+    'Link nghe',
+    'Link audio',
+    'Link audio nghe',
+    'Audio nghe',
+    'File nghe',
+    'URL nghe',
     'recordingUrl',
     'recording_url',
     'url',
@@ -1553,7 +1705,7 @@ function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): s
   ];
 
   const urls = directKeys
-    .map((key) => stringValue(item[key]))
+    .map((key) => stringValue(valueByFlexibleKey(item, key)))
     .filter(Boolean);
 
   const arrayKeys = ['audioUrls', 'audio_urls', 'audios', 'files'];
@@ -1593,8 +1745,42 @@ function listeningAudioUrlsFromItem(item: Record<string, unknown>, depth = 0): s
 }
 
 function stringValue(value: unknown) {
-  if (typeof value === 'string' || typeof value === 'number') return String(value).trim();
+  if (typeof value === 'string' || typeof value === 'number') {
+    return extractPlayableUrl(String(value).trim());
+  }
   return '';
+}
+
+function valueByFlexibleKey(item: Record<string, unknown>, key: string) {
+  if (Object.prototype.hasOwnProperty.call(item, key)) return item[key];
+  const target = normalizeFieldKey(key);
+  const foundKey = Object.keys(item).find((itemKey) => normalizeFieldKey(itemKey) === target);
+  return foundKey ? item[foundKey] : undefined;
+}
+
+function normalizeFieldKey(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
+}
+
+function extractPlayableUrl(value: string) {
+  const cleaned = value.trim().replace(/^["']|["']$/g, '');
+  const markdownMatch = cleaned.match(/\((https?:\/\/[^)\s]+)\)/i);
+  if (markdownMatch?.[1]) return markdownMatch[1].replace(/\\([_*.()[\]`#+\-=!>])/g, '$1');
+
+  const rawUrlMatch = cleaned.match(/https?:\/\/\S+/i);
+  if (rawUrlMatch?.[0]) {
+    return rawUrlMatch[0]
+      .replace(/[),.;]+$/g, '')
+      .replace(/\\([_*.()[\]`#+\-=!>])/g, '$1');
+  }
+
+  return cleaned.replace(/\\([_*.()[\]`#+\-=!>])/g, '$1');
 }
 
 function splitLines(value: string) {
@@ -3090,9 +3276,17 @@ export function MockTests() {
         } else if (selectedTestId) {
           card = apiExamTestToCard(await unwrap<Test>(api.get(`/tests/${selectedTestId}`)));
         } else {
-          const tests = await unwrap<Test[]>(api.get('/tests'));
+          const [mockTests, tests] = await Promise.all([
+            unwrap<ApiMockTest[]>(api.get('/mock-tests')).catch(() => []),
+            unwrap<Test[]>(api.get('/tests')).catch(() => [])
+          ]);
+          const mockCards = mockTests.map(apiMockTestToCard).filter((item): item is MockCard => Boolean(item));
           const examCards = await apiExamTestsToCards(tests);
-          card = examCards.find((item) => item.skill === targetSkill && item.ready) ?? null;
+          const localCards = loadPublishedAdminMockCards();
+          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...mockCards, ...examCards, ...localCards]));
+          card = cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item))
+            ?? cards.find((item) => item.skill === targetSkill && item.ready)
+            ?? null;
         }
 
         if (!card) return;
@@ -4206,6 +4400,7 @@ export function MockTests() {
           {screen === 'part3Question' && (
             <Part3Question
               question={activeSpeakingData.part3[part3QuestionIndex]}
+              imageUrls={activeSpeakingData.part3Images}
               index={part3QuestionIndex}
               total={activeSpeakingData.part3.length}
               seconds={recordingSeconds}
@@ -8028,7 +8223,9 @@ function Part2Question({ question, imageUrl, index, total, seconds, showAnswer, 
   );
 }
 
-function Part3Question({ question, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { question: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
+function Part3Question({ question, imageUrls, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onOpenDraft, onFinish }: { question: string; imageUrls: [string, string]; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onOpenDraft: () => void; onFinish: () => void }) {
+  const [firstImage, secondImage] = imageUrls;
+
   return (
     <main
       className="mock-speaking-main"
@@ -8072,16 +8269,20 @@ function Part3Question({ question, index, total, seconds, showAnswer, isReading,
               width: 'min(1016px, 100%)'
             }}
           >
-            <img
-              src="/images/speaking/part3/de01_1.png"
-              alt="People travelling by car"
-              style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
-            />
-            <img
-              src="/images/speaking/part3/de01_2.png"
-              alt="People travelling by train"
-              style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
-            />
+            {firstImage && (
+              <img
+                src={firstImage}
+                alt="Speaking Part 3 picture 1"
+                style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
+              />
+            )}
+            {secondImage && (
+              <img
+                src={secondImage}
+                alt="Speaking Part 3 picture 2"
+                style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
+              />
+            )}
           </div>
           <p style={{ color: '#26324a', fontSize: 18, lineHeight: '28px', margin: '22px 0 0' }}>{question}</p>
           <AutoScoredRecordingNote />

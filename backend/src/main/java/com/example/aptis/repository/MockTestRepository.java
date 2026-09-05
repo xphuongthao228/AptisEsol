@@ -13,4 +13,6 @@ public interface MockTestRepository extends JpaRepository<MockTest, Long> {
     List<MockTest> findByStatusAndDeletedAtIsNullOrderByUpdatedAtDesc(TestStatus status);
 
     Optional<MockTest> findByExternalIdAndDeletedAtIsNull(String externalId);
+
+    Optional<MockTest> findByTitleAndDeletedAtIsNull(String title);
 }

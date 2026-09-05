@@ -37,9 +37,6 @@ public class CoreDtos {
             Integer durationMinutes, TestStatus status, TestMode mode, Boolean featured, int questionCount) {
     }
 
-    public record RandomTestRequest(SkillType skill, TestMode mode, Integer questionCount) {
-    }
-
     public record LessonRequest(@NotNull SkillType skill, @NotBlank String title, String summary,
             String content, TestStatus status, LessonResourceType resourceType, String resourceUrl, String partLabel) {
     }

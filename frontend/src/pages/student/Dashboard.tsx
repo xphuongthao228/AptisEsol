@@ -225,7 +225,7 @@ function HeroSection() {
             Mỗi ngày mở web là biết nên luyện phần nào, làm bài nào trước và cần sửa lỗi gì để tiến bộ nhanh hơn.
           </p>
           <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-            <Link to="/app/mock-tests" className="btn-primary h-14 px-7 text-base">
+            <Link to="/app/tests/parts" className="btn-primary h-14 px-7 text-base">
               Vào luyện ngay <ArrowRight size={18} />
             </Link>
             <Link to="/app/tests/parts" className="btn-secondary h-14 px-7 text-base">
@@ -855,7 +855,7 @@ function TestimonialsAndCta() {
             <p className="mt-5 text-base font-medium leading-8 text-slate-700">
               Chọn một đề hoặc một part, làm bài ngay và lưu lại kết quả để theo dõi tiến bộ của bạn.
             </p>
-            <Link to="/app/mock-tests" className="btn-primary mt-8 h-12 px-8">
+            <Link to="/app/tests/parts" className="btn-primary mt-8 h-12 px-8">
               Bắt đầu luyện tập
             </Link>
           </div>

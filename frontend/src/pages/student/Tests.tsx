@@ -636,12 +636,12 @@ function skillLabel(skillName: string) {
   if (skill === 'READING') return 'Đọc hiểu';
   if (skill === 'WRITING') return 'Viết';
   if (skill === 'GRAMMAR') return 'Grammar';
-  return 'Thi thử';
+  return 'Bài luyện';
 }
 
 function formatTestTitle(title: string, skillName: string) {
   const skill = skillLabel(skillName);
-  const cleaned = (title || 'Đề thi thử Aptis').trim();
+  const cleaned = (title || 'Bài luyện Aptis').trim();
   return cleaned
     .replace(/^de\s+/i, 'Đề ')
     .replace(/^đề\s+/i, 'Đề ')
@@ -672,7 +672,7 @@ function partsForSkill(skill?: SkillType | '') {
 }
 
 function isPartPracticeSource(test: Test) {
-  return isPracticeTest(test) || (test.mode === 'EXAM' && test.status === 'PUBLISHED');
+  return isPracticeTest(test);
 }
 
 function isQuestionInPart(question: Question, skill: SkillType | '', part: number) {
@@ -723,7 +723,7 @@ function isPracticeTest(test: Test) {
 
 function isRandomTest(test: Test) {
   const title = test.title.toLowerCase();
-  return title.startsWith('đề thi thử random') || title.startsWith('bộ đề random');
+  return title.startsWith('bộ đề random');
 }
 
 function hasImportedQuestions(test: Test) {

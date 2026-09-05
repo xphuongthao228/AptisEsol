@@ -33,11 +33,6 @@ public class TestController {
         return ApiResponse.ok(service.saveTest(request));
     }
 
-    @PostMapping("/random")
-    public ApiResponse<CoreDtos.TestResponse> random(@RequestBody(required = false) CoreDtos.RandomTestRequest request) {
-        return ApiResponse.ok(service.createRandomTest(request));
-    }
-
     @PostMapping("/import-csv")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<CoreDtos.TestResponse>> importCsv(@RequestParam("file") MultipartFile file)

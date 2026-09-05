@@ -7,7 +7,6 @@
   DollarSign,
   FileCheck,
   FileSearch,
-  FileText,
   GraduationCap,
   HeartHandshake,
   LayoutDashboard,
@@ -50,8 +49,8 @@ type LayoutLink = {
 };
 
 const studentLinks: LayoutLink[] = [
-  { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
   { to: '/app/tests/parts', label: 'Luyện tập theo part', icon: BookOpen },
+  { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/lessons/LISTENING', label: 'Mẹo thi', icon: Lightbulb },
   { to: '/app/predictions', label: 'Đề Key Dự Đoán', icon: FileSearch },
@@ -104,12 +103,9 @@ export function AppLayout() {
   const isAdmin = userHasRole(user, 'ADMIN');
   const mainLinks = isAdmin ? adminLinks : studentLinks;
   const mobileLinks = isAdmin ? adminLinks : [...studentLinks, ...studentMoreLinks];
+  const isExamMode = !isAdmin && /^\/app\/tests\/\d+/.test(location.pathname);
   const mockScreen = new URLSearchParams(location.search).get('screen');
-  const isMockTestMode = !isAdmin
-    && location.pathname.startsWith('/app/mock-tests')
-    && Boolean(mockScreen)
-    && mockScreen !== 'select';
-  const isExamMode = !isAdmin && /^\/app\/(tests|exams)\/\d+/.test(location.pathname);
+  const isMockTestMode = !isAdmin && location.pathname.startsWith('/app/mock-tests') && Boolean(mockScreen) && mockScreen !== 'select';
   const seo = getSeoByPath(location.pathname, Boolean(isAdmin));
 
   useEffect(() => {
@@ -196,7 +192,7 @@ export function AppLayout() {
     navigate('/');
   };
 
-  if (isMockTestMode || isExamMode) {
+  if (isExamMode || isMockTestMode) {
     return (
       <>
         <SEO {...seo} />
@@ -656,8 +652,8 @@ function formatNotificationDate(value: string) {
 
 function TopNavLink({ link }: { link: LayoutLink }) {
   const location = useLocation();
-  const isMockTest = link.to === '/app/mock-tests';
   const isPracticeActive = location.pathname.startsWith('/app/tests');
+  const isMockTestActive = location.pathname.startsWith('/app/mock-tests');
   const isLeaderboardActive = link.to === '/leaderboard' && (
     location.pathname === '/leaderboard' || location.pathname === '/app/leaderboard'
   );
@@ -668,10 +664,7 @@ function TopNavLink({ link }: { link: LayoutLink }) {
       end={link.end}
       className={({ isActive }) => {
         const base = 'inline-flex h-10 items-center justify-center whitespace-nowrap text-[13px] font-extrabold transition 2xl:text-sm';
-        const active = isActive || isLeaderboardActive || (link.to === '/app/tests/parts' && isPracticeActive);
-        if (isMockTest) {
-          return `${base} h-11 rounded-2xl border-2 border-brand-600 bg-brand-600 px-3.5 text-[14px] font-black text-white shadow-[0_10px_24px_rgba(215,25,32,0.24)] hover:-translate-y-0.5 hover:border-brand-700 hover:bg-brand-700 hover:shadow-lift 2xl:px-5 2xl:text-[15px] ${active ? 'ring-4 ring-brand-100' : ''}`;
-        }
+        const active = isActive || isLeaderboardActive || (link.to === '/app/tests/parts' && isPracticeActive) || (link.to === '/app/mock-tests' && isMockTestActive);
         return `${base} rounded-xl px-2.5 2xl:px-3 ${active ? 'bg-brand-50 text-brand-700 shadow-soft' : 'text-navy hover:bg-brand-50 hover:text-brand-700'}`;
       }}
     >

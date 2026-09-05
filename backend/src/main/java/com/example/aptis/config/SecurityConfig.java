@@ -92,8 +92,8 @@ public class SecurityConfig {
                                 "/v3/api-docs/**")
                         .permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/payments/sepay/webhook").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/tests/random").permitAll()
                         .requestMatchers("/api/tests", "/api/tests/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/mock-tests", "/api/mock-tests/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()
@@ -101,8 +101,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/skills",
                                 "/api/lessons",
-                                "/api/predictions",
-                                "/api/mock-tests")
+                                "/api/predictions")
                         .permitAll()
                         .anyRequest().authenticated())
                 .headers(headers -> headers

@@ -13,7 +13,7 @@ const premiumFeatures = [
   'Chấm theo AI',
   'AI không giới hạn',
   'Chấm Writing theo AI',
-  'Thi thử đầy đủ',
+  'Luyện tập theo part đầy đủ',
   'Bộ mẫu tài liệu video',
   'Kho luyện đề phong phú'
 ];
@@ -135,7 +135,7 @@ export function Renewal() {
 
   async function createPayment() {
     if (isFreeSelected) {
-      navigate('/app/mock-tests');
+      navigate('/app/tests/parts');
       return;
     }
 
@@ -238,7 +238,7 @@ export function Renewal() {
                 </p>
                 <p className="mt-1 text-sm font-bold text-navy">
                   {isFreeSelected
-                    ? 'Free chỉ mở 2 đề thi thử. Nâng cấp để có dự đoán đề và đề trọng điểm.'
+                    ? 'Free chỉ mở giới hạn. Nâng cấp để có dự đoán đề và nội dung trọng điểm.'
                     : `${user?.email ?? 'Tài khoản học viên'} - hết hạn mới: ${expireDate}`}
                 </p>
               </div>
@@ -314,8 +314,8 @@ export function Renewal() {
           Bắt đầu ngay hôm nay với kho đề luyện tập, đề trọng điểm và lộ trình học rõ ràng.
         </p>
         <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link to="/app/mock-tests" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-extrabold text-brand-700 transition hover:bg-brand-50">
-            Thi thử miễn phí <ArrowRight size={17} />
+          <Link to="/app/tests/parts" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-extrabold text-brand-700 transition hover:bg-brand-50">
+            Luyện tập ngay <ArrowRight size={17} />
           </Link>
           <Link to="/app/tests" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/30 px-6 text-sm font-extrabold text-white transition hover:bg-white/10">
             Vào luyện tập

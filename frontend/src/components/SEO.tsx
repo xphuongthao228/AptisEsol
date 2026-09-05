@@ -82,17 +82,16 @@ export function getSeoByPath(pathname: string, isAdmin = false): SEOProps {
     if (pathname.includes('/admin/users')) return { title: 'Quản lý người dùng', description: 'Quản lý học viên, trạng thái truy cập, hạn học và tài khoản trong hệ thống LingoMaster Aptis.', robots: 'noindex, nofollow' };
     if (pathname.includes('/admin/content')) return { title: 'Quản lý nội dung', description: 'Tạo và cập nhật câu hỏi, bài luyện, topic, đáp án và nội dung ôn thi Aptis.', robots: 'noindex, nofollow' };
     if (pathname.includes('/admin/lessons')) return { title: 'Quản lý bài học', description: 'Quản lý video, tài liệu và mẹo học Aptis cho học viên.', robots: 'noindex, nofollow' };
-    if (pathname.includes('/admin/mock-tests')) return { title: 'Quản lý đề thi thử', description: 'Tạo và quản lý đề thi thử Aptis theo từng kỹ năng.', robots: 'noindex, nofollow' };
+    if (pathname.includes('/admin/mock-tests')) return { title: 'Quản lý thi thử', description: 'Import, tạo và cập nhật đề thi thử Aptis theo từng kỹ năng.', robots: 'noindex, nofollow' };
     return { title: 'Bảng quản trị', description: 'Khu vực quản trị nội dung và người dùng của LingoMaster Aptis.', robots: 'noindex, nofollow' };
   }
 
   if (pathname.includes('/app/lessons')) return { title: 'Tài liệu và mẹo học Aptis', description: 'Học mẹo Listening, Reading, Speaking và Writing kèm tài liệu ôn tập Aptis theo từng kỹ năng.' };
+  if (pathname.includes('/app/mock-tests') || pathname.includes('/app/exams')) return { title: 'Thi thử Aptis online', description: 'Làm đề thi thử Aptis theo Full Test, Speaking, Listening, Grammar, Reading và Writing với giao diện mô phỏng bài thi.' };
   if (pathname.includes('/app/tests')) return { title: 'Luyện tập Aptis online', description: 'Luyện câu hỏi Aptis theo kỹ năng, xem đáp án và theo dõi tiến độ học tập.' };
-  if (pathname.includes('/app/mock-tests')) return { title: 'Thi thử Aptis Full', description: 'Làm bài thi thử Aptis Full gồm nhiều kỹ năng trong cùng một phiên assessment.' };
-  if (pathname.includes('/app/exams')) return { title: 'Thi thử Aptis', description: 'Làm đề thi thử Aptis, chấm điểm và ôn luyện như phòng thi thật.' };
   if (pathname.includes('/app/predictions')) return { title: 'Dự đoán đề Aptis', description: 'Cập nhật dự đoán đề và chủ đề Aptis để học viên ôn tập có trọng tâm.' };
   if (pathname.includes('/app/renewal')) return { title: 'Gia hạn tài khoản Aptis', description: 'Gia hạn quyền truy cập LingoMaster Aptis và tiếp tục học tài liệu ôn thi.' };
   if (pathname.includes('/app/contact')) return { title: 'Liên hệ hỗ trợ Aptis', description: 'Liên hệ hỗ trợ tài khoản, bài học và nội dung ôn thi Aptis.' };
-  return { title: 'Luyện thi Aptis online', description: 'Luyện thi Aptis online với lộ trình rõ ràng, tài liệu ôn tập, đề thi thử và theo dõi tiến độ học tập.' };
+  return { title: 'Luyện thi Aptis online', description: 'Luyện thi Aptis online với lộ trình rõ ràng, tài liệu ôn tập và theo dõi tiến độ học tập.' };
 }
 

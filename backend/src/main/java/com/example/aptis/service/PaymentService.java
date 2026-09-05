@@ -3,15 +3,11 @@ package com.example.aptis.service;
 import com.example.aptis.dto.PaymentDtos;
 import com.example.aptis.entity.PaymentOrder;
 import com.example.aptis.entity.Question;
-import com.example.aptis.entity.Test;
 import com.example.aptis.entity.User;
 import com.example.aptis.enums.PaymentStatus;
-import com.example.aptis.enums.TestMode;
-import com.example.aptis.enums.TestStatus;
 import com.example.aptis.exception.ResourceNotFoundException;
 import com.example.aptis.repository.PaymentOrderRepository;
 import com.example.aptis.repository.QuestionRepository;
-import com.example.aptis.repository.TestRepository;
 import com.example.aptis.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -32,11 +28,9 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 public class PaymentService {
     private static final Pattern PAYMENT_CODE_PATTERN = Pattern.compile("APTIS[A-Z0-9]{7,32}");
-    private static final int FREE_EXAMS_PER_SKILL = 2;
 
     private final PaymentOrderRepository paymentOrders;
     private final UserRepository users;
-    private final TestRepository tests;
     private final QuestionRepository questions;
 
     @Value("${app.payment.bank-id}")
@@ -142,7 +136,7 @@ public class PaymentService {
     public boolean canAccessQuestion(String email, Long questionId) {
         return questions.findById(questionId)
                 .map(Question::getTest)
-                .map(Test::getId)
+                .map(test -> test.getId())
                 .map(testId -> canAccessTest(email, testId))
                 .orElse(false);
     }
@@ -157,25 +151,7 @@ public class PaymentService {
             return true;
         }
 
-        Test test = tests.findById(testId).orElse(null);
-        if (test == null || test.getDeletedAt() != null || test.getMode() != TestMode.EXAM
-                || test.getStatus() != TestStatus.PUBLISHED) {
-            return false;
-        }
-        if (isGeneratedRandomTest(test)) {
-            return true;
-        }
-
-        return tests.findBySkillIdAndModeAndStatusAndDeletedAtIsNullOrderByIdAsc(
-                test.getSkill().getId(), TestMode.EXAM, TestStatus.PUBLISHED)
-                .stream()
-                .limit(FREE_EXAMS_PER_SKILL)
-                .anyMatch(freeTest -> freeTest.getId().equals(testId));
-    }
-
-    private boolean isGeneratedRandomTest(Test test) {
-        String title = test.getTitle();
-        return title != null && (title.startsWith("Đề thi thử Random") || title.startsWith("Bộ đề Random"));
+        return false;
     }
 
     @Transactional

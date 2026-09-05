@@ -93,7 +93,7 @@ export function ExamHistory() {
           <p className="mx-auto mt-3 max-w-lg text-slate-600">
             Sau khi nộp bài thi hoặc bài luyện tập, kết quả sẽ xuất hiện tại đây.
           </p>
-          <Link to="/app/exams" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-extrabold text-white">
+          <Link to="/app/tests/parts" className="mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-extrabold text-white">
             Làm bài ngay
             <ArrowRight size={17} />
           </Link>
@@ -159,7 +159,7 @@ function SubmissionDetail({ submission }: { submission: Submission }) {
         )}
       </div>
 
-      <Link to={`/app/exams/${submission.testId}`} className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-brand-200 px-4 text-sm font-extrabold text-brand-700 transition hover:bg-brand-50">
+      <Link to={`/app/tests/${submission.testId}`} className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl border border-brand-200 px-4 text-sm font-extrabold text-brand-700 transition hover:bg-brand-50">
         <RotateCcw size={17} />
         Làm lại bài này
       </Link>

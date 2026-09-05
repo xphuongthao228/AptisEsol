@@ -1,8 +1,8 @@
 ﻿import { Crown } from 'lucide-react';
 import { ReactNode, useEffect, useState } from 'react';
-import { Link, Navigate, useParams } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { api, unwrap } from '../api/client';
-import type { SkillType, SubscriptionResponse, Test } from '../types';
+import type { SubscriptionResponse } from '../types';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../utils/subscription';
 
 type SubscriptionGateProps = {
@@ -13,7 +13,6 @@ type SubscriptionGateProps = {
   proDescription?: string;
 };
 
-const FREE_EXAMS_PER_SKILL = 2;
 const DEFAULT_PRO_TITLE = 'Tính năng dành cho Pro';
 const DEFAULT_PRO_DESCRIPTION = 'Tính năng này dành cho thành viên Pro. Nâng cấp tài khoản để mở khóa và tiếp tục luyện tập.';
 
@@ -24,7 +23,6 @@ export function SubscriptionGate({
   proTitle = DEFAULT_PRO_TITLE,
   proDescription = DEFAULT_PRO_DESCRIPTION
 }: SubscriptionGateProps) {
-  const { id } = useParams();
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const [checkFailed, setCheckFailed] = useState(false);
@@ -34,12 +32,12 @@ export function SubscriptionGate({
 
     Promise.all([
       unwrap<SubscriptionResponse>(api.get('/payments/subscription/me')),
-      testAccess ? unwrap<Test[]>(api.get('/tests')) : Promise.resolve([])
+      Promise.resolve([])
     ])
-      .then(([subscription, tests]) => {
+      .then(([subscription]) => {
         if (!mounted) return;
         setCheckFailed(false);
-        setAllowed(resolveAccess(subscription, tests, Number(id), requirePro, testAccess));
+        setAllowed(resolveAccess(subscription, requirePro, testAccess));
         if (subscription.active) saveSubscriptionUntil(subscription.expiresAt);
       })
       .catch(() => {
@@ -54,7 +52,7 @@ export function SubscriptionGate({
     return () => {
       mounted = false;
     };
-  }, [id, requirePro, testAccess]);
+  }, [requirePro, testAccess]);
 
   if (loading) {
     return (
@@ -102,47 +100,8 @@ function ProAccessNotice({ title, description }: { title: string; description: s
   );
 }
 
-function resolveAccess(
-  subscription: SubscriptionResponse,
-  tests: Test[],
-  testId: number,
-  requirePro: boolean,
-  testAccess: boolean
-) {
+function resolveAccess(subscription: SubscriptionResponse, requirePro: boolean, testAccess: boolean) {
   if (subscription.proActive) return true;
-  if (!testAccess) return true;
-
-  const test = tests.find((item) => item.id === testId);
-  if (!test || test.mode !== 'EXAM' || test.status !== 'PUBLISHED') return false;
-  if (isRandomTest(test)) return true;
-  if (requirePro) return false;
-
-  const skill = normalizeSkill(test.skillName);
-  const freeTests = tests
-    .filter((item) => item.mode === 'EXAM' && item.status === 'PUBLISHED')
-    .filter((item) => normalizeSkill(item.skillName) === skill)
-    .sort((left, right) => left.id - right.id)
-    .slice(0, FREE_EXAMS_PER_SKILL);
-
-  return freeTests.some((item) => item.id === testId);
-}
-
-function isRandomTest(test: Test) {
-  const title = test.title.toLowerCase();
-  return title.startsWith('đề thi thử random') || title.startsWith('bộ đề random');
-}
-
-function normalizeSkill(skillName: string): SkillType | '' {
-  const value = removeVietnameseMarks(skillName).toUpperCase();
-  if (value.includes('LISTENING') || value.includes('NGHE')) return 'LISTENING';
-  if (value.includes('SPEAKING') || value.includes('NOI')) return 'SPEAKING';
-  if (value.includes('READING') || value.includes('DOC')) return 'READING';
-  if (value.includes('WRITING') || value.includes('VIET')) return 'WRITING';
-  if (value.includes('GRAMMAR') || value.includes('NGU PHAP')) return 'GRAMMAR';
-  return '';
-}
-
-function removeVietnameseMarks(value: string) {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+  return !requirePro && !testAccess;
 }
 

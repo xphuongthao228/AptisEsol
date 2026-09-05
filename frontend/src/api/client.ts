@@ -24,21 +24,21 @@ function isPublicRequest(config: InternalAxiosRequestConfig) {
   const method = (config.method ?? 'get').toLowerCase();
   const url = config.url ?? '';
   if (isPublicAuthRequest(method, url)) return true;
-  if (method === 'post' && url === '/tests/random') return true;
   if (method !== 'get') return false;
 
   return (
     url === '/tests' ||
     url.startsWith('/tests?') ||
     /^\/tests\/[^/?]+/.test(url) ||
+    url === '/mock-tests' ||
+    url.startsWith('/mock-tests?') ||
+    /^\/mock-tests\/[^/?]+/.test(url) ||
     url === '/skills' ||
     url.startsWith('/skills?') ||
     url === '/lessons' ||
     url.startsWith('/lessons?') ||
     url === '/predictions' ||
     url.startsWith('/predictions?') ||
-    url === '/mock-tests' ||
-    url.startsWith('/mock-tests?') ||
     url === '/submissions/leaderboard' ||
     url === '/submissions/leaderboard/settings' ||
     url.startsWith('/submissions/leaderboard?') ||

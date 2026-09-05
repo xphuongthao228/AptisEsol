@@ -105,8 +105,8 @@ export const router = createBrowserRouter([
         },
         { path: 'tests/sets', element: <Navigate to="/app/mock-tests" replace /> },
         { path: 'tests/sets/:skillType', element: <Navigate to="/app/mock-tests" replace /> },
-        { path: 'exams/:id', element: <SubscriptionGate testAccess><PracticeRunner /></SubscriptionGate> },
-        { path: 'tests/:id', element: <SubscriptionGate testAccess><PracticeRunner /></SubscriptionGate> },
+        { path: 'exams/:id', element: <Navigate to="/app/mock-tests" replace /> },
+        { path: 'tests/:id', element: <SubscriptionGate requirePro><PracticeRunner /></SubscriptionGate> },
         { path: 'settings', element: <Settings /> }
       ]
     }

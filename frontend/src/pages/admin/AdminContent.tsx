@@ -14,14 +14,14 @@ const skillTypes: SkillType[] = ['LISTENING', 'SPEAKING', 'READING', 'WRITING', 
 const questionTypes: QuestionType[] = ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TEXT', 'AUDIO', 'SPEAKING'];
 const statuses: TestStatus[] = ['DRAFT', 'PUBLISHED', 'ARCHIVED'];
 const testModes: Array<{ value: TestMode; label: string }> = [
-  { value: 'PRACTICE', label: 'Luyện tập theo part' },
-  { value: 'EXAM', label: 'Full test / Thi thử' }
+  { value: 'PRACTICE', label: 'Luyện tập theo part' }
 ];
 
 export function AdminContent() {
   const [tab, setTab] = useState<Tab>('skills');
   const { data: skills, setData: setSkills } = useApi<Skill[]>(() => unwrap(api.get('/skills')), []);
   const { data: tests, setData: setTests } = useApi<Test[]>(() => unwrap(api.get('/tests')), []);
+  const practiceTests = useMemo(() => (tests ?? []).filter((test) => (test.mode ?? 'PRACTICE') !== 'EXAM'), [tests]);
   const [selectedTestId, setSelectedTestId] = useState('');
   const { data: questions, setData: setQuestions, loading: loadingQuestions } = useApi<Question[]>(
     () => selectedTestId ? unwrap(api.get(`/questions?testId=${selectedTestId}`)) : Promise.resolve([]),
@@ -37,15 +37,15 @@ export function AdminContent() {
 
       <div className="card flex flex-wrap gap-2 p-2">
         <TabButton active={tab === 'skills'} icon={<Layers size={18} />} label="Kỹ năng" onClick={() => setTab('skills')} />
-        <TabButton active={tab === 'tests'} icon={<BookOpen size={18} />} label="Full test / Bài luyện" onClick={() => setTab('tests')} />
+        <TabButton active={tab === 'tests'} icon={<BookOpen size={18} />} label="Bài luyện" onClick={() => setTab('tests')} />
         <TabButton active={tab === 'questions'} icon={<ListChecks size={18} />} label="Câu hỏi" onClick={() => setTab('questions')} />
       </div>
 
       {tab === 'skills' && <SkillsPanel skills={skills ?? []} setSkills={setSkills} />}
-      {tab === 'tests' && <TestsPanel skills={skills ?? []} tests={tests ?? []} setTests={setTests} />}
+      {tab === 'tests' && <TestsPanel skills={skills ?? []} tests={practiceTests} setTests={setTests} />}
       {tab === 'questions' && (
         <QuestionsPanel
-          tests={tests ?? []}
+          tests={practiceTests}
           setTests={setTests}
           selectedTestId={selectedTestId}
           setSelectedTestId={setSelectedTestId}
@@ -234,7 +234,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
         description: description.trim(),
         durationMinutes,
         status,
-        mode,
+        mode: 'PRACTICE' as TestMode,
         featured
       };
       const saved = editing
@@ -297,7 +297,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
       description: test.description,
       durationMinutes: test.durationMinutes,
       status: test.status as TestStatus,
-      mode: test.mode ?? 'PRACTICE',
+      mode: 'PRACTICE' as TestMode,
       featured: !test.featured
     };
     try {
@@ -323,18 +323,16 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
         headers: { 'Content-Type': 'multipart/form-data' }
       }));
       setTests([...imported, ...tests]);
-      toast.success(lowerName.endsWith('.zip')
-        ? `Đã import ${imported.length} đề thi thử`
-        : `Đã import ${imported.length} bài luyện/đề thi thử`);
+      toast.success(`Đã import ${imported.length} bài luyện`);
     } catch (error: any) {
-      toast.error(apiErrorMessage(error, 'Không import được bài luyện/đề thi thử từ file'));
+      toast.error(apiErrorMessage(error, 'Không import được bài luyện từ file'));
     }
   }
 
   return (
     <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
       <section className="card p-5">
-        <h2 className="text-xl font-semibold">{editing ? 'Sửa full test / bài luyện' : 'Tạo full test / bài luyện'}</h2>
+        <h2 className="text-xl font-semibold">{editing ? 'Sửa bài luyện' : 'Tạo bài luyện'}</h2>
         <form onSubmit={save} className="mt-5 space-y-4">
           <select className="input" value={skillId} onChange={(e) => setSkillId(e.target.value)} required>
             <option value="">Chọn kỹ năng</option>
@@ -343,7 +341,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
           <select className="input" value={mode} onChange={(e) => setMode(e.target.value as TestMode)}>
             {testModes.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
           </select>
-          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tên full test / bài luyện" required />
+          <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tên bài luyện" required />
           <textarea className="input min-h-24 py-3" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Mô tả" />
           <input className="input" type="number" min={1} value={durationMinutes} onChange={(e) => setDurationMinutes(Number(e.target.value))} />
           <select className="input" value={status} onChange={(e) => setStatus(e.target.value as TestStatus)}>
@@ -365,8 +363,8 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
       <section className="space-y-3">
         <div className="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="font-extrabold">Import Full test / đề thi thử</h3>
-            <p className="text-sm text-slate-600">Upload CSV hoặc ZIP ở đây. CSV mode EXAM sẽ hiện ở Thi thử/Full test, mode PRACTICE sẽ vào luyện theo part. ZIP nhiều CSV sẽ tự tạo nhiều đề Thi thử.</p>
+            <h3 className="font-extrabold">Import bài luyện</h3>
+            <p className="text-sm text-slate-600">Upload CSV hoặc ZIP ở đây để thêm bài luyện theo part.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             {tests.length > 0 && (
@@ -388,7 +386,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
             )}
             <label className="btn-primary cursor-pointer justify-center">
               <UploadCloud size={18} />
-              Upload Full test CSV/ZIP
+              Upload CSV/ZIP
               <input
                 type="file"
                 accept=".csv,.zip,text/csv,application/zip"
@@ -414,7 +412,7 @@ function TestsPanel({ skills, tests, setTests }: { skills: Skill[]; tests: Test[
                 />
                 <div>
                 <p className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-brand-600">
-                  <span>{test.skillName} | {test.status} | {(test.mode ?? 'PRACTICE') === 'EXAM' ? 'THI THỬ' : 'LUYỆN THEO PART'}</span>
+                  <span>{test.skillName} | {test.status} | LUYỆN THEO PART</span>
                   {test.featured && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-amber-700"><Star size={13} className="fill-amber-400" /> Quan trảng</span>}
                 </p>
                 <h3 className="mt-1 font-semibold">{test.title}</h3>
@@ -467,7 +465,7 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
   const selectedTemplateName = selectedTemplate ? getTemplateName(content) : '';
   const answerValues = [answer1, answer2, answer3, answer4];
   const answerSetters = [setAnswer1, setAnswer2, setAnswer3, setAnswer4];
-  const hasAnswerChoices = type !== 'TEXT' && type !== 'SPEAKING';
+  const hasAnswerChoices = type !== 'TEXT' && type !== 'SPEAKING' && !selectedTemplate;
   const multipleCorrect = type === 'MULTIPLE_CHOICE';
   const allSelected = questions.length > 0 && selectedQuestionIds.length === questions.length;
   const displayedQuestions = useMemo(
@@ -679,7 +677,7 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
       }
       setSelectedQuestionIds([]);
       toast.success(importedTests.length > 0
-        ? `Đã tách ${importedTests.length} đề Writing vào Thi thử`
+        ? `Đã tách ${importedTests.length} bài Writing`
         : `Đã import ${imported.length} câu hỏi`);
     } catch (error: any) {
       toast.error(apiErrorMessage(error, 'Không upload được câu hỏi từ CSV'));
@@ -703,6 +701,17 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
       toast.error('Vui láng chọn ít nhất một đáp án dùng');
       return;
     }
+    const payloadAnswers = hasAnswerChoices
+      ? rawAnswers.map((answer, index) => ({
+        content: answer.content,
+        correct: correctIndexes.includes(answer.originalIndex),
+        sortOrder: index + 1
+      }))
+      : editing?.answers.map((answer) => ({
+        content: answer.content,
+        correct: answer.correct,
+        sortOrder: answer.sortOrder
+      })) ?? [];
     const payload = {
       testId: Number(selectedTestId),
       type,
@@ -714,13 +723,7 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
       points,
       sortOrder,
       featured,
-      answers: type === 'TEXT' || type === 'SPEAKING'
-        ? []
-        : rawAnswers.map((answer, index) => ({
-          content: answer.content,
-          correct: correctIndexes.includes(answer.originalIndex),
-          sortOrder: index + 1
-        }))
+      answers: payloadAnswers
     };
     try {
       const saved = editing
@@ -731,6 +734,57 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
       toast.success(editing ? 'Đã cập nhật câu hỏi' : 'Đã tạo câu hỏi');
     } catch (error: any) {
       toast.error(apiErrorMessage(error, editing ? 'Không cập nhật được câu hỏi' : 'Không tạo được câu hỏi'));
+    }
+  }
+
+  function questionUpdatePayload(question: Question, changes: Partial<Pick<Question, 'featured'>>) {
+    return {
+      testId: question.testId,
+      type: question.type,
+      content: question.content,
+      topic: question.topic,
+      audioUrl: question.audioUrl,
+      scriptText: question.scriptText,
+      explanation: question.explanation,
+      points: question.points,
+      sortOrder: question.sortOrder,
+      featured: changes.featured ?? question.featured,
+      answers: question.answers.map((answer) => ({
+        content: answer.content,
+        correct: answer.correct,
+        sortOrder: answer.sortOrder
+      }))
+    };
+  }
+
+  async function updateSelectedQuestionsFeatured(nextFeatured: boolean) {
+    if (!selectedQuestionIds.length) {
+      toast.error('Hãy chọn câu hỏi cần đánh dấu');
+      return;
+    }
+
+    const selectedSet = new Set(selectedQuestionIds);
+    const selectedQuestions = questions.filter((question) => selectedSet.has(question.id));
+    const results = await Promise.allSettled(
+      selectedQuestions.map((question) =>
+        unwrap<Question>(api.put(`/questions/${question.id}`, questionUpdatePayload(question, { featured: nextFeatured })))
+      )
+    );
+    const updatedQuestions = results
+      .filter((result): result is PromiseFulfilledResult<Question> => result.status === 'fulfilled')
+      .map((result) => result.value);
+
+    if (updatedQuestions.length) {
+      const updatedById = new Map(updatedQuestions.map((question) => [question.id, question]));
+      setQuestions(questions.map((question) => updatedById.get(question.id) ?? question));
+    }
+
+    if (updatedQuestions.length === selectedQuestions.length) {
+      toast.success(nextFeatured ? `Đã đánh dấu ${updatedQuestions.length} câu hỏi` : `Đã bỏ đánh dấu ${updatedQuestions.length} câu hỏi`);
+    } else if (updatedQuestions.length > 0) {
+      toast.error(`Đã cập nhật ${updatedQuestions.length}/${selectedQuestions.length} câu hỏi`);
+    } else {
+      toast.error(nextFeatured ? 'Không đánh dấu được câu hỏi' : 'Không bỏ đánh dấu được câu hỏi');
     }
   }
 
@@ -923,6 +977,12 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
             <div className="flex flex-wrap gap-2">
               <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={toggleAllQuestions} disabled={!questions.length}>
                 {allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
+              </button>
+              <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={() => updateSelectedQuestionsFeatured(true)} disabled={!selectedQuestionIds.length}>
+                <Star size={15} />Đánh dấu ({selectedQuestionIds.length})
+              </button>
+              <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={() => updateSelectedQuestionsFeatured(false)} disabled={!selectedQuestionIds.length}>
+                <Star size={15} />Bỏ đánh dấu
               </button>
               <button type="button" className="btn-secondary h-9 px-3 text-xs text-red-600 disabled:opacity-50" onClick={removeSelectedQuestions} disabled={!selectedQuestionIds.length}>
                 <Trash2 size={15} />Xóa đã chọn ({selectedQuestionIds.length})

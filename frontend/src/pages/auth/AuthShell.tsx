@@ -43,7 +43,7 @@ export function AuthShell({ children, title, subtitle }: { children: ReactNode; 
               Luyện thi Aptis rõ lộ trình, theo dõi tiến độ từng ngày.
             </h2>
             <p className="mt-5 max-w-xl text-base font-medium leading-7 text-slate-100">
-              Học 4 kỹ năng, luyện theo part, thi thử theo đề, xem kết quả và tiến độ trong cùng một hệ thống.
+              Học 4 kỹ năng, luyện theo part, xem kết quả và tiến độ trong cùng một hệ thống.
             </p>
 
             <div className="mt-7 grid max-w-[620px] grid-cols-4 gap-3">

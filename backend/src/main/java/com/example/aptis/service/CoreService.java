@@ -39,7 +39,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -54,8 +53,6 @@ import java.util.zip.ZipInputStream;
 public class CoreService {
     private static final int EXAM_POINT_PER_QUESTION = 2;
     private static final int LEADERBOARD_PERIOD_DAYS = 10;
-    private static final String RANDOM_TEST_TITLE_PREFIX = "Đề thi thử Random";
-    private static final String LEGACY_RANDOM_TEST_TITLE_PREFIX = "Bộ đề Random";
 
     private final UserRepository users;
     private final SkillRepository skills;
@@ -171,44 +168,6 @@ public class CoreService {
         return mapper.test(saved, questions.countByTestIdAndDeletedAtIsNull(saved.getId()));
     }
 
-    @Transactional
-    public CoreDtos.TestResponse createRandomTest(CoreDtos.RandomTestRequest request) {
-        CoreDtos.RandomTestRequest safeRequest = request == null ? new CoreDtos.RandomTestRequest(null, null, null) : request;
-        SkillType skillType = safeRequest.skill() == null ? SkillType.LISTENING : safeRequest.skill();
-        TestMode mode = safeRequest.mode() == null ? TestMode.EXAM : safeRequest.mode();
-        Skill skill = skills.findByType(skillType)
-                .orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
-        List<Question> questionBank = new ArrayList<>(questions.findQuestionBank(skillType, mode, TestStatus.PUBLISHED).stream()
-                .filter(question -> !isGeneratedRandomTest(question.getTest()))
-                .toList());
-        if (questionBank.isEmpty()) {
-            throw new ResourceNotFoundException("Chưa có câu hỏi đã xuất bản để tạo đề thi thử random.");
-        }
-
-        Collections.shuffle(questionBank);
-        int requestedCount = safeRequest.questionCount() != null && safeRequest.questionCount() > 0
-                ? safeRequest.questionCount()
-                : defaultRandomQuestionCount(skillType);
-        int questionCount = Math.min(requestedCount, questionBank.size());
-
-        Test randomTest = new Test();
-        randomTest.setSkill(skill);
-        randomTest.setTitle("%s - %s".formatted(RANDOM_TEST_TITLE_PREFIX, skill.getName()));
-        randomTest.setDescription("Đề được tạo tự động bằng cách random câu hỏi từ ngân hàng câu hỏi đã xuất bản.");
-        randomTest.setDurationMinutes(defaultRandomDuration(skillType));
-        randomTest.setStatus(TestStatus.PUBLISHED);
-        randomTest.setMode(mode);
-        randomTest.setFeatured(false);
-        Test savedTest = tests.save(randomTest);
-
-        for (int index = 0; index < questionCount; index++) {
-            Question copy = copyQuestion(questionBank.get(index), savedTest, index + 1);
-            questions.save(copy);
-        }
-
-        return mapper.test(savedTest, questionCount);
-    }
-
     public CoreDtos.TestResponse updateTest(Long id, CoreDtos.TestRequest request) {
         Test test = tests.findById(id).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
         applyTest(test, request);
@@ -311,28 +270,6 @@ public class CoreService {
         });
 
         return copy;
-    }
-
-    private int defaultRandomQuestionCount(SkillType skillType) {
-        return switch (skillType) {
-            case LISTENING -> 17;
-            case SPEAKING, WRITING -> 4;
-            case READING, GRAMMAR -> 25;
-        };
-    }
-
-    private int defaultRandomDuration(SkillType skillType) {
-        return switch (skillType) {
-            case LISTENING, WRITING -> 50;
-            case SPEAKING -> 12;
-            case READING, GRAMMAR -> 35;
-        };
-    }
-
-    private boolean isGeneratedRandomTest(Test test) {
-        return test.getTitle() != null
-                && (test.getTitle().startsWith(RANDOM_TEST_TITLE_PREFIX)
-                        || test.getTitle().startsWith(LEGACY_RANDOM_TEST_TITLE_PREFIX));
     }
 
     @Transactional

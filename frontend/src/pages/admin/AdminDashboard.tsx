@@ -10,12 +10,13 @@ export function AdminDashboard() {
   const { data: tests, loading: testsLoading } = useApi<Test[]>(() => unwrap(api.get('/tests')), []);
   const { data: skills, loading: skillsLoading } = useApi<Skill[]>(() => unwrap(api.get('/skills')), []);
 
-  const publishedTests = (tests ?? []).filter((test) => test.status === 'PUBLISHED').length;
+  const practiceTests = (tests ?? []).filter((test) => (test.mode ?? 'PRACTICE') !== 'EXAM');
+  const publishedTests = practiceTests.filter((test) => test.status === 'PUBLISHED').length;
   const loading = usersLoading || testsLoading || skillsLoading;
 
   const cards = [
     { label: 'Người dùng', value: users?.length ?? 0, icon: Users, tone: 'bg-blue-50 text-brand-700' },
-    { label: 'Bài luyện', value: tests?.length ?? 0, icon: BookOpen, tone: 'bg-green-50 text-green-700' },
+    { label: 'Bài luyện', value: practiceTests.length, icon: BookOpen, tone: 'bg-green-50 text-green-700' },
     { label: 'Kỹ năng', value: skills?.length ?? 0, icon: GraduationCap, tone: 'bg-violet-50 text-violet-700' },
     { label: 'Đang hiện', value: publishedTests, icon: Bell, tone: 'bg-amber-50 text-amber-700' }
   ];
@@ -59,7 +60,7 @@ export function AdminDashboard() {
             </Link>
           </div>
           <div className="space-y-3">
-            {(tests ?? []).slice(0, 6).map((test) => (
+            {practiceTests.slice(0, 6).map((test) => (
               <div className="flex items-center justify-between rounded-xl border border-brand-100 p-4" key={test.id}>
                 <div>
                   <p className="text-xs font-bold uppercase text-brand-600">{test.skillName} | {test.status}</p>
@@ -69,7 +70,7 @@ export function AdminDashboard() {
                 <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-bold text-slate-700">#{test.id}</span>
               </div>
             ))}
-            {!tests?.length && (
+            {!practiceTests.length && (
               <div className="rounded-xl border border-dashed border-brand-100 p-8 text-center text-sm font-semibold text-slate-600">
                 Chưa có bài luyện nào.
               </div>

@@ -517,7 +517,7 @@ export function Lessons() {
         <MaterialCard
           icon={<FileText />}
           title="Cách học mẹo hiệu quả"
-          items={['Đọc mẹo trước, làm 3-5 câu cùng dạng, rồi xem lại lỗi.', 'Ghi câu sai thành danh sách bẫy riêng.', 'Khi làm đề thi thử, chỉ kiểm tra đáp án ở cuối để giữ cảm giác thi thật.', 'Ôn lại mẹo trước ngày thi thay vì học thêm quá nhiều dạng mới.']}
+          items={['Đọc mẹo trước, làm 3-5 câu cùng dạng, rồi xem lại lỗi.', 'Ghi câu sai thành danh sách bẫy riêng.', 'Khi luyện theo part, tự làm trước rồi mới kiểm tra đáp án.', 'Ôn lại mẹo trước ngày thi thay vì học thêm quá nhiều dạng mới.']}
         />
       </section>
       {openResource && <ResourceModal resource={openResource} onClose={() => setOpenResource(null)} />}

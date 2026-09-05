@@ -13,8 +13,6 @@ import { repairMojibake } from '../../utils/textRepair';
 const examLinks = [
   { to: '/app', label: 'Trang ch\u1ee7', icon: LayoutDashboard, active: false },
   { to: '/app/tests', label: 'Luy\u1ec7n t\u1eadp', icon: BookOpen, active: true },
-  { to: '/app/exams', label: '\u0110\u1ec1 thi', icon: ListChecks, active: false },
-  { to: '/app/mock-tests', label: 'Thi th\u1eed', icon: FileSearch, active: false },
   { to: '/app/predictions', label: 'D\u1ef1 \u0111o\u00e1n \u0111\u1ec1', icon: FileSearch, active: false },
   { to: '/app/renewal', label: 'Gia h\u1ea1n', icon: CalendarPlus, active: false },
   { to: '/app/settings', label: 'C\u00e0i \u0111\u1eb7t', icon: Settings, active: false }
@@ -74,7 +72,7 @@ export function PracticeRunner() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const isExamSetMode = location.pathname.startsWith('/app/exams/');
+  const isExamSetMode = false;
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [checkedAnswers, setCheckedAnswers] = useState<Record<number, boolean>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -109,7 +107,7 @@ export function PracticeRunner() {
   const sharedAudioUrl = useMemo(() => getSharedAudioUrl(questions ?? []), [questions]);
   const audioUrl = activeQuestion ? getQuestionAudioUrl(activeQuestion, mergedTemplateData, sharedAudioUrl) : '';
   const scriptText = activeQuestion ? getQuestionScriptText(activeQuestion, mergedTemplateData) : '';
-  const topicTitle = cleanUserFacingTopic(activeQuestion?.topic || test?.title || 'Luyện thi Aptis');
+  const topicTitle = getQuestionDisplayTopic(activeQuestion, mergedTemplateData, test);
   const progress = useMemo(() => totalQuestions ? Math.round(((currentIndex + 1) / totalQuestions) * 100) : 0, [currentIndex, totalQuestions]);
   const requestedQuestionId = Number(searchParams.get('questionId'));
   const requestedClubIndex = Number(searchParams.get('clubIndex'));
@@ -167,9 +165,8 @@ export function PracticeRunner() {
           : currentIndex < totalQuestions - 1;
   const templateOwnsHeader = isSpeakingPart1Question || isSpeakingPart2Question || isSpeakingPart3Question || isSpeakingPart4Question;
   const returnTarget = getReturnTarget(location.state);
-  const isMockTestRunner = isExamSetMode || test?.mode === 'EXAM';
-  const exitTarget = returnTarget ?? (isMockTestRunner ? '/app/mock-tests' : '/app/tests/parts');
-  const exitLabel = isMockTestRunner ? 'Thoát về thi thử' : 'Thoát về luyện tập theo part';
+  const exitTarget = returnTarget ?? '/app/tests/parts';
+  const exitLabel = 'Thoát về luyện tập theo part';
 
   useEffect(() => {
     if (!questions?.length || !requestedQuestionId) return;
@@ -376,7 +373,7 @@ export function PracticeRunner() {
 
     if (fullListeningExam) {
       if (currentIndex < totalQuestions - 1) {
-        toast.error('Bạn làm tới câu 17 rồi bấm Kiểm tra để xem điểm cả đề thi thử.');
+        toast.error('Bạn làm tới câu 17 rồi bấm Kiểm tra để xem điểm bài luyện.');
         return;
       }
       const nextChecked = { ...checkedAnswers };
@@ -391,7 +388,7 @@ export function PracticeRunner() {
 
     if (fullReadingExam) {
       if (currentIndex < totalQuestions - 1) {
-        toast.error(`Bạn làm tới câu ${totalQuestions} rồi bấm Kiểm tra để xem kết quả cả đề thi thử.`);
+        toast.error(`Bạn làm tới câu ${totalQuestions} rồi bấm Kiểm tra để xem kết quả bài luyện.`);
         return;
       }
       const nextChecked = { ...checkedAnswers };
@@ -431,7 +428,6 @@ export function PracticeRunner() {
   }
 
   function recordPartPracticeScore(question: Question, correct: boolean, answerId: number | null, textAnswer: string | null) {
-    if (isMockTestRunner) return;
     void unwrap(api.post('/submissions/practice-score', {
       questionId: question.id,
       answerId,
@@ -479,14 +475,14 @@ export function PracticeRunner() {
             </div>
             <h1 className="mt-6 text-3xl font-extrabold tracking-normal text-navy">Bài này chưa có câu hỏi</h1>
             <p className="mt-3 max-w-xl text-base leading-7 text-slate-600">
-              Đề thi thử <span className="font-extrabold text-brand-600">{repairMojibake(test?.title ?? 'này')}</span> đang trống. Hãy import câu hỏi trong Admin hoặc chọn đề khác để luyện.
+              Bài luyện <span className="font-extrabold text-brand-600">{repairMojibake(test?.title ?? 'này')}</span> đang trống. Hãy import câu hỏi trong Admin hoặc chọn bài khác để luyện.
             </p>
             <div className="mt-7 flex flex-wrap justify-center gap-3">
               <button type="button" onClick={() => navigate(exitTarget)} className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-extrabold text-white shadow-soft hover:bg-brand-700">
                 <ArrowLeft size={17} />Quay lại
               </button>
-              <Link to={isMockTestRunner ? '/app/mock-tests' : '/app/tests/parts'} className="inline-flex h-11 items-center gap-2 rounded-xl border border-brand-100 bg-white px-5 text-sm font-extrabold text-slate-700 shadow-soft hover:border-brand-200 hover:text-brand-700">
-                {isMockTestRunner ? 'Thi thử' : 'Luyện tập theo part'}
+              <Link to="/app/tests/parts" className="inline-flex h-11 items-center gap-2 rounded-xl border border-brand-100 bg-white px-5 text-sm font-extrabold text-slate-700 shadow-soft hover:border-brand-200 hover:text-brand-700">
+                Luyện tập theo part
               </Link>
             </div>
           </section>
@@ -579,7 +575,7 @@ export function PracticeRunner() {
                 </div>
                 <h1 className="mt-1 text-xl font-extrabold tracking-normal sm:text-2xl">Câu {currentIndex + 1} / {totalQuestions}</h1>
                 {topicTitle && (
-                  <p className="mt-0.5 text-xs sm:text-sm">{isExamSetMode ? 'Đề thi thử' : 'Chủ đề'}: <span className="font-extrabold text-brand-600">{topicTitle}</span></p>
+                  <p className="mt-0.5 text-xs sm:text-sm">Chủ đề: <span className="font-extrabold text-brand-600">{topicTitle}</span></p>
                 )}
               </div>
               <div className="flex items-center gap-4">
@@ -717,7 +713,6 @@ function ExamNav({ icon, label, active, to }: { icon: ReactNode; label: string; 
 function isActiveExamNav(to: string, pathname: string) {
   if (to === '/app') return pathname === '/app';
   if (to === '/app/tests') return pathname.startsWith('/app/tests');
-  if (to === '/app/exams') return pathname.startsWith('/app/exams');
   return pathname.startsWith(to);
 }
 
@@ -1932,6 +1927,26 @@ function cleanAptisTopic(value: string) {
 function cleanUserFacingTopic(value?: string | null) {
   const cleaned = repairMojibake(value ?? '').replace(/^topic:\s*/i, '').trim();
   return isTechnicalTopicName(cleaned) ? '' : cleaned;
+}
+
+function getQuestionDisplayTopic(question: Question | undefined, data: TemplateData | null, test: Test | null) {
+  const questionTopic = cleanUserFacingTopic(question?.topic);
+  if (questionTopic && !isGenericTemplateTopic(questionTopic)) return questionTopic;
+
+  if (data) {
+    const templateTopic = displayTemplateTopic(data);
+    if (templateTopic) return templateTopic;
+  }
+
+  if (question) {
+    const parsed = parseTemplate(question.content);
+    if (parsed) {
+      const parsedTopic = displayTemplateTopic(parsed);
+      if (parsedTopic) return parsedTopic;
+    }
+  }
+
+  return cleanUserFacingTopic(test?.title || 'Luyện thi Aptis');
 }
 
 function displayWritingClubName(value: string | undefined, index: number) {
