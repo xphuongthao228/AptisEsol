@@ -9,15 +9,19 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +36,7 @@ public class AiScoringService {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
 
-    @Value("${app.ai.deepseek-api-key:${app.ai.openai-api-key:}}")
+    @Value("${app.ai.deepseek-api-key:}")
     private String apiKey;
 
     @Value("${app.ai.deepseek-model:deepseek-chat}")
@@ -41,10 +45,20 @@ public class AiScoringService {
     @Value("${app.ai.deepseek-base-url:https://api.deepseek.com}")
     private String baseUrl;
 
+    @Value("${app.ai.transcription-api-key:}")
+    private String transcriptionApiKey;
+
+    @Value("${app.ai.transcription-base-url:https://api.groq.com/openai/v1}")
+    private String transcriptionBaseUrl;
+
+    @Value("${app.ai.transcription-model:whisper-large-v3-turbo}")
+    private String transcriptionModel;
+
     @Value("${app.ai.max-concurrent-requests:2}")
     private int maxConcurrentRequests;
 
     private RestClient deepSeekClient;
+    private RestClient transcriptionClient;
     private Semaphore aiRequestSemaphore;
 
     @PostConstruct
@@ -52,6 +66,10 @@ public class AiScoringService {
         this.deepSeekClient = RestClient.builder()
                 .baseUrl(baseUrl)
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + blankToEmpty(apiKey))
+                .build();
+        this.transcriptionClient = RestClient.builder()
+                .baseUrl(transcriptionBaseUrl)
+                .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + blankToEmpty(transcriptionApiKey))
                 .build();
         this.aiRequestSemaphore = new Semaphore(Math.max(1, maxConcurrentRequests));
     }
@@ -136,15 +154,56 @@ public class AiScoringService {
                 continue;
             }
 
+            String audioTranscript = transcribeAudioSafely(file);
             parts.add(new AiDtos.SpeakingPartRequest(
                     part.title(),
                     part.prompt(),
-                    normalizeAudioTranscript(part.transcript()),
+                    normalizeAudioTranscript(firstNonBlank(audioTranscript, part.transcript())),
                     blankToEmpty(file.getOriginalFilename()),
                     blankToEmpty(file.getContentType()),
                     file.getSize()));
         }
         return new AiDtos.SpeakingScoreRequest(parts);
+    }
+
+    private String transcribeAudioSafely(MultipartFile file) {
+        if (transcriptionApiKey == null || transcriptionApiKey.isBlank()) {
+            return "";
+        }
+        try {
+            return transcribeAudio(file);
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    private String transcribeAudio(MultipartFile file) throws IOException {
+        ByteArrayResource audioResource = new ByteArrayResource(file.getBytes()) {
+            @Override
+            public String getFilename() {
+                String filename = file.getOriginalFilename();
+                return filename == null || filename.isBlank() ? "speaking.webm" : filename;
+            }
+        };
+
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("model", transcriptionModel);
+        body.add("file", audioResource);
+
+        String response = transcriptionClient
+                .post()
+                .uri("/audio/transcriptions")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(body)
+                .retrieve()
+                .body(String.class);
+
+        try {
+            JsonNode root = objectMapper.readTree(response);
+            return root.path("text").asText("");
+        } catch (Exception ex) {
+            throw new IllegalStateException("Không đọc được transcript từ AI: " + ex.getMessage());
+        }
     }
 
     private String normalizeAudioTranscript(String transcript) {
@@ -153,6 +212,13 @@ public class AiScoringService {
             return "[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]";
         }
         return value;
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.trim().isBlank()) return value.trim();
+        }
+        return "";
     }
 
     public AiDtos.LingoChatResponse chatWithLingo(AiDtos.LingoChatRequest request) {
@@ -322,13 +388,13 @@ public class AiScoringService {
                 ObjectNode item = objectMapper.createObjectNode();
                 item.put("title", speakingPartTitle(entry.getKey()));
                 item.put("score", part.path("score").asInt(0));
-                item.put("feedback", part.path("feedback").asText(""));
+                item.put("feedback", learnerSafeSpeakingText(part.path("feedback").asText("")));
                 parts.add(item);
             });
         }
         normalized.set("parts", parts);
         normalized.set("criteria", buildSpeakingCriteria(sourceParts));
-        normalized.set("pronunciationTips", textArray(root.path("weaknesses"), "Pronunciation cannot be reliably assessed from transcript alone."));
+        normalized.set("pronunciationTips", textArray(root.path("weaknesses"), "Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại."));
         normalized.set("fluencyTips", textArray(root.path("improvement_suggestions"), "Develop each answer with reasons, examples, and linking words."));
         normalized.put("improvedAnswer", buildImprovedSpeakingAnswer(root));
         return normalized;
@@ -338,10 +404,11 @@ public class AiScoringService {
         List<AiDtos.PartFeedback> parts = request.parts().stream()
                 .map(part -> {
                     String transcript = blankToEmpty(part.transcript()).trim();
-                    int score = (transcript.isBlank() || transcript.equals("[NO_AUDIO_FILE_SUBMITTED]")) ? 0 : 1;
+                    boolean hasAudio = part.audioSizeBytes() != null && part.audioSizeBytes() > 0;
+                    int score = (!hasAudio || transcript.equals("[NO_AUDIO_FILE_SUBMITTED]")) ? 0 : 1;
                     String feedback = score == 0
-                            ? "Phần này chưa có file ghi âm hoặc không có nội dung để chấm, nên tính 0 điểm."
-                            : "Có file ghi âm nhưng hệ thống chưa lấy được nội dung nói rõ ràng, nên phần này chỉ được điểm rất thấp.";
+                            ? "Phần này chưa có file ghi âm nên tính 0 điểm."
+                            : "Đã nhận file ghi âm. AI chưa chấm chi tiết được lúc này, bạn có thể thử chấm lại sau.";
                     return new AiDtos.PartFeedback(part.title(), score, feedback);
                 })
                 .toList();
@@ -353,16 +420,16 @@ public class AiScoringService {
 
         List<AiDtos.CriteriaScore> criteria = List.of(
                 new AiDtos.CriteriaScore("Task response", 0, "Chưa có đủ nội dung bài nói để đánh giá mức độ trả lời đúng yêu cầu."),
-                new AiDtos.CriteriaScore("Grammar", 0, "Chưa có transcript rõ ràng nên chưa thể đánh giá ngữ pháp."),
-                new AiDtos.CriteriaScore("Vocabulary", 0, "Chưa có transcript rõ ràng nên chưa thể đánh giá từ vựng."),
+                new AiDtos.CriteriaScore("Grammar", 0, "Chưa có đủ dữ liệu bài nói rõ ràng nên chưa thể đánh giá ngữ pháp."),
+                new AiDtos.CriteriaScore("Vocabulary", 0, "Chưa có đủ dữ liệu bài nói rõ ràng nên chưa thể đánh giá từ vựng."),
                 new AiDtos.CriteriaScore("Fluency", 0, "Chưa có dữ liệu nói đủ rõ để đánh giá độ trôi chảy."),
-                new AiDtos.CriteriaScore("Pronunciation proxy", 0, "Pronunciation cannot be reliably assessed from transcript alone.")
+                new AiDtos.CriteriaScore("Pronunciation", 0, "Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại.")
         );
 
         return new AiDtos.SpeakingScoreResponse(
                 overallScore,
                 cefrLevel,
-                "Không có đủ dữ liệu bài nói để chấm chi tiết. Các phần thiếu file ghi âm được tính 0; phần có file nhưng không lấy được nội dung nói được tính điểm rất thấp.",
+                "AI chưa chấm chi tiết được lúc này. Các phần thiếu file ghi âm được tính 0; phần đã có file ghi âm được ghi nhận để bạn có thể thử chấm lại sau.",
                 criteria,
                 parts,
                 List.of("Kiểm tra quyền microphone của trình duyệt.", "Nói rõ hơn, gần microphone hơn và tránh tiếng ồn nền.", "Dùng Chrome/Edge để trình duyệt hỗ trợ nhận diện giọng nói tốt hơn."),
@@ -398,7 +465,7 @@ public class AiScoringService {
         ObjectNode item = objectMapper.createObjectNode();
         item.put("name", name);
         item.put("score", score);
-        item.put("feedback", name + " " + (score >= 8 ? "tốt" : score >= 5 ? "đạt mức trung bình" : "cần cải thiện") + " theo transcript đã cung cấp.");
+        item.put("feedback", name + " " + (score >= 8 ? "tốt" : score >= 5 ? "đạt mức trung bình" : "cần cải thiện") + " theo nội dung bài nói đã ghi nhận.");
         criteria.add(item);
     }
 
@@ -407,14 +474,37 @@ public class AiScoringService {
         if (source.isArray()) {
             source.forEach(item -> {
                 if (item.isTextual() && !item.asText().isBlank()) {
-                    values.add(item.asText());
+                    values.add(learnerSafeSpeakingText(item.asText()));
                 }
             });
         }
         if (values.isEmpty()) {
-            values.add(fallback);
+            values.add(learnerSafeSpeakingText(fallback));
         }
         return values;
+    }
+
+    private String learnerSafeSpeakingText(String text) {
+        String value = blankToEmpty(text).trim();
+        if (value.isBlank()) {
+            return "";
+        }
+        String lower = value.toLowerCase();
+        if (lower.contains("pronunciation cannot be reliably assessed")
+                || lower.contains("transcript alone")
+                || lower.contains("raw waveform")
+                || lower.contains("speech-to-text")
+                || lower.contains("browser-generated")
+                || lower.contains("transcription")) {
+            return "Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại.";
+        }
+        return value
+                .replace("transcript", "nội dung bài nói")
+                .replace("Transcript", "Nội dung bài nói")
+                .replace("DeepSeek", "AI")
+                .replace("OpenAI", "AI")
+                .replace("Groq", "AI")
+                .replace("Whisper", "AI");
     }
 
     private String buildSpeakingSummary(JsonNode root) {
@@ -422,11 +512,11 @@ public class AiScoringService {
         int score = root.path("overall_score").asInt(root.path("overallScore").asInt(0));
         List<String> strengths = new ArrayList<>();
         root.path("strengths").forEach(item -> {
-            if (item.isTextual() && !item.asText().isBlank()) strengths.add(item.asText());
+            if (item.isTextual() && !item.asText().isBlank()) strengths.add(learnerSafeSpeakingText(item.asText()));
         });
         List<String> weaknesses = new ArrayList<>();
         root.path("weaknesses").forEach(item -> {
-            if (item.isTextual() && !item.asText().isBlank()) weaknesses.add(item.asText());
+            if (item.isTextual() && !item.asText().isBlank()) weaknesses.add(learnerSafeSpeakingText(item.asText()));
         });
         String strengthText = strengths.isEmpty() ? "chưa thể hiện nhiều điểm mạnh rõ ràng" : String.join("; ", strengths);
         String weaknessText = weaknesses.isEmpty() ? "cần phát triển câu trả lời đầy đủ hơn" : String.join("; ", weaknesses);
@@ -436,7 +526,7 @@ public class AiScoringService {
     private String buildImprovedSpeakingAnswer(JsonNode root) {
         List<String> suggestions = new ArrayList<>();
         root.path("improvement_suggestions").forEach(item -> {
-            if (item.isTextual() && !item.asText().isBlank()) suggestions.add(item.asText());
+            if (item.isTextual() && !item.asText().isBlank()) suggestions.add(learnerSafeSpeakingText(item.asText()));
         });
         return suggestions.isEmpty()
                 ? "Try to answer each question directly, then add one reason and one example."

@@ -54,6 +54,16 @@ After that, start the backend with:
 
 The script saves the key in `backend/.env`, which is ignored by git. Do not put the API key in frontend files.
 
+Speaking audio is sent to a transcription API first, then DeepSeek scores the transcript. Configure an OpenAI-compatible transcription provider such as Groq Whisper:
+
+```powershell
+$env:TRANSCRIPTION_API_KEY="your-transcription-api-key"
+$env:TRANSCRIPTION_BASE_URL="https://api.groq.com/openai/v1"
+$env:TRANSCRIPTION_MODEL="whisper-large-v3-turbo"
+```
+
+DeepSeek does not accept raw audio files directly, so `DEEPSEEK_API_KEY` is used for scoring text and `TRANSCRIPTION_API_KEY` is used for listening to the submitted `.webm` recordings.
+
 AI prompts are stored here so you can edit them without changing Java code:
 
 ```text

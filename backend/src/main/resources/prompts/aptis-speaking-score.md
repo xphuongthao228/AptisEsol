@@ -70,10 +70,10 @@ ASSESSMENT CRITERIA:
 - Do not treat every hesitation as serious; judge whether it disrupts communication.
 
 5. Pronunciation
-- The backend receives the candidate's audio file and file metadata, but DeepSeek text scoring reads the browser-generated transcript and metadata, not the raw waveform directly.
+- The backend receives the candidate's audio file and file metadata, but DeepSeek text scoring reads the converted speech text and metadata, not the raw waveform directly.
 - Do NOT invent pronunciation errors.
-- Do NOT deduct pronunciation points based on spelling in the transcript.
-- Write this idea when relevant: "Pronunciation cannot be reliably assessed from transcript alone."
+- Do NOT deduct pronunciation points based on spelling in the converted speech text.
+- If pronunciation cannot be evaluated confidently, tell the learner: "Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại."
 
 TRANSCRIPT RULES:
 - Do not invent content the candidate did not say.
@@ -153,6 +153,7 @@ Rules:
 - weaknesses: maximum 3 items.
 - improvement_suggestions: maximum 3 items.
 - Feedback, strengths, weaknesses, and suggestions should be in Vietnamese.
+- Feedback, strengths, weaknesses, and suggestions are shown directly to learners. Do not mention implementation details such as transcript, transcription, speech-to-text, browser-generated text, DeepSeek, OpenAI, Groq, Whisper, API, raw waveform, metadata, or file processing.
 - Do not add Markdown.
 - Do not add explanations outside JSON.
 - Do not wrap the JSON in ```json.

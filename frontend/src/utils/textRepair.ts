@@ -67,3 +67,19 @@ export function repairMojibake(value?: string | null) {
   }
   return current;
 }
+
+const damagedVietnameseReplacements: Array<[RegExp, string]> = [
+  [/B\?i n\?y n\?n tr\? l\?i d\?i nh\?t l\? 5 t\?, vi\?t hoa t\? \?\?u v\? d\?u ch\?m k\?t th\?c c\?u/gi, 'Bài này nên trả lời dài nhất là 5 từ, viết hoa từ đầu và dấu chấm kết thúc câu'],
+  [/B\?i n\?y n\?n tr\? l\?i d\?i nh\?t l\? 5 t\?, vi\?t hoa t\? d\?u v\? d\?u ch\?m k\?t th\?c c\?u/gi, 'Bài này nên trả lời dài nhất là 5 từ, viết hoa từ đầu và dấu chấm kết thúc câu'],
+  [/tr\? l\?i d\?i nh\?t l\? 5 t\?, vi\?t hoa t\? \?\?u v\? d\?u ch\?m k\?t th\?c c\?u/gi, 'trả lời dài nhất là 5 từ, viết hoa từ đầu và dấu chấm kết thúc câu'],
+  [/tr\? l\?i d\?i nh\?t l\? 5 t\?, vi\?t hoa t\? d\?u v\? d\?u ch\?m k\?t th\?c c\?u/gi, 'trả lời dài nhất là 5 từ, viết hoa từ đầu và dấu chấm kết thúc câu'],
+  [/Vi\?t 20 \?\?n 30 t\? th\?i nh\?!/gi, 'Viết 20 đến 30 từ thôi nhé!'],
+  [/Vi\?t 20 d\?n 30 t\? th\?i nh\?!/gi, 'Viết 20 đến 30 từ thôi nhé!']
+];
+
+export function repairUserText(value?: string | null) {
+  return damagedVietnameseReplacements.reduce(
+    (text, [pattern, replacement]) => text.replace(pattern, replacement),
+    repairMojibake(value)
+  );
+}

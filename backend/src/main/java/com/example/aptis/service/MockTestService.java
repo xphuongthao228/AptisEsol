@@ -95,7 +95,7 @@ public class MockTestService {
             }
 
             if (isQuestionRowsCsv(records)) {
-                return importQuestionRowsAsMockTests(records);
+                return importQuestionRowsAsMockTests(records, file.getOriginalFilename());
             }
 
             for (CSVRecord record : records) {
@@ -109,7 +109,9 @@ public class MockTestService {
                     mockTest.setTitle(required(record, "title"));
                     mockTest.setDescription(csv(record, "description", ""));
                     mockTest.setQuestions(csv(record, "questions", ""));
-                    mockTest.setQuestionData(csv(record, "questionData", ""));
+                    String questionData = csv(record, "questionData", "");
+                    validateQuestionDataJson(questionData);
+                    mockTest.setQuestionData(questionData);
                     mockTest.setMinutes(csv(record, "minutes", ""));
                     mockTest.setStatus(TestStatus.PUBLISHED);
                     mockTest.setFeatured(parseBoolean(csv(record, "featured", "false")));
@@ -122,15 +124,18 @@ public class MockTestService {
         return imported;
     }
 
-    private List<MockTestDtos.MockTestResponse> importQuestionRowsAsMockTests(List<CSVRecord> records) throws Exception {
+    private List<MockTestDtos.MockTestResponse> importQuestionRowsAsMockTests(List<CSVRecord> records, String originalFilename) throws Exception {
         Map<String, List<CSVRecord>> groups = new LinkedHashMap<>();
+        String fallbackTitle = titleFromImportFilename(originalFilename);
+        String fallbackSkill = skillFromImportFilename(filenameBase(originalFilename));
         for (CSVRecord record : records) {
-            String skill = inferSkill(record);
+            String skill = inferSkill(record, fallbackSkill);
             String title = firstNonBlank(
                     csv(record, "mockTitle", ""),
                     csv(record, "testTitle", ""),
                     csv(record, "examTitle", ""),
-                    csv(record, "setTitle", ""));
+                    csv(record, "setTitle", ""),
+                    fallbackTitle);
             if (title.isBlank()) title = "Đề import - " + skillLabel(skill);
             String key = skill + "::" + title;
             groups.computeIfAbsent(key, ignored -> new ArrayList<>()).add(record);
@@ -139,17 +144,18 @@ public class MockTestService {
         List<MockTestDtos.MockTestResponse> imported = new ArrayList<>();
         for (List<CSVRecord> group : groups.values()) {
             CSVRecord first = group.get(0);
-            String skill = inferSkill(first);
+            String skill = inferSkill(first, fallbackSkill);
             String title = firstNonBlank(
                     csv(first, "mockTitle", ""),
                     csv(first, "testTitle", ""),
                     csv(first, "examTitle", ""),
                     csv(first, "setTitle", ""),
+                    fallbackTitle,
                     "Đề import - " + skillLabel(skill));
-            String externalId = firstNonBlank(csv(first, "id", ""), "import-" + slug(skill + "-" + title));
+            String questionData = questionRowsJson(group, skill);
+            String externalId = firstNonBlank(csv(first, "id", ""), externalIdFromImportFilename(originalFilename, skill, questionData), "import-" + slug(skill + "-" + title + "-" + contentHash(questionData)));
 
             MockTest mockTest = mockTests.findByExternalIdAndDeletedAtIsNull(externalId)
-                    .or(() -> mockTests.findByTitleAndDeletedAtIsNull(title))
                     .orElseGet(MockTest::new);
             mockTest.setExternalId(externalId);
             mockTest.setSkill(skill);
@@ -158,7 +164,7 @@ public class MockTestService {
                     csv(first, "description", ""),
                     "Đề thi thử được import từ CSV dạng từng câu."));
             mockTest.setQuestions(firstNonBlank(csv(first, "questions", ""), String.valueOf(group.size())));
-            mockTest.setQuestionData(questionRowsJson(group));
+            mockTest.setQuestionData(questionData);
             mockTest.setMinutes(firstNonBlank(csv(first, "minutes", ""), defaultMinutes(skill)));
             mockTest.setStatus(TestStatus.PUBLISHED);
             mockTest.setFeatured(parseBoolean(csv(first, "featured", "false")));
@@ -167,7 +173,7 @@ public class MockTestService {
         return imported;
     }
 
-    private String questionRowsJson(List<CSVRecord> records) throws Exception {
+    private String questionRowsJson(List<CSVRecord> records, String fallbackSkill) throws Exception {
         ArrayNode rows = objectMapper.createArrayNode();
         for (CSVRecord record : records) {
             ObjectNode row = objectMapper.createObjectNode();
@@ -175,7 +181,7 @@ public class MockTestService {
                 String cleaned = value == null ? "" : value.trim();
                 if (!cleaned.isBlank()) row.put(key.trim(), cleaned);
             });
-            if (!row.hasNonNull("skill")) row.put("skill", inferSkill(record));
+            if (!row.hasNonNull("skill")) row.put("skill", firstNonBlank(fallbackSkill, inferSkill(record)));
             if (!row.hasNonNull("template")) row.put("template", templateForSkill(row.path("skill").asText(), csv(record, "part", "")));
             if (!row.hasNonNull("audioUrl")) {
                 String audioUrl = firstNonBlank(
@@ -223,6 +229,7 @@ public class MockTestService {
     }
 
     private void apply(MockTest mockTest, MockTestDtos.MockTestRequest request) {
+        validateQuestionDataJson(request.questionData());
         mockTest.setExternalId(blankToNull(request.externalId()));
         mockTest.setSkill(parseSkill(request.skill()));
         mockTest.setTitle(request.title());
@@ -232,6 +239,15 @@ public class MockTestService {
         mockTest.setMinutes(request.minutes());
         mockTest.setStatus(request.status() == null ? TestStatus.PUBLISHED : request.status());
         mockTest.setFeatured(Boolean.TRUE.equals(request.featured()));
+    }
+
+    private void validateQuestionDataJson(String questionData) {
+        if (questionData == null || questionData.trim().isBlank()) return;
+        try {
+            objectMapper.readTree(questionData);
+        } catch (Exception ex) {
+            throw new IllegalArgumentException("questionData không phải JSON hợp lệ. Hãy import file CSV đầy đủ, không bị cắt nội dung.");
+        }
     }
 
     private MockTestDtos.MockTestResponse response(MockTest mockTest) {
@@ -307,6 +323,14 @@ public class MockTestService {
         return "FULL";
     }
 
+    private String inferSkill(CSVRecord record, String fallbackSkill) {
+        String skill = inferSkill(record);
+        if ("FULL".equals(skill) && fallbackSkill != null && !fallbackSkill.isBlank() && !"FULL".equals(fallbackSkill)) {
+            return fallbackSkill;
+        }
+        return skill;
+    }
+
     private String defaultMinutes(String skill) {
         return switch (skill) {
             case "SPEAKING" -> "12";
@@ -327,6 +351,53 @@ public class MockTestService {
             case "WRITING" -> "Writing";
             default -> "Full Aptis";
         };
+    }
+
+    private String titleFromImportFilename(String originalFilename) {
+        String base = filenameBase(originalFilename);
+        if (base.isBlank()) return "";
+        String skill = skillFromImportFilename(base);
+        String number = importNumberFromFilename(base);
+        if (!skill.isBlank() && !number.isBlank()) return skillLabel(skill) + " Practice Test " + number;
+        if (!skill.isBlank()) return skillLabel(skill) + " Practice Test";
+        return "";
+    }
+
+    private String externalIdFromImportFilename(String originalFilename, String skill, String questionData) {
+        String base = filenameBase(originalFilename);
+        if (base.isBlank()) return "";
+        return "import-" + slug(skill + "-" + base.replaceAll("(?i)[_-]?import$", "") + "-" + contentHash(questionData));
+    }
+
+    private String contentHash(String value) {
+        return Integer.toUnsignedString((value == null ? "" : value).hashCode(), 36);
+    }
+
+    private String filenameBase(String originalFilename) {
+        String value = originalFilename == null ? "" : originalFilename.trim().replace("\\", "/");
+        int slash = value.lastIndexOf('/');
+        if (slash >= 0) value = value.substring(slash + 1);
+        int dot = value.lastIndexOf('.');
+        if (dot > 0) value = value.substring(0, dot);
+        return value;
+    }
+
+    private String skillFromImportFilename(String filenameBase) {
+        String normalized = filenameBase.toLowerCase(Locale.ROOT);
+        if (normalized.contains("speaking")) return "SPEAKING";
+        if (normalized.contains("listening")) return "LISTENING";
+        if (normalized.contains("grammar") || normalized.contains("vocabulary")) return "GRAMMAR";
+        if (normalized.contains("reading")) return "READING";
+        if (normalized.contains("writing")) return "WRITING";
+        if (normalized.contains("full")) return "FULL";
+        return "";
+    }
+
+    private String importNumberFromFilename(String filenameBase) {
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("(?:^|[_\\s-])(?:de|test|mock)?[_\\s-]*0*(\\d+)(?:[_\\s-]|$)", java.util.regex.Pattern.CASE_INSENSITIVE)
+                .matcher(filenameBase);
+        return matcher.find() ? matcher.group(1) : "";
     }
 
     private String templateForSkill(String skill, String part) {

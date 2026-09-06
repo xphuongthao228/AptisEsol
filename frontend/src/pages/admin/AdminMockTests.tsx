@@ -362,6 +362,15 @@ function parseCsv(text: string) {
   return rows;
 }
 
+function isValidJson(value: string) {
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeSkill(value: string): MockSkill | null {
   const skill = value.trim().toUpperCase();
   if (skill === 'GRAMMAR_VOCABULARY' || skill === 'GRAMMAR&VOCABULARY' || skill === 'G&V') return 'GRAMMAR';
@@ -636,8 +645,12 @@ export function AdminMockTests() {
         const title = (row[indexes.title] ?? '').trim();
         const questions = (row[indexes.questions] ?? '').trim();
         const minutes = (row[indexes.minutes] ?? '').trim();
+        const questionData = (row[indexes.questionData] ?? '').trim();
 
         if (!skill || !title || !questions || !minutes) return result;
+        if (questionData && !isValidJson(questionData)) {
+          throw new Error(`Dòng ${result.length + 2}: questionData không phải JSON hợp lệ`);
+        }
 
         result.push({
           id: (row[indexes.id] ?? '').trim() || createId(),
@@ -645,7 +658,7 @@ export function AdminMockTests() {
           title,
           description: (row[indexes.description] ?? '').trim(),
           questions,
-          questionData: (row[indexes.questionData] ?? '').trim(),
+          questionData,
           minutes,
           status: 'PUBLISHED',
           featured: parseCsvBoolean(row[indexes.featured] ?? ''),
@@ -661,8 +674,8 @@ export function AdminMockTests() {
 
       persist([...imported, ...items.filter((item) => !imported.some((importedItem) => isSameMockTest(importedItem, item)))]);
       toast.success(`Đã import ${imported.length} đề thi thử vào bộ nhớ trình duyệt`);
-      } catch {
-      toast.error('Không đọc được file CSV');
+      } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không đọc được file CSV');
       }
     }
   }

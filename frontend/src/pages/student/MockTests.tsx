@@ -45,6 +45,7 @@ import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { Question, SubscriptionResponse, Test } from '../../types';
+import { repairUserText } from '../../utils/textRepair';
 
 type SpeakingScreen = 'select' | 'fullStart' | 'fullResult' | 'start' | 'instructions' | 'prompt' | 'question' | 'part2Prompt' | 'part2Question' | 'part3Prompt' | 'part3Question' | 'part4Prompt' | 'part4Question' | 'complete' | 'readingStart' | 'readingInstructions' | 'readingQuestion' | 'readingCohesion' | 'readingOpinion' | 'readingLong' | 'readingResult' | 'readingReview' | 'listeningStart' | 'listeningInstructions' | 'listeningQuestion' | 'listeningMatching' | 'listeningShort' | 'listeningMonologues' | 'listeningResult' | 'listeningReview' | 'writingInstructions' | 'writingPart' | 'writingResult' | 'grammarStart' | 'grammarInstructions' | 'grammarQuestion' | 'grammarResult';
 type Part4Phase = 'prepare' | 'recording';
@@ -292,11 +293,11 @@ const sidebarLinks: SidebarLink[] = [
 
 const skillFilters: { key: MockSkill; label: string }[] = [
   { key: 'FULL', label: 'Full' },
-  { key: 'LISTENING', label: 'Listening' },
   { key: 'SPEAKING', label: 'Speaking' },
-  { key: 'WRITING', label: 'Writing' },
+  { key: 'LISTENING', label: 'Listening' },
+  { key: 'GRAMMAR', label: 'Grammar' },
   { key: 'READING', label: 'Reading' },
-  { key: 'GRAMMAR', label: 'Grammar' }
+  { key: 'WRITING', label: 'Writing' }
 ];
 
 const FREE_MOCK_TESTS_PER_SKILL = 2;
@@ -461,7 +462,7 @@ function storedFeaturedValue(card: MockCard, featuredMap: Record<string, boolean
 }
 
 function apiMockTestToCard(item: ApiMockTest): MockCard | null {
-  const skill = normalizeMockSkill(item.skill);
+  const skill = mockTestSkillFromApiItem(item);
   if (!skill || !item.title?.trim()) return null;
   const meta = mockCardMeta[skill];
   const description = item.description?.trim() ?? '';
@@ -482,6 +483,36 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
     color: meta.color,
     featured: Boolean(item.featured || hasFeaturedMarker(description))
   };
+}
+
+function mockTestSkillFromApiItem(item: ApiMockTest): MockSkill | null {
+  const skill = normalizeMockSkill(item.skill);
+  if (skill && skill !== 'FULL') return skill;
+  if (skill === 'FULL') {
+    const importedSkills = mockTestQuestionDataSkills(item.questionData);
+    if (importedSkills.length === 1) return importedSkills[0];
+    const titleKey = removeVietnameseMarks(`${item.title} ${item.externalId ?? ''}`).toLowerCase();
+    if (importedSkills.length > 1 || /\bfull\b/.test(titleKey)) return 'FULL';
+  }
+
+  const text = [
+    item.title,
+    item.description,
+    item.externalId,
+    item.questionData?.slice(0, 1000)
+  ].join(' ');
+  const inferred = normalizeExamSkill(text);
+  return inferred ?? skill;
+}
+
+function mockTestQuestionDataSkills(questionData?: string) {
+  const skills = new Set<MockSkill>();
+  parseQuestionDataArray(questionData).forEach((row) => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) return;
+    const skill = normalizeMockSkill(String((row as Record<string, unknown>).skill ?? ''));
+    if (skill && skill !== 'FULL') skills.add(skill);
+  });
+  return [...skills];
 }
 
 function isRemovedMockTest(card: Pick<MockCard, 'id'>) {
@@ -565,6 +596,69 @@ function createFullExamCards(cards: MockCard[]) {
       color: mockCardMeta.FULL.color,
       featured: group.some((card) => card.featured)
     }];
+  });
+}
+
+function createFullImportedMockCards(cards: MockCard[]) {
+  const groups = new Map<string, MockCard[]>();
+  cards.forEach((card) => {
+    if (card.skill === 'FULL' || !card.ready || !card.questionData?.trim()) return;
+    const key = normalizeFullTestTitle(card.title);
+    if (!key) return;
+    groups.set(key, [...(groups.get(key) ?? []), card]);
+  });
+
+  return [...groups.values()].flatMap((group) => {
+    const bySkill = new Map(group.map((card) => [card.skill, card]));
+    if (!fullRequiredSkills.every((skill) => bySkill.has(skill))) return [];
+
+    const first = group[0];
+    const totalMinutes = group.reduce((sum, card) => sum + Number.parseInt(card.minutes, 10), 0);
+    const questionData = JSON.stringify(fullRequiredSkills.flatMap((skill) => {
+      const card = bySkill.get(skill);
+      return parseQuestionDataArray(card?.questionData).map((row) => {
+        if (!row || typeof row !== 'object' || Array.isArray(row)) return row;
+        return { ...(row as Record<string, unknown>), skill };
+      });
+    }));
+
+    return [{
+      id: `mock-full-${group.map((card) => card.id).join('-')}`,
+      skill: 'FULL' as const,
+      label: mockCardMeta.FULL.label,
+      title: first.title,
+      description: first.description || 'Đề full test gồm Speaking, Listening, Grammar, Reading và Writing.',
+      questions: '5 kỹ năng',
+      questionData,
+      minutes: `${totalMinutes || 162} phút`,
+      icon: mockCardMeta.FULL.icon,
+      ready: true,
+      color: mockCardMeta.FULL.color,
+      featured: group.some((card) => card.featured)
+    }];
+  });
+}
+
+function createSkillCardsFromFullImportedCards(cards: MockCard[]) {
+  return cards.flatMap((card) => {
+    if (card.skill !== 'FULL' || !card.ready || !card.questionData?.trim()) return [];
+    return fullRequiredSkills.flatMap((skill) => {
+      const skillCard = skillCardFromFullMockCard(card, skill);
+      if (!skillCard?.questionData?.trim()) return [];
+      const meta = mockCardMeta[skill];
+      return [{
+        ...skillCard,
+        id: `${card.id}-${skill.toLowerCase()}`,
+        skill,
+        label: meta.label,
+        title: `${card.title} - ${meta.label}`,
+        description: `Phần ${meta.label} được tách từ ${card.title}.`,
+        questions: skill === 'SPEAKING' ? '4 phần' : skillCard.questions,
+        icon: meta.icon,
+        color: meta.color,
+        featured: card.featured
+      }];
+    });
   });
 }
 
@@ -671,29 +765,21 @@ function removeLocalCardsShadowedByApi(cards: MockCard[]) {
     if (!card.id.startsWith('admin-')) return true;
     return !apiCards.some((apiCard) =>
       apiCard.skill === card.skill
-      && (
-        Boolean(apiCard.externalId && card.externalId && apiCard.externalId === card.externalId)
-        || apiCard.title.trim().toLowerCase() === card.title.trim().toLowerCase()
-      )
+      && Boolean(apiCard.externalId && card.externalId && apiCard.externalId === card.externalId)
     );
   });
 }
 
 function mergeMockCardsByIdentity(cards: MockCard[]) {
   const merged = new Map<string, MockCard>();
-  const byTitle = new Map<string, MockCard>();
   removeLocalCardsShadowedByApi(cards).forEach((card) => {
     const id = card.id.replace(/^(api|admin|test)-/, '');
     const key = `${card.skill}|${card.title.trim().toLowerCase()}|${id}`;
-    const titleKey = `${card.skill}|${card.title.trim().toLowerCase()}`;
-    const currentByTitle = byTitle.get(titleKey);
-    byTitle.set(titleKey, currentByTitle ? preferredMockCard(currentByTitle, card) : card);
-
     const current = merged.get(key);
     merged.set(key, current ? preferredMockCard(current, card) : card);
   });
 
-  return [...byTitle.values()];
+  return [...merged.values()];
 }
 
 function preferredMockCard(current: MockCard, next: MockCard) {
@@ -808,6 +894,20 @@ function questionToMockData(question: Question, skill: MockSkill) {
 }
 
 function normalizeQuestionDataObject(data: Record<string, unknown>) {
+  const importedRow = normalizeImportedQuestionRow(data);
+  const importedChanged = importedRow.template !== data.template
+    || importedRow.questions !== data.questions
+    || importedRow.part !== data.part
+    || importedRow.title !== data.title;
+  if (importedChanged) {
+    const importedSkill = normalizeMockSkill(String(importedRow.skill ?? ''))
+      ?? normalizeExamSkill(String(importedRow.template ?? ''));
+    if (importedSkill && importedSkill !== 'FULL') {
+      const normalizedImported = normalizeQuestionSection(importedRow, importedSkill);
+      if (normalizedImported.length > 0) return normalizedImported;
+    }
+  }
+
   if (data.template !== 'WRITING_CLUB_COLLECTION') {
     const directSkill = normalizeMockSkill(String(data.skill ?? ''));
     if (directSkill && Array.isArray(data.parts)) {
@@ -924,8 +1024,8 @@ function normalizeImportedQuestionRow(row: Record<string, unknown>) {
     const parsed = JSON.parse(content);
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return baseRow;
     return normalizeImportedQuestionAliases({
-      ...(parsed as Record<string, unknown>),
-      ...row
+      ...row,
+      ...(parsed as Record<string, unknown>)
     });
   } catch {
     return baseRow;
@@ -942,7 +1042,15 @@ function normalizeImportedQuestionAliases(row: Record<string, unknown>) {
   if (!next.scriptText) next.scriptText = valueByFlexibleKey(next, 'scriptText') ?? valueByFlexibleKey(next, 'script_text');
 
   const template = String(next.template ?? next.type ?? '').toUpperCase();
+  if (!next.skill && template.startsWith('SPEAKING')) next.skill = 'SPEAKING';
   if (!next.skill && template.startsWith('LISTENING')) next.skill = 'LISTENING';
+  if (!next.skill && template.startsWith('READING')) next.skill = 'READING';
+  if (!next.skill && template.startsWith('WRITING')) next.skill = 'WRITING';
+  if (!next.skill && template.startsWith('GRAMMAR')) next.skill = 'GRAMMAR';
+  if (!next.part && template === 'SPEAKING_PART1') next.part = '1';
+  if (!next.part && template === 'SPEAKING_PART2') next.part = '2';
+  if (!next.part && template === 'SPEAKING_PART3') next.part = '3';
+  if (!next.part && template === 'SPEAKING_PART4') next.part = '4';
   if (!next.part && template === 'LISTENING_PART2') next.part = '2';
   if (!next.part && template === 'LISTENING_PART3') next.part = '3';
   if (!next.part && template === 'LISTENING_PART4') next.part = '4';
@@ -962,9 +1070,14 @@ function skillCardFromFullMockCard(card: MockCard | null | undefined, skill: Exc
   if (card.skill === skill) return card;
   if (card.skill !== 'FULL' || !card.questionData?.trim()) return null;
   try {
-    const parsed = JSON.parse(card.questionData);
-    const section = findSkillSection(parsed, skill);
-    if (!section) return null;
+    const normalizedRows = parseQuestionDataArray(card.questionData)
+      .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === 'object' && !Array.isArray(row)));
+    const sections = normalizedRows.filter((row) => normalizeMockSkill(String(row.skill ?? '')) === skill);
+    if (sections.length === 0) {
+      const parsed = JSON.parse(card.questionData);
+      sections.push(...findSkillSections(parsed, skill));
+    }
+    if (sections.length === 0) return null;
     const meta = mockCardMeta[skill];
     return {
       ...card,
@@ -973,32 +1086,25 @@ function skillCardFromFullMockCard(card: MockCard | null | undefined, skill: Exc
       label: meta.label,
       icon: meta.icon,
       color: meta.color,
-      questionData: JSON.stringify([section])
+      questionData: JSON.stringify(sections)
     };
   } catch {
     return null;
   }
 }
 
-function findSkillSection(value: unknown, skill: Exclude<MockSkill, 'FULL'>): Record<string, unknown> | null {
-  if (!value) return null;
+function findSkillSections(value: unknown, skill: Exclude<MockSkill, 'FULL'>): Record<string, unknown>[] {
+  if (!value) return [];
   if (Array.isArray(value)) {
-    for (const item of value) {
-      const section = findSkillSection(item, skill);
-      if (section) return section;
-    }
-    return null;
+    return value.flatMap((item) => findSkillSections(item, skill));
   }
-  if (typeof value !== 'object') return null;
+  if (typeof value !== 'object') return [];
 
   const row = value as Record<string, unknown>;
-  if (normalizeMockSkill(String(row.skill ?? '')) === skill) return row;
+  if (normalizeMockSkill(String(row.skill ?? '')) === skill) return [row];
 
-  for (const key of ['sections', 'skills', 'tests', 'data', 'questionData']) {
-    const section = findSkillSection(row[key], skill);
-    if (section) return section;
-  }
-  return null;
+  return ['sections', 'skills', 'tests', 'data', 'questionData']
+    .flatMap((key) => findSkillSections(row[key], skill));
 }
 
 function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
@@ -1031,7 +1137,7 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   const part4Image = part4Row ? speakingImageFromItem(part4Row, 1) : '';
 
   return {
-    part1: part1.length > 0 ? part1 : hasImportedRows ? [] : speakingQuestions,
+    part1: part1.length > 0 ? normalizeSpeakingPart1Questions(part1) : hasImportedRows ? [] : speakingQuestions,
     part2: part2.length > 0 ? part2 : hasImportedRows ? [] : part2Questions,
     part2Image: part2Image || (hasImportedRows ? '' : part2ImageUrls[0]),
     part3: part3.length > 0 ? part3 : hasImportedRows ? [] : part3Questions,
@@ -1047,6 +1153,19 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   };
 }
 
+function normalizeSpeakingPart1Questions(part1: string[]) {
+  return Array.from(new Set(part1.flatMap(splitSpeakingPart1Question).map((question) => question.trim()).filter(Boolean)))
+    .slice(0, 3);
+}
+
+function splitSpeakingPart1Question(question: string) {
+  const value = question.trim();
+  if (!value.includes('/')) return [value];
+
+  const parts = value.split(/\s+\/\s+/).map((part) => part.trim()).filter(Boolean);
+  return parts.length >= 3 ? parts : [value];
+}
+
 function speakingImagesFromItems(items: Record<string, unknown>[]) {
   const urls: string[] = [];
   items.forEach((item) => {
@@ -1059,6 +1178,27 @@ function speakingImagesFromItems(items: Record<string, unknown>[]) {
   return urls.slice(0, 2);
 }
 
+function normalizeLocalSpeakingPath(path: string) {
+  const part3Numbered = path.match(/^speaking\/part3\/(\d+)_(1|2)\.png$/i);
+  if (part3Numbered) {
+    return `speaking/part3/de${part3Numbered[1].padStart(2, '0')}_${part3Numbered[2]}.png`;
+  }
+  return path;
+}
+
+function resolveImportedSpeakingImage(rawValue: unknown) {
+  const raw = stringValue(rawValue);
+  if (!raw) return '';
+
+  const speakingPath = raw.match(/(?:^|\/)(speaking\/part[23]\/[^?#]+)/i)?.[1];
+  if (speakingPath) return `/images/${normalizeLocalSpeakingPath(speakingPath)}`;
+
+  const localSpeakingPath = raw.match(/(?:^|\/)images\/(speaking\/part[23]\/[^?#]+)/i)?.[1];
+  if (localSpeakingPath) return `/images/${normalizeLocalSpeakingPath(localSpeakingPath)}`;
+
+  return raw;
+}
+
 function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 2): string {
   const contentImage = speakingImageFromContent(item.content, imageNumber);
   if (contentImage) return contentImage;
@@ -1068,7 +1208,7 @@ function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 
     : ['imageUrl', 'image_url', 'image1Url', 'image_1_url', 'urlpic1', 'urlPic1', 'urlpic', 'image', 'image1', 'image_1', 'picture', 'picture1', 'picture_1', 'photo', 'photo1', 'photo_1', 'linkAnh', 'link_anh', 'link ảnh', 'url ảnh'];
 
   for (const key of directKeys) {
-    const value = stringValue(valueByFlexibleKey(item, key));
+    const value = resolveImportedSpeakingImage(valueByFlexibleKey(item, key));
     if (value) return value;
   }
 
@@ -1126,7 +1266,7 @@ function speakingAllImagesFromItem(item: Record<string, unknown>, depth = 0): st
     'url ảnh 2'
   ];
   const urls = directKeys
-    .map((key) => stringValue(valueByFlexibleKey(item, key)))
+    .map((key) => resolveImportedSpeakingImage(valueByFlexibleKey(item, key)))
     .filter(Boolean);
 
   const nestedKeys = ['questions', 'items', 'prompts', 'images', 'pictures', 'photos'];
@@ -1137,7 +1277,7 @@ function speakingAllImagesFromItem(item: Record<string, unknown>, depth = 0): st
       if (entry && typeof entry === 'object') {
         urls.push(...speakingAllImagesFromItem(entry as Record<string, unknown>, depth + 1));
       } else {
-        const url = stringValue(entry);
+        const url = resolveImportedSpeakingImage(entry);
         if (url) urls.push(url);
       }
     });
@@ -1165,7 +1305,7 @@ function speakingImageFromTemplateData(data: Record<string, unknown>, imageNumbe
     : ['imageUrl', 'image_url', 'image1Url', 'image_1_url', 'urlpic1', 'urlPic1', 'urlpic', 'image', 'image1', 'image_1', 'picture', 'picture1', 'picture_1', 'photo', 'photo1', 'photo_1', 'linkAnh', 'link_anh', 'link ảnh', 'url ảnh'];
 
   for (const key of directKeys) {
-    const value = stringValue(valueByFlexibleKey(data, key));
+    const value = resolveImportedSpeakingImage(valueByFlexibleKey(data, key));
     if (value) return value;
   }
 
@@ -1895,7 +2035,25 @@ function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[]
     return questions;
   }, []);
 
-  return questions.length > 0 ? questions : hasImportedData ? [] : grammarQuestions;
+  if (questions.length === 0) return hasImportedData ? [] : grammarQuestions;
+  return normalizeGrammarVocabularyScreens(questions, hasImportedData);
+}
+
+function normalizeGrammarVocabularyScreens(questions: GrammarQuestionItem[], hasImportedData: boolean) {
+  if (!hasImportedData) return questions;
+
+  const vocabularyScreens = grammarQuestions.slice(25);
+  const hasImportedVocabularyScreens = questions.some(isGrammarVocabularyScreen);
+  if (hasImportedVocabularyScreens) {
+    return questions.length >= 30 ? questions.slice(0, 30) : [...questions, ...vocabularyScreens].slice(0, 30);
+  }
+
+  const grammarScreens = questions.slice(0, 25);
+  return [...grammarScreens, ...vocabularyScreens].slice(0, 30);
+}
+
+function isGrammarVocabularyScreen(question: GrammarQuestionItem) {
+  return Boolean(question.matchRows || question.definitionRows || question.sentenceRows || question.collocationRows);
 }
 
 function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
@@ -2571,13 +2729,13 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
         row.question5,
         row.prompt
       ].map((value) => String(value ?? ''));
-    }).map((question) => question.trim()).filter(Boolean);
+    }).map((question) => repairUserText(question).trim()).filter(Boolean);
     const sampleAnswers = partRows
-      .map((row) => String(row.sampleAnswer ?? row.answer ?? '').trim())
+      .map((row) => repairUserText(String(row.sampleAnswer ?? row.answer ?? '')).trim())
       .filter(Boolean);
-    const heading = String(first.heading ?? first.instructions ?? first.title ?? '').trim();
-    const context = String(first.context ?? first.mainText ?? '').trim();
-    const prompt = String(first.prompt ?? first.content ?? '').trim();
+    const heading = repairUserText(String(first.heading ?? first.instructions ?? first.title ?? '')).trim();
+    const context = repairUserText(String(first.context ?? first.mainText ?? '')).trim();
+    const prompt = repairUserText(String(first.prompt ?? first.content ?? '')).trim();
     const emailPrompts = partIndex === 3 && rowQuestions.length > 0
       ? { friend: rowQuestions[0] ?? '', president: rowQuestions[1] ?? '' }
       : current.emailPrompts;
@@ -2986,6 +3144,7 @@ export function MockTests() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const activeRecordingKeyRef = useRef<string | null>(null);
+  const speakingRecordingsRef = useRef<Record<string, Blob>>({});
   const speakingSoundEnabledRef = useRef(true);
   const activeSpeakingCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'SPEAKING'), [selectedMockCard]);
   const activeListeningCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'LISTENING'), [selectedMockCard]);
@@ -3022,6 +3181,10 @@ export function MockTests() {
   useEffect(() => {
     window.localStorage.setItem(BOOKMARK_STORAGE_KEY, JSON.stringify(bookmarks));
   }, [bookmarks]);
+
+  useEffect(() => {
+    speakingRecordingsRef.current = speakingRecordings;
+  }, [speakingRecordings]);
 
   useEffect(() => {
     const openQuestionList = () => setQuestionListOpen(true);
@@ -3070,6 +3233,42 @@ export function MockTests() {
     recordingStreamRef.current = null;
     activeRecordingKeyRef.current = null;
     setMicrophoneLevel(0);
+  }
+
+  function finalizeActiveSpeakingRecording() {
+    return new Promise<Record<string, Blob>>((resolve) => {
+      const recorder = mediaRecorderRef.current;
+      const recordingKey = activeRecordingKeyRef.current;
+      if (!recorder || recorder.state !== 'recording' || !recordingKey) {
+        stopSpeakingRecording();
+        resolve(speakingRecordingsRef.current);
+        return;
+      }
+
+      speechRecognitionRef.current?.stop();
+      speechRecognitionRef.current = null;
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      audioContextRef.current?.close().catch(() => undefined);
+      audioContextRef.current = null;
+
+      recorder.onstop = () => {
+        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const nextRecordings = { ...speakingRecordingsRef.current, [recordingKey]: blob };
+        speakingRecordingsRef.current = nextRecordings;
+        setSpeakingRecordings(nextRecordings);
+        recordingChunksRef.current = [];
+        mediaRecorderRef.current = null;
+        recordingStreamRef.current?.getTracks().forEach((track) => track.stop());
+        recordingStreamRef.current = null;
+        activeRecordingKeyRef.current = null;
+        setMicrophoneLevel(0);
+        resolve(nextRecordings);
+      };
+      recorder.stop();
+    });
   }
 
   function startSpeechRecognition(recordingKey: string) {
@@ -3148,7 +3347,8 @@ export function MockTests() {
       };
       recorder.onstop = () => {
         const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-        setSpeakingRecordings((current) => ({ ...current, [recordingKey]: blob }));
+        speakingRecordingsRef.current = { ...speakingRecordingsRef.current, [recordingKey]: blob };
+        setSpeakingRecordings(speakingRecordingsRef.current);
         recordingChunksRef.current = [];
       };
       recorder.start();
@@ -3253,8 +3453,8 @@ export function MockTests() {
     const isAssessmentScreen = screen !== 'select';
     const selectedTestId = urlTestId;
     const selectedMockId = searchParams.get('mockId') ?? '';
-    const targetSkill = skillFromAssessmentScreen(screen) ?? selectedSkill;
-    if (!isAssessmentScreen || selectedMockCard || (!selectedTestId && !selectedMockId && targetSkill === 'FULL')) return;
+    const targetSkill = isFullMock ? 'FULL' : skillFromAssessmentScreen(screen) ?? selectedSkill;
+    if (!isAssessmentScreen || selectedMockCard) return;
 
     let cancelled = false;
 
@@ -3271,9 +3471,10 @@ export function MockTests() {
           const mockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
           const examCards = await apiExamTestsToCards(tests);
           const localCards = loadPublishedAdminMockCards();
-          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...mockCards, ...examCards, ...localCards]));
+          const directCards = [...mockCards, ...examCards, ...localCards];
+          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...createFullImportedMockCards(directCards), ...directCards]));
           card = cards.find((item) => item.id === selectedMockId) ?? null;
-        } else if (selectedTestId) {
+        } else if (selectedTestId && !isFullMock) {
           card = apiExamTestToCard(await unwrap<Test>(api.get(`/tests/${selectedTestId}`)));
         } else {
           const [mockTests, tests] = await Promise.all([
@@ -3283,7 +3484,8 @@ export function MockTests() {
           const mockCards = mockTests.map(apiMockTestToCard).filter((item): item is MockCard => Boolean(item));
           const examCards = await apiExamTestsToCards(tests);
           const localCards = loadPublishedAdminMockCards();
-          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...mockCards, ...examCards, ...localCards]));
+          const directCards = [...mockCards, ...examCards, ...localCards];
+          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...createFullImportedMockCards(directCards), ...directCards]));
           card = cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item))
             ?? cards.find((item) => item.skill === targetSkill && item.ready)
             ?? null;
@@ -3308,7 +3510,7 @@ export function MockTests() {
     return () => {
       cancelled = true;
     };
-  }, [screen, searchParams, selectedMockCard, selectedSkill, urlTestId]);
+  }, [isFullMock, screen, searchParams, selectedMockCard, selectedSkill, urlTestId]);
 
   useEffect(() => {
     speakingSoundEnabledRef.current = speakingSoundEnabled;
@@ -3537,7 +3739,11 @@ export function MockTests() {
         const skillTestIds = card.skillTestIds && Object.keys(card.skillTestIds).length > 0
           ? card.skillTestIds
           : fullSkillTestIdsFromExamTests(await unwrap<Test[]>(api.get('/tests')));
-        const skillEntries = Object.entries(skillTestIds) as Array<[Exclude<MockSkill, 'FULL'>, number]>;
+        const skillEntries = fullRequiredSkills
+          .flatMap((skill) => {
+            const testId = skillTestIds[skill];
+            return testId ? [[skill, testId] as [Exclude<MockSkill, 'FULL'>, number]] : [];
+          });
         if (skillEntries.length === 0) return card;
         const groups = await Promise.all(skillEntries.map(async ([skill, testId]) => ({
           skill,
@@ -3804,15 +4010,15 @@ export function MockTests() {
     };
   }
 
-  function buildSpeakingScorePayload() {
+  function buildSpeakingScorePayload(recordings: Record<string, Blob> = speakingRecordingsRef.current) {
     const transcriptForAi = (key: string) => {
-      if (!speakingRecordings[key]) return '[NO_AUDIO_FILE_SUBMITTED]';
+      if (!recordings[key]) return '[NO_AUDIO_FILE_SUBMITTED]';
       const transcript = speakingTranscripts[key]?.trim() ?? '';
-      return transcript || '[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]';
+      return transcript;
     };
 
     const audioFileForAi = (key: string, fileName: string) => {
-      const blob = speakingRecordings[key] ?? new Blob([], { type: 'audio/webm' });
+      const blob = recordings[key] ?? new Blob([], { type: 'audio/webm' });
       return new File([blob], fileName, { type: blob.type || 'audio/webm' });
     };
 
@@ -3844,7 +4050,7 @@ export function MockTests() {
       ];
 
     const parts: SpeakingScorePartPayload[] = items.map((item) => {
-      const recording = speakingRecordings[item.key];
+      const recording = recordings[item.key];
       const fileName = `${item.key}.webm`;
       return {
         title: item.title,
@@ -3864,7 +4070,8 @@ export function MockTests() {
   }
 
   async function submitSpeakingForAi(nextScreen?: SpeakingScreen) {
-    const payload = buildSpeakingScorePayload();
+    const recordings = await finalizeActiveSpeakingRecording();
+    const payload = buildSpeakingScorePayload(recordings);
 
     setSpeakingScoreLoading(true);
     setSpeakingScoreError('');
@@ -3873,7 +4080,7 @@ export function MockTests() {
 
     try {
       const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score-audio', payload.formData));
-      setSpeakingScore(result);
+      setSpeakingScore(sanitizeSpeakingScore(result, payload.parts));
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không chấm được Speaking.';
@@ -3889,18 +4096,73 @@ export function MockTests() {
     }
   }
 
+  function sanitizeSpeakingScore(result: AiSpeakingScore, submittedParts: SpeakingScorePartPayload[]): AiSpeakingScore {
+    const submittedByTitle = new Map(submittedParts.map((part) => [part.title, part]));
+    return {
+      ...result,
+      summary: learnerSafeSpeakingFeedback(result.summary),
+      criteria: result.criteria.map((item) => ({
+        ...item,
+        name: learnerSafeSpeakingFeedback(item.name),
+        feedback: learnerSafeSpeakingFeedback(item.feedback)
+      })),
+      parts: result.parts.map((part, index) => {
+        const submitted = submittedByTitle.get(part.title) ?? submittedParts[index];
+        const hasAudio = Boolean(submitted && (submitted.audioSizeBytes ?? 0) > 0);
+        return {
+          ...part,
+          feedback: shouldHideSpeakingTranscriptFeedback(part.feedback, hasAudio) ? '' : learnerSafeSpeakingFeedback(part.feedback)
+        };
+      }),
+      pronunciationTips: result.pronunciationTips.map((tip) => learnerSafeSpeakingFeedback(tip)),
+      fluencyTips: result.fluencyTips.map((tip) => learnerSafeSpeakingFeedback(tip)),
+      improvedAnswer: learnerSafeSpeakingFeedback(result.improvedAnswer)
+    };
+  }
+
+  function learnerSafeSpeakingFeedback(text: string) {
+    const normalized = removeVietnameseMarks(text).toLowerCase();
+    if (
+      normalized.includes('pronunciation cannot be reliably assessed')
+      || normalized.includes('transcript alone')
+      || normalized.includes('raw waveform')
+      || normalized.includes('speech-to-text')
+      || normalized.includes('browser-generated')
+      || normalized.includes('transcription')
+    ) {
+      return 'Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại.';
+    }
+    return text
+      .replace(/transcript/gi, 'nội dung bài nói')
+      .replace(/DeepSeek|OpenAI|Groq|Whisper/g, 'AI');
+  }
+
+  function shouldHideSpeakingTranscriptFeedback(feedback: string, hasAudio: boolean) {
+    if (!hasAudio) return false;
+    const normalized = removeVietnameseMarks(feedback).toLowerCase();
+    return normalized.includes('transcript')
+      && (
+        normalized.includes('khong co transcript')
+        || normalized.includes('khong co noi dung')
+        || normalized.includes('khong the xac nhan')
+        || normalized.includes('khong the danh gia noi dung')
+        || normalized.includes('khong co du lieu de cham')
+        || normalized.includes('diem rat thap')
+        || normalized.includes('chua lay duoc')
+        || normalized.includes('unavailable')
+        || normalized.includes('cannot verify')
+      );
+  }
+
   function buildSpeakingFallbackScore(parts: SpeakingScorePartPayload[]): AiSpeakingScore {
     const partFeedback = parts.map((part) => {
-      const missing = part.audioSizeBytes === 0 || part.transcript === '[NO_AUDIO_FILE_SUBMITTED]' || part.transcript.trim().length === 0;
-      const unavailable = part.transcript === '[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]';
+      const missing = part.audioSizeBytes === 0 || part.transcript === '[NO_AUDIO_FILE_SUBMITTED]';
       return {
         title: part.title,
-        score: missing ? 0 : unavailable ? 1 : 2,
+        score: missing ? 0 : 1,
         feedback: missing
           ? 'Phần này chưa có file ghi âm nên tính 0 điểm.'
-          : unavailable
-            ? 'Có file ghi âm nhưng trình duyệt chưa lấy được nội dung nói, nên phần này chỉ được điểm rất thấp.'
-            : 'Có dữ liệu nói nhưng AI chưa chấm chi tiết được. Bạn có thể thử chấm lại sau.'
+          : 'Đã nhận file ghi âm. AI chưa chấm chi tiết được lúc này, bạn có thể thử chấm lại sau.'
       };
     });
     const overallScore = partFeedback.length
@@ -3909,13 +4171,13 @@ export function MockTests() {
     return {
       overallScore,
       cefrLevel: overallScore < 4 ? 'Below A1' : 'A1',
-      summary: 'Chưa có đủ dữ liệu hoặc AI chưa chấm được lúc này. Phần không có file ghi âm được tính 0; phần có file nhưng không lấy được transcript được tính điểm rất thấp.',
+      summary: 'AI chưa chấm chi tiết được lúc này. Phần không có file ghi âm được tính 0; phần đã có file ghi âm được ghi nhận để bạn có thể thử chấm lại sau.',
       criteria: [
         { name: 'Task response', score: 0, feedback: 'Chưa có đủ nội dung nói rõ ràng để đánh giá mức độ trả lời đúng câu hỏi.' },
-        { name: 'Grammar', score: 0, feedback: 'Chưa có transcript rõ để đánh giá ngữ pháp.' },
-        { name: 'Vocabulary', score: 0, feedback: 'Chưa có transcript rõ để đánh giá từ vựng.' },
+        { name: 'Grammar', score: 0, feedback: 'Chưa có đủ dữ liệu bài nói rõ ràng để đánh giá ngữ pháp.' },
+        { name: 'Vocabulary', score: 0, feedback: 'Chưa có đủ dữ liệu bài nói rõ ràng để đánh giá từ vựng.' },
         { name: 'Fluency', score: 0, feedback: 'Chưa có dữ liệu nói đủ rõ để đánh giá độ trôi chảy.' },
-        { name: 'Pronunciation proxy', score: 0, feedback: 'Pronunciation cannot be reliably assessed from transcript alone.' }
+        { name: 'Pronunciation', score: 0, feedback: 'Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại.' }
       ],
       parts: partFeedback,
       pronunciationTips: ['Kiểm tra quyền microphone.', 'Nói gần microphone hơn và tránh tiếng ồn.', 'Dùng Chrome hoặc Edge để nhận diện giọng nói tốt hơn.'],
@@ -3927,6 +4189,50 @@ export function MockTests() {
   function startFullSpeaking() {
     resetSpeakingSection();
     setScreen('start');
+  }
+
+  function startSpeakingFlow() {
+    setScreen(firstAvailableSpeakingPrompt(activeSpeakingData));
+  }
+
+  function firstAvailableSpeakingPrompt(data: SpeakingTestData): SpeakingScreen {
+    if (data.part1.length > 0) return 'instructions';
+    if (data.part2.length > 0) return 'part2Prompt';
+    if (data.part3.length > 0) return 'part3Prompt';
+    if (hasSpeakingPart4(data)) return 'part4Prompt';
+    return 'instructions';
+  }
+
+  function hasSpeakingPart4(data: SpeakingTestData) {
+    return Boolean(data.part4.title || data.part4.image || data.part4.questions.length > 0);
+  }
+
+  function goToNextSpeakingSection() {
+    if (activeSpeakingData.part2.length > 0) {
+      setPart2QuestionIndex(0);
+      setScreen('part2Prompt');
+      return;
+    }
+    if (activeSpeakingData.part3.length > 0) {
+      setPart3QuestionIndex(0);
+      setScreen('part3Prompt');
+      return;
+    }
+    if (hasSpeakingPart4(activeSpeakingData)) {
+      setPart4Phase('prepare');
+      setScreen('part4Prompt');
+      return;
+    }
+    finishSpeakingSection();
+  }
+
+  function finishSpeakingSection() {
+    if (isFullMock) {
+      resetListeningSection();
+      submitSpeakingForAi('listeningStart');
+    } else {
+      submitSpeakingForAi();
+    }
   }
 
   function toggleSpeakingSound() {
@@ -3949,26 +4255,32 @@ export function MockTests() {
       if (questionIndex < activeSpeakingData.part1.length - 1) {
         setQuestionIndex((value) => value + 1);
       } else {
-        setPart2QuestionIndex(0);
-        setScreen('part2Prompt');
+        goToNextSpeakingSection();
       }
     }
     if (screen === 'part2Question' && !speechReady) return;
     if (screen === 'part2Question') {
       if (part2QuestionIndex < activeSpeakingData.part2.length - 1) {
         setPart2QuestionIndex((value) => value + 1);
-      } else {
+      } else if (activeSpeakingData.part3.length > 0) {
         setPart3QuestionIndex(0);
         setScreen('part3Prompt');
+      } else if (hasSpeakingPart4(activeSpeakingData)) {
+        setPart4Phase('prepare');
+        setScreen('part4Prompt');
+      } else {
+        finishSpeakingSection();
       }
     }
     if (screen === 'part3Question' && !speechReady) return;
     if (screen === 'part3Question') {
       if (part3QuestionIndex < activeSpeakingData.part3.length - 1) {
         setPart3QuestionIndex((value) => value + 1);
-      } else {
+      } else if (hasSpeakingPart4(activeSpeakingData)) {
         setPart4Phase('prepare');
         setScreen('part4Prompt');
+      } else {
+        finishSpeakingSection();
       }
     }
     if (screen === 'part4Question') {
@@ -3977,12 +4289,7 @@ export function MockTests() {
         setPart4Phase('recording');
         setRecordingSeconds(120);
       } else {
-        if (isFullMock) {
-          resetListeningSection();
-          submitSpeakingForAi('listeningStart');
-        } else {
-          submitSpeakingForAi();
-        }
+        finishSpeakingSection();
       }
     }
   }
@@ -4363,7 +4670,7 @@ export function MockTests() {
               onBack={() => setScreen('listeningResult')}
             />
           )}
-          {screen === 'start' && <SpeakingStart test={selectedTest} onStart={() => setScreen('instructions')} />}
+          {screen === 'start' && <SpeakingStart test={selectedTest} onStart={startSpeakingFlow} />}
           {screen === 'instructions' && <SpeakingInstructions />}
           {screen === 'prompt' && <SpeakingPrompt part={1} />}
           {screen === 'part2Prompt' && <SpeakingPrompt part={2} />}
@@ -4497,6 +4804,7 @@ export function MockTests() {
                 if (grammarQuestionIndex > 0) setGrammarQuestionIndex((value) => value - 1);
                 else setScreen('grammarInstructions');
               }}
+              nextLabel={grammarQuestionIndex === activeGrammarQuestions.length - 1 ? 'Submit' : 'Next'}
               onNext={() => {
                 if (grammarQuestionIndex < activeGrammarQuestions.length - 1) {
                   setGrammarQuestionIndex((value) => value + 1);
@@ -4691,7 +4999,8 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
           const mockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
           const examCards = await apiExamTestsToCards(tests);
           const localCards = loadPublishedAdminMockCards();
-          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...mockCards, ...examCards, ...localCards]));
+          const directCards = [...mockCards, ...examCards, ...localCards];
+          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...createFullImportedMockCards(directCards), ...directCards]));
           setAdminCards(cards);
         })
         .catch(() => setAdminCards(loadPublishedAdminMockCards()));
@@ -5642,6 +5951,14 @@ function WritingPart({
   const presidentEmail = emailAnswers.president ?? '';
   const friendWordCount = friendEmail.trim() ? friendEmail.trim().split(/\s+/).length : 0;
   const presidentWordCount = presidentEmail.trim() ? presidentEmail.trim().split(/\s+/).length : 0;
+  const heading = repairUserText(part.heading);
+  const prompt = repairUserText(part.prompt);
+  const questions = part.questions.map((question) => repairUserText(question));
+  const sampleAnswers = (part as { sampleAnswers?: string[] }).sampleAnswers?.map((sample) => repairUserText(sample));
+  const emailPrompts = {
+    friend: repairUserText(part.emailPrompts?.friend),
+    president: repairUserText(part.emailPrompts?.president)
+  };
 
   return (
     <main
@@ -5655,7 +5972,7 @@ function WritingPart({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Writing - Part {partIndex + 1}</p>
-            <h2 style={{ color: '#020817', fontSize: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? 17 : 28, fontWeight: 900, lineHeight: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? '23px' : '34px', margin: '4px 0 0', maxWidth: isEmailPart ? 620 : isThreeQuestionsPart ? 470 : 450 }}>{part.heading}</h2>
+            <h2 style={{ color: '#020817', fontSize: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? 17 : 28, fontWeight: 900, lineHeight: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? '23px' : '34px', margin: '4px 0 0', maxWidth: isEmailPart ? 620 : isThreeQuestionsPart ? 470 : 450 }}>{heading}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -5673,7 +5990,7 @@ function WritingPart({
         {isEmailPart ? (
           <div style={{ display: 'grid', gap: 32, marginTop: 34 }}>
             <article style={{ borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '22px 24px' }}>
-              {part.prompt.split('\n').map((line) => (
+              {prompt.split('\n').map((line) => (
                 <p key={line} style={{ color: '#020817', fontSize: 17, lineHeight: '27px', margin: line === 'Dear all members,' ? '0 0 4px' : 0 }}>{line}</p>
               ))}
             </article>
@@ -5681,7 +5998,7 @@ function WritingPart({
             <WritingEmailBox
               count={friendWordCount}
               limit={75}
-              prompt={part.emailPrompts?.friend || 'Write an email to your friend. Write about your feelings and what you plan to do about the situation. Write about 50 words. Recommended time: 10 minutes.'}
+              prompt={emailPrompts.friend || 'Write an email to your friend. Write about your feelings and what you plan to do about the situation. Write about 50 words. Recommended time: 10 minutes.'}
               value={friendEmail}
               onChange={(value) => onEmailAnswer('friend', limitWords(value, 75))}
             />
@@ -5693,7 +6010,7 @@ function WritingPart({
             <WritingEmailBox
               count={presidentWordCount}
               limit={225}
-              prompt={part.emailPrompts?.president || 'Write an email to the president of the club. Write about your feelings and what you think the club should do about the situation. Write 120-150 words. Recommended time: 20 minutes.'}
+              prompt={emailPrompts.president || 'Write an email to the president of the club. Write about your feelings and what you think the club should do about the situation. Write 120-150 words. Recommended time: 20 minutes.'}
               value={presidentEmail}
               onChange={(value) => onEmailAnswer('president', limitWords(value, 225))}
               tall
@@ -5706,7 +6023,7 @@ function WritingPart({
           </div>
         ) : isShortAnswerPart || isThreeQuestionsPart ? (
           <div style={{ display: 'grid', gap: 20, marginTop: 34 }}>
-            {part.questions.map((question, index) => {
+            {questions.map((question, index) => {
               const value = isThreeQuestionsPart ? threeAnswers[index] ?? '' : shortAnswers[index] ?? '';
               const questionWordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
               const limit = isThreeQuestionsPart ? 60 : 10;
@@ -5741,7 +6058,7 @@ function WritingPart({
                   </p>
                   {showAnswer && (
                     <InlineAnswer>
-                      {(part as { sampleAnswers?: string[] }).sampleAnswers?.[index] ?? 'Chưa có đáp án mẫu'}
+                      {sampleAnswers?.[index] ?? 'Chưa có đáp án mẫu'}
                     </InlineAnswer>
                   )}
                 </article>
@@ -5750,11 +6067,11 @@ function WritingPart({
           </div>
         ) : (
           <article style={{ marginTop: 38, borderRadius: 16, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 28, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
-            <p style={{ color: '#020817', fontSize: 17, lineHeight: '28px', margin: 0 }}>{part.prompt}</p>
+            <p style={{ color: '#020817', fontSize: 17, lineHeight: '28px', margin: 0 }}>{prompt}</p>
 
-            {part.questions.length > 0 && (
+            {questions.length > 0 && (
               <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
-                {part.questions.map((question, index) => (
+                {questions.map((question, index) => (
                   <p key={question} style={{ color: '#020817', fontSize: 16, lineHeight: '24px', margin: 0 }}>
                     {index + 1}. {question}
                   </p>
@@ -7414,9 +7731,10 @@ function FullResult({
 }) {
   const readingAptisCorrect = correctToAptis25(reading.correct, reading.total);
   const skillRows = [
-    { skill: 'Reading', score: clampScore50(reading.score), cefr: reading.cefr, note: `${reading.correct}/${reading.total} câu đúng, quy đổi ${readingAptisCorrect}/25` },
-    { skill: 'Listening', score: listening.score, cefr: listening.cefr, note: `${listening.correct}/${listening.total} câu đúng` },
     { skill: 'Speaking', score: clampScore50(speaking?.overallScore ?? 0), cefr: speaking?.cefrLevel ?? 'A1', note: speaking ? 'Chấm bằng AI' : 'Chưa có kết quả AI' },
+    { skill: 'Listening', score: listening.score, cefr: listening.cefr, note: `${listening.correct}/${listening.total} câu đúng` },
+    { skill: 'Grammar & Vocabulary', score: grammar.score, cefr: grammar.cefr, note: 'Báo cáo riêng theo thang 50' },
+    { skill: 'Reading', score: clampScore50(reading.score), cefr: reading.cefr, note: `${reading.correct}/${reading.total} câu đúng, quy đổi ${readingAptisCorrect}/25` },
     { skill: 'Writing', score: clampScore50(writing?.overallScore ?? 0), cefr: writing?.cefrLevel ?? 'A1', note: writing ? 'Chấm bằng AI' : 'Chưa có kết quả AI' }
   ];
   const overallCefr = cefrFromAptisTotal(totalScore);
@@ -7448,12 +7766,6 @@ function FullResult({
                 <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{row.note}</p>
               </div>
             ))}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 220px', alignItems: 'center', gap: 14, borderRadius: 14, border: '1px solid #fcd34d', backgroundColor: '#fffbeb', padding: '16px 18px' }}>
-              <p style={{ color: '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>Grammar & Vocabulary</p>
-              <p style={{ color: '#92400e', fontSize: 18, fontWeight: 900, margin: 0 }}>{grammar.score}/50</p>
-              <p style={{ color: '#92400e', fontSize: 16, fontWeight: 900, margin: 0 }}>{grammar.cefr}</p>
-              <p style={{ color: '#92400e', fontSize: 14, margin: 0 }}>Không cầng vào từng 200</p>
-            </div>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32 }}>
@@ -7786,7 +8098,7 @@ function GrammarAnswerContent({ question }: { question: GrammarQuestionItem }) {
 }
 
 function WritingAnswerContent({ part, partIndex }: { part: WritingPartData; partIndex: number }) {
-  const sampleAnswers = (part as { sampleAnswers?: string[] }).sampleAnswers ?? [];
+  const sampleAnswers = ((part as { sampleAnswers?: string[] }).sampleAnswers ?? []).map((sample) => repairUserText(sample));
   if (sampleAnswers.length) return <AnswerList items={sampleAnswers} />;
 
   if (partIndex === 0) {
@@ -8823,12 +9135,12 @@ function TranscriptBox({ value, onChange }: { value: string; onChange: (value: s
   return (
     <label style={{ display: 'block', marginTop: 28 }}>
       <span style={{ display: 'block', color: '#475569', fontSize: 14, fontWeight: 800, marginBottom: 8 }}>
-        Transcript để AI chấm
+        Nội dung bài nói để AI chấm
       </span>
       <textarea
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        placeholder="Sau khi nói xong, nhập lại ý chính hoặc transcript câu trả lời của bạn tại đây..."
+        placeholder="Sau khi nói xong, nhập lại ý chính câu trả lời của bạn tại đây..."
         style={{
           width: '100%',
           minHeight: 118,
@@ -9032,7 +9344,7 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
                         <h3 className="font-extrabold text-navy">{part.title}</h3>
                         <span className="font-black text-[#2b075c]">{part.score}/50</span>
                       </div>
-                      <p className="mt-2 text-sm leading-6 text-slate-700">{part.feedback}</p>
+                      {part.feedback.trim() && <p className="mt-2 text-sm leading-6 text-slate-700">{part.feedback}</p>}
                     </div>
                   ))}
                 </div>
