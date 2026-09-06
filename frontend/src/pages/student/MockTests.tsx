@@ -387,6 +387,20 @@ const mockCardMeta: Record<MockSkill, Pick<MockCard, 'icon' | 'color' | 'label'>
   GRAMMAR: { icon: FileQuestion, color: 'bg-amber-50 text-amber-700', label: 'Grammar' }
 };
 
+const builtInMockCardIds = new Set(mockCards.map((card) => card.id));
+
+function isBuiltInMockCard(card?: MockCard | null) {
+  return Boolean(card?.id && builtInMockCardIds.has(card.id));
+}
+
+function buildImportedMockCards(cards: MockCard[]) {
+  const uploadedCards = cards.filter((card) => !isBuiltInMockCard(card));
+  return mergeMockCardsByIdentity(mergeStoredFeatured([
+    ...createFullImportedMockCards(uploadedCards),
+    ...uploadedCards
+  ]));
+}
+
 function loadPublishedAdminMockCards() {
   if (typeof window === 'undefined') return [];
   try {
@@ -1070,9 +1084,7 @@ function skillCardFromFullMockCard(card: MockCard | null | undefined, skill: Exc
   if (card.skill === skill) return card;
   if (card.skill !== 'FULL' || !card.questionData?.trim()) return null;
   try {
-    const normalizedRows = parseQuestionDataArray(card.questionData)
-      .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === 'object' && !Array.isArray(row)));
-    const sections = normalizedRows.filter((row) => normalizeMockSkill(String(row.skill ?? '')) === skill);
+    const sections = parseFullMockSkillSections(card.questionData, skill);
     if (sections.length === 0) {
       const parsed = JSON.parse(card.questionData);
       sections.push(...findSkillSections(parsed, skill));
@@ -1093,6 +1105,18 @@ function skillCardFromFullMockCard(card: MockCard | null | undefined, skill: Exc
   }
 }
 
+function parseFullMockSkillSections(questionData: string, skill: Exclude<MockSkill, 'FULL'>) {
+  try {
+    const parsed = JSON.parse(questionData);
+    const values = Array.isArray(parsed) ? parsed : [parsed];
+    return values
+      .filter((row): row is Record<string, unknown> => Boolean(row && typeof row === 'object' && !Array.isArray(row)))
+      .filter((row) => normalizeMockSkill(String(row.skill ?? '')) === skill);
+  } catch {
+    return [];
+  }
+}
+
 function findSkillSections(value: unknown, skill: Exclude<MockSkill, 'FULL'>): Record<string, unknown>[] {
   if (!value) return [];
   if (Array.isArray(value)) {
@@ -1107,8 +1131,10 @@ function findSkillSections(value: unknown, skill: Exclude<MockSkill, 'FULL'>): R
     .flatMap((key) => findSkillSections(row[key], skill));
 }
 
-function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
-  const rows = parseQuestionDataArray(card?.questionData)
+function getSpeakingTestDataFromCard(card?: MockCard | null, allowDefaults = true): SpeakingTestData {
+  const rawRows = parseRawQuestionDataArray(card?.questionData);
+  const speakingSections = rawRows.filter((item) => normalizeMockSkill(String(item.skill ?? '')) === 'SPEAKING' && Array.isArray(item.parts));
+  const rows = (speakingSections.length > 0 ? speakingSections.flatMap((section) => normalizeQuestionSection(section.parts, 'SPEAKING')) : parseQuestionDataArray(card?.questionData))
     .filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object'))
     .filter((item) => {
       const skill = String(item.skill ?? '').toUpperCase();
@@ -1137,20 +1163,31 @@ function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   const part4Image = part4Row ? speakingImageFromItem(part4Row, 1) : '';
 
   return {
-    part1: part1.length > 0 ? normalizeSpeakingPart1Questions(part1) : hasImportedRows ? [] : speakingQuestions,
-    part2: part2.length > 0 ? part2 : hasImportedRows ? [] : part2Questions,
-    part2Image: part2Image || (hasImportedRows ? '' : part2ImageUrls[0]),
-    part3: part3.length > 0 ? part3 : hasImportedRows ? [] : part3Questions,
+    part1: part1.length > 0 ? normalizeSpeakingPart1Questions(part1) : hasImportedRows || !allowDefaults ? [] : speakingQuestions,
+    part2: part2.length > 0 ? part2 : hasImportedRows || !allowDefaults ? [] : part2Questions,
+    part2Image: part2Image || (hasImportedRows || !allowDefaults ? '' : part2ImageUrls[0]),
+    part3: part3.length > 0 ? part3 : hasImportedRows || !allowDefaults ? [] : part3Questions,
     part3Images: [
-      part3Images[0] || (hasImportedRows ? '' : '/images/speaking/part3/de01_1.png'),
-      part3Images[1] || (hasImportedRows ? '' : '/images/speaking/part3/de01_2.png')
+      part3Images[0] || (hasImportedRows || !allowDefaults ? '' : '/images/speaking/part3/de01_1.png'),
+      part3Images[1] || (hasImportedRows || !allowDefaults ? '' : '/images/speaking/part3/de01_2.png')
     ],
     part4: {
-      title: part4Title || (hasImportedRows ? '' : part4Topic.title),
-      image: part4Image || (hasImportedRows ? '' : part4Topic.image),
-      questions: part4Questions.length > 0 ? part4Questions : hasImportedRows ? [] : part4Topic.questions
+      title: part4Title || (hasImportedRows || !allowDefaults ? '' : part4Topic.title),
+      image: part4Image || (hasImportedRows || !allowDefaults ? '' : part4Topic.image),
+      questions: part4Questions.length > 0 ? part4Questions : hasImportedRows || !allowDefaults ? [] : part4Topic.questions
     }
   };
+}
+
+function parseRawQuestionDataArray(questionData?: string) {
+  if (!questionData?.trim()) return [];
+  try {
+    const parsed = JSON.parse(questionData);
+    const values = Array.isArray(parsed) ? parsed : [parsed];
+    return values.filter((item): item is Record<string, unknown> => Boolean(item && typeof item === 'object' && !Array.isArray(item)));
+  } catch {
+    return [];
+  }
 }
 
 function normalizeSpeakingPart1Questions(part1: string[]) {
@@ -1163,7 +1200,13 @@ function splitSpeakingPart1Question(question: string) {
   if (!value.includes('/')) return [value];
 
   const parts = value.split(/\s+\/\s+/).map((part) => part.trim()).filter(Boolean);
-  return parts.length >= 3 ? parts : [value];
+  if (parts.length < 3) return [value];
+  const prefixMatch = parts[0].match(/^(please\s+)?(tell me about|describe|talk about)\s+/i);
+  if (!prefixMatch) return parts;
+  const prefix = prefixMatch[0];
+  return parts.map((part, index) => index === 0 || /^(please\s+)?(tell me|describe|talk|what|where|when|who|why|how|do|does|did|is|are|can|could|would|should)\b/i.test(part)
+    ? part
+    : `${prefix}${part}`);
 }
 
 function speakingImagesFromItems(items: Record<string, unknown>[]) {
@@ -3151,7 +3194,10 @@ export function MockTests() {
   const activeReadingCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'READING'), [selectedMockCard]);
   const activeGrammarCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'GRAMMAR'), [selectedMockCard]);
   const activeWritingCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'WRITING'), [selectedMockCard]);
-  const activeSpeakingData = useMemo(() => getSpeakingTestDataFromCard(activeSpeakingCard), [activeSpeakingCard]);
+  const activeSpeakingData = useMemo(
+    () => getSpeakingTestDataFromCard(activeSpeakingCard, !isFullMock),
+    [activeSpeakingCard, isFullMock, selectedMockCard]
+  );
 
   useEffect(() => {
     if (!accessToken) {
@@ -3468,11 +3514,10 @@ export function MockTests() {
             unwrap<ApiMockTest[]>(api.get('/mock-tests')).catch(() => []),
             unwrap<Test[]>(api.get('/tests')).catch(() => [])
           ]);
-          const mockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
+          const uploadedMockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
           const examCards = await apiExamTestsToCards(tests);
           const localCards = loadPublishedAdminMockCards();
-          const directCards = [...mockCards, ...examCards, ...localCards];
-          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...createFullImportedMockCards(directCards), ...directCards]));
+          const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
           card = cards.find((item) => item.id === selectedMockId) ?? null;
         } else if (selectedTestId && !isFullMock) {
           card = apiExamTestToCard(await unwrap<Test>(api.get(`/tests/${selectedTestId}`)));
@@ -3481,13 +3526,11 @@ export function MockTests() {
             unwrap<ApiMockTest[]>(api.get('/mock-tests')).catch(() => []),
             unwrap<Test[]>(api.get('/tests')).catch(() => [])
           ]);
-          const mockCards = mockTests.map(apiMockTestToCard).filter((item): item is MockCard => Boolean(item));
+          const uploadedMockCards = mockTests.map(apiMockTestToCard).filter((item): item is MockCard => Boolean(item));
           const examCards = await apiExamTestsToCards(tests);
           const localCards = loadPublishedAdminMockCards();
-          const directCards = [...mockCards, ...examCards, ...localCards];
-          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...createFullImportedMockCards(directCards), ...directCards]));
+          const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
           card = cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item))
-            ?? cards.find((item) => item.skill === targetSkill && item.ready)
             ?? null;
         }
 
@@ -3855,7 +3898,15 @@ export function MockTests() {
   async function openFullTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
     if (!requireProToStart(card)) return;
+    if (isBuiltInMockCard(card ?? selectedMockCard)) {
+      toast.error('Đề mẫu đã được tắt. Vui lòng mở đề Full test đã import.');
+      return;
+    }
     const hydratedCard = await hydrateAssessmentCard(card ?? selectedMockCard ?? undefined);
+    if (!hydratedCard?.questionData?.trim()) {
+      toast.error('Đề Full test này chưa có dữ liệu import.');
+      return;
+    }
     setSelectedMockCard(hydratedCard);
     setIsFullMock(true);
     setSelectedSkill('FULL');
@@ -4192,6 +4243,10 @@ export function MockTests() {
   }
 
   function startSpeakingFlow() {
+    if (isFullMock && !hasAnySpeakingData(activeSpeakingData)) {
+      toast.error('Full test này chưa có dữ liệu Speaking import. Hãy mở đề đã import hoặc import lại file CSV đầy đủ.');
+      return;
+    }
     setScreen(firstAvailableSpeakingPrompt(activeSpeakingData));
   }
 
@@ -4201,6 +4256,10 @@ export function MockTests() {
     if (data.part3.length > 0) return 'part3Prompt';
     if (hasSpeakingPart4(data)) return 'part4Prompt';
     return 'instructions';
+  }
+
+  function hasAnySpeakingData(data: SpeakingTestData) {
+    return data.part1.length > 0 || data.part2.length > 0 || data.part3.length > 0 || hasSpeakingPart4(data);
   }
 
   function hasSpeakingPart4(data: SpeakingTestData) {
@@ -4996,14 +5055,13 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
         unwrap<Test[]>(api.get('/tests')).catch(() => [])
       ])
         .then(async ([mockTests, tests]) => {
-          const mockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
+          const uploadedMockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
           const examCards = await apiExamTestsToCards(tests);
           const localCards = loadPublishedAdminMockCards();
-          const directCards = [...mockCards, ...examCards, ...localCards];
-          const cards = mergeMockCardsByIdentity(mergeStoredFeatured([...createFullImportedMockCards(directCards), ...directCards]));
+          const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
           setAdminCards(cards);
         })
-        .catch(() => setAdminCards(loadPublishedAdminMockCards()));
+        .catch(() => setAdminCards(buildImportedMockCards(loadPublishedAdminMockCards())));
     };
     reloadAdminCards();
     window.addEventListener('focus', reloadAdminCards);

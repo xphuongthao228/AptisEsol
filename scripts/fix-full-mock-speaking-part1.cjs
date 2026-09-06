@@ -61,7 +61,13 @@ function splitPart1Question(question) {
   const value = String(question ?? '').trim();
   if (!value) return [];
   const parts = value.split(/\s+\/\s+/).map((part) => part.trim()).filter(Boolean);
-  return parts.length >= 3 ? parts : [value];
+  if (parts.length < 3) return [value];
+  const prefixMatch = parts[0].match(/^(please\s+)?(tell me about|describe|talk about)\s+/i);
+  if (!prefixMatch) return parts;
+  const prefix = prefixMatch[0];
+  return parts.map((part, index) => index === 0 || /^(please\s+)?(tell me|describe|talk|what|where|when|who|why|how|do|does|did|is|are|can|could|would|should)\b/i.test(part)
+    ? part
+    : `${prefix}${part}`);
 }
 
 function questionText(row) {
