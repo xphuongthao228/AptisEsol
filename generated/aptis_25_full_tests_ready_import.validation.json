@@ -1,0 +1,577 @@
+[
+  {
+    "id": "aptis-full-01",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-02",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-03",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-04",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-05",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-06",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-07",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-08",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-09",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-10",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-11",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-12",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-13",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-14",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-15",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-16",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-17",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-18",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-19",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-20",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-21",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-22",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-23",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-24",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  },
+  {
+    "id": "aptis-full-25",
+    "speaking": [
+      3,
+      3,
+      3,
+      3
+    ],
+    "listening": [
+      13,
+      4,
+      4,
+      2
+    ],
+    "grammar": 30,
+    "reading": [
+      5,
+      1,
+      7,
+      7
+    ],
+    "writing": 4
+  }
+]

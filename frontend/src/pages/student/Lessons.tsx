@@ -779,7 +779,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'IT & Tech',
     subtitle: 'Thông tin & Công nghệ',
     variants: [
-      { speaker: 'Nam', key: 'M - M - W - B', note: 'Đàn ông (M) chê phụ nữ (W) kém công nghệ, nhưng phụ nữ (W) nghĩ cả 2 (B) đều giỏi.' },
+      { speaker: 'Nam', key: 'M - W - W - B', note: 'Đàn ông (M) chê phụ nữ (W) kém công nghệ, nhưng phụ nữ (W) nghĩ cả 2 (B) đều giỏi.' },
       { speaker: 'Nữ', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
@@ -874,7 +874,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Homeschooling',
     subtitle: 'Học tại nhà',
     variants: [
-      { speaker: 'Nam', key: 'M - M - W - B', note: 'Mình (M) vẫn (W) viết (W) bài (B) cho trường học.' },
+      { speaker: 'Nam', key: 'M - W - W - B', note: 'Mình (M) vẫn (W) viết (W) bài (B) cho trường học.' },
       { speaker: 'Nữ', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },

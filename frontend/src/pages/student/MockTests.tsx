@@ -303,80 +303,7 @@ const skillFilters: { key: MockSkill; label: string }[] = [
 const FREE_MOCK_TESTS_PER_SKILL = 2;
 const fullRequiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
 
-const mockCards: MockCard[] = [
-  {
-    id: 'full-1',
-    skill: 'FULL',
-    label: 'Full',
-    title: 'Full Aptis Mock Test',
-    description: 'Làm trọn bộ các kỹ năng trong cùng một phiên thi thử mô phỏng.',
-    questions: '5 kỹ năng',
-    minutes: '162 phút',
-    icon: FileCheck,
-    ready: true,
-    color: 'bg-indigo-50 text-indigo-700'
-  },
-  {
-    id: 'listening-1',
-    skill: 'LISTENING',
-    label: 'Listening',
-    title: 'Listening Mock Test',
-    description: 'Giao diện mô phỏng bài nghe Aptis với audio, lượt nghe và câu hỏi.',
-    questions: '17',
-    minutes: '40 phút',
-    icon: Volume2,
-    ready: true,
-    color: 'bg-blue-50 text-blue-700'
-  },
-  {
-    id: 'speaking-1',
-    skill: 'SPEAKING',
-    label: 'Speaking',
-    title: 'Speaking Practice Test 1',
-    description: 'Mô phỏng bài Speaking với màn hình hướng dẫn, prompt và ghi âm thử.',
-    questions: '4',
-    minutes: '12 phút',
-    icon: Mic,
-    ready: true,
-    color: 'bg-rose-50 text-rose-700'
-  },
-  {
-    id: 'writing-1',
-    skill: 'WRITING',
-    label: 'Writing',
-    title: 'Writing Mock Test',
-    description: 'Giao diện mô phỏng bài viết với khung trả lời và bộ đếm thời gian.',
-    questions: '4',
-    minutes: '50 phút',
-    icon: FileText,
-    ready: true,
-    color: 'bg-violet-50 text-violet-700'
-  },
-  {
-    id: 'reading-1',
-    skill: 'READING',
-    label: 'Reading',
-    title: 'Reading Mock Test',
-    description: 'Giao diện mô phỏng đọc hiểu theo từng phần của bài thi Aptis.',
-    questions: '5',
-    minutes: '35 phút',
-    icon: BookOpen,
-    ready: true,
-    color: 'bg-emerald-50 text-emerald-700'
-  },
-  {
-    id: 'grammar-1',
-    skill: 'GRAMMAR',
-    label: 'Grammar',
-    title: 'Grammar & Vocabulary Mock Test',
-    description: 'Giao diện mô phỏng bài Grammar & Vocabulary với câu hỏi trắc nghiệm và bộ đếm thời gian.',
-    questions: '30',
-    minutes: '25 phút',
-    icon: FileQuestion,
-    ready: true,
-    color: 'bg-amber-50 text-amber-700'
-  }
-];
+const mockCards: MockCard[] = [];
 
 const mockCardMeta: Record<MockSkill, Pick<MockCard, 'icon' | 'color' | 'label'>> = {
   FULL: { icon: FileCheck, color: 'bg-indigo-50 text-indigo-700', label: 'Full' },
@@ -1131,7 +1058,7 @@ function findSkillSections(value: unknown, skill: Exclude<MockSkill, 'FULL'>): R
     .flatMap((key) => findSkillSections(row[key], skill));
 }
 
-function getSpeakingTestDataFromCard(card?: MockCard | null, allowDefaults = true): SpeakingTestData {
+function getSpeakingTestDataFromCard(card?: MockCard | null): SpeakingTestData {
   const rawRows = parseRawQuestionDataArray(card?.questionData);
   const speakingSections = rawRows.filter((item) => normalizeMockSkill(String(item.skill ?? '')) === 'SPEAKING' && Array.isArray(item.parts));
   const rows = (speakingSections.length > 0 ? speakingSections.flatMap((section) => normalizeQuestionSection(section.parts, 'SPEAKING')) : parseQuestionDataArray(card?.questionData))
@@ -1142,8 +1069,7 @@ function getSpeakingTestDataFromCard(card?: MockCard | null, allowDefaults = tru
       return !skill || skill === 'SPEAKING' || template.startsWith('SPEAKING_') || card?.skill === 'SPEAKING';
     });
 
-  const hasImportedRows = rows.length > 0;
-  const explicitPartRows = rows.filter((item) => getSpeakingPart(item));
+    const explicitPartRows = rows.filter((item) => getSpeakingPart(item));
   const unpartedRows = rows.filter((item) => !getSpeakingPart(item));
   const part1Rows = explicitPartRows.length > 0
     ? rows.filter((item) => getSpeakingPart(item) === '1')
@@ -1163,18 +1089,18 @@ function getSpeakingTestDataFromCard(card?: MockCard | null, allowDefaults = tru
   const part4Image = part4Row ? speakingImageFromItem(part4Row, 1) : '';
 
   return {
-    part1: part1.length > 0 ? normalizeSpeakingPart1Questions(part1) : hasImportedRows || !allowDefaults ? [] : speakingQuestions,
-    part2: part2.length > 0 ? part2 : hasImportedRows || !allowDefaults ? [] : part2Questions,
-    part2Image: part2Image || (hasImportedRows || !allowDefaults ? '' : part2ImageUrls[0]),
-    part3: part3.length > 0 ? part3 : hasImportedRows || !allowDefaults ? [] : part3Questions,
+    part1: normalizeSpeakingPart1Questions(part1),
+    part2,
+    part2Image,
+    part3,
     part3Images: [
-      part3Images[0] || (hasImportedRows || !allowDefaults ? '' : '/images/speaking/part3/de01_1.png'),
-      part3Images[1] || (hasImportedRows || !allowDefaults ? '' : '/images/speaking/part3/de01_2.png')
+      part3Images[0] || '',
+      part3Images[1] || ''
     ],
     part4: {
-      title: part4Title || (hasImportedRows || !allowDefaults ? '' : part4Topic.title),
-      image: part4Image || (hasImportedRows || !allowDefaults ? '' : part4Topic.image),
-      questions: part4Questions.length > 0 ? part4Questions : hasImportedRows || !allowDefaults ? [] : part4Topic.questions
+      title: part4Title,
+      image: part4Image,
+      questions: part4Questions
     }
   };
 }
@@ -1623,9 +1549,9 @@ function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatc
       };
     }
     return {
-      prompt: 'Protect the environment',
+      prompt: '',
       options: listeningMatchingOptions,
-      speakers: ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'],
+      speakers: [],
       answerKey: listeningMatchingAnswerKey
     };
   }
@@ -1639,7 +1565,7 @@ function getListeningMatchingDataFromCard(card?: MockCard | null): ListeningMatc
   }, {});
 
   return {
-    prompt: String(row.topic ?? row.prompt ?? row.content ?? 'Protect the environment').trim(),
+    prompt: String(row.topic ?? row.prompt ?? row.content ?? '').trim(),
     options: options.length > 0 ? options : listeningMatchingOptions,
     speakers,
     answerKey,
@@ -1671,7 +1597,7 @@ function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortDa
       };
     }
     return {
-      topic: 'There is too much information on the Internet',
+      topic: '',
       prompt: 'Who expresses which opinion?',
       statements: listeningShortStatements,
       options: listeningSpeakerOptions,
@@ -1764,7 +1690,7 @@ function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonolo
 function getListeningMonologueAnswerKey(monologues: ListeningMonologueData[]) {
   return monologues.reduce<Record<string, string>>((result, recording, recordingIndex) => {
     recording.questions.forEach((question, questionIndex) => {
-      result[`${recordingIndex}-${questionIndex}`] = question.correctAnswer ?? question.answer ?? listeningMonologueAnswerKey[`${recordingIndex}-${questionIndex}`] ?? '';
+      result[`${recordingIndex}-${questionIndex}`] = question.correctAnswer ?? question.answer ?? '';
     });
     return result;
   }, {});
@@ -2078,21 +2004,12 @@ function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[]
     return questions;
   }, []);
 
-  if (questions.length === 0) return hasImportedData ? [] : grammarQuestions;
+  if (questions.length === 0) return [];
   return normalizeGrammarVocabularyScreens(questions, hasImportedData);
 }
 
-function normalizeGrammarVocabularyScreens(questions: GrammarQuestionItem[], hasImportedData: boolean) {
-  if (!hasImportedData) return questions;
-
-  const vocabularyScreens = grammarQuestions.slice(25);
-  const hasImportedVocabularyScreens = questions.some(isGrammarVocabularyScreen);
-  if (hasImportedVocabularyScreens) {
-    return questions.length >= 30 ? questions.slice(0, 30) : [...questions, ...vocabularyScreens].slice(0, 30);
-  }
-
-  const grammarScreens = questions.slice(0, 25);
-  return [...grammarScreens, ...vocabularyScreens].slice(0, 30);
+function normalizeGrammarVocabularyScreens(questions: GrammarQuestionItem[], _hasImportedData: boolean) {
+  return questions.slice(0, 30);
 }
 
 function isGrammarVocabularyScreen(question: GrammarQuestionItem) {
@@ -2316,96 +2233,9 @@ const speakingMockTests = [
   { id: 1, title: 'Speaking Practice Test 1', subtitle: 'Part 1 of 4', questions: 4, minutes: 12 }
 ];
 
-const grammarQuestions: GrammarQuestionItem[] = [
-  { prompt: 'My father, ___ is a dentist, told me not to drink sugary drinks.', options: ['who', 'which', 'that'], answer: 'who' },
-  { prompt: 'If I ___ more time, I would learn another language.', options: ['have', 'had', 'will have'], answer: 'had' },
-  { prompt: 'She has lived in this city ___ 2019.', options: ['for', 'since', 'during'], answer: 'since' },
-  { prompt: 'The train was delayed, ___ we arrived late.', options: ['because', 'so', 'although'], answer: 'so' },
-  { prompt: 'I am interested ___ learning about other cultures.', options: ['in', 'on', 'at'], answer: 'in' },
-  { prompt: 'This is the best film I have ___ seen.', options: ['ever', 'never', 'yet'], answer: 'ever' },
-  { prompt: 'Could you tell me where ___?', options: ['is the station', 'the station is', 'does the station'], answer: 'the station is' },
-  { prompt: 'They ___ dinner when I called them.', options: ['have', 'were having', 'are having'], answer: 'were having' },
-  { prompt: 'You should ___ your homework before watching TV.', options: ['finish', 'to finish', 'finishing'], answer: 'finish' },
-  { prompt: 'The room was ___ small for all the guests.', options: ['too', 'enough', 'such'], answer: 'too' },
-  { prompt: 'I have never been to Canada, ___ I would like to go.', options: ['but', 'or', 'because'], answer: 'but' },
-  { prompt: 'The book ___ I borrowed was very useful.', options: ['where', 'which', 'who'], answer: 'which' },
-  { prompt: 'She speaks English ___ than her brother.', options: ['good', 'better', 'best'], answer: 'better' },
-  { prompt: 'We need to leave now, ___ we will miss the bus.', options: ['otherwise', 'however', 'despite'], answer: 'otherwise' },
-  { prompt: 'There are ___ apples in the fridge.', options: ['a few', 'much', 'any'], answer: 'a few' },
-  { prompt: 'He is responsible ___ managing the team.', options: ['for', 'to', 'with'], answer: 'for' },
-  { prompt: 'I wish I ___ play the piano.', options: ['can', 'could', 'will'], answer: 'could' },
-  { prompt: 'The meeting has been ___ until Friday.', options: ['put off', 'put on', 'put out'], answer: 'put off' },
-  { prompt: 'She asked me ___ I was from.', options: ['where', 'what', 'when'], answer: 'where' },
-  { prompt: 'I prefer tea ___ coffee.', options: ['than', 'to', 'from'], answer: 'to' },
-  { prompt: 'The exam was not as difficult ___ I expected.', options: ['as', 'than', 'like'], answer: 'as' },
-  { prompt: 'They have already ___ the tickets.', options: ['buy', 'bought', 'buying'], answer: 'bought' },
-  { prompt: 'Please speak more ___; I cannot hear you.', options: ['loud', 'loudly', 'louder'], answer: 'loudly' },
-  { prompt: 'The restaurant ___ we had lunch was very busy.', options: ['where', 'which', 'who'], answer: 'where' },
-  { prompt: 'I am looking forward ___ from you soon.', options: ['hear', 'to hearing', 'hearing'], answer: 'to hearing' },
-  {
-    options: ['make', 'select', 'shut', 'develop', 'look after', 'repair', 'begin'],
-    matchRows: [
-      { word: 'create', answer: 'make' },
-      { word: 'choose', answer: 'select' },
-      { word: 'close', answer: 'shut' },
-      { word: 'improve', answer: 'develop' },
-      { word: 'care', answer: 'look after' }
-    ]
-  },
-  {
-    options: ['argue', 'train', 'receive', 'repay', 'agree', 'borrow', 'return'],
-    definitionMode: 'completion',
-    definitionRows: [
-      { definition: 'To oppose someone is to...', answer: 'argue' },
-      { definition: 'To teach someone is to...', answer: 'train' },
-      { definition: 'To accept something is to...', answer: 'receive' },
-      { definition: 'To get something is to...', answer: 'receive' },
-      { definition: 'To pay someone is to...', answer: 'repay' }
-    ]
-  },
-  {
-    options: ['passionate', 'curious', 'artificial', 'unclear', 'smooth', 'ordinary', 'empty'],
-    definitionMode: 'matching',
-    definitionRows: [
-      { definition: 'Having a lot of strong emotion.', answer: 'passionate' },
-      { definition: 'Wanting to know or learn something.', answer: 'curious' },
-      { definition: 'Not natural or real.', answer: 'artificial' },
-      { definition: 'Not clear and difficult to understand or see.', answer: 'unclear' },
-      { definition: 'Having a flat, even surface.', answer: 'smooth' }
-    ]
-  },
-  {
-    options: ['corridor', 'discipline', 'wardrobe', 'fringe', 'museum', 'garden', 'traffic'],
-    sentenceRows: [
-      { before: 'He had to walk down a long dark', after: 'to get to his room.', answer: 'corridor' },
-      { before: 'The teacher should maintain', after: 'in the classroom to make the lesson effective.', answer: 'discipline' },
-      { before: 'She opened the', after: 'and took a coat out of it.', answer: 'wardrobe' },
-      { before: 'You should cut your', after: 'regularly otherwise your hair will get in your eyes.', answer: 'fringe' },
-      { before: 'The local', after: 'has an exhibit about the history of this area.', answer: 'museum' }
-    ]
-  },
-  {
-    options: ['idea', 'track', 'road', 'pace', 'chores', 'painting', 'training'],
-    collocationRows: [
-      { word: 'abstract', answer: 'idea' },
-      { word: 'athletics', answer: 'track' },
-      { word: 'congested', answer: 'road' },
-      { word: 'frantic', answer: 'pace' },
-      { word: 'housework', answer: 'chores' }
-    ]
-  }
-];
+const grammarQuestions: GrammarQuestionItem[] = [];
 
-const speakingQuestions = [
-  'Please tell me about your family.',
-  'What do you usually do in your free time?',
-  'Tell me about a place in your city that you like.'
-];
-const speakingSampleAnswers = [
-  'I live with my parents and my younger sister. We are quite close, and we usually have dinner together in the evening. My parents are supportive, and my sister is friendly and funny.',
-  'In my free time, I usually listen to music, watch short English videos, or go out for coffee with my friends. I also try to practise English speaking for a few minutes every day.',
-  'One place I like in my city is a small park near my house. It is quiet, clean, and has many trees. I often go there to walk, relax, and clear my mind after studying.'
-];
+const speakingSampleAnswers: string[] = [];
 
 const speakingInstructionsSpeechText = 'Aptis General Speaking Test Instructions. Speaking. You will answer some questions about yourself and then do three short speaking tasks. Listen to the instructions and questions, then speak clearly into your microphone after you hear the signal. Each part of the test will appear automatically. The test will take about 12 minutes. When you click on the Next button, the test will begin.';
 const promptSpeechText = 'Part One. In this part, I am going to ask you three short questions about yourself and your interests. You will have 30 seconds to reply to each question. Begin speaking when you hear this sound.';
@@ -2439,293 +2269,24 @@ function playSpeakingBeep() {
   });
 }
 
-const fallbackReadingTestData: ReadingTestData = {
-  gaps: [
-    { questionStart: "I didn't ", questionEnd: ' it.', options: ['see', 'watch', 'look', 'view'], answer: 'see' },
-    { questionStart: 'I buy some food at the ', questionEnd: '.', options: ['shop', 'store', 'market', 'restaurant'], answer: 'store' },
-    { questionStart: 'I ate ', questionEnd: '.', options: ['lunch', 'breakfast', 'dinner', 'meal'], answer: 'lunch' },
-    { questionStart: 'I ', questionEnd: ' a program on TV.', options: ['watched', 'saw', 'looked', 'read'], answer: 'watched' }
-  ],
-  cohesion: [
-    {
-      title: 'Tom Harper',
-      choices: [
-        'he almost left the magazine, but then he decided to create some unusual new characters',
-        'the characters he imagined were one of the most famous in the world',
-        'this popularity made Tom Harper rich and successful.',
-        'he soon wrote regularly for the magazine, but he was not satisfied',
-        'When he was young, he began writing short stories for a magazine'
-      ],
-      correctOrder: [
-        'the characters he imagined were one of the most famous in the world',
-        'this popularity made Tom Harper rich and successful.',
-        'he almost left the magazine, but then he decided to create some unusual new characters',
-        'When he was young, he began writing short stories for a magazine',
-        'he soon wrote regularly for the magazine, but he was not satisfied'
-      ]
-    },
-    {
-      title: 'A scientist',
-      choices: [
-        'These were so advanced that he soon became famous all over the world',
-        'As a child, he moved to a special school because he was so clever',
-        'Princeton University in the USA offered him a job because he was so famous.',
-        'His best friend in his new class was a girl named Lavime',
-        'She later became his wife and helped him with his earliest scientific discoveries'
-      ],
-      correctOrder: [
-        'Princeton University in the USA offered him a job because he was so famous.',
-        'These were so advanced that he soon became famous all over the world',
-        'His best friend in his new class was a girl named Lavime',
-        'As a child, he moved to a special school because he was so clever'
-      ]
-    }
-  ],
-  opinion: {
-    topic: 'Flying and air travel',
-    people: [
-      {
-        label: 'A',
-        text: 'I was a businessman so I had to fly many times a week. I had to go to other countries to be able to sign wine trading contracts with them. I felt very tired every time I have to fly. Now, my sister and I, whenever we have free time, take the train together and we enjoy that time very much because I can travel while sightseeing and relax without any stress.'
-      },
-      {
-        label: 'B',
-        text: 'My family and siblings live quite far from me. So I often have to fly to visit them every month when I have time. We really appreciate the time we spend together and we are happy to be able to meet each other and share our new story. I know that traveling by plane too much is not good for the environment so I often shop online or go to work by bike instead of going by car or I reuse plastic bags and paper bags. In addition, I sometimes volunteer to clean up trash in the neighborhood.'
-      },
-      {
-        label: 'C',
-        text: 'I have a dream that I work as a tour guide. So I understand that I will have to fly to other countries. In my personal opinion, airplanes are currently too cheap compared to the damage they cause to the environment, so I believe we should add taxes to airline ticket prices to make people choose to use other means of transport before they think about flying. I believe that people are also very happy when they can contribute to protecting the environment.'
-      },
-      {
-        label: 'D',
-        text: 'If I have to go somewhere I will choose other means of public transport, not the plane. Every time I go on a plane I feel extremely tired and I just hope time passes quickly so I can get off that plane. However, due to the specific nature of my job, I have to film in many different locations, so sometimes I cannot avoid having to take this public transportation.'
-      }
-    ],
-    questions: [
-      'try to protect the environment',
-      'Sometimes cannot avoid flying because of filming work',
-      'Find flying tiring and try to avoid it',
-      'suggest making flights more expensive',
-      'want to work in other countries',
-      'like relaxing while they travel',
-      'visit relatives regularly'
-    ],
-    correctAnswers: ['B', 'D', 'A', 'C', 'C', 'A', 'B']
-  },
-  long: {
-    title: 'Charles Dicken',
-    headings: [
-      'A global writer',
-      'Difficult language',
-      'A famous tragedy',
-      'A lasting legacy',
-      'Early success',
-      'Protecting his reputation',
-      'Remembering Dickens'
-    ],
-    paragraphs: [
-      "The popularity of Dickens's works in our time remains a global phenomenon. Although he wrote his novels in the 19th century, his works have had a global impact. In addition, these masterpieces helped connect Renaissance drama to the multimedia revolution. Many readers find the characters and themes surprisingly modern.",
-      "Shakespeare's plays are difficult to understand and sometimes require the reader to struggle or think twice to figure out the character's thoughts. Sometimes the dialogue tends to be emotional without any connection to the context of the story. There are many passages that are a confusing mess of single words and old classical vocabulary.",
-      "Hamlet is a Renaissance tragedy written by Shakespeare. The play is very long and has plot twists that keep the reader guessing. Dickens had a special interest in the work. He told his daughter to keep an eye on Hamlet. For Dickens' novels, he sometimes created serial editions, with new chapters released monthly, keeping readers eagerly awaiting the next issue.",
-      "Dickens' legacy is undeniable. His works have been translated and used in over 100 countries and are studied by most schoolchildren in the world. It has even been said that Dickens' legacy belongs not to one era but to all times. It is easy to see that Dickens lives on in society and culture through his language and through his enduring influence on education and the media.",
-      "Dickens achieved success at a young age. His first novel, The Pickwick Papers, was published when he was only 24 and became a bestseller. His success increased throughout the 1590s. He was honored as a member of the Lord Chamber Men - those lucky enough to perform for the Queen of England on many occasions. Alongside his novels and plays, he also published many poems in his own style.",
-      "As Dickens's reputation grew, the question arose whether to preserve his legacy and make it live on. Dickens himself was always keen to make his mark and to maintain his uniqueness. He even attempted to break the dominance of the popular comedies of the time with a series of dramatic plays.",
-      "To mark the 400th anniversary of Dickens' death, there will be a number of events to help readers, and especially students, better understand his works. There will be videos detailing the content of each of his works to help people excitedly explore the pinnacle of language and the meaning his works bring to our daily lives."
-    ],
-    correctAnswers: [
-      'A global writer',
-      'Difficult language',
-      'A famous tragedy',
-      'A lasting legacy',
-      'Early success',
-      'Protecting his reputation',
-      'Remembering Dickens'
-    ]
-  }
-};
+const fallbackReadingTestData: ReadingTestData = getReadingTestDataFromCard(null);
 
 function shouldBeepBeforeSpeakingTimer(screen: SpeakingScreen) {
   return screen === 'question' || screen === 'part2Question' || screen === 'part3Question' || screen === 'part4Question';
 }
 
-const part2Questions = [
-  'Describe the picture.',
-  'What do you think the people are talking about?',
-  'Do you like eating with friends? Why or why not?'
-];
-const part2ImageUrls = [
-  '/images/speaking/part2/1.png',
-  '/images/speaking/part2/2.png',
-  '/images/speaking/part2/3.png'
-];
-const part2SampleAnswers = [
-  'In the picture, I can see several people sitting around a table and having a meal together. They look relaxed and happy. It seems like they are friends or family members enjoying food and conversation.',
-  'I think they are talking about their day, their work, or something funny that happened recently. Because they are smiling, the conversation is probably friendly and casual.',
-  'Yes, I like eating with friends because it makes the meal more enjoyable. We can share stories, laugh together, and feel less stressed after a busy day.'
-];
-const part3Questions = [
-  'Compare the pictures.',
-  'What are the advantages of travelling by car?',
-  'Do you prefer travelling alone or with other people? Why?'
-];
-const part3SampleAnswers = [
-  'Both pictures show ways of travelling. In the first picture, people are travelling by car, which may be more private and flexible. In the second picture, people are travelling by train, which may be more comfortable for long distances.',
-  'Travelling by car is convenient because you can choose your own route and stop whenever you want. It is also useful when you travel with family or carry a lot of luggage.',
-  'I prefer travelling with other people because it is more fun and safer. We can talk during the journey, share costs, and help each other if there is a problem.'
-];
-const part4Topic = {
-  title: 'Receiving a gift',
-  image: 'https://images.unsplash.com/photo-1513885535751-8b9238bd345a?auto=format&fit=crop&w=900&q=80',
-  questions: [
-    'Tell me about the last gift you received. Who gave it to you, and what was the occasion?',
-    'Do you prefer receiving handmade gifts or gifts bought in a shop? Why?',
-    'Are you planning to give a gift to anyone soon? Tell me about it.'
-  ]
-};
-const part4SampleAnswer = 'The last gift I received was a book from my friend on my birthday. I liked it because it showed that my friend understood my interests. I usually prefer thoughtful gifts, whether they are handmade or bought in a shop, because the meaning is more important than the price. I am planning to give my mother a small present soon, maybe some flowers or a nice scarf, to thank her for always supporting me.';
-const listeningPart1Questions: ListeningPart1Question[] = [
-  {
-    prompt: 'A person calls a friend about his new car. How much does the small car cost him?',
-    options: ['3250 pounds', '3550 pounds', '4250 pounds']
-  },
-  {
-    prompt: 'A woman asks about a train ticket. What time does the next train leave?',
-    options: ['8:15', '8:30', '8:45']
-  },
-  {
-    prompt: 'A man is booking a table. How many people will come to dinner?',
-    options: ['Three', 'Four', 'Five']
-  },
-  {
-    prompt: 'A student phones the library. Which book does she need?',
-    options: ['A history book', 'A grammar book', 'A science book']
-  },
-  {
-    prompt: 'A customer asks about a jacket. What colour does he choose?',
-    options: ['Black', 'Blue', 'Green']
-  },
-  {
-    prompt: 'A woman talks about her weekend. Where did she go?',
-    options: ['To the beach', 'To the cinema', 'To the museum']
-  },
-  {
-    prompt: 'A man calls a repair shop. What is broken?',
-    options: ['His phone', 'His laptop', 'His watch']
-  },
-  {
-    prompt: 'Two friends talk about a party. What should Anna bring?',
-    options: ['Drinks', 'Music', 'Snacks']
-  },
-  {
-    prompt: 'A teacher gives an announcement. When is the test?',
-    options: ['Monday', 'Wednesday', 'Friday']
-  },
-  {
-    prompt: 'A woman is at a hotel. What does she ask for?',
-    options: ['A map', 'A towel', 'A taxi']
-  },
-  {
-    prompt: 'A man leaves a message. Why is he late?',
-    options: ['Traffic', 'Bad weather', 'A meeting']
-  },
-  {
-    prompt: 'A customer is buying flowers. Who are they for?',
-    options: ['His mother', 'His teacher', 'His friend']
-  },
-  {
-    prompt: 'Two people discuss exercise. What sport will they try?',
-    options: ['Swimming', 'Tennis', 'Cycling']
-  }
-];
-const listeningPart1AnswerKey = ['3250 pounds', '8:30', 'Four', 'A grammar book', 'Blue', 'To the museum', 'His laptop', 'Snacks', 'Wednesday', 'A taxi', 'Traffic', 'His mother', 'Cycling'];
-const listeningMatchingOptions = [
-  'enjoys meeting new people',
-  'wants to learn a new skill',
-  'prefers working alone',
-  'needs more time to practise',
-  'has already done this activity before',
-  'is worried about the cost'
-];
-const listeningMatchingAnswerKey: Record<string, string> = {
-  'Speaker A ...': 'wants to learn a new skill',
-  'Speaker B ...': 'enjoys meeting new people',
-  'Speaker C ...': 'needs more time to practise',
-  'Speaker D ...': 'has already done this activity before'
-};
-const listeningShortStatements = [
-  'There is too much information on the Internet',
-  'Finding information on the Internet requires skills',
-  'The use of the Internet affects the way we think',
-  'The Internet makes young people less patient.'
-];
-const listeningSpeakerOptions = ['Man', 'Woman', 'Both', 'Neither'];
-const listeningShortAnswerKey = ['Woman', 'Man', 'Both', 'Woman'];
-const listeningMonologues = [
-  {
-    questions: [
-      {
-        prompt: 'What does the announcer say about the new novel?',
-        options: ['It is different from his earlier works', 'It is romantic and soft', 'It is less famous than his earlier works']
-      },
-      {
-        prompt: 'What does the announcer say the writer should do in the future?',
-        options: ['The writer should continue to write this genre', 'The writer should go back to his original genre', 'He should listen to critics before writing his next work']
-      }
-    ]
-  },
-  {
-    questions: [
-      {
-        prompt: 'What does the expert say being professional is all about?',
-        options: ['To maintain a positive attitude.', 'To create a good working environment.', 'To make a good impression.']
-      },
-      {
-        prompt: 'What does the expert say about the definition of professionalism?',
-        options: ['It is the same as 40 years ago.', 'Our definition of it is changing.', 'It will not change anymore.']
-      }
-    ]
-  }
-];
-const listeningMonologueAnswerKey: Record<string, string> = {
-  '0-0': 'It is different from his earlier works',
-  '0-1': 'The writer should go back to his original genre',
-  '1-0': 'To make a good impression.',
-  '1-1': 'Our definition of it is changing.'
-};
-const writingParts = [
-  {
-    title: 'Part 1',
-    heading: 'You are joining a Art Club. Fill out the form. Write short answers (1-5 words) for each message',
-    prompt: '',
-    questions: ['Do you enjoy drawing or painting?', 'What kind of art do you like?', 'When did you last visit an exhibition?', 'Who is your favourite artist?', 'What do you usually do in your free time?'],
-    helper: 'Words'
-  },
-  {
-    title: 'Part 2',
-    heading: 'You are a new member of an online club.',
-    prompt: 'Write a message to other members. Tell them about yourself and ask one question.',
-    questions: [],
-    helper: 'Write 20-30 words.'
-  },
-  {
-    title: 'Part 3',
-    heading: 'You are speaking to fellow members of the Art Club in a group chat. Respond to them in full sentences (30-40 words per answer).',
-    prompt: '',
-    questions: [
-      'Tell me a thing that you have had for a long time.',
-      'Should I take a course at my local college? Please, give me some advice.',
-      'Street art is becoming popular. However, some people criticize that it is bad. What is your opinion?'
-    ],
-    helper: 'Words'
-  },
-  {
-    title: 'Part 4',
-    heading: 'Write a short email (about 50 words) to your friend, and a longer email (120-150 words) to the president of the club.',
-    prompt: 'Dear all members,\nThe Art Club is organizing a talk to the public to attract more attention. We are going to invite an artist to give a talk to the members. As a member of our club, could you give us an artist to join our talk and what topic should they share to gain more attention? Especially, we would like to have more both young and elderly members.',
-    questions: [],
-    helper: 'Write 40-50 words.'
-  }
-];
+const part2SampleAnswers: string[] = [];
+const part3SampleAnswers: string[] = [];
+const part4SampleAnswer = '';
+const listeningPart1AnswerKey: string[] = [];
+const listeningMatchingOptions: string[] = [];
+const listeningMatchingAnswerKey: Record<string, string> = {};
+const listeningShortStatements: string[] = [];
+const listeningSpeakerOptions: string[] = [];
+const listeningShortAnswerKey: string[] = [];
+const listeningMonologues: ListeningMonologueData[] = [];
+const listeningMonologueAnswerKey: Record<string, string> = {};
+const writingParts = Array.from({ length: 4 }, (_, index) => ({ title: `Part ${index + 1}`, heading: '', prompt: '', questions: [] as string[], helper: '' }));
 type WritingPartData = typeof writingParts[number] & {
   sampleAnswers?: string[];
   emailPrompts?: Record<string, string>;
@@ -2740,7 +2301,7 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
       return !skill || skill === 'WRITING';
     });
 
-  if (rows.length === 0) return hasImportedData ? [] : writingParts;
+  if (rows.length === 0) return [];
 
   const nextParts: WritingPartData[] = writingParts.map((part) => ({
     ...part,
@@ -2797,6 +2358,11 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
   return nextParts;
 }
 
+function hasWritingPartData(part?: WritingPartData) {
+  return Boolean(part && (part.heading.trim() || part.prompt.trim() || part.questions.length
+    || Object.values(part.emailPrompts ?? {}).some((value) => value.trim())));
+}
+
 const speakingScreens: SpeakingScreen[] = ['select', 'fullStart', 'fullResult', 'start', 'instructions', 'prompt', 'question', 'part2Prompt', 'part2Question', 'part3Prompt', 'part3Question', 'part4Prompt', 'part4Question', 'complete', 'readingStart', 'readingInstructions', 'readingQuestion', 'readingCohesion', 'readingOpinion', 'readingLong', 'readingResult', 'readingReview', 'listeningStart', 'listeningInstructions', 'listeningQuestion', 'listeningMatching', 'listeningShort', 'listeningMonologues', 'listeningResult', 'listeningReview', 'writingInstructions', 'writingPart', 'writingResult', 'grammarStart', 'grammarInstructions', 'grammarQuestion', 'grammarResult'];
 const mockSkills: MockSkill[] = ['FULL', 'LISTENING', 'SPEAKING', 'WRITING', 'READING', 'GRAMMAR'];
 
@@ -2827,19 +2393,19 @@ function readTestId(value: string | null) {
 function readQuestionIndex(value: string | null) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue)) return 0;
-  return Math.min(Math.max(numberValue, 0), speakingQuestions.length - 1);
+  return Math.max(numberValue, 0);
 }
 
 function readPart2QuestionIndex(value: string | null) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue)) return 0;
-  return Math.min(Math.max(numberValue, 0), part2Questions.length - 1);
+  return Math.max(numberValue, 0);
 }
 
 function readPart3QuestionIndex(value: string | null) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue)) return 0;
-  return Math.min(Math.max(numberValue, 0), part3Questions.length - 1);
+  return Math.max(numberValue, 0);
 }
 
 function readPart4Phase(value: string | null): Part4Phase {
@@ -2849,13 +2415,13 @@ function readPart4Phase(value: string | null): Part4Phase {
 function readListeningQuestionIndex(value: string | null) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue)) return 0;
-  return Math.min(Math.max(numberValue, 0), listeningPart1Questions.length - 1);
+  return Math.max(numberValue, 0);
 }
 
 function readListeningRecordingIndex(value: string | null) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue)) return 0;
-  return Math.min(Math.max(numberValue, 0), listeningMonologues.length - 1);
+  return Math.max(numberValue, 0);
 }
 
 function readWritingPartIndex(value: string | null) {
@@ -2867,7 +2433,7 @@ function readWritingPartIndex(value: string | null) {
 function readGrammarQuestionIndex(value: string | null) {
   const numberValue = Number(value);
   if (!Number.isInteger(numberValue)) return 0;
-  return Math.min(Math.max(numberValue, 0), grammarQuestions.length - 1);
+  return Math.max(numberValue, 0);
 }
 
 function formatReadingTime(totalSeconds: number) {
@@ -2996,7 +2562,7 @@ function useAudioPlayer(audioUrl?: string) {
 }
 
 function sameAnswer(user?: string, answer?: string) {
-  return (user ?? '').trim().toLowerCase() === (answer ?? '').trim().toLowerCase();
+  return Boolean(answer?.trim()) && (user ?? '').trim().toLowerCase() === answer!.trim().toLowerCase();
 }
 
 function scoreFromCorrect(correct: number, total: number, maxScore: number) {
@@ -3079,16 +2645,16 @@ function scoreListeningAnswers(
   const matchingCorrect = Object.entries(matchingAnswerKey).filter(([speaker, answer]) => sameAnswer(matchingAnswers[speaker], answer)).length;
   const shortCorrect = shortAnswerKey.filter((answer, index) => sameAnswer(shortAnswers[index], answer)).length;
   const monologueCorrect = Object.entries(monologueAnswerKey).filter(([key, answer]) => sameAnswer(monologueAnswers[key], answer)).length;
-  const monologueTotal = Object.keys(monologueAnswerKey).length || 4;
+  const monologueTotal = Object.keys(monologueAnswerKey).length;
   const rows = [
     { part: 'Part 1 - Word Recognition', correct: `${part1Correct}/${part1AnswerKey.length}`, score: `${scoreFromCorrect(part1Correct, part1AnswerKey.length, 26)}/26` },
-    { part: 'Part 2 - Matching Information', correct: `${matchingCorrect}/${Object.keys(matchingAnswerKey).length || 4}`, score: `${scoreFromCorrect(matchingCorrect, Object.keys(matchingAnswerKey).length || 4, 8)}/8` },
-    { part: 'Part 3 - Short Conversations', correct: `${shortCorrect}/${shortAnswerKey.length || 4}`, score: `${scoreFromCorrect(shortCorrect, shortAnswerKey.length || 4, 8)}/8` },
+    { part: 'Part 2 - Matching Information', correct: `${matchingCorrect}/${Object.keys(matchingAnswerKey).length}`, score: `${scoreFromCorrect(matchingCorrect, Object.keys(matchingAnswerKey).length, 8)}/8` },
+    { part: 'Part 3 - Short Conversations', correct: `${shortCorrect}/${shortAnswerKey.length}`, score: `${scoreFromCorrect(shortCorrect, shortAnswerKey.length, 8)}/8` },
     { part: 'Part 4 - Monologues', correct: `${monologueCorrect}/${monologueTotal}`, score: `${scoreFromCorrect(monologueCorrect, monologueTotal, 8)}/8` }
   ];
   const correct = part1Correct + matchingCorrect + shortCorrect + monologueCorrect;
-  const matchingTotal = Object.keys(matchingAnswerKey).length || 4;
-  const shortTotal = shortAnswerKey.length || 4;
+  const matchingTotal = Object.keys(matchingAnswerKey).length;
+  const shortTotal = shortAnswerKey.length;
   const total = part1AnswerKey.length + matchingTotal + shortTotal + monologueTotal;
   const score = scoreFromCorrect(part1Correct, part1AnswerKey.length, 26) + scoreFromCorrect(matchingCorrect, matchingTotal, 8) + scoreFromCorrect(shortCorrect, shortTotal, 8) + scoreFromCorrect(monologueCorrect, monologueTotal, 8);
   return { correct, total, score: clampScore50(score), maxScore: 50, cefr: cefrFromListeningCorrect25(correctToAptis25(correct, total)), rows };
@@ -3195,7 +2761,7 @@ export function MockTests() {
   const activeGrammarCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'GRAMMAR'), [selectedMockCard]);
   const activeWritingCard = useMemo(() => skillCardFromFullMockCard(selectedMockCard, 'WRITING'), [selectedMockCard]);
   const activeSpeakingData = useMemo(
-    () => getSpeakingTestDataFromCard(activeSpeakingCard, !isFullMock),
+    () => getSpeakingTestDataFromCard(activeSpeakingCard),
     [activeSpeakingCard, isFullMock, selectedMockCard]
   );
 
@@ -3424,6 +2990,10 @@ export function MockTests() {
   useEffect(() => {
     const params = new URLSearchParams();
 
+    // Keep the requested mockId while its assessment data is being restored.
+    // Otherwise the next restore can select the first available test instead.
+    if (screen !== 'select' && !selectedMockCard) return;
+
     if (screen === 'select') {
       params.set('skill', selectedSkill);
     } else {
@@ -3576,19 +3146,11 @@ export function MockTests() {
   }, [part4Phase, screen]);
 
   useEffect(() => {
-    if (screen === 'readingQuestion') {
-      setReadingSeconds(35 * 60);
+    if (!['readingQuestion', 'readingCohesion', 'readingOpinion', 'readingLong'].includes(screen)) return;
+    if (readingSeconds <= 0) {
+      setScreen(isFullMock ? nextFullScreenAfter('READING') : 'readingResult');
+      return;
     }
-  }, [screen]);
-
-  useEffect(() => {
-    if (screen === 'listeningQuestion') {
-      setListeningSeconds(40 * 60);
-    }
-  }, [screen]);
-
-  useEffect(() => {
-    if (screen !== 'readingQuestion' || readingSeconds <= 0) return;
 
     const intervalId = window.setInterval(() => {
       setReadingSeconds((value) => Math.max(value - 1, 0));
@@ -3598,7 +3160,11 @@ export function MockTests() {
   }, [readingSeconds, screen]);
 
   useEffect(() => {
-    if ((screen !== 'listeningQuestion' && screen !== 'listeningMatching' && screen !== 'listeningShort' && screen !== 'listeningMonologues') || listeningSeconds <= 0) return;
+    if (!['listeningQuestion', 'listeningMatching', 'listeningShort', 'listeningMonologues'].includes(screen)) return;
+    if (listeningSeconds <= 0) {
+      setScreen(isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult');
+      return;
+    }
 
     const intervalId = window.setInterval(() => {
       setListeningSeconds((value) => Math.max(value - 1, 0));
@@ -3608,7 +3174,11 @@ export function MockTests() {
   }, [listeningSeconds, screen]);
 
   useEffect(() => {
-    if (screen !== 'writingPart' || writingSeconds <= 0) return;
+    if (screen !== 'writingPart') return;
+    if (writingSeconds <= 0) {
+      void submitWritingForAi(isFullMock ? 'fullResult' : undefined);
+      return;
+    }
 
     const intervalId = window.setInterval(() => {
       setWritingSeconds((value) => Math.max(value - 1, 0));
@@ -3618,13 +3188,11 @@ export function MockTests() {
   }, [screen, writingSeconds]);
 
   useEffect(() => {
-    if (screen === 'grammarQuestion') {
-      setGrammarSeconds(25 * 60);
+    if (screen !== 'grammarQuestion') return;
+    if (grammarSeconds <= 0) {
+      setScreen(isFullMock ? nextFullScreenAfter('GRAMMAR') : 'grammarResult');
+      return;
     }
-  }, [screen]);
-
-  useEffect(() => {
-    if (screen !== 'grammarQuestion' || grammarSeconds <= 0) return;
 
     const intervalId = window.setInterval(() => {
       setGrammarSeconds((value) => Math.max(value - 1, 0));
@@ -3821,6 +3389,10 @@ export function MockTests() {
     if (!requireLoginToStart()) return;
     if (!requireProToStart(card)) return;
     const hydratedCard = await hydrateAssessmentCard(card);
+    if (!hydratedCard?.questionData?.trim()) {
+      toast.error('Đề này chưa có dữ liệu import.');
+      return;
+    }
     setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedTest(speakingMockTests[0]);
@@ -3836,6 +3408,10 @@ export function MockTests() {
     if (!requireLoginToStart()) return;
     if (!requireProToStart(card)) return;
     const hydratedCard = await hydrateAssessmentCard(card);
+    if (!hydratedCard?.questionData?.trim()) {
+      toast.error('Đề này chưa có dữ liệu import.');
+      return;
+    }
     setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('READING');
@@ -3852,6 +3428,10 @@ export function MockTests() {
     if (!requireLoginToStart()) return;
     if (!requireProToStart(card)) return;
     const hydratedCard = await hydrateAssessmentCard(card);
+    if (!hydratedCard?.questionData?.trim()) {
+      toast.error('Đề này chưa có dữ liệu import.');
+      return;
+    }
     setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('LISTENING');
@@ -3868,6 +3448,10 @@ export function MockTests() {
     if (!requireLoginToStart()) return;
     if (!requireProToStart(card)) return;
     const hydratedCard = await hydrateAssessmentCard(card);
+    if (!hydratedCard?.questionData?.trim()) {
+      toast.error('Đề này chưa có dữ liệu import.');
+      return;
+    }
     setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('WRITING');
@@ -3886,6 +3470,10 @@ export function MockTests() {
     if (!requireLoginToStart()) return;
     if (!requireProToStart(card)) return;
     const hydratedCard = await hydrateAssessmentCard(card);
+    if (!hydratedCard?.questionData?.trim()) {
+      toast.error('Đề này chưa có dữ liệu import.');
+      return;
+    }
     setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('GRAMMAR');
@@ -3898,10 +3486,6 @@ export function MockTests() {
   async function openFullTest(card?: MockCard) {
     if (!requireLoginToStart()) return;
     if (!requireProToStart(card)) return;
-    if (isBuiltInMockCard(card ?? selectedMockCard)) {
-      toast.error('Đề mẫu đã được tắt. Vui lòng mở đề Full test đã import.');
-      return;
-    }
     const hydratedCard = await hydrateAssessmentCard(card ?? selectedMockCard ?? undefined);
     if (!hydratedCard?.questionData?.trim()) {
       toast.error('Đề Full test này chưa có dữ liệu import.');
@@ -3973,38 +3557,43 @@ export function MockTests() {
     return {
       parts: [
         {
-          title: activeWritingParts[0].title,
-          prompt: activeWritingParts[0].heading,
-          answer: activeWritingParts[0].questions
+          title: (activeWritingParts[0] ?? writingParts[0]).title,
+          prompt: (activeWritingParts[0] ?? writingParts[0]).heading,
+          answer: (activeWritingParts[0] ?? writingParts[0]).questions
             .map((question, index) => `${index + 1}. ${question}\n${writingShortAnswers[index] ?? ''}`)
             .join('\n\n')
         },
         {
-          title: activeWritingParts[1].title,
-          prompt: `${activeWritingParts[1].heading}\n${activeWritingParts[1].prompt}`,
+          title: (activeWritingParts[1] ?? writingParts[1]).title,
+          prompt: `${(activeWritingParts[1] ?? writingParts[1]).heading}\n${(activeWritingParts[1] ?? writingParts[1]).prompt}`,
           answer: writingAnswers[1] ?? ''
         },
         {
-          title: activeWritingParts[2].title,
-          prompt: activeWritingParts[2].heading,
-          answer: activeWritingParts[2].questions
+          title: (activeWritingParts[2] ?? writingParts[2]).title,
+          prompt: (activeWritingParts[2] ?? writingParts[2]).heading,
+          answer: (activeWritingParts[2] ?? writingParts[2]).questions
             .map((question, index) => `${index + 1}. ${question}\n${writingThreeAnswers[index] ?? ''}`)
             .join('\n\n')
         },
         {
-          title: activeWritingParts[3].title,
-          prompt: `${activeWritingParts[3].heading}\n${activeWritingParts[3].prompt}`,
+          title: (activeWritingParts[3] ?? writingParts[3]).title,
+          prompt: `${(activeWritingParts[3] ?? writingParts[3]).heading}\n${(activeWritingParts[3] ?? writingParts[3]).prompt}`,
           answer: [
             `Email to friend:\n${writingEmailAnswers.friend ?? ''}`,
             `Email to president:\n${writingEmailAnswers.president ?? ''}`
           ].join('\n\n')
         }
-      ]
+      ].filter((_, index) => hasWritingPartData(activeWritingParts[index]))
     };
   }
 
   async function submitWritingForAi(nextScreen?: SpeakingScreen) {
     const payload = buildWritingScorePayload();
+    if (payload.parts.length === 0) {
+      toast.error('Không có nội dung Writing import để chấm.');
+      setScreen(nextScreen ?? 'select');
+      return;
+    }
 
     setWritingScoreLoading(true);
     setWritingScoreError('');
@@ -4233,12 +3822,25 @@ export function MockTests() {
       parts: partFeedback,
       pronunciationTips: ['Kiểm tra quyền microphone.', 'Nói gần microphone hơn và tránh tiếng ồn.', 'Dùng Chrome hoặc Edge để nhận diện giọng nói tốt hơn.'],
       fluencyTips: ['Trả lời trực tiếp câu hỏi.', 'Thêm một lý do và một ví dụ.', 'Dùng because, for example, in my opinion để nối ý.'],
-      improvedAnswer: 'I think it is important to answer the question directly, give one clear reason, and add a short example from personal experience.'
+      improvedAnswer: ''
     };
   }
 
   function startFullSpeaking() {
+    if (selectedMockCardLoading || !selectedMockCard) {
+      toast.error('Đề thi chưa tải xong. Vui lòng quay lại danh sách và mở lại đề.');
+      return;
+    }
     resetSpeakingSection();
+    if (isFullMock && (!activeSpeakingCard || !hasAnySpeakingData(activeSpeakingData))) {
+      const nextScreen = nextFullScreenAfter('SPEAKING');
+      if (nextScreen === 'fullResult') {
+        toast.error('Không đọc được câu hỏi của đề Full Test. Vui lòng import lại file CSV có dữ liệu questionData đúng định dạng.');
+        return;
+      }
+      setScreen(nextScreen);
+      return;
+    }
     setScreen('start');
   }
 
@@ -4287,8 +3889,9 @@ export function MockTests() {
 
   function finishSpeakingSection() {
     if (isFullMock) {
-      resetListeningSection();
-      submitSpeakingForAi('listeningStart');
+      const nextScreen = nextFullScreenAfter('SPEAKING');
+      if (nextScreen === 'listeningStart') resetListeningSection();
+      submitSpeakingForAi(nextScreen);
     } else {
       submitSpeakingForAi();
     }
@@ -4368,15 +3971,8 @@ export function MockTests() {
 
   const activeReadingData = useMemo(() => getReadingTestDataFromCard(activeReadingCard), [activeReadingCard]);
   const readingSummary = scoreReadingAnswers(readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers, activeReadingData);
-  const activeListeningPart1Questions = useMemo(() => {
-    const fromAdmin = listeningQuestionsFromCard(activeListeningCard);
-    return (fromAdmin.length > 0
-      ? fromAdmin
-      : hasImportedQuestionData(activeListeningCard)
-        ? []
-        : listeningPart1Questions).slice(0, 13);
-  }, [activeListeningCard]);
-  const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? listeningPart1AnswerKey[index] ?? ''), [activeListeningPart1Questions]);
+  const activeListeningPart1Questions = useMemo(() => listeningQuestionsFromCard(activeListeningCard).slice(0, 13), [activeListeningCard]);
+  const activeListeningPart1AnswerKey = useMemo(() => activeListeningPart1Questions.map((question, index) => question.answer ?? question.correctAnswer ?? ''), [activeListeningPart1Questions]);
   const activeListeningMatchingData = useMemo(() => getListeningMatchingDataFromCard(activeListeningCard), [activeListeningCard]);
   const activeListeningShortData = useMemo(() => getListeningShortDataFromCard(activeListeningCard), [activeListeningCard]);
   const activeListeningMonologues = useMemo(() => getListeningMonologuesFromCard(activeListeningCard), [activeListeningCard]);
@@ -4394,6 +3990,91 @@ export function MockTests() {
   const activeWritingParts = useMemo(() => writingPartsFromCard(activeWritingCard), [activeWritingCard]);
   const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
   const questionListItems = buildCurrentQuestionListItems();
+
+  function hasActiveListeningData() {
+    return activeListeningPart1Questions.length > 0
+      || activeListeningMatchingData.options.length > 0
+      || activeListeningShortData.statements.length > 0
+      || activeListeningMonologues.length > 0;
+  }
+
+  function hasActiveReadingData() {
+    return activeReadingData.gaps.length > 0
+      || activeReadingData.cohesion.length > 0
+      || activeReadingData.opinion.questions.length > 0
+      || activeReadingData.long.paragraphs.length > 0;
+  }
+
+  function nextFullScreenAfter(skill: Exclude<MockSkill, 'FULL'>): SpeakingScreen {
+    const afterIndex = fullRequiredSkills.indexOf(skill);
+    const remainingSkills = fullRequiredSkills.slice(afterIndex + 1);
+
+    for (const nextSkill of remainingSkills) {
+      if (nextSkill === 'LISTENING' && activeListeningCard && hasActiveListeningData()) return 'listeningStart';
+      if (nextSkill === 'GRAMMAR' && activeGrammarCard && activeGrammarQuestions.length > 0) return 'grammarStart';
+      if (nextSkill === 'READING' && activeReadingCard && hasActiveReadingData()) return 'readingStart';
+      if (nextSkill === 'WRITING' && activeWritingCard && activeWritingParts.some(hasWritingPartData)) return 'writingInstructions';
+    }
+
+    return 'fullResult';
+  }
+
+  function hasActiveListeningMatchingData() {
+    return activeListeningMatchingData.options.length > 0 || activeListeningMatchingData.speakers.length > 0;
+  }
+
+  function hasActiveListeningShortData() {
+    return activeListeningShortData.statements.length > 0 || activeListeningShortData.options.length > 0;
+  }
+
+  function firstListeningQuestionScreen(): SpeakingScreen {
+    if (activeListeningPart1Questions.length > 0) return 'listeningQuestion';
+    if (hasActiveListeningMatchingData()) return 'listeningMatching';
+    if (hasActiveListeningShortData()) return 'listeningShort';
+    if (activeListeningMonologues.length > 0) return 'listeningMonologues';
+    return isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult';
+  }
+
+  function nextListeningScreenAfter(screenName: 'part1' | 'matching' | 'short' | 'monologues'): SpeakingScreen {
+    if (screenName === 'part1' && hasActiveListeningMatchingData()) return 'listeningMatching';
+    if ((screenName === 'part1' || screenName === 'matching') && hasActiveListeningShortData()) return 'listeningShort';
+    if (screenName !== 'monologues' && activeListeningMonologues.length > 0) return 'listeningMonologues';
+    return isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult';
+  }
+
+  function firstReadingQuestionScreen(): SpeakingScreen {
+    if (activeReadingData.gaps.length > 0) return 'readingQuestion';
+    if (activeReadingData.cohesion.length > 0) return 'readingCohesion';
+    if (activeReadingData.opinion.questions.length > 0) return 'readingOpinion';
+    if (activeReadingData.long.paragraphs.length > 0) return 'readingLong';
+    return isFullMock ? nextFullScreenAfter('READING') : 'readingResult';
+  }
+
+  function previousListeningScreenBefore(part: 'short' | 'monologues'): SpeakingScreen {
+    if (part === 'monologues' && hasActiveListeningShortData()) return 'listeningShort';
+    if (hasActiveListeningMatchingData()) return 'listeningMatching';
+    if (activeListeningPart1Questions.length > 0) {
+      setListeningQuestionIndex(activeListeningPart1Questions.length - 1);
+      return 'listeningQuestion';
+    }
+    return 'listeningInstructions';
+  }
+
+  function previousReadingScreenBefore(part: 'cohesion' | 'opinion' | 'long'): SpeakingScreen {
+    if (part === 'long' && activeReadingData.opinion.questions.length > 0) return 'readingOpinion';
+    if (part !== 'cohesion' && activeReadingData.cohesion.length > 0) {
+      setReadingCohesionIndex(activeReadingData.cohesion.length - 1);
+      return 'readingCohesion';
+    }
+    return activeReadingData.gaps.length > 0 ? 'readingQuestion' : 'readingInstructions';
+  }
+
+  function nextReadingScreenAfter(screenName: 'gap' | 'cohesion' | 'opinion' | 'long'): SpeakingScreen {
+    if (screenName === 'gap' && activeReadingData.cohesion.length > 0) return 'readingCohesion';
+    if ((screenName === 'gap' || screenName === 'cohesion') && activeReadingData.opinion.questions.length > 0) return 'readingOpinion';
+    if (screenName !== 'long' && activeReadingData.long.paragraphs.length > 0) return 'readingLong';
+    return isFullMock ? nextFullScreenAfter('READING') : 'readingResult';
+  }
 
   useEffect(() => {
     setListeningQuestionIndex((current) => {
@@ -4505,6 +4186,17 @@ export function MockTests() {
     ];
   }
 
+  const missingQuestionData = (screen === 'readingCohesion' && !activeReadingData.cohesion[readingCohesionIndex])
+    || (screen === 'listeningQuestion' && !activeListeningPart1Questions[listeningQuestionIndex])
+    || (screen === 'listeningMonologues' && !activeListeningMonologues[listeningMonologueIndex])
+    || (screen === 'grammarQuestion' && !activeGrammarQuestions[grammarQuestionIndex]);
+  if (missingQuestionData) {
+    return <main className="p-10 text-center text-slate-600">
+      <p>{selectedMockCardLoading ? 'Đang tải đề import...' : 'Phần này chưa có dữ liệu import.'}</p>
+      <button type="button" className="mt-5 rounded-lg bg-brand-600 px-5 py-3 text-white" onClick={() => setScreen('select')}>Quay lại danh sách đề</button>
+    </main>;
+  }
+
   return (
     <div className="min-h-screen bg-[#f1f1f1] text-[#040817]">
       {screen === 'select' ? (
@@ -4534,7 +4226,7 @@ export function MockTests() {
             <ListeningTopbar title={screen === 'listeningMonologues' ? 'Part 4 - Monologues' : screen === 'listeningShort' ? 'Part 3 - Short Conversations' : screen === 'listeningMatching' ? 'Part 2 - Matching Information' : screen === 'listeningStart' ? 'Part 1 of 4' : 'Part 1 - Word Recognition'} onExit={() => setScreen('select')} />
           )}
           {(screen === 'writingInstructions' || screen === 'writingPart') && (
-            <WritingTopbar title={screen === 'writingPart' ? writingPartIndex === 0 ? 'Part 1 - Short Answers' : writingPartIndex === 2 ? 'Part 3 - Three Questions' : writingPartIndex === 3 ? 'Part 4 - Informal & Formal Email' : activeWritingParts[writingPartIndex].title : 'Aptis General Writing Instructions'} onExit={() => setScreen('select')} />
+            <WritingTopbar title={screen === 'writingPart' ? writingPartIndex === 0 ? 'Part 1 - Short Answers' : writingPartIndex === 2 ? 'Part 3 - Three Questions' : writingPartIndex === 3 ? 'Part 4 - Informal & Formal Email' : activeWritingParts[writingPartIndex]?.title ?? 'Writing' : 'Aptis General Writing Instructions'} onExit={() => setScreen('select')} />
           )}
           {(screen === 'grammarStart' || screen === 'grammarInstructions' || screen === 'grammarQuestion' || screen === 'grammarResult') && (
             <GrammarTopbar onExit={() => setScreen('select')} />
@@ -4569,7 +4261,7 @@ export function MockTests() {
               totalScore={fullTotalScore}
               writing={writingScore}
               onExit={() => setScreen('select')}
-              onRetry={openFullTest}
+              onRetry={() => openFullTest()}
             />
           )}
           {screen === 'readingResult' && (
@@ -4599,7 +4291,7 @@ export function MockTests() {
               answer={writingAnswers[writingPartIndex] ?? ''}
               bookmarkActive={isBookmarked(bookmarkKey('writing', writingPartIndex + 1))}
               emailAnswers={writingEmailAnswers}
-              part={activeWritingParts[writingPartIndex]}
+              part={activeWritingParts[writingPartIndex] ?? writingParts[writingPartIndex] ?? writingParts[0]}
               partIndex={writingPartIndex}
               showAnswer={answerRevealOpen}
               shortAnswers={writingShortAnswers}
@@ -4718,6 +4410,8 @@ export function MockTests() {
           )}
           {screen === 'listeningReview' && (
             <ListeningReview
+              matchingData={activeListeningMatchingData}
+              shortData={activeListeningShortData}
               part1AnswerKey={activeListeningPart1AnswerKey}
               matchingAnswers={listeningMatchingAnswers}
               monologueAnswers={listeningMonologueAnswers}
@@ -4831,7 +4525,7 @@ export function MockTests() {
           {screen === 'readingInstructions' && (
             <ReadingFooter
               onPrevious={() => setScreen('readingStart')}
-              onNext={() => setScreen('readingQuestion')}
+              onNext={() => setScreen(firstReadingQuestionScreen())}
             />
           )}
           {screen === 'writingInstructions' && (
@@ -4839,7 +4533,6 @@ export function MockTests() {
               onPrevious={() => setScreen('select')}
               onNext={() => {
                 setWritingPartIndex(0);
-                setWritingSeconds(50 * 60);
                 setScreen('writingPart');
               }}
             />
@@ -4849,7 +4542,6 @@ export function MockTests() {
               onPrevious={() => setScreen('grammarStart')}
               onNext={() => {
                 setGrammarQuestionIndex(0);
-                setGrammarSeconds(25 * 60);
                 setScreen('grammarQuestion');
               }}
             />
@@ -4868,8 +4560,10 @@ export function MockTests() {
                 if (grammarQuestionIndex < activeGrammarQuestions.length - 1) {
                   setGrammarQuestionIndex((value) => value + 1);
                 } else if (isFullMock) {
-                  resetReadingSection();
-                  setScreen('readingStart');
+                  const nextScreen = nextFullScreenAfter('GRAMMAR');
+                  if (nextScreen === 'readingStart') resetReadingSection();
+                  if (nextScreen === 'writingInstructions') resetWritingSection();
+                  setScreen(nextScreen);
                 } else {
                   setScreen('grammarResult');
                 }
@@ -4898,7 +4592,7 @@ export function MockTests() {
               onPrevious={() => setScreen('listeningStart')}
               onNext={() => {
                 setListeningQuestionIndex(0);
-                setScreen('listeningQuestion');
+                setScreen(firstListeningQuestionScreen());
               }}
             />
           )}
@@ -4913,7 +4607,7 @@ export function MockTests() {
               }}
               onNext={() => {
                 if (listeningQuestionIndex < activeListeningPart1Questions.length - 1) setListeningQuestionIndex((value) => value + 1);
-                else setScreen('listeningMatching');
+                else setScreen(nextListeningScreenAfter('part1'));
               }}
             />
           )}
@@ -4930,7 +4624,7 @@ export function MockTests() {
                   setScreen('listeningInstructions');
                 }
               }}
-              onNext={() => setScreen('listeningShort')}
+              onNext={() => setScreen(nextListeningScreenAfter('matching'))}
             />
           )}
           {screen === 'listeningShort' && (
@@ -4938,10 +4632,11 @@ export function MockTests() {
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
-              onPrevious={() => setScreen('listeningMatching')}
+              onPrevious={() => setScreen(previousListeningScreenBefore('short'))}
               onNext={() => {
-                setListeningMonologueIndex(0);
-                setScreen('listeningMonologues');
+                const nextScreen = nextListeningScreenAfter('short');
+                if (nextScreen === 'listeningMonologues') setListeningMonologueIndex(0);
+                setScreen(nextScreen);
               }}
             />
           )}
@@ -4952,16 +4647,19 @@ export function MockTests() {
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onPrevious={() => {
                 if (listeningMonologueIndex > 0) setListeningMonologueIndex((value) => value - 1);
-                else setScreen('listeningShort');
+                else setScreen(previousListeningScreenBefore('monologues'));
               }}
               onNext={() => {
                 if (listeningMonologueIndex < activeListeningMonologues.length - 1) {
                   setListeningMonologueIndex((value) => value + 1);
                 } else if (isFullMock) {
-                  resetGrammarSection();
-                  setScreen('grammarStart');
+                  const nextScreen = nextFullScreenAfter('LISTENING');
+                  if (nextScreen === 'grammarStart') resetGrammarSection();
+                  if (nextScreen === 'readingStart') resetReadingSection();
+                  if (nextScreen === 'writingInstructions') resetWritingSection();
+                  setScreen(nextScreen);
                 } else {
-                  setScreen('listeningResult');
+                  setScreen(nextListeningScreenAfter('monologues'));
                 }
               }}
             />
@@ -4974,7 +4672,7 @@ export function MockTests() {
               onPrevious={() => setScreen('readingInstructions')}
               onNext={() => {
                 setReadingCohesionIndex(0);
-                setScreen('readingCohesion');
+                setScreen(nextReadingScreenAfter('gap'));
               }}
             />
           )}
@@ -4985,11 +4683,11 @@ export function MockTests() {
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onPrevious={() => {
                 if (readingCohesionIndex > 0) setReadingCohesionIndex((value) => value - 1);
-                else setScreen('readingQuestion');
+                else setScreen(previousReadingScreenBefore('cohesion'));
               }}
               onNext={() => {
                 if (readingCohesionIndex < activeReadingData.cohesion.length - 1) setReadingCohesionIndex((value) => value + 1);
-                else setScreen('readingOpinion');
+                else setScreen(nextReadingScreenAfter('cohesion'));
               }}
             />
           )}
@@ -4999,10 +4697,9 @@ export function MockTests() {
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
               onPrevious={() => {
-                setReadingCohesionIndex(Math.max(0, activeReadingData.cohesion.length - 1));
-                setScreen('readingCohesion');
+                setScreen(previousReadingScreenBefore('opinion'));
               }}
-              onNext={() => setScreen('readingLong')}
+              onNext={() => setScreen(nextReadingScreenAfter('opinion'))}
             />
           )}
           {screen === 'readingLong' && (
@@ -5010,11 +4707,12 @@ export function MockTests() {
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
-              onPrevious={() => setScreen('readingOpinion')}
+              onPrevious={() => setScreen(previousReadingScreenBefore('long'))}
               onNext={() => {
                 if (isFullMock) {
-                  resetWritingSection();
-                  setScreen('writingInstructions');
+                  const nextScreen = nextFullScreenAfter('READING');
+                  if (nextScreen === 'writingInstructions') resetWritingSection();
+                  setScreen(nextScreen);
                 } else {
                   setScreen('readingResult');
                 }
@@ -6018,6 +5716,10 @@ function WritingPart({
     president: repairUserText(part.emailPrompts?.president)
   };
 
+  if (!hasWritingPartData(part)) {
+    return <main className="p-10 text-center text-slate-600">Part {partIndex + 1} chưa có dữ liệu import. Chọn Next để tiếp tục.</main>;
+  }
+
   return (
     <main
       style={{
@@ -6056,7 +5758,7 @@ function WritingPart({
             <WritingEmailBox
               count={friendWordCount}
               limit={75}
-              prompt={emailPrompts.friend || 'Write an email to your friend. Write about your feelings and what you plan to do about the situation. Write about 50 words. Recommended time: 10 minutes.'}
+              prompt={emailPrompts.friend || 'Chưa có yêu cầu email cho bạn bè trong đề import.'}
               value={friendEmail}
               onChange={(value) => onEmailAnswer('friend', limitWords(value, 75))}
             />
@@ -6068,7 +5770,7 @@ function WritingPart({
             <WritingEmailBox
               count={presidentWordCount}
               limit={225}
-              prompt={emailPrompts.president || 'Write an email to the president of the club. Write about your feelings and what you think the club should do about the situation. Write 120-150 words. Recommended time: 20 minutes.'}
+              prompt={emailPrompts.president || 'Chưa có yêu cầu email cho chủ nhiệm trong đề import.'}
               value={presidentEmail}
               onChange={(value) => onEmailAnswer('president', limitWords(value, 225))}
               tall
@@ -6617,7 +6319,7 @@ function ListeningMatching({
   onToggleBookmark: () => void;
 }) {
   const speakers = data.speakers.length > 0 ? data.speakers : ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'];
-  const options = data.options.length > 0 ? data.options : listeningMatchingOptions;
+  const options = data.options;
   const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl || data.audioUrl);
 
   return (
@@ -6753,8 +6455,8 @@ function ListeningShortConversations({
   onAnswer: (index: number, answer: string) => void;
   onToggleBookmark: () => void;
 }) {
-  const statements = data.statements.length > 0 ? data.statements : listeningShortStatements;
-  const options = data.options.length > 0 ? data.options : listeningSpeakerOptions;
+  const statements = data.statements;
+  const options = data.options;
   const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl || data.audioUrl);
 
   return (
@@ -6894,7 +6596,7 @@ function ListeningMonologues({
   onToggleBookmark: () => void;
 }) {
   const labels = ['A', 'B', 'C'];
-  const currentRecording = recording ?? listeningMonologues[index] ?? listeningMonologues[0];
+  const currentRecording: ListeningMonologueData = recording ?? { title: '', questions: [] };
   const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl || currentRecording.audioUrl);
 
   return (
@@ -7017,7 +6719,7 @@ function ListeningMonologues({
               </div>
               {showAnswer && (
                 <InlineAnswer>
-                  {(question as { answer?: string; correctAnswer?: string }).correctAnswer ?? (question as { answer?: string; correctAnswer?: string }).answer ?? listeningMonologueAnswerKey[`${index}-${questionIndex}`] ?? 'Chưa có đáp án mẫu'}
+                  {(question as { answer?: string; correctAnswer?: string }).correctAnswer ?? (question as { answer?: string; correctAnswer?: string }).answer ?? 'Chưa có đáp án import'}
                 </InlineAnswer>
               )}
             </div>
@@ -7620,6 +7322,8 @@ function ListeningResult({ summary, onExit, onReview, onRetry }: { summary: Skil
 }
 
 function ListeningReview({
+  matchingData,
+  shortData,
   part1AnswerKey,
   matchingAnswers,
   monologueAnswers,
@@ -7630,6 +7334,8 @@ function ListeningReview({
   shortAnswers,
   onBack
 }: {
+  matchingData: ListeningMatchingData;
+  shortData: ListeningShortData;
   part1AnswerKey: string[];
   matchingAnswers: Record<string, string>;
   monologueAnswers: Record<string, string>;
@@ -7640,13 +7346,8 @@ function ListeningReview({
   shortAnswers: Record<number, string>;
   onBack: () => void;
 }) {
-  const matchingCorrectAnswers: Record<string, string> = {
-    'Speaker A ...': 'wants to learn a new skill',
-    'Speaker B ...': 'enjoys meeting new people',
-    'Speaker C ...': 'needs more time to practise',
-    'Speaker D ...': 'has already done this activity before'
-  };
-  const shortCorrectAnswers = ['Woman', 'Man', 'Both', 'Woman'];
+  const matchingCorrectAnswers = matchingData.answerKey;
+  const shortCorrectAnswers = shortData.answerKey;
   const groups = [
     {
       title: 'Part 1 - Word Recognition',
@@ -7658,7 +7359,7 @@ function ListeningReview({
     },
     {
       title: 'Part 2 - Matching Information',
-      rows: ['Speaker A ...', 'Speaker B ...', 'Speaker C ...', 'Speaker D ...'].map((speaker) => ({
+      rows: matchingData.speakers.map((speaker) => ({
         question: speaker,
         user: matchingAnswers[speaker] || 'Chưa chọn',
         answer: matchingCorrectAnswers[speaker]
@@ -7666,7 +7367,7 @@ function ListeningReview({
     },
     {
       title: 'Part 3 - Short Conversations',
-      rows: listeningShortStatements.map((statement, index) => ({
+      rows: shortData.statements.map((statement, index) => ({
         question: statement,
         user: shortAnswers[index] || 'Chưa chọn',
         answer: shortCorrectAnswers[index]
@@ -8915,88 +8616,7 @@ function Part4Question({ topic, phase, seconds, showAnswer, isReading, microphon
   );
 }
 
-const speakingDraftTemplates: Record<string, SpeakingDraftTemplate> = {
-  '2-0': {
-    title: 'Dạng bài miêu tả ảnh',
-    target: 'Mục tiêu: 4-6 câu, khoảng 40-45 giây.',
-    fields: [
-      { label: 'Mở đầu', prefix: 'In this picture I can see', b1: ['a group of friends', 'several people', 'some young people'], b2: ['a group of friends spending time together', 'several people enjoying a meal together', 'some young people in a relaxed social setting'] },
-      { label: 'Ở đâu', prefix: 'They are', b1: ['at an outdoor restaurant', 'in a cafe', 'around a table'], b2: ['sitting at an outdoor restaurant', 'gathered around a table in a cafe', 'having lunch in a bright outdoor space'] },
-      { label: 'Đang làm gì', prefix: 'They are', b1: ['talking and laughing', 'eating lunch together', 'having a good time'], b2: ['talking and laughing while they eat lunch', 'sharing food and enjoying a friendly conversation', 'smiling as they spend time together'] },
-      { label: 'Chi tiết', prefix: 'I can also see', b1: ['food and drinks on the table', 'a red umbrella', 'many green plants'], b2: ['food and drinks on the table, which makes the scene feel lively', 'a red umbrella and some plants in the background', 'bright colours that make the place look comfortable'] },
-      { label: 'Cảm xúc', prefix: 'Overall, they look', b1: ['happy and relaxed', 'friendly and comfortable', 'excited'], b2: ['happy and relaxed, so it seems like they are enjoying the moment', 'comfortable with each other, which suggests they are close friends', 'cheerful because the atmosphere looks warm and friendly'] }
-    ]
-  },
-  '2-1': {
-    title: 'Dạng bài suy đoán nội dung nói chuyện',
-    target: 'Mục tiêu: 3-5 câu, khoảng 40-45 giây.',
-    fields: [
-      { label: 'Trả lời trực tiếp', prefix: 'I think they are talking about', b1: ['their food', 'their weekend plans', 'something funny'], b2: ['their meal and what they want to do later', 'their weekend plans or a funny story', 'something enjoyable that happened recently'] },
-      { label: 'Lý do 1', prefix: 'I say this because', b1: ['they are smiling', 'they look relaxed', 'they are sitting together'], b2: ['they are smiling and looking at each other', 'their body language looks very relaxed', 'they seem comfortable with each other'] },
-      { label: 'Lý do 2', prefix: 'Also, I can see', b1: ['food on the table', 'drinks in front of them', 'a friendly atmosphere'], b2: ['food and drinks on the table, so the topic may be casual', 'a friendly atmosphere around them', 'people leaning forward as if they are interested in the conversation'] },
-      { label: 'Suy đoán thêm', prefix: 'Maybe they are', b1: ['celebrating something', 'planning another meeting', 'sharing news'], b2: ['celebrating something special together', 'planning what to do after lunch', 'sharing personal news or telling jokes'] },
-      { label: 'Kết ý', prefix: 'Overall, the conversation seems', b1: ['friendly and relaxed', 'fun and positive', 'casual'], b2: ['friendly and relaxed rather than serious', 'positive because everyone looks comfortable', 'casual, like a normal conversation between friends'] }
-    ]
-  },
-  '2-2': {
-    title: 'Dạng bài ý kiến cá nhân',
-    target: 'Mục tiêu: 4-5 câu, khoảng 40-45 giây.',
-    fields: [
-      { label: 'Trả lại chính', prefix: 'Yes, I like eating with friends because', b1: ['it is fun', 'I can talk with them', 'it helps me relax'], b2: ['it makes the meal more enjoyable', 'we can talk and share stories', 'it helps me relax after a busy day'] },
-      { label: 'Chi tiết', prefix: 'When we eat together, we can', b1: ['laugh a lot', 'share food', 'talk about our day'], b2: ['laugh together and share our problems', 'try different dishes and enjoy the atmosphere', 'talk about our day and feel closer'] },
-      { label: 'Ví dụ cá nhân', prefix: 'For example, I often', b1: ['have dinner with my friends', 'go to a cafe with my classmates', 'eat out at weekends'], b2: ['have dinner with my friends after studying', 'go to a cafe with my classmates at weekends', 'eat out with close friends when we have free time'] },
-      { label: 'Cảm xúc', prefix: 'It makes me feel', b1: ['happy', 'comfortable', 'less stressed'], b2: ['happier and less stressed', 'more connected to my friends', 'comfortable because I can be myself'] },
-      { label: 'Kết ý', prefix: 'So I think eating with friends is', b1: ['a good way to relax', 'better than eating alone', 'very enjoyable'], b2: ['a good way to relax and build relationships', 'more enjoyable than eating alone', 'important because it creates good memories'] }
-    ]
-  },
-  '3-0': {
-    title: 'Dạng bài so sánh 2 ảnh',
-    target: 'Mục tiêu: 6-8 câu, khoảng 45 giây.',
-    fields: [
-      { label: 'Mở đầu chung', prefix: 'These two pictures both show', b1: ['people travelling', 'different ways of travelling', 'people on a journey'], b2: ['people travelling in two different ways', 'two different travel situations', 'different experiences during a journey'] },
-      { label: 'ảnh 1 - ai / cái gì', prefix: 'First I can see', b1: ['a man and a woman inside a car', 'two people in a car', 'a couple travelling by car'], b2: ['a man and a woman sitting inside a car', 'two people enjoying a comfortable car journey', 'a couple travelling together in a private car'] },
-      { label: 'ảnh 1 - dang làm gì', prefix: 'They are', b1: ['smiling and looking very relaxed', 'talking and enjoying the trip', 'sitting comfortably'], b2: ['smiling and looking very relaxed while they travel', 'talking together and enjoying the journey', 'sitting comfortably, which makes the trip seem pleasant'] },
-      { label: 'ảnh 1 - chi tiết', prefix: 'I can also see', b1: ['warm afternoon light through the window', 'sunlight inside the car', 'a bright view outside'], b2: ['warm afternoon light coming through the window', 'soft sunlight inside the car, which creates a calm mood', 'a bright view outside, so the journey looks peaceful'] },
-      { label: 'ảnh 2 - ai / cái gì', prefix: 'The second picture shows', b1: ['a group of four people on a train', 'some people travelling by train', 'friends sitting on a train'], b2: ['a group of four people sitting together on a train', 'some passengers travelling by train in a shared space', 'friends enjoying a train journey together'] },
-      { label: 'ảnh 2 - dang làm gì', prefix: 'They are', b1: ['talking and drinking coffee together', 'chatting with each other', 'relaxing during the journey'], b2: ['talking and drinking coffee together during the journey', 'having a conversation while they travel by train', 'relaxing together, which makes the journey feel social'] },
-      { label: 'ảnh 2 - chi tiết', prefix: 'Around them I notice', b1: ['green fields through the large window', 'large windows and green fields', 'a nice view outside'], b2: ['green fields through the large window', 'large windows with green fields outside, which makes the trip look scenic', 'a beautiful countryside view outside the train'] },
-      { label: 'Nhận xét chung', prefix: 'So the two pictures', b1: ['show two very different journeys', 'show different ways to travel', 'are both about travelling but in different places'], b2: ['show two very different journey experiences', 'compare private travel with a more social train journey', 'suggest that travelling can be relaxing in different ways'] }
-    ]
-  },
-  '3-1': {
-    title: 'Dạng bài nêu ưu điểm',
-    target: 'Mục tiêu: 4-5 câu, khoảng 45 giây.',
-    fields: [
-      { label: 'Trả lại chính', prefix: 'Travelling by car is convenient because', b1: ['you can choose the route', 'you can stop anywhere', 'it is private'], b2: ['you can choose your own route and schedule', 'you can stop whenever you want', 'it gives you more privacy and flexibility'] },
-      { label: 'Ưu điểm 1', prefix: 'Another advantage is that', b1: ['you can carry more things', 'it is good for families', 'you feel comfortable'], b2: ['you can carry more luggage without worrying too much', 'it is very useful for families or small groups', 'you can feel more comfortable during the journey'] },
-      { label: 'Ví dụ', prefix: 'For example, if I travel with my family, we can', b1: ['bring food and bags', 'stop for photos', 'listen to music'], b2: ['bring food and bags more easily', 'stop to take photos or rest on the way', 'listen to music and talk freely in the car'] },
-      { label: 'Điểm cần cân bằng', prefix: 'However, it can be', b1: ['expensive', 'tiring', 'slow in traffic'], b2: ['expensive if the distance is long', 'tiring for the driver', 'slow and stressful when there is heavy traffic'] },
-      { label: 'Kết ý', prefix: 'Overall, I think travelling by car is', b1: ['comfortable and flexible', 'good for short trips', 'useful for many people'], b2: ['comfortable and flexible, especially for family trips', 'a good choice for short or medium journeys', 'useful when people want more freedom'] }
-    ]
-  },
-  '3-2': {
-    title: 'Dạng bài nêu số thích',
-    target: 'Mục tiêu: 4-5 câu, khoảng 45 giây.',
-    fields: [
-      { label: 'Chọn ý', prefix: 'I prefer travelling', b1: ['with other people', 'with my friends', 'with my family'], b2: ['with other people rather than alone', 'with my close friends', 'with my family because it feels safer'] },
-      { label: 'Lý do 1', prefix: 'The main reason is that', b1: ['it is more fun', 'I feel safer', 'we can talk together'], b2: ['the journey becomes more fun and memorable', 'I feel safer when someone is with me', 'we can talk and help each other during the trip'] },
-      { label: 'Lý do 2', prefix: 'Also, we can', b1: ['share costs', 'take photos', 'help each other'], b2: ['share the costs of transport and food', 'take photos and enjoy the experience together', 'help each other if there is a problem'] },
-      { label: 'Ví dụ cá nhân', prefix: 'For example, last time I travelled with friends, we', b1: ['had a lot of fun', 'talked all the way', 'shared many memories'], b2: ['had a lot of fun and took many photos', 'talked all the way, so the trip felt shorter', 'created many good memories together'] },
-      { label: 'Kết ý', prefix: 'That is why I think travelling with others is', b1: ['better for me', 'more enjoyable', 'a good choice'], b2: ['better for me because I enjoy company', 'more enjoyable and less stressful', 'a good choice for most journeys'] }
-    ]
-  },
-  '4-0': {
-    title: 'Dạng bài trả lời chủ đề',
-    target: 'Mục tiêu: 5-7 ý, khoảng 2 phút.',
-    fields: [
-      { label: 'Mở ý', prefix: 'I would like to talk about', b1: ['receiving a gift', 'a special gift I got', 'a present from my friend'], b2: ['a memorable gift I received', 'a gift that was meaningful to me', 'an occasion when someone gave me a thoughtful present'] },
-      { label: 'Chi tiết', prefix: 'It was', b1: ['a book from my friend', 'a small present on my birthday', 'something simple but useful'], b2: ['a book from my friend on my birthday', 'a small but thoughtful present', 'something simple, but it matched my interests very well'] },
-      { label: 'Lý do', prefix: 'I liked it because', b1: ['it was useful', 'it made me happy', 'my friend remembered me'], b2: ['it showed that my friend understood me', 'it was both useful and personal', 'it reminded me of our friendship'] },
-      { label: 'Ý kiến', prefix: 'In my opinion, gifts should be', b1: ['meaningful', 'useful', 'given with care'], b2: ['meaningful rather than expensive', 'chosen carefully for the person who receives them', 'a way to show care and attention'] },
-      { label: 'Kết bài', prefix: 'Overall, I think', b1: ['a good gift can make people feel loved', 'small gifts can be very special', 'the meaning is more important than the price'], b2: ['a good gift can make people feel appreciated', 'even a small gift can become special if it has meaning', 'the thought behind a gift matters more than its price'] }
-    ]
-  }
-} as const;
+const emptySpeakingDraftTemplate: SpeakingDraftTemplate = { title: 'Nháp bài nói', target: 'Ghi ý tưởng theo câu hỏi của đề import.', fields: [] };
 
 function SpeakingDraftPanel({ part, question, questionIndex, level, text, onClose, onInsert, onLevelChange, onTextChange }: { part: 2 | 3 | 4; question: string; questionIndex: number; level: DraftLevel; text: string; onClose: () => void; onInsert: (text: string) => void; onLevelChange: (level: DraftLevel) => void; onTextChange: (text: string) => void }) {
   const template = getSpeakingDraftTemplate(part, questionIndex, question);
@@ -9128,22 +8748,8 @@ function buildSpeakingDraft(fields: readonly SpeakingDraftField[], choices: Reco
     .join(' ');
 }
 
-function getSpeakingDraftTemplate(part: 2 | 3 | 4, questionIndex: number, question: string) {
-  const normalizedQuestion = question.toLowerCase();
-
-  if (part === 2) {
-    if (/describe|picture|photo/.test(normalizedQuestion)) return speakingDraftTemplates['2-0'];
-    if (/talking about|talk about|people.*talk|what.*talk/.test(normalizedQuestion)) return speakingDraftTemplates['2-1'];
-    if (/do you like|why or why not|your opinion|would you like/.test(normalizedQuestion)) return speakingDraftTemplates['2-2'];
-  }
-
-  if (part === 3) {
-    if (/compare|similar|different|pictures/.test(normalizedQuestion)) return speakingDraftTemplates['3-0'];
-    if (/advantage|benefit|good thing|travelling by car|traveling by car/.test(normalizedQuestion)) return speakingDraftTemplates['3-1'];
-    if (/prefer|alone|with other people|rather/.test(normalizedQuestion)) return speakingDraftTemplates['3-2'];
-  }
-
-  return speakingDraftTemplates[`${part}-${questionIndex}`] ?? speakingDraftTemplates[`${part}-0`];
+function getSpeakingDraftTemplate(_part: 2 | 3 | 4, _questionIndex: number, _question: string) {
+  return emptySpeakingDraftTemplate;
 }
 
 const sideActionStyle = {
@@ -9531,4 +9137,3 @@ function Meta({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
