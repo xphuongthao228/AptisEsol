@@ -16,11 +16,11 @@ class MockTestServiceTest {
     void listeningQuestionImportPreservesCsvTypes() throws Exception {
         MockTestRepository repository = mock(MockTestRepository.class);
         when(repository.save(any(MockTest.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        String csv = "type,question1,q1_answer1,q1_answer2,correct_answer1\n"
-                + "LISTENING_AUDIO_MC,First?,A,B,A\n"
-                + "LISTENING_PART2,Match,A,B,A\n"
-                + "LISTENING_PART3,Opinion,A,B,A\n"
-                + "LISTENING_PART4,Monologue?,A,B,A\n";
+        String csv = "type,question1,q1_answer1,q1_answer2,correct_answer1,content\n"
+                + "LISTENING_AUDIO_MC,First?,A,B,A,\n"
+                + "LISTENING_PART2,Match,A,B,A,\n"
+                + "LISTENING_PART3,Opinion,A,B,A,\n"
+                + "LISTENING_PART4,Monologue?,A,B,A,\n";
         ObjectMapper mapper = new ObjectMapper();
         MockTestService service = new MockTestService(repository, mapper);
         var result = service.importCsv(new MockMultipartFile("file", "listening_de_01_import.csv",

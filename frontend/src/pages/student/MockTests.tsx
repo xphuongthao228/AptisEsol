@@ -2804,6 +2804,7 @@ export function MockTests() {
   const [bookmarks, setBookmarks] = useState<string[]>(() => loadMockBookmarks());
   const [questionListOpen, setQuestionListOpen] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(Boolean(accessToken));
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
@@ -2826,16 +2827,21 @@ export function MockTests() {
   useEffect(() => {
     if (!accessToken) {
       setSubscription(null);
+      setSubscriptionLoading(false);
       return;
     }
 
     let mounted = true;
+    setSubscriptionLoading(true);
     unwrap<SubscriptionResponse>(api.get('/payments/subscription/me'))
       .then((data) => {
         if (mounted) setSubscription(data);
       })
       .catch(() => {
         if (mounted) setSubscription(null);
+      })
+      .finally(() => {
+        if (mounted) setSubscriptionLoading(false);
       });
 
     return () => {
@@ -3128,7 +3134,7 @@ export function MockTests() {
     const selectedTestId = urlTestId;
     const selectedMockId = searchParams.get('mockId') ?? '';
     const targetSkill = isFullMock ? 'FULL' : skillFromAssessmentScreen(screen) ?? selectedSkill;
-    if (!isAssessmentScreen || selectedMockCard) return;
+    if (!isAssessmentScreen || selectedMockCard || subscriptionLoading) return;
 
     let cancelled = false;
 
@@ -3184,7 +3190,7 @@ export function MockTests() {
     return () => {
       cancelled = true;
     };
-  }, [isFullMock, screen, searchParams, selectedMockCard, selectedSkill, urlTestId]);
+  }, [isFullMock, screen, searchParams, selectedMockCard, selectedSkill, urlTestId, subscriptionLoading]);
 
   useEffect(() => {
     speakingSoundEnabledRef.current = speakingSoundEnabled;
@@ -4279,6 +4285,7 @@ export function MockTests() {
             onOpenGrammar={openGrammarTest}
             onOpenFull={openFullTest}
             proActive={Boolean(subscription?.proActive)}
+            accessLoading={subscriptionLoading}
             authenticated={Boolean(accessToken)}
           />
         </MockSelectLayout>
@@ -4818,13 +4825,19 @@ function MockSelectLayout({ children }: { children: ReactNode }) {
   );
 }
 
-function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull, proActive, authenticated }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void; proActive: boolean; authenticated: boolean }) {
+function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull, proActive, authenticated, accessLoading }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void; proActive: boolean; authenticated: boolean; accessLoading: boolean }) {
   const [adminCards, setAdminCards] = useState<MockCard[]>([]);
+  const [cardsLoading, setCardsLoading] = useState(true);
   const [creatingRandom, setCreatingRandom] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (accessLoading) return;
+    let cancelled = false;
+    let requestVersion = 0;
     const reloadAdminCards = () => {
+      const version = ++requestVersion;
+      setCardsLoading(true);
       Promise.all([
         unwrap<ApiMockTest[]>(api.get('/mock-tests')),
         unwrap<Test[]>(api.get('/tests')).catch(() => [])
@@ -4834,20 +4847,29 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
           const examCards = await apiExamTestsToCards(tests);
           const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
-          setAdminCards(cards);
+          if (!cancelled && version === requestVersion) setAdminCards(cards);
         })
-        .catch(() => { setAdminCards([]); toast.error('Không tải được danh sách đề. Vui lòng tải lại trang.'); });
+        .catch(() => {
+          if (!cancelled && version === requestVersion) {
+            setAdminCards([]);
+            toast.error('Không tải được danh sách đề. Vui lòng tải lại trang.');
+          }
+        })
+        .finally(() => {
+          if (!cancelled && version === requestVersion) setCardsLoading(false);
+        });
     };
     reloadAdminCards();
     window.addEventListener('focus', reloadAdminCards);
     window.addEventListener('storage', reloadAdminCards);
     window.addEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     return () => {
+      cancelled = true;
       window.removeEventListener('focus', reloadAdminCards);
       window.removeEventListener('storage', reloadAdminCards);
       window.removeEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     };
-  }, [authenticated, proActive]);
+  }, [authenticated, proActive, accessLoading]);
 
   const visibleCards = adminCards
     .filter((card) => card.skill === selectedSkill)
@@ -4878,6 +4900,10 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       if (selectedSkill === 'GRAMMAR') onOpenGrammar(randomCard);
       setCreatingRandom(false);
     }, 250);
+  }
+
+  if (accessLoading || cardsLoading) {
+    return <div className="p-10 text-center text-slate-600" role="status">Đang tải đề và kiểm tra quyền truy cập...</div>;
   }
 
   return (
