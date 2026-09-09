@@ -1,34 +1,38 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom';
+import { lazy } from 'react';
+import { createBrowserRouter, Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
-import { ForgotPassword } from '../pages/auth/ForgotPassword';
-import { Login } from '../pages/auth/Login';
-import { Register } from '../pages/auth/Register';
-import { VerifyEmail } from '../pages/auth/VerifyEmail';
-import { AdminContent } from '../pages/admin/AdminContent';
-import { AdminDashboard } from '../pages/admin/AdminDashboard';
-import { AdminLessons } from '../pages/admin/AdminLessons';
-import { AdminMedia } from '../pages/admin/AdminMedia';
-import { AdminMockTests } from '../pages/admin/AdminMockTests';
-import { AdminNotifications } from '../pages/admin/AdminNotifications';
-import { AdminPredictions } from '../pages/admin/AdminPredictions';
-import { AdminRevenue } from '../pages/admin/AdminRevenue';
-import { AdminUsers } from '../pages/admin/AdminUsers';
-import { Dashboard } from '../pages/student/Dashboard';
-import { Contact } from '../pages/student/Contact';
-import { Donate } from '../pages/student/Donate';
-import { ExamHistory } from '../pages/student/ExamHistory';
-import { Leaderboard } from '../pages/student/Leaderboard';
-import { Lessons } from '../pages/student/Lessons';
-import { MockTests } from '../pages/student/MockTests';
-import { PracticeRunner } from '../pages/student/PracticeRunner';
-import { Predictions } from '../pages/student/Predictions';
-import { Renewal } from '../pages/student/Renewal';
-import { Settings } from '../pages/student/Settings';
-import { SkillPartQuestions, SkillQuestionParts, TestPartMenu } from '../pages/student/Tests';
+const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword').then((module) => ({ default: module.ForgotPassword })));
+const Login = lazy(() => import('../pages/auth/Login').then((module) => ({ default: module.Login })));
+const Register = lazy(() => import('../pages/auth/Register').then((module) => ({ default: module.Register })));
+const VerifyEmail = lazy(() => import('../pages/auth/VerifyEmail').then((module) => ({ default: module.VerifyEmail })));
+const AdminContent = lazy(() => import('../pages/admin/AdminContent').then((module) => ({ default: module.AdminContent })));
+const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
+const AdminLessons = lazy(() => import('../pages/admin/AdminLessons').then((module) => ({ default: module.AdminLessons })));
+const AdminMedia = lazy(() => import('../pages/admin/AdminMedia').then((module) => ({ default: module.AdminMedia })));
+const AdminMockTests = lazy(() => import('../pages/admin/AdminMockTests').then((module) => ({ default: module.AdminMockTests })));
+const AdminNotifications = lazy(() => import('../pages/admin/AdminNotifications').then((module) => ({ default: module.AdminNotifications })));
+const AdminPredictions = lazy(() => import('../pages/admin/AdminPredictions').then((module) => ({ default: module.AdminPredictions })));
+const AdminRevenue = lazy(() => import('../pages/admin/AdminRevenue').then((module) => ({ default: module.AdminRevenue })));
+const AdminUsers = lazy(() => import('../pages/admin/AdminUsers').then((module) => ({ default: module.AdminUsers })));
+const Dashboard = lazy(() => import('../pages/student/Dashboard').then((module) => ({ default: module.Dashboard })));
+const Contact = lazy(() => import('../pages/student/Contact').then((module) => ({ default: module.Contact })));
+const Donate = lazy(() => import('../pages/student/Donate').then((module) => ({ default: module.Donate })));
+const ExamHistory = lazy(() => import('../pages/student/ExamHistory').then((module) => ({ default: module.ExamHistory })));
+const Leaderboard = lazy(() => import('../pages/student/Leaderboard').then((module) => ({ default: module.Leaderboard })));
+const Lessons = lazy(() => import('../pages/student/Lessons').then((module) => ({ default: module.Lessons })));
+const MockTests = lazy(() => import('../pages/student/MockTests').then((module) => ({ default: module.MockTests })));
+const PracticeRunner = lazy(() => import('../pages/student/PracticeRunner').then((module) => ({ default: module.PracticeRunner })));
+const Predictions = lazy(() => import('../pages/student/Predictions').then((module) => ({ default: module.Predictions })));
+const Renewal = lazy(() => import('../pages/student/Renewal').then((module) => ({ default: module.Renewal })));
+const Settings = lazy(() => import('../pages/student/Settings').then((module) => ({ default: module.Settings })));
+const SkillPartQuestions = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.SkillPartQuestions })));
+const SkillQuestionParts = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.SkillQuestionParts })));
+const TestPartMenu = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.TestPartMenu })));
 import { ProtectedRoute } from './ProtectedRoute';
 import { SubscriptionGate } from './SubscriptionGate';
 
 export const router = createBrowserRouter([
+  { path: '*', element: <main className="min-h-screen grid place-content-center gap-5 p-8 text-center"><h1 className="text-3xl font-bold">404 — Không tìm thấy trang</h1><p>Đường dẫn này không tồn tại hoặc đã được thay đổi.</p><Link to="/" className="btn-primary">Về trang chủ</Link></main> },
   { path: '/', element: <AppLayout />, children: [
     { index: true, element: <Dashboard /> },
     { path: 'leaderboard', element: <Leaderboard /> }

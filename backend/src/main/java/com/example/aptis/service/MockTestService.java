@@ -17,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStreamReader;
-import java.io.Reader;
+import java.io.PushbackReader;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -36,10 +36,34 @@ public class MockTestService {
         return mockTests.findByDeletedAtIsNullOrderByUpdatedAtDesc().stream().map(this::response).toList();
     }
 
-    public List<MockTestDtos.MockTestResponse> published() {
+    public List<MockTestDtos.MockTestResponse> published(boolean pro) {
+        // Free slots are stable: featuring or editing a test must not change access.
+        var ranks = new java.util.HashMap<String, Integer>();
         return mockTests.findByStatusAndDeletedAtIsNullOrderByUpdatedAtDesc(TestStatus.PUBLISHED).stream()
-                .map(this::response)
-                .toList();
+                .sorted(java.util.Comparator.comparingInt(MockTestService::orderNumber)
+                        .thenComparing(MockTest::getTitle, String.CASE_INSENSITIVE_ORDER)
+                        .thenComparing(MockTest::getId))
+                .map(test -> {
+                    String skill = test.getSkill().toUpperCase(java.util.Locale.ROOT);
+                    if (skill.equals("GRAMMAR_VOCABULARY")) skill = "GRAMMAR";
+                    int rank = ranks.merge(skill, 1, Integer::sum);
+                    boolean accessible = pro || rank <= 2;
+                    return new MockTestDtos.MockTestResponse(test.getId(), test.getExternalId(), test.getSkill(),
+                            clean(test.getTitle()), clean(test.getDescription()), clean(test.getQuestions()),
+                            accessible ? clean(test.getQuestionData()) : null, clean(test.getMinutes()),
+                            test.getStatus(), test.isFeatured(), test.getUpdatedAt(), accessible, rank);
+                }).toList();
+    }
+
+    private static int orderNumber(MockTest test) {
+        var matcher = java.util.regex.Pattern.compile("(?i)(?:test|đề|de|#)\\s*0*(\\d+)")
+                .matcher(test.getTitle());
+        if (!matcher.find()) return Integer.MAX_VALUE;
+        try {
+            return Integer.parseInt(matcher.group(1));
+        } catch (NumberFormatException ignored) {
+            return Integer.MAX_VALUE;
+        }
     }
 
     public MockTestDtos.MockTestResponse save(MockTestDtos.MockTestRequest request) {
@@ -82,7 +106,9 @@ public class MockTestService {
     public List<MockTestDtos.MockTestResponse> importCsv(MultipartFile file) throws Exception {
         if (file == null || file.isEmpty()) throw new IllegalArgumentException("CSV file is empty");
         List<MockTestDtos.MockTestResponse> imported = new ArrayList<>();
-        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8)) {
+        try (PushbackReader reader = new PushbackReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8), 1)) {
+            int firstCharacter = reader.read();
+            if (firstCharacter != -1 && firstCharacter != '\uFEFF') reader.unread(firstCharacter);
             Iterable<CSVRecord> parsed = CSVFormat.DEFAULT.builder()
                     .setHeader()
                     .setSkipHeaderRecord(true)
@@ -182,7 +208,8 @@ public class MockTestService {
                 if (!cleaned.isBlank()) row.put(key.trim(), cleaned);
             });
             if (!row.hasNonNull("skill")) row.put("skill", firstNonBlank(fallbackSkill, inferSkill(record)));
-            if (!row.hasNonNull("template")) row.put("template", templateForSkill(row.path("skill").asText(), csv(record, "part", "")));
+            if (!row.hasNonNull("template")) row.put("template", firstNonBlank(
+                    csv(record, "type", ""), templateForSkill(row.path("skill").asText(), csv(record, "part", ""))));
             if (!row.hasNonNull("audioUrl")) {
                 String audioUrl = firstNonBlank(
                         flexibleCsv(record, "audioUrl"),
@@ -254,7 +281,7 @@ public class MockTestService {
         return new MockTestDtos.MockTestResponse(mockTest.getId(), mockTest.getExternalId(), mockTest.getSkill(),
                 clean(mockTest.getTitle()), clean(mockTest.getDescription()), clean(mockTest.getQuestions()),
                 clean(mockTest.getQuestionData()), clean(mockTest.getMinutes()), mockTest.getStatus(),
-                mockTest.isFeatured(), mockTest.getUpdatedAt());
+                mockTest.isFeatured(), mockTest.getUpdatedAt(), true, null);
     }
 
     private String csv(CSVRecord record, String name, String fallback) {

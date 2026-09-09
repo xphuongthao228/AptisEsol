@@ -9,6 +9,7 @@ import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
 import type { Answer, Question, Submission, Test } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
+import { sanitizeAnswerHtml } from '../../utils/safeHtml';
 
 const examLinks = [
   { to: '/app', label: 'Trang ch\u1ee7', icon: LayoutDashboard, active: false },
@@ -38,13 +39,14 @@ function resolveLocalSpeakingImage(rawValue: unknown, fallbackPath: string) {
   const raw = typeof rawValue === 'string' ? rawValue.trim() : '';
   if (!raw) return fallbackPath;
 
+  // Keep imported remote URLs intact, including their host and signed query string.
+  if (/^https?:\/\//i.test(raw)) return raw;
+
   const speakingPath = raw.match(/(?:^|\/)(speaking\/part[23]\/[^?#]+)/i)?.[1];
   if (speakingPath) return `/images/${normalizeLocalSpeakingPath(speakingPath)}`;
 
   const localSpeakingPath = raw.match(/(?:^|\/)images\/(speaking\/part[23]\/[^?#]+)/i)?.[1];
   if (localSpeakingPath) return `/images/${normalizeLocalSpeakingPath(localSpeakingPath)}`;
-
-  if (/^https?:\/\//i.test(raw)) return fallbackPath;
 
   return raw;
 }
@@ -3723,7 +3725,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
     const club = clubs[selectedClubIndex];
     const palette = ['bg-amber-400 text-navy', 'bg-emerald-700 text-white', 'bg-red-500 text-white', 'bg-sky-500 text-navy', 'bg-brand-600 text-white'];
     const iconNames = ['??', '??', '??', '¦', '??', '??', '??', '??', '??', '??', '??', '??', '?', '??', '??', '??', '??', '??', '?', '?', '?', '??'];
-    const sampleHtml = (html?: string) => ({ __html: (html ?? '').replace(/\n/g, '<br />') });
+    const sampleHtml = (html?: string) => ({ __html: sanitizeAnswerHtml((html ?? '').replace(/\n/g, '<br />')) });
     const wordCount = (text: string) => text.trim() ? text.trim().split(/\s+/).length : 0;
 
     function updateWriting(key: string, next: string) {
@@ -4223,7 +4225,7 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
               />
             ) : (
               <div className="flex h-[300px] items-center justify-center rounded-lg bg-sky-100 text-center text-sm font-semibold text-slate-600">
-                Chưa tải được ảnh. Kiểm tra file trong public/images/speaking/part2.
+                Không tải được ảnh đề bài. Vui lòng kiểm tra đường dẫn ảnh hoặc thử lại sau.
               </div>
             )}
           </div>
@@ -4358,7 +4360,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
       return (
         <div className="relative flex h-[198px] items-center justify-center rounded-lg border border-brand-100 bg-sky-50 text-center text-xs font-semibold text-slate-600">
           <span className="absolute left-2 top-2 rounded-full bg-slate-700 px-2 py-0.5 text-xs text-white">{label}</span>
-          Chưa tải được ảnh. Kiểm tra file trong public/images/speaking/part3.
+          Không tải được ảnh đề bài. Vui lòng kiểm tra đường dẫn ảnh hoặc thử lại sau.
         </div>
       );
     }
@@ -4675,7 +4677,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
               {showSample && (
                 <div
                   className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-7 text-navy"
-                  dangerouslySetInnerHTML={{ __html: current.answer1 || 'Chưa có đáp án mẫu cho câu này.' }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeAnswerHtml(current.answer1 || 'Chưa có đáp án mẫu cho câu này.') }}
                 />
               )}
             </div>
@@ -4729,7 +4731,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
                           <p className="mb-3 text-xs font-extrabold uppercase tracking-widest text-slate-600">Đáp án mẫu</p>
                           <div
                             className="prose max-w-none text-sm leading-7 text-navy"
-                            dangerouslySetInnerHTML={{ __html: question.answer1 || 'Chưa có đáp án mẫu.' }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeAnswerHtml(question.answer1 || 'Chưa có đáp án mẫu.') }}
                           />
                         </td>
                       </tr>
@@ -4872,7 +4874,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
   const partIndex = Number(saved.writingPartIndex ?? 0);
   const club = clubs[selectedClubIndex];
   const palette = ['bg-amber-400 text-navy', 'bg-emerald-700 text-white', 'bg-red-500 text-white', 'bg-cyan-500 text-navy', 'bg-brand-600 text-white'];
-  const sampleHtml = (html?: string) => ({ __html: (html ?? '').replace(/\n/g, '<br />') });
+  const sampleHtml = (html?: string) => ({ __html: sanitizeAnswerHtml((html ?? '').replace(/\n/g, '<br />')) });
   const wordCount = (text: string) => text.trim() ? text.trim().split(/\s+/).length : 0;
   const writingInstruction = (text: string | undefined, currentPart: number) => {
     if (currentPart === 0) {

@@ -51,6 +51,16 @@ public class PaymentService {
     @Transactional
     public PaymentDtos.PaymentResponse createRenewalPayment(String email,
             PaymentDtos.CreateRenewalPaymentRequest request) {
+        int expectedAmount = switch (request.days() == null ? 0 : request.days()) {
+            case 7 -> 40000;
+            case 14 -> 75000;
+            case 30 -> 140000;
+            case 60 -> 250000;
+            default -> throw new IllegalArgumentException("Invalid renewal package");
+        };
+        if (!Integer.valueOf(expectedAmount).equals(request.amount())) {
+            throw new IllegalArgumentException("Renewal price has changed. Please reload the page.");
+        }
         User user = users.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
@@ -58,7 +68,7 @@ public class PaymentService {
         order.setUser(user);
         order.setPackageLabel(request.packageLabel());
         order.setDays(request.days());
-        order.setAmount(request.amount());
+        order.setAmount(expectedAmount);
         order.setPaymentCode(generatePaymentCode(user));
         order.setStatus(PaymentStatus.PENDING);
         return response(paymentOrders.save(order));
@@ -177,7 +187,7 @@ public class PaymentService {
                     firstPositive(request.transferAmount(), request.amount(), request.value(), request.money()), null);
         }
 
-        PaymentOrder order = paymentOrders.findByPaymentCode(paymentCode).orElse(null);
+        PaymentOrder order = paymentOrders.findByPaymentCodeForUpdate(paymentCode).orElse(null);
         if (order == null) {
             return webhookResponse(false, "Webhook received but payment order was not found", paymentCode,
                     firstPositive(request.transferAmount(), request.amount(), request.value(), request.money()), null);
@@ -201,7 +211,9 @@ public class PaymentService {
         order.setSepayTransactionId(firstText(request.id(), request.transactionId(), request.referenceCode()));
         order.setSepayReferenceCode(firstText(request.referenceCode(), request.code()));
         order.setSepayContent(text);
-        extendUserSubscription(order.getUser(), order.getDays());
+        User payingUser = users.findByIdForUpdate(order.getUser().getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        extendUserSubscription(payingUser, order.getDays());
         return webhookResponse(true, "Payment confirmed and subscription extended", paymentCode, receivedAmount,
                 response(paymentOrders.save(order)));
     }
@@ -229,7 +241,9 @@ public class PaymentService {
 
     private String resolvePaymentCode(PaymentDtos.SepayWebhookRequest request, String text) {
         String directCode = firstText(request.code(), request.addInfo());
-        if (directCode != null && paymentOrders.findByPaymentCode(directCode.toUpperCase(Locale.ROOT)).isPresent()) {
+        // Resolve using scalar queries: preloading an order here would cache its
+        // PENDING state before the lock and allow a duplicate callback to extend twice.
+        if (directCode != null && paymentOrders.existsByPaymentCode(directCode.toUpperCase(Locale.ROOT))) {
             return directCode.toUpperCase(Locale.ROOT);
         }
 
@@ -239,8 +253,7 @@ public class PaymentService {
         }
 
         String normalizedText = normalizePaymentText(text);
-        return paymentOrders.findByStatusOrderByCreatedAtDesc(PaymentStatus.PENDING).stream()
-                .map(PaymentOrder::getPaymentCode)
+        return paymentOrders.findPaymentCodesByStatus(PaymentStatus.PENDING).stream()
                 .filter(code -> !normalizePaymentText(code).isBlank())
                 .filter(code -> normalizedText.contains(normalizePaymentText(code)))
                 .findFirst()
@@ -261,7 +274,7 @@ public class PaymentService {
     private void validateWebhookToken(String authorizationHeader, String sepayTokenHeader, String webhookTokenHeader) {
         String expectedToken = sepayWebhookToken == null ? "" : sepayWebhookToken.trim();
         if (expectedToken.isBlank() || expectedToken.equalsIgnoreCase("dev-sepay-token-change-me")) {
-            return;
+            throw new org.springframework.security.access.AccessDeniedException("SePay webhook token is not configured");
         }
 
         String bearer = authorizationHeader == null ? "" : authorizationHeader.trim();

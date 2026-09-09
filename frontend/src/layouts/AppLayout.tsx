@@ -1,4 +1,4 @@
-﻿import {
+import {
   Bell,
   BookOpen,
   CalendarPlus,
@@ -35,7 +35,7 @@ import { api, unwrap } from '../api/client';
 import { LingoWidget } from '../components/LingoWidget';
 import { NotificationDialog } from '../components/NotificationDialog';
 import { SEO, getSeoByPath } from '../components/SEO';
-import { communityInviteDismissedKey } from '../pages/student/Dashboard';
+import { communityInviteDismissedKey } from '../utils/community';
 import { useAuthStore } from '../store/authStore';
 import type { AppNotification, SubscriptionResponse, User } from '../types';
 import { ThemePreference, useThemePreference } from '../utils/theme';
@@ -203,7 +203,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className="min-h-screen bg-sky-50 text-navy">
+    <div className={`${isAdmin ? '' : 'student-shell'} min-h-screen bg-sky-50 text-navy`}>
       <SEO {...seo} />
 
       <header className={`fixed inset-x-0 top-0 z-40 border-b border-brand-100 bg-white/92 shadow-[0_8px_28px_rgba(165,15,21,0.09)] backdrop-blur-xl transition-transform duration-300 ease-out ${navHidden ? '-translate-y-full' : 'translate-y-0'}`}>
@@ -212,7 +212,7 @@ export function AppLayout() {
             <span className="grid h-10 w-10 place-items-center rounded-xl border border-brand-100 bg-white shadow-soft">
               <img src="/brand/lingomaster-logo.svg" alt="Aptis Lingo" className="h-7 w-7 rounded-lg" />
             </span>
-            <span className="hidden max-w-[130px] truncate text-base font-extrabold tracking-tight xl:inline 2xl:max-w-[170px] 2xl:text-lg">Aptis Lingo</span>
+            <span className="mobile-wordmark hidden max-w-[130px] truncate text-base font-extrabold tracking-tight xl:inline 2xl:max-w-[170px] 2xl:text-lg">Aptis Lingo</span>
           </Link>
 
           <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 pr-1 lg:flex xl:gap-1.5 xl:pr-2 2xl:gap-2.5 2xl:pr-4">
@@ -222,6 +222,7 @@ export function AppLayout() {
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
+            {!isAuthenticated && <Link to="/login" className="mobile-sign-in rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white sm:hidden">Đăng nhập</Link>}
             {!isAdmin && (
               <div className="hidden items-center xl:flex">
                 <div className="relative" ref={moreMenuRef}>
@@ -371,7 +372,7 @@ export function AppLayout() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="border-t border-brand-100 bg-white px-4 py-3 shadow-soft lg:hidden">
+          <div className="mobile-menu-panel border-t border-brand-100 bg-white px-4 py-3 shadow-soft lg:hidden">
             <nav className="mx-auto grid max-w-[720px] gap-1">
               {mobileLinks.map((link) => (
                 <MobileNavLink key={link.to} link={link} onClick={() => setMobileMenuOpen(false)} />
@@ -437,6 +438,15 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+      {!isAdmin && <nav className="mobile-bottom-nav" aria-label="Điều hướng chính trên điện thoại">
+        {[
+          { to: '/', label: 'Trang chủ', icon: LayoutDashboard, active: location.pathname === '/' },
+          { to: '/app/tests/parts', label: 'Theo part', icon: BookOpen, active: location.pathname.startsWith('/app/tests') },
+          { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck, active: location.pathname.startsWith('/app/mock-tests') },
+          { to: '/app/lessons', label: 'Bài học', icon: GraduationCap, active: location.pathname.startsWith('/app/lessons') },
+          { to: isAuthenticated ? '/app/settings' : '/login', label: 'Tài khoản', icon: UserRound, active: location.pathname === '/app/settings' }
+        ].map(({ to, label, icon: Icon, active }) => <Link key={label} to={to} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)}><span><Icon size={21} /></span><span>{label}</span></Link>)}
+      </nav>}
       {!isAdmin && <LingoWidget />}
     </div>
   );

@@ -1,0 +1,179 @@
+<!DOCTYPE html><html lang="vi" style=""><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Luyện kỹ năng Nghe - Aptis Mastery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "on-error": "#ffffff",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "surface-container-highest": "#d8e3fb",
+                        "surface-soft": "#FFF8F2",
+                        "tertiary-container": "#2563eb",
+                        "on-background": "#111c2d",
+                        "on-tertiary-container": "#eeefff",
+                        "tertiary-fixed": "#dbe1ff",
+                        "secondary-container": "#fddc00",
+                        "primary-fixed": "#ffdad6",
+                        "tertiary-fixed-dim": "#b4c5ff",
+                        "surface-tint": "#c00014",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#5d3f3c",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#e6bdb8",
+                        "on-surface": "#111c2d",
+                        "surface-dim": "#cfdaf2",
+                        "on-secondary-container": "#706000",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#ffe24a",
+                        "surface-container-low": "#f0f3ff",
+                        "success": "#10B981",
+                        "surface-container-high": "#dee8ff",
+                        "tertiary": "#004ac6",
+                        "inverse-surface": "#263143",
+                        "on-primary-fixed": "#410002",
+                        "inverse-on-surface": "#ecf1ff",
+                        "primary": "#ae0011",
+                        "background": "#f9f9ff",
+                        "warning": "#F59E0B",
+                        "outline": "#926f6b",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#d8e3fb",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "on-primary-container": "#ffece9",
+                        "on-primary-fixed-variant": "#93000d",
+                        "inverse-primary": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#524600",
+                        "primary-container": "#d71920",
+                        "surface": "#f9f9ff",
+                        "on-tertiary-fixed": "#00174b",
+                        "surface-bright": "#f9f9ff",
+                        "on-tertiary-fixed-variant": "#003ea8",
+                        "secondary": "#6d5e00",
+                        "secondary-fixed-dim": "#e3c600",
+                        "surface-container": "#e7eeff",
+                        "on-secondary-fixed": "#211b00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding-desktop": "40px",
+                        "base": "8px",
+                        "stack-gap-sm": "12px",
+                        "stack-gap-lg": "48px",
+                        "stack-gap-md": "24px",
+                        "container-padding-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+                        "display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen pb-24 flex justify-center">
+<div class="w-full max-w-[480px] bg-surface relative shadow-2xl overflow-hidden min-h-screen">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 z-40 sticky">
+<div class="flex justify-between items-center px-container-padding-mobile h-16 w-full">
+<!-- Removed leading avatar as requested -->
+<div></div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Aptis Mastery</h1>
+<button class="text-primary dark:text-primary-fixed-dim hover:bg-surface-container-high transition-colors p-2 rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="px-container-padding-mobile py-stack-gap-md flex flex-col gap-stack-gap-md">
+<!-- Header Section -->
+<section>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface mb-2">Mẹo học kỹ năng Nghe</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Những bí quyết và chiến thuật giúp bạn đạt điểm cao trong phần thi Nghe.</p>
+</section>
+<!-- Search Bar -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="w-full h-14 pl-12 pr-4 rounded-xl border border-surface-variant bg-surface-container-low font-body-md text-body-md text-on-surface focus:outline-none focus:ring-2 focus:ring-tertiary-container focus:border-tertiary-container transition-all" placeholder="Tìm kiếm mẹo học..." type="text">
+</div>
+<!-- Categories & Lessons -->
+<div class="flex flex-col gap-stack-gap-lg mt-4">
+<!-- Category: Cơ bản -->
+<div class="flex flex-col gap-stack-gap-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span class="w-2 h-6 bg-secondary-container rounded-full block"></span>Mẹo làm bài</h3>
+<!-- Lesson Card 1: Completed -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-4 flex flex-col gap-4 relative overflow-hidden transition-all active:scale-[0.98]"><div class="absolute -right-8 -top-8 w-24 h-24 bg-success/10 rounded-full blur-xl"></div><div class="flex items-start justify-between relative z-10"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-xl bg-success/20 flex items-center justify-center text-success"><span class="material-symbols-outlined">lightbulb</span></div><div><h4 class="font-label-lg text-label-lg text-on-surface">Mẹo nhận diện thông tin nhiễu</h4><p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Đọc 2 phút • 5 lưu ý</p></div></div><button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-outline"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button></div></div>
+<!-- Lesson Card 2: In Progress -->
+<div class="bg-surface-container-lowest border rounded-xl p-4 flex flex-col gap-4 relative overflow-hidden transition-all active:scale-[0.98] border-surface-variant"><div class="absolute -right-8 -top-8 w-24 h-24 bg-tertiary-container/10 rounded-full blur-xl"></div><div class="flex items-start justify-between relative z-10"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-tertiary"><span class="material-symbols-outlined">key</span></div><div><h4 class="font-label-lg text-label-lg text-on-surface">Cách nghe từ khóa (Keywords) hiệu quả</h4><p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Đọc 3 phút • 4 bước</p></div></div><button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-outline"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button></div></div>
+</div>
+<!-- Category: Nâng cao -->
+<div class="flex flex-col gap-stack-gap-sm">
+<h3 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2"><span class="w-2 h-6 bg-primary-container rounded-full block"></span>Chiến thuật đạt điểm cao</h3>
+<!-- Lesson Card 3: Not Started -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-4 flex flex-col gap-4 relative overflow-hidden opacity-80 hover:opacity-100 transition-all active:scale-[0.98]"><div class="flex items-start justify-between relative z-10"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-xl bg-surface-container-high flex items-center justify-center text-on-surface-variant"><span class="material-symbols-outlined">timer</span></div><div><h4 class="font-label-lg text-label-lg text-on-surface">Chiến thuật quản lý thời gian khi nghe</h4><p class="font-label-sm text-label-sm text-on-surface-variant mt-1">Đọc 5 phút • 3 chiến thuật</p></div></div><button class="w-8 h-8 rounded-full border border-outline-variant flex items-center justify-center text-outline"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button></div></div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-surface-container-lowest dark:bg-inverse-surface docked full-width bottom-0 rounded-t-xl shadow-[0_-4px_16px_rgba(0,0,0,0.05)] fixed bottom-0 w-full max-w-[480px] z-50 flex justify-around items-center py-2 px-4 md:hidden">
+<!-- Dashboard -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high p-2 rounded-xl active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-sm text-label-sm mt-1">Dashboard</span>
+</a>
+<!-- Practice -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high p-2 rounded-xl active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">menu_book</span>
+<span class="font-label-sm text-label-sm mt-1">Practice</span>
+</a>
+<!-- Path (Active) -->
+<a class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">route</span>
+<span class="font-label-sm text-label-sm mt-1 font-bold">Path</span>
+</a>
+<!-- Profile -->
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high p-2 rounded-xl active:scale-90 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-sm text-label-sm mt-1">Profile</span>
+</a>
+</nav>
+</div>
+
+
+</body></html>

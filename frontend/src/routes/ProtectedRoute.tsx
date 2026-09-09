@@ -48,7 +48,7 @@ export function ProtectedRoute({ role }: { role?: RoleName }) {
     );
   }
 
-  if (restoring) {
+  if (restoring || (!user && Boolean(refreshToken) && !restoreFailed)) {
     return (
       <div className="min-h-screen bg-sky-50 p-6 text-sm font-semibold text-slate-600">
         Đang làm mới phiên đăng nhập...

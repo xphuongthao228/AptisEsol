@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+
+<html class="light" lang="vi"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Aptis Lingo - Học Aptis đến ngay Aptis Lingo</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-fixed-dim": "#ffb4ab",
+                        "on-error": "#ffffff",
+                        "surface-container-low": "#f0f3ff",
+                        "secondary": "#6d5e00",
+                        "tertiary-container": "#2563eb",
+                        "primary-container": "#d71920",
+                        "secondary-fixed": "#ffe24a",
+                        "surface-dim": "#cfdaf2",
+                        "outline-variant": "#e6bdb8",
+                        "secondary-fixed-dim": "#e3c600",
+                        "tertiary-fixed-dim": "#b4c5ff",
+                        "on-surface-variant": "#5d3f3c",
+                        "on-secondary-fixed-variant": "#524600",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#dbe1ff",
+                        "surface-container-high": "#dee8ff",
+                        "surface-container-highest": "#d8e3fb",
+                        "on-secondary-container": "#706000",
+                        "primary-fixed": "#ffdad6",
+                        "on-tertiary-container": "#eeefff",
+                        "success": "#10B981",
+                        "primary": "#ae0011",
+                        "surface-container": "#e7eeff",
+                        "outline": "#926f6b",
+                        "on-tertiary-fixed": "#00174b",
+                        "on-primary-container": "#ffece9",
+                        "surface-bright": "#f9f9ff",
+                        "on-primary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#fddc00",
+                        "warning": "#F59E0B",
+                        "surface-variant": "#d8e3fb",
+                        "on-tertiary-fixed-variant": "#003ea8",
+                        "surface": "#f9f9ff",
+                        "on-primary-fixed-variant": "#93000d",
+                        "background": "#f9f9ff",
+                        "surface-soft": "#FFF8F2",
+                        "inverse-primary": "#ffb4ab",
+                        "inverse-on-surface": "#ecf1ff",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#211b00",
+                        "on-error-container": "#93000a",
+                        "on-surface": "#111c2d",
+                        "inverse-surface": "#263143",
+                        "tertiary": "#004ac6",
+                        "surface-tint": "#c00014",
+                        "error": "#ba1a1a",
+                        "on-background": "#111c2d",
+                        "on-secondary": "#ffffff",
+                        "on-primary-fixed": "#410002"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "container-padding-mobile": "20px",
+                        "base": "8px",
+                        "stack-gap-md": "24px",
+                        "stack-gap-lg": "48px",
+                        "stack-gap-sm": "12px",
+                        "container-padding-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-sm": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-surface font-body-md antialiased pb-24 md:pb-0">
+<!-- Header (TopAppBar equivalent for non-app landing pages) -->
+<header class="bg-surface-soft w-full h-16 flex justify-between items-center px-container-padding-mobile sticky top-0 z-40 border-b border-surface-dim shadow-sm">
+<div class="font-headline-md text-headline-md font-bold text-primary flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" data-weight="fill" style="font-variation-settings: 'FILL' 1;">local_fire_department</span>
+            Aptis Lingo
+        </div>
+<button class="bg-primary text-on-primary font-label-lg text-label-lg px-4 py-2 rounded-lg active:scale-95 transition-transform">
+            Đăng nhập
+        </button>
+</header>
+<main>
+<!-- Hero Section -->
+<section class="bg-surface-soft px-container-padding-mobile py-stack-gap-lg flex flex-col gap-stack-gap-md relative overflow-hidden">
+<div class="z-10 flex flex-col gap-stack-gap-sm">
+<div class="inline-flex items-center gap-2 bg-surface-container text-primary font-label-lg text-label-lg px-3 py-1.5 rounded-full w-max">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+                    Học Aptis Lingo theo lộ trình
+                </div>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-on-surface leading-tight">
+                    Học Aptis <br/> <span class="text-secondary-container">đến ngay</span> <br/> Aptis Lingo
+                </h1>
+<p class="font-body-md text-body-md text-on-surface-variant max-w-sm mt-2">
+                    Mỗi ngày mở web là biết nên luyện phần nào, làm bài nào trước và cần sửa lỗi gì để tiến bộ nhanh hơn.
+                </p>
+<div class="flex flex-col gap-3 mt-4">
+<button class="bg-primary text-on-primary font-label-lg text-label-lg w-full py-3 rounded-lg flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform">
+                        Vào luyện ngay
+                        <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+<button class="bg-surface text-primary border-2 border-primary/20 font-label-lg text-label-lg w-full py-3 rounded-lg flex items-center justify-center shadow-sm active:scale-95 transition-transform">
+                        Xem các kỹ năng
+                    </button>
+</div>
+<div class="flex flex-wrap gap-2 mt-4">
+<span class="bg-surface border border-outline-variant text-on-surface-variant font-label-sm text-label-sm px-3 py-1.5 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-success text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Lộ trình học theo ngày
+                    </span>
+<span class="bg-surface border border-outline-variant text-on-surface-variant font-label-sm text-label-sm px-3 py-1.5 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined text-success text-xs" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        Gợi ý sửa lỗi sau bài làm
+                    </span>
+</div>
+</div>
+<!-- Hero Decorative Image Placeholder -->
+<div class="mt-8 rounded-xl overflow-hidden shadow-lg border border-surface-dim bg-white relative h-64">
+<img class="w-full h-full object-cover absolute inset-0" data-alt="A vibrant, modern UI mockup of an online learning dashboard displayed on a mobile screen. The interface shows progress bars, colorful cards, and clean typography in a high-contrast style featuring reds, yellows, and white. The background is softly blurred. High-key lighting, energetic mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoD-AVSl7VK-ROidNb9kQu-pQ0-e_V6WHjMzWtICD6af2JSs4PhfCfyQ19_vkWBgtemrE-JVz3gshzeBiSpdsm8B--Vb1s8vDPSRtewaJ6jh1BIrgWMnJrZ3csPzv4ltH6-SUBCLIAQQUvL-znGEsHWzs0yjRTALxih445BKRyIKRCuIV13drYZluv9ZMl_g1f6taXK7X98e3_dhjFtAFPym528kFXqJOei633zHNJ3t80OgfcbPmlCA"/>
+</div>
+</section>
+<!-- Stats Section -->
+<section class="bg-primary text-on-primary py-stack-gap-md px-container-padding-mobile grid grid-cols-2 gap-x-4 gap-y-6">
+<div class="flex flex-col items-center text-center">
+<span class="font-headline-md text-headline-md font-bold text-secondary-fixed">120+</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider opacity-90 mt-1">Bộ luyện Aptis</span>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="font-headline-md text-headline-md font-bold text-secondary-fixed">850+</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider opacity-90 mt-1">Tài khoản học viên</span>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="font-headline-md text-headline-md font-bold text-secondary-fixed">18K+</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider opacity-90 mt-1">Bài đã hoàn thành</span>
+</div>
+<div class="flex flex-col items-center text-center">
+<span class="font-headline-md text-headline-md font-bold text-secondary-fixed">24H</span>
+<span class="font-label-sm text-label-sm uppercase tracking-wider opacity-90 mt-1">Cập nhật nội dung</span>
+</div>
+</section>
+<!-- Features Overview -->
+<section class="py-stack-gap-lg px-container-padding-mobile bg-surface">
+<div class="text-center mb-stack-gap-md">
+<h2 class="font-label-sm text-label-sm text-primary uppercase tracking-wider mb-2">Cách học trên Aptis Lingo</h2>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Ôn theo lộ trình gọn, có bài luyện và phản hồi sau mỗi lượt làm</h3>
+</div>
+<div class="flex flex-col gap-stack-gap-md">
+<!-- Feature 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-surface-dim shadow-[0_10px_25px_rgba(30,41,59,0.05)]">
+<div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center mb-4 text-tertiary">
+<span class="material-symbols-outlined">bar_chart</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm mb-2">Làm bài, nộp bài, xem nhận xét</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">Bạn có thể luyện Speaking và Writing rồi xem phản hồi về ý tưởng, từ vựng, ngữ pháp, phát âm và độ trôi chảy.</p>
+<ul class="flex flex-col gap-2">
+<li class="flex items-start gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary-container text-lg mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Gợi ý theo tiêu chí CEFR
+                        </li>
+<li class="flex items-start gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary-container text-lg mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Chỉ ra lỗi nổi bật và hướng sửa cụ thể
+                        </li>
+</ul>
+</div>
+<!-- Feature 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-surface-dim shadow-[0_10px_25px_rgba(30,41,59,0.05)]">
+<div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center mb-4 text-tertiary">
+<span class="material-symbols-outlined">grid_view</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm mb-2">Bài luyện chia rõ từng kỹ năng</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">Reading, Listening, Speaking, Writing và Grammar được tách thành các dạng quen thuộc để bạn chọn nhanh phần cần ôn.</p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-tertiary/10 text-tertiary font-label-sm text-label-sm px-3 py-1.5 rounded-md">Reading</span>
+<span class="bg-tertiary/10 text-tertiary font-label-sm text-label-sm px-3 py-1.5 rounded-md">Listening</span>
+<span class="bg-tertiary/10 text-tertiary font-label-sm text-label-sm px-3 py-1.5 rounded-md">Timer</span>
+</div>
+</div>
+<!-- Feature 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-surface-dim shadow-[0_10px_25px_rgba(30,41,59,0.05)]">
+<div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center mb-4 text-tertiary">
+<span class="material-symbols-outlined">trending_up</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm mb-2">Xem lại tiến bộ sau mỗi buổi học</h4>
+<p class="font-body-md text-body-md text-on-surface-variant">Theo dõi điểm, lịch sử làm bài và xu hướng cải thiện để biết hôm nay nên luyện tiếp phần nào.</p>
+</div>
+<!-- Feature 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-surface-dim shadow-[0_10px_25px_rgba(30,41,59,0.05)]">
+<div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center mb-4 text-tertiary">
+<span class="material-symbols-outlined">checklist</span>
+</div>
+<h4 class="font-headline-sm text-headline-sm mb-2">Chọn đúng part cần cải thiện</h4>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">Không cần học lan man: chọn part, làm bài, đối chiếu đáp án và quay lại luyện những câu mình còn sai.</p>
+<ul class="flex flex-col gap-2">
+<li class="flex items-start gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary-container text-lg mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Có part riêng cho từng kỹ năng
+                        </li>
+<li class="flex items-start gap-2 font-body-md text-body-md text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary-container text-lg mt-0.5" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                            Nội dung được cập nhật thường xuyên
+                        </li>
+</ul>
+</div>
+</div>
+</section>
+<!-- Benefits Grid -->
+<section class="py-stack-gap-lg px-container-padding-mobile bg-surface-soft">
+<div class="text-center mb-stack-gap-md">
+<h2 class="font-label-sm text-label-sm text-primary uppercase tracking-wider mb-2">Điểm mạnh của nền tảng</h2>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">Học gọn hơn khi biết mình cần sửa gì</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">Aptis Lingo giúp bạn gom bài luyện, kết quả và phản hồi vào cùng một nơi để việc ôn thi bớt rối hơn.</p>
+</div>
+<div class="grid grid-cols-1 gap-4">
+<div class="bg-white p-5 rounded-xl border border-surface-dim shadow-sm">
+<div class="text-primary mb-2"><span class="material-symbols-outlined">description</span></div>
+<h4 class="font-label-lg text-label-lg mb-2">Luyện đúng cấu trúc bài thi</h4>
+<p class="font-body-sm text-sm text-on-surface-variant">Các bài luyện được chia theo kỹ năng, part và thời lượng để bạn làm quen cách phân bổ thời gian trước khi vào phòng thi.</p>
+</div>
+<div class="bg-white p-5 rounded-xl border border-surface-dim shadow-sm">
+<div class="text-primary mb-2"><span class="material-symbols-outlined">rate_review</span></div>
+<h4 class="font-label-lg text-label-lg mb-2">Nhận phản hồi sau khi nộp bài</h4>
+<p class="font-body-sm text-sm text-on-surface-variant">Bài Speaking và Writing được phân tích theo tiêu chí điểm, kèm nhận xét cụ thể để bạn biết nên sửa phần nào trước.</p>
+</div>
+<div class="bg-white p-5 rounded-xl border border-surface-dim shadow-sm">
+<div class="text-primary mb-2"><span class="material-symbols-outlined">center_focus_strong</span></div>
+<h4 class="font-label-lg text-label-lg mb-2">Ôn trọng tâm theo điểm yếu</h4>
+<p class="font-body-sm text-sm text-on-surface-variant">Bạn có thể chọn riêng phần còn yếu, luyện lại nhiều lần và xem đáp án mẫu để biến mỗi lượt làm bài thành một lần tiến bộ.</p>
+</div>
+<div class="bg-white p-5 rounded-xl border border-surface-dim shadow-sm">
+<div class="text-primary mb-2"><span class="material-symbols-outlined">monitoring</span></div>
+<h4 class="font-label-lg text-label-lg mb-2">Theo dõi quá trình học</h4>
+<p class="font-body-sm text-sm text-on-surface-variant">Kết quả làm bài được lưu lại để bạn nhìn thấy nhịp học, điểm số và những kỹ năng cần ưu tiên trong buổi ôn tiếp theo.</p>
+</div>
+</div>
+</section>
+<!-- Support Section -->
+<section class="py-stack-gap-md px-container-padding-mobile bg-surface">
+<div class="bg-white p-6 rounded-2xl border border-surface-dim shadow-sm">
+<div class="inline-flex items-center gap-1 text-primary font-label-sm text-label-sm uppercase tracking-wider mb-3">
+<span class="material-symbols-outlined text-sm">support_agent</span>
+                    Cần hỗ trợ?
+                </div>
+<h3 class="font-headline-sm text-headline-sm mb-3">Gặp lỗi tài khoản hoặc muốn hỏi về bài luyện?</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Gửi tin nhắn cho admin qua Facebook hoặc Zalo, kèm email đăng ký và ảnh chụp màn hình để được kiểm tra nhanh.</p>
+<div class="flex flex-col gap-3">
+<button class="bg-[#1877F2] text-white font-label-lg text-label-lg py-3 px-4 rounded-lg flex items-center justify-center gap-2 w-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm">chat</span>
+                        Liên hệ qua Facebook
+                    </button>
+<button class="bg-[#0068FF] text-white font-label-lg text-label-lg py-3 px-4 rounded-lg flex items-center justify-center gap-2 w-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm">forum</span>
+                        Nhắn Zalo admin
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4 mt-4">
+<div class="bg-white p-4 rounded-xl border border-surface-dim shadow-sm flex flex-col items-start">
+<div class="text-tertiary mb-2"><span class="material-symbols-outlined">credit_card</span></div>
+<h4 class="font-label-lg text-label-lg mb-1">Kiểm tra tài khoản</h4>
+<p class="font-body-sm text-xs text-on-surface-variant">Dành cho các trường hợp thanh toán, quyền Pro, đăng nhập hoặc dữ liệu bài làm chưa hiển thị đúng.</p>
+</div>
+<div class="bg-white p-4 rounded-xl border border-surface-dim shadow-sm flex flex-col items-start">
+<div class="text-success mb-2"><span class="material-symbols-outlined">groups</span></div>
+<h4 class="font-label-lg text-label-lg mb-1">Hỏi bài cùng cộng đồng</h4>
+<p class="font-body-sm text-xs text-on-surface-variant">Theo dõi thông báo mới, hỏi kinh nghiệm ôn thi và xem thêm chia sẻ từ những bạn đã thi.</p>
+</div>
+</div>
+</section>
+<!-- Bottom Call to Action -->
+<section class="py-stack-gap-lg px-container-padding-mobile bg-primary text-on-primary text-center rounded-t-3xl mt-stack-gap-sm">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile mb-4">Bắt đầu một lượt luyện mới</h2>
+<p class="font-body-md text-body-md opacity-90 mb-8 max-w-sm mx-auto">Chọn một part bạn còn yếu và làm quen dần với cấu trúc đề.</p>
+<div class="bg-surface/10 p-6 rounded-2xl border border-surface/20 backdrop-blur-sm">
+<div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-primary">
+<span class="material-symbols-outlined text-3xl">school</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm mb-2">Vào nhóm học Aptis cùng mọi người</h3>
+<p class="font-body-md text-body-md opacity-90 mb-6 text-sm">Cập nhật tài liệu, hỏi bài và nhận nhắc nhở ôn tập trong cộng đồng Aptis Lingo.</p>
+<div class="flex flex-col gap-3">
+<button class="bg-white text-primary font-label-lg text-label-lg py-3 px-4 rounded-lg flex items-center justify-center gap-2 w-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm">groups</span>
+                        Cộng đồng Facebook <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+<button class="bg-primary-fixed-dim text-primary-container font-label-lg text-label-lg py-3 px-4 rounded-lg flex items-center justify-center gap-2 w-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-sm">forum</span>
+                        Cộng đồng Zalo <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Support FAB -->
+<div class="fixed bottom-24 right-4 z-40 flex flex-col gap-2">
+<button class="w-12 h-12 bg-white text-primary rounded-full shadow-lg border border-surface-dim flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined">help</span>
+</button>
+</div>
+<!-- BottomNavBar (from Shared Components JSON) -->
+<nav class="bg-surface-container-lowest dark:bg-inverse-surface text-primary dark:text-primary-fixed-dim font-label-sm text-label-sm docked full-width bottom-0 rounded-t-xl shadow-lg fixed bottom-0 w-full z-50 flex justify-around items-center py-2 px-4 md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="mt-1">Dashboard</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 hover:bg-surface-container-high active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="mt-1">Practice</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined">route</span>
+<span class="mt-1">Path</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined">person</span>
+<span class="mt-1">Profile</span>
+</button>
+</nav>
+</body></html>

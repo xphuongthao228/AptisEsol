@@ -52,7 +52,7 @@ export function LingoWidget() {
 
   return (
     <>
-    <div className="fixed bottom-24 left-5 z-[80]">
+    <div className="community-widget fixed bottom-24 left-5 z-[80]">
       {contactOpen && (
         <section className="mb-3 w-[min(340px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-2xl shadow-slate-900/18">
           <header className="flex h-16 items-center justify-between bg-gradient-to-r from-brand-700 to-sky-500 px-4 text-white">
@@ -114,7 +114,7 @@ export function LingoWidget() {
       </button>
     </div>
 
-    <div className="fixed bottom-24 right-5 z-[80]">
+    <div className="lingo-widget fixed bottom-24 right-5 z-[80]">
       {open && (
         <section className="mb-3 flex h-[min(520px,calc(100vh-120px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-2xl shadow-slate-900/18">
           <header className="flex h-16 items-center justify-between bg-gradient-to-r from-violet-600 to-sky-400 px-4 text-white">

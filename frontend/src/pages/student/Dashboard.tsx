@@ -109,7 +109,7 @@ const whyChooseItems: Array<{ icon: LucideIcon; title: string; text: string }> =
   }
 ];
 
-export const communityInviteDismissedKey = 'aptis-community-invite-dismissed';
+import { communityInviteDismissedKey } from '../../utils/community';
 
 const facebookCommunityUrl = 'https://www.facebook.com/groups/1017783430680359';
 const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
@@ -232,12 +232,13 @@ function HeroSection() {
               Xem các kỹ năng
             </Link>
           </div>
-          <div className="mt-9 flex flex-wrap gap-4">
+          <div className="dashboard-trust-pills mt-9 flex flex-wrap gap-4">
             <TrustPill>Lộ trình học theo ngày</TrustPill>
             <TrustPill>Gợi ý sửa lỗi sau bài làm</TrustPill>
           </div>
         </div>
 
+        <img src="/brand/mobile-study-reference.png" alt="Minh họa học Aptis trên điện thoại" width={512} height={279} className="w-full rounded-2xl object-cover shadow-soft sm:hidden" />
         <ExamMockup />
       </div>
     </section>

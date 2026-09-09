@@ -1,0 +1,361 @@
+<!DOCTYPE html><html lang="vi"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Mock Test Selection - Aptis Mastery</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#111c2d",
+                        "surface-container-low": "#f0f3ff",
+                        "outline": "#926f6b",
+                        "surface-soft": "#FFF8F2",
+                        "surface": "#f9f9ff",
+                        "success": "#10B981",
+                        "secondary-fixed": "#ffe24a",
+                        "on-primary-fixed-variant": "#93000d",
+                        "secondary-container": "#fddc00",
+                        "on-tertiary-container": "#eeefff",
+                        "error": "#ba1a1a",
+                        "inverse-on-surface": "#ecf1ff",
+                        "surface-container-highest": "#d8e3fb",
+                        "primary-fixed-dim": "#ffb4ab",
+                        "primary": "#ae0011",
+                        "secondary": "#6d5e00",
+                        "background": "#f9f9ff",
+                        "primary-container": "#d71920",
+                        "surface-variant": "#d8e3fb",
+                        "secondary-fixed-dim": "#e3c600",
+                        "inverse-primary": "#ffb4ab",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#211b00",
+                        "primary-fixed": "#ffdad6",
+                        "on-primary-fixed": "#410002",
+                        "surface-bright": "#f9f9ff",
+                        "on-secondary-fixed-variant": "#524600",
+                        "surface-dim": "#cfdaf2",
+                        "on-error-container": "#93000a",
+                        "surface-tint": "#c00014",
+                        "on-surface-variant": "#5d3f3c",
+                        "outline-variant": "#e6bdb8",
+                        "on-error": "#ffffff",
+                        "inverse-surface": "#263143",
+                        "on-primary-container": "#ffece9",
+                        "surface-container-high": "#dee8ff",
+                        "on-tertiary-fixed": "#00174b",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#2563eb",
+                        "on-surface": "#111c2d",
+                        "tertiary-fixed-dim": "#b4c5ff",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#dbe1ff",
+                        "tertiary": "#004ac6",
+                        "on-secondary-container": "#706000",
+                        "on-tertiary": "#ffffff",
+                        "on-tertiary-fixed-variant": "#003ea8",
+                        "on-secondary": "#ffffff",
+                        "surface-container": "#e7eeff",
+                        "warning": "#F59E0B"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-gap-sm": "12px",
+                        "stack-gap-lg": "48px",
+                        "stack-gap-md": "24px",
+                        "container-padding-desktop": "40px",
+                        "base": "8px",
+                        "container-padding-mobile": "20px"
+                    },
+                    "fontFamily": {
+                        "label-sm": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "headline-sm": ["Plus Jakarta Sans"],
+                        "label-lg": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "label-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0.04em", "fontWeight": "500" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "34px", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display": ["40px", { "lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                },
+            }
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen pb-24 md:pb-0">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim docked full-width top-0 flat no shadows flex justify-between items-center px-container-padding-mobile h-16 w-full sticky z-40">
+<div class="flex items-center gap-3">
+
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">Aptis Lingo</h1>
+</div>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-colors active:scale-95">
+<span class="material-symbols-outlined text-primary dark:text-primary-fixed-dim" data-icon="local_fire_department">local_fire_department</span>
+</button>
+</header>
+<main class="max-w-[1200px] mx-auto w-full md:px-container-padding-desktop">
+<!-- Hero / Random Mock Test Card -->
+<div class="px-container-padding-mobile py-4 md:py-8">
+<div class="bg-surface-soft border border-outline-variant rounded-xl p-6 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
+<!-- Decorative subtle pattern/background (optional, handled by css if needed, here keeping simple) -->
+<div class="z-10 max-w-md">
+<div class="flex items-center gap-2 text-primary font-label-sm text-label-sm uppercase tracking-wider mb-2">
+<span class="material-symbols-outlined text-base" data-icon="description">description</span>
+                        Thi thử Aptis
+                    </div>
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile md:font-headline-lg md:text-headline-lg text-on-surface mb-3">Chọn kỹ năng thi thử</h2>
+<p class="text-on-surface-variant font-body-md mb-6">Thi thử mô phỏng giao diện assessment. Chọn Full hoặc từng kỹ năng để vào đúng kiểu bài.</p>
+</div>
+<div class="z-10 bg-surface-container-lowest border border-surface-variant rounded-xl p-5 shadow-sm md:min-w-[280px]">
+<p class="font-label-sm text-label-sm text-on-surface-variant mb-1">Kỹ năng đang chọn</p>
+<p class="font-headline-md text-headline-md text-on-surface mb-4">Full</p>
+<button class="w-full bg-success text-on-secondary py-3 px-4 rounded-lg font-label-lg text-label-lg flex items-center justify-center gap-2 hover:brightness-95 transition-all active:scale-95 shadow-sm">
+<span class="material-symbols-outlined text-lg" data-icon="shuffle">shuffle</span>
+                        Đề thi thử random
+                    </button>
+<p class="text-[11px] text-center text-on-surface-variant mt-3 leading-tight">Random từ các đề thi thử đã xuất bản và mô phỏng giao diện assessment.</p>
+</div>
+</div>
+</div>
+<!-- Filters (Scrollable on mobile) -->
+<div class="px-container-padding-mobile mb-6 overflow-x-auto no-scrollbar">
+<div class="flex items-center gap-3 min-w-max pb-2">
+<button class="bg-primary text-on-primary font-label-lg text-label-lg px-6 py-2.5 rounded-full shadow-sm hover:brightness-90 transition-colors">
+                    Full
+                </button>
+<button class="bg-surface-container-lowest border border-surface-variant text-on-surface-variant hover:border-tertiary-container hover:text-tertiary-container font-label-lg text-label-lg px-5 py-2.5 rounded-full transition-colors bg-white">
+                    Listening
+                </button>
+<button class="bg-surface-container-lowest border border-surface-variant text-on-surface-variant hover:border-tertiary-container hover:text-tertiary-container font-label-lg text-label-lg px-5 py-2.5 rounded-full transition-colors bg-white">
+                    Speaking
+                </button>
+<button class="bg-surface-container-lowest border border-surface-variant text-on-surface-variant hover:border-tertiary-container hover:text-tertiary-container font-label-lg text-label-lg px-5 py-2.5 rounded-full transition-colors bg-white">
+                    Writing
+                </button>
+<button class="bg-surface-container-lowest border border-surface-variant text-on-surface-variant hover:border-tertiary-container hover:text-tertiary-container font-label-lg text-label-lg px-5 py-2.5 rounded-full transition-colors bg-white">
+                    Reading
+                </button>
+<button class="bg-surface-container-lowest border border-surface-variant text-on-surface-variant hover:border-tertiary-container hover:text-tertiary-container font-label-lg text-label-lg px-5 py-2.5 rounded-full transition-colors bg-white">
+                    Grammar
+                </button>
+</div>
+</div>
+<!-- Test Cards Grid -->
+<div class="px-container-padding-mobile grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-8">
+<!-- Card 1 -->
+<div class="bg-white border border-surface-variant rounded-xl p-5 hover:border-tertiary-container hover:shadow-md transition-all group flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div class="bg-surface-variant text-on-surface px-2.5 py-1 rounded-md font-label-sm text-[10px] uppercase font-bold tracking-wider">
+                        Full
+                    </div>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Aptis Full Test 01</h3>
+<p class="text-[13px] text-on-surface-variant leading-relaxed mb-5 flex-grow">
+                    Full Aptis test: Speaking + Listening + Grammar + Reading + Writing. Tổng thời gian 162 phút.
+                </p>
+<div class="grid grid-cols-2 gap-3 mb-5">
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+<span class="text-[11px]">Câu hỏi</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">5 kỹ năng</p>
+</div>
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span class="text-[11px]">Thời gian</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">162 phút</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-lg font-label-lg text-label-lg flex items-center justify-center gap-2 hover:bg-primary-container transition-colors shadow-sm mt-auto">
+                    Vào đề
+                    <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Card 2 (Pro) -->
+<div class="bg-white border border-surface-variant rounded-xl p-5 hover:border-tertiary-container hover:shadow-md transition-all group flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div class="flex gap-2">
+<div class="bg-warning/10 text-warning border border-warning/20 px-2.5 py-1 rounded-md font-label-sm text-[10px] uppercase font-bold tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="lock">lock</span>
+                            Pro
+                        </div>
+<div class="bg-surface-variant text-on-surface px-2.5 py-1 rounded-md font-label-sm text-[10px] uppercase font-bold tracking-wider">
+                            Full
+                        </div>
+</div>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Aptis Full Test 02</h3>
+<p class="text-[13px] text-on-surface-variant leading-relaxed mb-5 flex-grow">
+                    Full Aptis test: Speaking + Listening + Grammar + Reading + Writing. Tổng thời gian 162 phút.
+                </p>
+<div class="grid grid-cols-2 gap-3 mb-5">
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+<span class="text-[11px]">Câu hỏi</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">5 kỹ năng</p>
+</div>
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span class="text-[11px]">Thời gian</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">162 phút</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-lg font-label-lg text-label-lg flex items-center justify-center gap-2 hover:bg-primary-container transition-colors shadow-sm mt-auto opacity-90">
+                    Mở khóa Pro
+                    <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Card 3 (Pro) -->
+<div class="bg-white border border-surface-variant rounded-xl p-5 hover:border-tertiary-container hover:shadow-md transition-all group flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div class="flex gap-2">
+<div class="bg-warning/10 text-warning border border-warning/20 px-2.5 py-1 rounded-md font-label-sm text-[10px] uppercase font-bold tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="lock">lock</span>
+                            Pro
+                        </div>
+<div class="bg-surface-variant text-on-surface px-2.5 py-1 rounded-md font-label-sm text-[10px] uppercase font-bold tracking-wider">
+                            Full
+                        </div>
+</div>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Aptis Full Test 03</h3>
+<p class="text-[13px] text-on-surface-variant leading-relaxed mb-5 flex-grow">
+                    Full Aptis test: Speaking + Listening + Grammar + Reading + Writing. Tổng thời gian 162 phút.
+                </p>
+<div class="grid grid-cols-2 gap-3 mb-5">
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+<span class="text-[11px]">Câu hỏi</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">5 kỹ năng</p>
+</div>
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span class="text-[11px]">Thời gian</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">162 phút</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-lg font-label-lg text-label-lg flex items-center justify-center gap-2 hover:bg-primary-container transition-colors shadow-sm mt-auto opacity-90">
+                    Mở khóa Pro
+                    <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<!-- Card 4 (Pro) -->
+<div class="bg-white border border-surface-variant rounded-xl p-5 hover:border-tertiary-container hover:shadow-md transition-all group flex flex-col h-full">
+<div class="flex justify-between items-start mb-4">
+<div class="w-10 h-10 rounded-lg bg-surface-container flex items-center justify-center text-tertiary">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div class="flex gap-2">
+<div class="bg-warning/10 text-warning border border-warning/20 px-2.5 py-1 rounded-md font-label-sm text-[10px] uppercase font-bold tracking-wider flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]" data-icon="lock">lock</span>
+                            Pro
+                        </div>
+<div class="bg-surface-variant text-on-surface px-2.5 py-1 rounded-md font-label-sm text-[10px] uppercase font-bold tracking-wider">
+                            Full
+                        </div>
+</div>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Aptis Full Test 04</h3>
+<p class="text-[13px] text-on-surface-variant leading-relaxed mb-5 flex-grow">
+                    Full Aptis test: Speaking + Listening + Grammar + Reading + Writing. Tổng thời gian 162 phút.
+                </p>
+<div class="grid grid-cols-2 gap-3 mb-5">
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="help">help</span>
+<span class="text-[11px]">Câu hỏi</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">5 kỹ năng</p>
+</div>
+<div class="bg-surface-soft p-3 rounded-lg border border-surface-variant/50">
+<div class="flex items-center gap-1.5 text-on-surface-variant mb-1">
+<span class="material-symbols-outlined text-sm" data-icon="schedule">schedule</span>
+<span class="text-[11px]">Thời gian</span>
+</div>
+<p class="font-label-lg text-label-lg text-on-surface">162 phút</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2.5 rounded-lg font-label-lg text-label-lg flex items-center justify-center gap-2 hover:bg-primary-container transition-colors shadow-sm mt-auto opacity-90">
+                    Mở khóa Pro
+                    <span class="material-symbols-outlined text-[18px]" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="md:hidden bg-surface-container-lowest dark:bg-inverse-surface docked full-width bottom-0 rounded-t-xl shadow-lg fixed bottom-0 w-full z-50 flex justify-around items-center py-2 px-4 border-t border-surface-variant/50">
+<!-- Dashboard -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-90 transition-all duration-200 p-2 rounded-lg w-16">
+<span class="material-symbols-outlined text-[24px]" data-icon="dashboard">dashboard</span>
+<span class="font-label-sm text-[10px] mt-1">Dashboard</span>
+</button>
+<!-- Practice (Active) -->
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined text-[24px]" data-icon="menu_book" style="font-variation-settings: 'FILL' 1;">menu_book</span>
+<span class="font-label-sm text-[10px] mt-1 font-bold">Practice</span>
+</button>
+<!-- Path -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-90 transition-all duration-200 p-2 rounded-lg w-16">
+<span class="material-symbols-outlined text-[24px]" data-icon="route">route</span>
+<span class="font-label-sm text-[10px] mt-1">Path</span>
+</button>
+<!-- Profile -->
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high active:scale-90 transition-all duration-200 p-2 rounded-lg w-16">
+<span class="material-symbols-outlined text-[24px]" data-icon="person">person</span>
+<span class="font-label-sm text-[10px] mt-1">Profile</span>
+</button>
+</nav>
+
+
+</body></html>

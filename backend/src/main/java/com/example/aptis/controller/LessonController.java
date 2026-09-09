@@ -4,6 +4,11 @@ import com.example.aptis.dto.ApiResponse;
 import com.example.aptis.dto.CoreDtos;
 import com.example.aptis.enums.SkillType;
 import com.example.aptis.service.CoreService;
+import com.example.aptis.service.PaymentService;
+import com.example.aptis.enums.LessonResourceType;
+import com.example.aptis.enums.TestStatus;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.access.AccessDeniedException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -25,15 +30,33 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LessonController {
     private final CoreService service;
+    private final PaymentService paymentService;
 
     @GetMapping
-    public ApiResponse<List<CoreDtos.LessonResponse>> all(@RequestParam(required = false) SkillType skill) {
-        return ApiResponse.ok(service.lessons(skill));
+    public ApiResponse<List<CoreDtos.LessonResponse>> all(@RequestParam(required = false) SkillType skill, Authentication auth) {
+        boolean admin = isAdmin(auth);
+        return ApiResponse.ok(service.lessons(skill).stream()
+                .filter(lesson -> admin || lesson.status() == TestStatus.PUBLISHED)
+                .map(lesson -> admin || lesson.resourceType() != LessonResourceType.VIDEO ? lesson
+                        : new CoreDtos.LessonResponse(lesson.id(), lesson.skill(), lesson.title(), null, null,
+                                lesson.status(), lesson.updatedAt(), lesson.resourceType(), null, lesson.partLabel()))
+                .toList());
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<CoreDtos.LessonResponse> one(@PathVariable Long id) {
-        return ApiResponse.ok(service.lesson(id));
+    public ApiResponse<CoreDtos.LessonResponse> one(@PathVariable Long id, Authentication auth) {
+        CoreDtos.LessonResponse lesson = service.lesson(id);
+        if (!isAdmin(auth)) {
+            if (lesson.status() != TestStatus.PUBLISHED || (lesson.resourceType() == LessonResourceType.VIDEO
+                    && (auth == null || !paymentService.hasProAccess(auth.getName())))) {
+                throw new AccessDeniedException("Video requires an active Pro subscription");
+            }
+        }
+        return ApiResponse.ok(lesson);
+    }
+
+    private boolean isAdmin(Authentication auth) {
+        return auth != null && auth.getAuthorities().stream().anyMatch(role -> "ROLE_ADMIN".equals(role.getAuthority()));
     }
 
     @PostMapping

@@ -13,6 +13,6 @@ public class MockTestDtos {
 
     public record MockTestResponse(Long id, String externalId, String skill, String title, String description,
             String questions, String questionData, String minutes, TestStatus status, Boolean featured,
-            LocalDateTime updatedAt) {
+            LocalDateTime updatedAt, boolean accessible, Integer accessOrder) {
     }
 }

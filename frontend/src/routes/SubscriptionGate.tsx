@@ -66,16 +66,16 @@ export function SubscriptionGate({
     return <>{children}</>;
   }
 
-  if (requirePro) {
-    return <ProAccessNotice title={proTitle} description={proDescription} />;
-  }
-
   if (checkFailed) {
     return (
       <div className="rounded-[18px] border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 shadow-soft">
         Không kiểm tra được quyền truy cập. Vui lòng tải lại trang hoặc thử lại sau.
       </div>
     );
+  }
+
+  if (requirePro) {
+    return <ProAccessNotice title={proTitle} description={proDescription} />;
   }
 
   return <Navigate to="/app/renewal" replace state={{ reason: requirePro ? 'pro-required' : 'expired' }} />;

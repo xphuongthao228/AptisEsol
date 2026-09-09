@@ -1,0 +1,246 @@
+[
+  {
+    "name": "home",
+    "width": 390,
+    "title": "Học Aptis đến ngay Aptis Lingo",
+    "scrollWidth": 390,
+    "nav": "grid",
+    "active": [
+      "Trang chủ"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "mock-tests",
+    "width": 390,
+    "title": "Chọn kỹ năng thi thử",
+    "scrollWidth": 390,
+    "nav": "grid",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  },
+  {
+    "name": "parts",
+    "width": 390,
+    "title": "Chọn kỹ năng cần luyện tập",
+    "scrollWidth": 390,
+    "nav": "grid",
+    "active": [
+      "Theo part"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "lessons",
+    "width": 390,
+    "title": "Học mẹo theo từng kỹ năng",
+    "scrollWidth": 390,
+    "nav": "grid",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "listening-tips",
+    "width": 390,
+    "title": "Mẹo học các câu phần Listening",
+    "scrollWidth": 390,
+    "nav": "grid",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "home",
+    "width": 320,
+    "title": "Học Aptis đến ngay Aptis Lingo",
+    "scrollWidth": 320,
+    "nav": "grid",
+    "active": [
+      "Trang chủ"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "mock-tests",
+    "width": 320,
+    "title": "Chọn kỹ năng thi thử",
+    "scrollWidth": 320,
+    "nav": "grid",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  },
+  {
+    "name": "parts",
+    "width": 320,
+    "title": "Chọn kỹ năng cần luyện tập",
+    "scrollWidth": 320,
+    "nav": "grid",
+    "active": [
+      "Theo part"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "lessons",
+    "width": 320,
+    "title": "Học mẹo theo từng kỹ năng",
+    "scrollWidth": 320,
+    "nav": "grid",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "listening-tips",
+    "width": 320,
+    "title": "Mẹo học các câu phần Listening",
+    "scrollWidth": 320,
+    "nav": "grid",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "home",
+    "width": 430,
+    "title": "Học Aptis đến ngay Aptis Lingo",
+    "scrollWidth": 430,
+    "nav": "grid",
+    "active": [
+      "Trang chủ"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "mock-tests",
+    "width": 430,
+    "title": "Chọn kỹ năng thi thử",
+    "scrollWidth": 430,
+    "nav": "grid",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  },
+  {
+    "name": "parts",
+    "width": 430,
+    "title": "Chọn kỹ năng cần luyện tập",
+    "scrollWidth": 430,
+    "nav": "grid",
+    "active": [
+      "Theo part"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "lessons",
+    "width": 430,
+    "title": "Học mẹo theo từng kỹ năng",
+    "scrollWidth": 430,
+    "nav": "grid",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "listening-tips",
+    "width": 430,
+    "title": "Mẹo học các câu phần Listening",
+    "scrollWidth": 430,
+    "nav": "grid",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "home",
+    "width": 1366,
+    "title": "Học Aptis đến ngay Aptis Lingo",
+    "scrollWidth": 1351,
+    "nav": "none",
+    "active": [
+      "Trang chủ"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "mock-tests",
+    "width": 1366,
+    "title": "Chọn kỹ năng thi thử",
+    "scrollWidth": 1351,
+    "nav": "none",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  },
+  {
+    "name": "parts",
+    "width": 1366,
+    "title": "Chọn kỹ năng cần luyện tập",
+    "scrollWidth": 1351,
+    "nav": "none",
+    "active": [
+      "Theo part"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "lessons",
+    "width": 1366,
+    "title": "Học mẹo theo từng kỹ năng",
+    "scrollWidth": 1351,
+    "nav": "none",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  },
+  {
+    "name": "listening-tips",
+    "width": 1366,
+    "title": "Mẹo học các câu phần Listening",
+    "scrollWidth": 1351,
+    "nav": "none",
+    "active": [
+      "Bài học"
+    ],
+    "buttons": []
+  }
+]

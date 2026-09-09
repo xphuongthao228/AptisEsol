@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Toaster } from 'react-hot-toast';
 import { RouterProvider } from 'react-router-dom';
 import { api, unwrap } from './api/client';
 import { router } from './routes/router';
 import './styles.css';
+import './mobile.css';
 import type { HeartbeatResponse } from './types';
 import { useAuthStore } from './store/authStore';
 import { applyThemePreference } from './utils/theme';
@@ -46,7 +47,7 @@ function OnlineHeartbeat() {
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <OnlineHeartbeat />
-    <RouterProvider router={router} />
+    <Suspense fallback={<div role="status" className="p-8 text-center">Đang tải trang...</div>}><RouterProvider router={router} /></Suspense>
     <Toaster position="top-right" />
   </React.StrictMode>
 );

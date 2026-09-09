@@ -103,6 +103,10 @@ public class AiScoringService {
 
     public AiDtos.SpeakingScoreResponse scoreSpeaking(AiDtos.SpeakingScoreRequest request, List<MultipartFile> audioFiles) {
         AiDtos.SpeakingScoreRequest requestWithAudio = attachAudioMetadata(request, audioFiles);
+        if (requestWithAudio.parts().stream().anyMatch(part ->
+                "[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]".equals(part.transcript()))) {
+            throw new IllegalStateException("Chưa nhận dạng được nội dung bản ghi âm. Vui lòng thử chấm lại.");
+        }
         String answers = requestWithAudio.parts().stream()
                 .map(part -> """
                         %s
@@ -130,7 +134,7 @@ public class AiScoringService {
         try {
             return objectMapper.treeToValue(normalizeSpeakingJson(content), AiDtos.SpeakingScoreResponse.class);
         } catch (Exception ex) {
-            return fallbackSpeakingScore(requestWithAudio);
+            throw new IllegalStateException("Không đọc được kết quả chấm Speaking AI. Vui lòng thử chấm lại.", ex);
         }
     }
 
@@ -227,7 +231,8 @@ public class AiScoringService {
         if (request.history() != null) {
             request.history().stream()
                     .filter(message -> "user".equals(message.role()) || "assistant".equals(message.role()))
-                    .limit(12)
+                    .skip(Math.max(0, request.history().stream()
+                            .filter(message -> "user".equals(message.role()) || "assistant".equals(message.role())).count() - 12))
                     .forEach(message -> messages.add(Map.of("role", message.role(), "content", message.content())));
         }
         messages.add(Map.of("role", "user", "content", request.message()));

@@ -1,4 +1,4 @@
-﻿import { ArrowLeft, ArrowRight, BookOpen, FileText, Headphones, Lightbulb, Loader2, Lock, Mic, PenLine, Search, Shuffle, SpellCheck, Star, Timer } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, FileText, Headphones, Lightbulb, Loader2, Lock, Mic, PenLine, Search, Shuffle, SpellCheck, Star, Timer } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -181,13 +181,13 @@ export function TestPartMenu() {
   }
 
   return (
-    <div className="space-y-7">
-      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
+    <div className="mobile-parts-page space-y-7">
+      <section className="mobile-page-heading rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
         <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-bold text-blue-100"><ArrowLeft size={18} />Quay lại luyện tập</Link>
         <p className="mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-200">
           {isWritingSelected ? 'Luyện tập theo chủ đề' : 'Luyện tập theo part'}
         </p>
-        <h1 className="mt-3 text-4xl font-extrabold">Chọn kỹ năng</h1>
+        <h1 className="mt-3 text-4xl font-extrabold">Chọn kỹ năng cần luyện tập</h1>
         <p className="mt-3 max-w-2xl text-slate-300">
           {isWritingSelected
             ? 'Chọn Writing, sau đó chọn chủ đề câu hỏi bạn muốn luyện.'
@@ -195,20 +195,22 @@ export function TestPartMenu() {
         </p>
       </section>
 
-      <section className="flex flex-wrap gap-3">
+      <section className="parts-skill-selector flex flex-wrap gap-3" aria-label="Chọn kỹ năng luyện tập">
         {partSkills.map((skill) => (
           <button
             key={skill.type}
             type="button"
             onClick={() => selectSkill(skill.type)}
+            aria-pressed={selectedSkill.type === skill.type}
             className={`inline-flex h-12 items-center gap-2 rounded-xl px-5 text-sm font-extrabold transition ${
               selectedSkill.type === skill.type
                 ? 'bg-brand-600 text-white shadow-soft'
                 : 'border border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'
             }`}
           >
-            {skill.icon}
-            {skill.title}
+            <span className="parts-skill-icon">{skill.icon}</span>
+            <span className="parts-skill-label">{skill.title}<small className="sm:hidden">{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
+            <ChevronDown className="parts-skill-chevron sm:hidden" size={20} />
           </button>
         ))}
       </section>

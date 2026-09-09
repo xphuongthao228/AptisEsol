@@ -27,7 +27,7 @@ const packages = [
     badge: 'Dùng thử',
     description: 'Trải nghiệm miễn phí trước khi nâng cấp.',
     note: '2 đề miễn phí mỗi kỹ năng',
-    features: ['Miễn phí 2 đề đầu mỗi kỹ năng', 'Không mở luyện tập theo part', 'Xem kết quả sau khi nộp']
+    features: ['Miễn phí 2 đề đầu Full Test và mỗi kỹ năng', 'Không mở luyện tập theo part', 'Xem kết quả trắc nghiệm sau khi nộp', 'Chấm Writing/Speaking AI cần gia hạn']
   },
   {
     id: 'week-1',

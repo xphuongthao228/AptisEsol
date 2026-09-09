@@ -1,10 +1,11 @@
-﻿import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, ShieldCheck, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, Search, ShieldCheck, X } from 'lucide-react';
 import { useMemo, useState, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
+import { userHasRole } from '../../utils/roles';
 import type { Lesson, SubscriptionResponse } from '../../types';
 import { formatSubscriptionDate, getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 
@@ -59,6 +60,7 @@ type TipLanding = {
 };
 
 type LearningResource = {
+  lessonId?: number;
   title: string;
   description: string;
   content?: string;
@@ -332,6 +334,9 @@ const tipLanding: Record<SkillKey, TipLanding> = {
 const writingLetterPdfUrl = '/docs/aptis-keys-meo-viet-thu.pdf';
 
 export function Lessons() {
+  const user = useAuthStore((state) => state.user);
+  const [openingVideo, setOpeningVideo] = useState(false);
+  const [search, setSearch] = useState('');
   const requireLogin = useRequireLogin();
   const { skillType, tipSlug } = useParams();
   const [activeSkill, setActiveSkill] = useState<SkillKey>('READING');
@@ -347,12 +352,13 @@ export function Lessons() {
         const type = lesson.resourceType ?? 'TIP';
         return resourceKind === 'DOCUMENT' ? type === 'DOCUMENT' || type === 'TIP' : type === 'VIDEO';
       })
-      .map(lessonToResource);
-  }, [backendLessons, resourceKind]);
+      .map(lessonToResource)
+      .filter((resource) => resource.title.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi')));
+  }, [backendLessons, resourceKind, search]);
 
-  const { data: subscription } = useApi<SubscriptionResponse | null>(
+  const { data: subscription, loading: subscriptionLoading } = useApi<SubscriptionResponse | null>(
     () => unwrap<SubscriptionResponse>(api.get('/payments/subscription/me')).catch(() => null),
-    []
+    [user?.id, user?.proExpiresAt]
   );
 
   if (subscription?.expiresAt) {
@@ -362,6 +368,31 @@ export function Lessons() {
   const status = getSubscriptionStatus();
   const expireDate = subscription?.expiresAt ? new Date(subscription.expiresAt) : status.expireDate;
   const hasAccess = subscription?.active ?? status.active;
+  const hasVideoAccess = userHasRole(user, 'ADMIN') || subscription?.proActive === true;
+
+  async function openVideo(resource: LearningResource) {
+    if (!hasVideoAccess || !resource.lessonId || openingVideo) return;
+    setOpeningVideo(true);
+    const playbackWindow = window.open('about:blank', '_blank');
+    if (playbackWindow) playbackWindow.opener = null;
+    try {
+      // Recheck server-side on every open, including when Pro expired after page load.
+      const lesson = await unwrap<Lesson>(api.get(`/lessons/${resource.lessonId}`));
+      const authorized = lessonToResource(lesson);
+      if (playbackWindow && authorized.href && /^https?:\/\//i.test(authorized.href)) {
+        playbackWindow.location.replace(authorized.href);
+      } else {
+        playbackWindow?.close();
+        setOpenResource(authorized);
+      }
+    } catch (error) {
+      playbackWindow?.close();
+      const httpStatus = (error as { response?: { status?: number } })?.response?.status;
+      toast.error(httpStatus === 403 ? 'Video chỉ dành cho tài khoản Pro còn hạn. Vui lòng gia hạn để xem.' : 'Không mở được video. Vui lòng thử lại.');
+    } finally {
+      setOpeningVideo(false);
+    }
+  }
 
   if (selectedTipSkill === 'LISTENING' && tipSlug === 'cau-15') {
     return <ListeningQuestion15TipPage />;
@@ -372,12 +403,12 @@ export function Lessons() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="mobile-lessons-page space-y-6">
       <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại luyện tập
       </Link>
 
-      <section className="rounded-[28px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-6 text-white shadow-soft sm:p-8">
+      <section className="mobile-page-heading rounded-[28px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-6 text-white shadow-soft sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.35em] text-blue-200">Thư viện mẹo Aptis</p>
         <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
           <div>
@@ -411,12 +442,17 @@ export function Lessons() {
         </section>
       )}
 
-      <section className="grid gap-3 md:grid-cols-4">
+      <label className="lesson-search flex min-h-14 items-center gap-3 rounded-2xl border border-brand-100 bg-white px-4 text-slate-500">
+        <Search size={21} aria-hidden="true" /><span className="sr-only">Tìm tài liệu và video trong kỹ năng đang chọn</span>
+        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tài liệu, video bài học..." className="min-w-0 flex-1 bg-transparent py-4 text-base text-navy outline-none" />
+      </label>
+      <section className="lesson-skill-selector grid gap-3 md:grid-cols-4">
         {skillTips.map((skill) => (
           <button
             key={skill.key}
             type="button"
-            onClick={() => setActiveSkill(skill.key)}
+            onClick={() => { setActiveSkill(skill.key); setSearch(''); }}
+            aria-pressed={activeSkill === skill.key}
             className={`rounded-2xl border p-4 text-left shadow-soft transition ${
               activeSkill === skill.key ? 'border-brand-600 bg-brand-600 text-white' : 'border-brand-100 bg-white text-slate-700 hover:border-brand-200'
             }`}
@@ -457,16 +493,25 @@ export function Lessons() {
           </div>
         </div>
 
-        {resources.length > 0 ? (
+        {resourceKind === 'VIDEO' && subscriptionLoading ? (
+          <p role="status" className="py-8 text-center text-slate-600">Đang kiểm tra quyền xem video...</p>
+        ) : resourceKind === 'VIDEO' && !hasVideoAccess ? (
+          <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <Lock className="mx-auto text-amber-700" size={28} />
+            <h3 className="mt-3 text-lg font-extrabold text-navy">Video dành cho Pro</h3>
+            <p className="mt-2 text-sm leading-6 text-slate-600">Bạn cần đăng ký Pro còn thời hạn để xem video hướng dẫn.</p>
+            <Link to={user ? '/app/renewal' : '/login'} className="btn-primary mt-4">{user ? 'Đăng ký / gia hạn Pro' : 'Đăng nhập để xem'}</Link>
+          </div>
+        ) : resources.length > 0 ? (
           <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {resources.map((resource) => (
-              <ResourceCard key={resource.title} resource={resource} kind={resourceKind} onOpen={setOpenResource} />
+              <ResourceCard key={resource.lessonId ?? resource.title} resource={resource} kind={resourceKind} onOpen={resourceKind === 'VIDEO' ? openVideo : setOpenResource} disabled={resourceKind === 'VIDEO' && openingVideo} />
             ))}
           </div>
         ) : (
           <div className="mt-5 rounded-2xl border border-dashed border-brand-100 bg-sky-50 p-8 text-center">
-            <p className="font-extrabold text-slate-700">Chưa có {resourceKind === 'VIDEO' ? 'video' : 'tài liệu'} cho {current.label}</p>
-            <p className="mt-2 text-sm text-slate-600">Admin có thể thêm link trong mục Quản lý bài học.</p>
+            <p className="font-extrabold text-slate-700">{search ? 'Không tìm thấy bài học phù hợp' : `Chưa có ${resourceKind === 'VIDEO' ? 'video' : 'tài liệu'} cho ${current.label}`}</p>
+            <p className="mt-2 text-sm text-slate-600">{search ? 'Thử từ khóa khác hoặc chọn kỹ năng khác.' : 'Nội dung sẽ được cập nhật tại đây.'}</p>
           </div>
         )}
       </section>
@@ -526,17 +571,18 @@ export function Lessons() {
 }
 
 function TipLandingPage({ skill }: { skill: SkillKey }) {
+  const [search, setSearch] = useState('');
   const requireLogin = useRequireLogin();
   const data = tipLanding[skill];
   const isWriting = skill === 'WRITING';
 
   return (
-    <div className="mx-auto max-w-[1120px] bg-sky-50 pb-8 text-navy">
+    <div className="mobile-tips-page mx-auto max-w-[1120px] bg-sky-50 pb-8 text-navy">
       <Link to="/app/lessons" className="mb-6 inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại thư viện mẹo
       </Link>
 
-      <section className="rounded-[28px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-6 text-white shadow-soft sm:p-8">
+      <section className="mobile-page-heading rounded-[28px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-6 text-white shadow-soft sm:p-8">
         <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-blue-200">Mẹo thi Aptis</p>
         <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">{data.title}</h1>
         <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-blue-100 sm:text-base">
@@ -544,7 +590,11 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
         </p>
       </section>
 
-      <section className="mt-6 grid gap-3 md:grid-cols-4">
+      <label className="lesson-search mt-6 flex min-h-14 items-center gap-3 rounded-2xl border border-brand-100 bg-white px-4 text-slate-500">
+        <Search size={21} aria-hidden="true" /><span className="sr-only">Tìm mẹo học</span>
+        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm kiếm mẹo học..." className="min-w-0 flex-1 bg-transparent py-4 text-base text-navy outline-none" />
+      </label>
+      <section className="lesson-skill-selector mt-6 grid gap-3 md:grid-cols-4">
         {skillTips.map((item) => {
           const active = item.key === skill;
 
@@ -572,7 +622,8 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
       {isWriting && <WritingLetterPdfSection />}
 
       <div className="mt-8 grid gap-5 md:grid-cols-2">
-        {data.sections.map((section) => (
+        {search && !data.sections.some((section) => `${section.title} ${section.description}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))) && <p role="status" className="py-6 text-slate-600">Không tìm thấy mẹo phù hợp. Hãy thử từ khóa khác.</p>}
+        {data.sections.filter((section) => `${section.title} ${section.description}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map((section) => (
           <section key={section.title} className="flex h-full flex-col rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft">
             <h2 className="text-2xl font-extrabold tracking-normal">{section.title}</h2>
             <p className="mt-4 flex-1 leading-7 text-slate-700">{section.description}</p>
@@ -600,6 +651,7 @@ function lessonToResource(lesson: Lesson): LearningResource {
   const type = lesson.resourceType ?? 'TIP';
   const resourceUrl = normalizeResourceUrl(lesson.resourceUrl);
   return {
+    lessonId: lesson.id,
     title: lesson.title,
     description: lesson.summary || lesson.content || lesson.title,
     content: lesson.content,
@@ -619,12 +671,12 @@ function normalizeResourceUrl(value: string | null | undefined) {
   return `https://${trimmed}`;
 }
 
-function ResourceCard({ resource, kind, onOpen }: { resource: LearningResource; kind: ResourceKind; onOpen: (resource: LearningResource) => void }) {
+function ResourceCard({ resource, kind, onOpen, disabled = false }: { resource: LearningResource; kind: ResourceKind; onOpen: (resource: LearningResource) => void; disabled?: boolean }) {
   const icon = kind === 'VIDEO' ? <PlayCircle size={52} /> : <FileText size={52} />;
   const actionText = kind === 'VIDEO' ? 'Xem video' : 'Mở tài liệu';
 
   const content = (
-    <article className="group flex h-full min-h-[292px] flex-col overflow-hidden rounded-xl border border-brand-100 bg-white transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-soft">
+    <article className="lesson-resource-card group flex h-full min-h-[292px] flex-col overflow-hidden rounded-xl border border-brand-100 bg-white transition hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-soft">
       <div className="relative grid min-h-[210px] flex-1 place-items-center bg-sky-50">
         <span className="absolute left-3 top-3 rounded-full bg-amber-400 px-3 py-1 text-xs font-extrabold text-white">
           {resource.meta}
@@ -642,6 +694,10 @@ function ResourceCard({ resource, kind, onOpen }: { resource: LearningResource; 
       </div>
     </article>
   );
+
+  if (kind === 'VIDEO') {
+    return <button type="button" disabled={disabled} className="text-left disabled:cursor-wait disabled:opacity-60" onClick={() => onOpen(resource)}>{content}</button>;
+  }
 
   if (resource.href) {
     return <a href={resource.href} target="_blank" rel="noreferrer">{content}</a>;
@@ -669,6 +725,7 @@ function ResourceModal({ resource, onClose }: { resource: LearningResource; onCl
           </button>
         </div>
         <div className="max-h-[68vh] overflow-y-auto p-5">
+          {resource.href && /^https?:\/\//i.test(resource.href) && <a href={resource.href} target="_blank" rel="noreferrer" className="btn-primary mb-4">Mở video <ArrowRight size={16} /></a>}
           <div className="whitespace-pre-line rounded-2xl bg-sky-50 p-5 text-sm font-semibold leading-7 text-slate-700">
             {resource.content || resource.description || 'Chưa có nội dung tài liệu.'}
           </div>

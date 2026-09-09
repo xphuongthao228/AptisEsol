@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowLeft,
   ArrowRight,
   AlertCircle,
@@ -115,6 +115,8 @@ type SidebarLink = {
 };
 
 type MockCard = {
+  accessible?: boolean;
+  accessOrder?: number;
   id: string;
   externalId?: string;
   sourceUpdatedAt?: string;
@@ -147,6 +149,8 @@ type StoredAdminMockTest = {
 };
 
 type ApiMockTest = {
+  accessible?: boolean;
+  accessOrder?: number;
   id: number;
   externalId?: string;
   skill: MockSkill | 'GRAMMAR_VOCABULARY';
@@ -300,7 +304,16 @@ const skillFilters: { key: MockSkill; label: string }[] = [
   { key: 'WRITING', label: 'Writing' }
 ];
 
-const FREE_MOCK_TESTS_PER_SKILL = 2;
+function canOpenMockCard(card: MockCard, proActive: boolean) {
+  return card.accessible === true || (card.accessible !== false && proActive);
+}
+
+function aiScoringError(error: unknown, skill: string) {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  return status === 403
+    ? `Chấm ${skill} AI cần gia hạn tài khoản. Bạn vẫn có thể làm 2 đề miễn phí.`
+    : `Chưa chấm được ${skill} AI. Vui lòng thử lại.`;
+}
 const fullRequiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
 
 const mockCards: MockCard[] = [];
@@ -409,6 +422,8 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   const description = item.description?.trim() ?? '';
   const externalId = item.externalId?.trim();
   return {
+    accessible: item.accessible === true,
+    accessOrder: item.accessOrder,
     id: externalId ? `api-${externalId}` : `api-${item.id}`,
     externalId,
     sourceUpdatedAt: item.updatedAt,
@@ -565,6 +580,8 @@ function createFullImportedMockCards(cards: MockCard[]) {
 
     return [{
       id: `mock-full-${group.map((card) => card.id).join('-')}`,
+      accessible: group.every((card) => card.accessible === true),
+      accessOrder: Math.max(...group.map((card) => card.accessOrder ?? Number.MAX_SAFE_INTEGER)),
       skill: 'FULL' as const,
       label: mockCardMeta.FULL.label,
       title: first.title,
@@ -765,6 +782,8 @@ function getMockCardUpdatedAt(card: MockCard) {
 }
 
 function compareMockCards(left: MockCard, right: MockCard) {
+  const accessOrder = (left.accessOrder ?? Number.MAX_SAFE_INTEGER) - (right.accessOrder ?? Number.MAX_SAFE_INTEGER);
+  if (accessOrder !== 0) return accessOrder;
   const featuredCompare = Number(Boolean(right.featured)) - Number(Boolean(left.featured));
   if (featuredCompare !== 0) return featuredCompare;
 
@@ -901,6 +920,16 @@ function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPar
     return normalizeQuestionSection(row.parts, skill, rowPart);
   }
 
+  // Matching tasks share options and answers across all statements. Keep the
+  // task together instead of flattening away its template and shared fields.
+  const listeningRow = normalizeImportedQuestionRow({ ...row, skill: row.skill ?? skill, ...(rowPart ? { part: rowPart } : {}) });
+  if (skill === 'LISTENING' && (
+    ['LISTENING_PEOPLE_MATCH', 'LISTENING_OPINION_MATCH'].includes(String(listeningRow.template ?? ''))
+    || (Array.isArray(row.options) && Array.isArray(row.questions) && row.questions.every((question) => typeof question === 'string'))
+  )) {
+    return [listeningRow];
+  }
+
   if (Array.isArray(row.questions) && (rowPart || row.skill || row.topic || row.audioUrl || row.audio_url || row.template)) {
     const parentFields = {
       skill: row.skill ?? skill,
@@ -975,6 +1004,14 @@ function normalizeImportedQuestionRow(row: Record<string, unknown>) {
 
 function normalizeImportedQuestionAliases(row: Record<string, unknown>) {
   const next = { ...row };
+  // Older CSV imports assigned the generic audio template to every Listening
+  // row. Recover the original part from the CSV type for already saved tests.
+  const listeningType = String(next.type ?? '').trim().toUpperCase();
+  if (['LISTENING_PART2', 'LISTENING_PART3', 'LISTENING_PART4'].includes(listeningType)
+    && (!next.template || next.template === 'LISTENING_AUDIO_MC')) {
+    next.template = listeningType;
+    next.part = listeningType.slice(-1);
+  }
   if (!next.template && next.type) next.template = next.type;
   if (!next.audioUrl) next.audioUrl = valueByFlexibleKey(next, 'audioUrl');
   if (!next.audioUrl) next.audioUrl = valueByFlexibleKey(next, 'audio_url');
@@ -995,6 +1032,8 @@ function normalizeImportedQuestionAliases(row: Record<string, unknown>) {
   if (!next.part && template === 'LISTENING_PART2') next.part = '2';
   if (!next.part && template === 'LISTENING_PART3') next.part = '3';
   if (!next.part && template === 'LISTENING_PART4') next.part = '4';
+  if (!next.part && template === 'LISTENING_PEOPLE_MATCH') next.part = '2';
+  if (!next.part && template === 'LISTENING_OPINION_MATCH') next.part = '3';
   if (!next.part && template === 'LISTENING_AUDIO_MC') next.part = '1';
   if (template === 'LISTENING_PART2') next.template = 'LISTENING_PEOPLE_MATCH';
   if (template === 'LISTENING_PART3') next.template = 'LISTENING_OPINION_MATCH';
@@ -1609,11 +1648,19 @@ function getListeningShortDataFromCard(card?: MockCard | null): ListeningShortDa
     ? asStringArray(row.statements)
     : indexedValues(row, 'statement').length > 0
       ? indexedValues(row, 'statement')
-      : splitLines(String(row.content ?? row.prompt ?? '')).filter(Boolean);
+      : asStringArray(row.questions).length > 0
+        ? asStringArray(row.questions)
+        : indexedValues(row, 'question').length > 0
+          ? indexedValues(row, 'question')
+          : splitLines(String(row.content ?? row.prompt ?? '')).filter(Boolean);
   const options = asStringArray(row.options).length > 0 ? asStringArray(row.options) : listeningOptionsFromItem(row);
   const correctAnswers = asStringArray(row.correctAnswers).length > 0
     ? asStringArray(row.correctAnswers)
-    : indexedValues(row, 'correct_statement');
+    : asStringArray(row.correctAnswer).length > 0
+      ? asStringArray(row.correctAnswer)
+      : indexedValues(row, 'correct_statement').length > 0
+        ? indexedValues(row, 'correct_statement')
+        : indexedValues(row, 'correct_answer');
   const directCorrectAnswer = listeningCorrectAnswerFromItem(row);
 
   return {
@@ -1637,11 +1684,22 @@ function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonolo
       const part = String(item.part ?? '').trim().toLowerCase().replace(/^part\s*/, '');
       const section = String(item.section ?? '').trim().toLowerCase();
       const isPart4Template = template === 'LISTENING_AUDIO_MC' && variant !== 'PART1' && !['q1_13', 'q14', 'q15'].includes(section);
-      return (!skill || skill === 'LISTENING') && (part === '4' || section === 'q16' || section === 'q17' || (isPart4Template && rowIndex >= 15));
+      return (!skill || skill === 'LISTENING') && (part === '4' || ['q16', 'q17', 'q16_17'].includes(section) || (isPart4Template && rowIndex >= 15));
     });
 
   const monologues = rows.reduce<ListeningMonologueData[]>((result, row) => {
-    const groups = Array.isArray(row.groups) ? row.groups : [];
+    const indexedQuestions = Object.keys(row)
+      .filter((key) => /^question\d+$/.test(key))
+      .sort((a, b) => Number(a.slice(8)) - Number(b.slice(8)))
+      .map((key) => {
+        const index = key.slice(8);
+        return {
+          prompt: row[key],
+          options: indexedValues(row, `q${index}_answer`),
+          correctAnswer: row[`correct_answer${index}`]
+        };
+      });
+    const groups = Array.isArray(row.groups) ? row.groups : Array.isArray(row.questions) ? row.questions : indexedQuestions;
     const questions = groups.flatMap((group) => {
       if (!group || typeof group !== 'object') return [];
       const groupRow = group as Record<string, unknown>;
@@ -3086,7 +3144,7 @@ export function MockTests() {
           ]);
           const uploadedMockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
           const examCards = await apiExamTestsToCards(tests);
-          const localCards = loadPublishedAdminMockCards();
+          const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
           card = cards.find((item) => item.id === selectedMockId) ?? null;
         } else if (selectedTestId && !isFullMock) {
@@ -3098,13 +3156,16 @@ export function MockTests() {
           ]);
           const uploadedMockCards = mockTests.map(apiMockTestToCard).filter((item): item is MockCard => Boolean(item));
           const examCards = await apiExamTestsToCards(tests);
-          const localCards = loadPublishedAdminMockCards();
+          const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
           card = cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item))
             ?? null;
         }
 
-        if (!card) return;
+        if (!card || !requireProToStart(card)) {
+          if (!cancelled) setScreen('select');
+          return;
+        }
 
         const hydratedCard = await hydrateAssessmentCard(card);
         if (cancelled) return;
@@ -3161,6 +3222,7 @@ export function MockTests() {
 
   useEffect(() => {
     if (!['listeningQuestion', 'listeningMatching', 'listeningShort', 'listeningMonologues'].includes(screen)) return;
+    if (!activeListeningCard || !hasActiveListeningData()) return;
     if (listeningSeconds <= 0) {
       setScreen(isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult');
       return;
@@ -3171,7 +3233,7 @@ export function MockTests() {
     }, 1000);
 
     return () => window.clearInterval(intervalId);
-  }, [listeningSeconds, screen]);
+  }, [listeningSeconds, screen, selectedMockCardLoading, activeListeningCard]);
 
   useEffect(() => {
     if (screen !== 'writingPart') return;
@@ -3339,8 +3401,11 @@ export function MockTests() {
     return false;
   }
 
-  function requireProToStart(_card?: MockCard) {
-    return true;
+  function requireProToStart(card?: MockCard) {
+    const target = card ?? selectedMockCard;
+    if (target && canOpenMockCard(target, Boolean(subscription?.proActive))) return true;
+    toast.error('Đề này cần tài khoản Pro. Bạn có thể làm 2 đề đầu miễn phí.');
+    return false;
   }
 
   async function hydrateAssessmentCard(card?: MockCard) {
@@ -3435,12 +3500,7 @@ export function MockTests() {
     setSelectedMockCard(hydratedCard);
     setIsFullMock(false);
     setSelectedSkill('LISTENING');
-    setListeningQuestionIndex(0);
-    setListeningAnswers({});
-    setListeningMatchingAnswers({});
-    setListeningShortAnswers({});
-    setListeningMonologueIndex(0);
-    setListeningMonologueAnswers({});
+    resetListeningSection();
     setScreen('listeningStart');
   }
 
@@ -3588,6 +3648,12 @@ export function MockTests() {
   }
 
   async function submitWritingForAi(nextScreen?: SpeakingScreen) {
+    if (subscription && !subscription.active) {
+      setWritingScore(null);
+      setWritingScoreError('Bạn đã hoàn thành phần Writing. Chấm AI cần gia hạn tài khoản.');
+      setScreen(nextScreen ?? 'writingResult');
+      return;
+    }
     const payload = buildWritingScorePayload();
     if (payload.parts.length === 0) {
       toast.error('Không có nội dung Writing import để chấm.');
@@ -3606,9 +3672,8 @@ export function MockTests() {
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không chấm được bài Writing.';
-      const fallback = buildWritingFallbackScore(payload.parts, message);
-      setWritingScore(fallback);
-      setWritingScoreError('');
+      setWritingScore(null);
+      setWritingScoreError(aiScoringError(error, 'Writing'));
       toast.error(message);
       if (nextScreen) setScreen(nextScreen);
     } finally {
@@ -3711,6 +3776,12 @@ export function MockTests() {
 
   async function submitSpeakingForAi(nextScreen?: SpeakingScreen) {
     const recordings = await finalizeActiveSpeakingRecording();
+    if (subscription && !subscription.active) {
+      setSpeakingScore(null);
+      setSpeakingScoreError('Bạn đã hoàn thành phần Speaking. Chấm AI cần gia hạn tài khoản.');
+      setScreen(nextScreen ?? 'complete');
+      return;
+    }
     const payload = buildSpeakingScorePayload(recordings);
 
     setSpeakingScoreLoading(true);
@@ -3724,9 +3795,8 @@ export function MockTests() {
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Không chấm được Speaking.';
-      const fallback = buildSpeakingFallbackScore(payload.parts);
-      setSpeakingScore(fallback);
-      setSpeakingScoreError('');
+      setSpeakingScore(null);
+      setSpeakingScoreError(aiScoringError(error, 'Speaking'));
       if (!nextScreen) {
         toast.error(message.includes('Cannot deserialize') ? 'AI Speaking đang tạm bận. Bạn thử chấm lại sau ít phút nhé.' : message);
       }
@@ -4028,17 +4098,13 @@ export function MockTests() {
   }
 
   function firstListeningQuestionScreen(): SpeakingScreen {
-    if (activeListeningPart1Questions.length > 0) return 'listeningQuestion';
-    if (hasActiveListeningMatchingData()) return 'listeningMatching';
-    if (hasActiveListeningShortData()) return 'listeningShort';
-    if (activeListeningMonologues.length > 0) return 'listeningMonologues';
-    return isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult';
+    return 'listeningQuestion';
   }
 
   function nextListeningScreenAfter(screenName: 'part1' | 'matching' | 'short' | 'monologues'): SpeakingScreen {
-    if (screenName === 'part1' && hasActiveListeningMatchingData()) return 'listeningMatching';
-    if ((screenName === 'part1' || screenName === 'matching') && hasActiveListeningShortData()) return 'listeningShort';
-    if (screenName !== 'monologues' && activeListeningMonologues.length > 0) return 'listeningMonologues';
+    if (screenName === 'part1') return 'listeningMatching';
+    if (screenName === 'matching') return 'listeningShort';
+    if (screenName === 'short') return 'listeningMonologues';
     return isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult';
   }
 
@@ -4188,6 +4254,8 @@ export function MockTests() {
 
   const missingQuestionData = (screen === 'readingCohesion' && !activeReadingData.cohesion[readingCohesionIndex])
     || (screen === 'listeningQuestion' && !activeListeningPart1Questions[listeningQuestionIndex])
+    || (screen === 'listeningMatching' && (!activeListeningMatchingData.speakers.length || !activeListeningMatchingData.options.length))
+    || (screen === 'listeningShort' && (!activeListeningShortData.statements.length || !activeListeningShortData.options.length))
     || (screen === 'listeningMonologues' && !activeListeningMonologues[listeningMonologueIndex])
     || (screen === 'grammarQuestion' && !activeGrammarQuestions[grammarQuestionIndex]);
   if (missingQuestionData) {
@@ -4260,6 +4328,8 @@ export function MockTests() {
               speaking={speakingScore}
               totalScore={fullTotalScore}
               writing={writingScore}
+              speakingError={speakingScoreError}
+              writingError={writingScoreError}
               onExit={() => setScreen('select')}
               onRetry={() => openFullTest()}
             />
@@ -4589,8 +4659,15 @@ export function MockTests() {
           )}
           {screen === 'listeningInstructions' && (
             <ReadingFooter
+              nextDisabled={!activeListeningCard}
               onPrevious={() => setScreen('listeningStart')}
               onNext={() => {
+                if (!activeListeningCard) return;
+                if (!activeListeningPart1Questions.length) {
+                  toast.error('Không tải được câu hỏi Part 1 của đề này. Vui lòng mở lại đề từ danh sách.');
+                  return;
+                }
+                resetListeningSection();
                 setListeningQuestionIndex(0);
                 setScreen(firstListeningQuestionScreen());
               }}
@@ -4733,7 +4810,7 @@ export function MockTests() {
 
 function MockSelectLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-[calc(100vh-8rem)]">
+    <div className="mobile-mock-page min-h-[calc(100vh-8rem)]">
       <div className="mx-auto max-w-[1180px]">
         {children}
       </div>
@@ -4755,11 +4832,11 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
         .then(async ([mockTests, tests]) => {
           const uploadedMockCards = mockTests.map(apiMockTestToCard).filter((card): card is MockCard => Boolean(card));
           const examCards = await apiExamTestsToCards(tests);
-          const localCards = loadPublishedAdminMockCards();
+          const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
           setAdminCards(cards);
         })
-        .catch(() => setAdminCards(buildImportedMockCards(loadPublishedAdminMockCards())));
+        .catch(() => { setAdminCards([]); toast.error('Không tải được danh sách đề. Vui lòng tải lại trang.'); });
     };
     reloadAdminCards();
     window.addEventListener('focus', reloadAdminCards);
@@ -4770,7 +4847,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       window.removeEventListener('storage', reloadAdminCards);
       window.removeEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     };
-  }, []);
+  }, [authenticated, proActive]);
 
   const visibleCards = adminCards
     .filter((card) => card.skill === selectedSkill)
@@ -4783,7 +4860,8 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       return;
     }
 
-    const randomCard = visibleCards.length ? visibleCards[Math.floor(Math.random() * visibleCards.length)] : undefined;
+    const allowedCards = visibleCards.filter((card) => card.ready && canOpenMockCard(card, proActive));
+    const randomCard = allowedCards.length ? allowedCards[Math.floor(Math.random() * allowedCards.length)] : undefined;
     if (!randomCard) {
       toast.error('Chưa có đề thi thử phù hợp để random.');
       return;
@@ -4804,7 +4882,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
 
   return (
     <section>
-      <div className="rounded-2xl border border-brand-100 bg-white p-7 text-navy shadow-soft md:p-8">
+      <div className="mock-selection-hero rounded-2xl border border-brand-100 bg-white p-7 text-navy shadow-soft md:p-8">
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">
@@ -4815,6 +4893,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
             <p className="mt-3 max-w-2xl text-lg font-medium leading-8 text-slate-700">
               Thi thử mô phỏng giao diện assessment. Chọn Full hoặc từng kỹ năng để vào đúng kiểu bài.
             </p>
+            {!proActive && <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Miễn phí 2 đề đầu mỗi kỹ năng và Full Test. Chấm AI cần tài khoản còn hạn.</p>}
           </div>
           <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5 md:w-[300px]">
             <p className="text-sm font-bold text-slate-600">Kỹ năng đang chọn</p>
@@ -4824,18 +4903,19 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
               {creatingRandom ? 'Đang tạo...' : 'Đề thi thử random'}
             </button>
             <p className="mt-3 text-xs font-bold leading-5 text-slate-600">
-              Random từ các đề thi thử đã xuất bản và mở bằng giao diện assessment.
+              Chọn ngẫu nhiên một đề bạn được phép làm.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mock-skill-tabs mt-6 flex flex-wrap gap-3" aria-label="Kỹ năng thi thử">
         {skillFilters.map((filter) => (
           <button
             key={filter.key}
             type="button"
             onClick={() => onSkillChange(filter.key)}
+            aria-pressed={selectedSkill === filter.key}
             className={`h-12 rounded-xl border px-6 text-sm font-extrabold transition ${
               selectedSkill === filter.key
                 ? 'border-brand-600 bg-brand-600 text-white shadow-lift shadow-brand-600/20'
@@ -4852,7 +4932,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
           <MockSkillCard
             key={card.id}
             card={card}
-            proLocked={!proActive && index >= FREE_MOCK_TESTS_PER_SKILL}
+            proLocked={!canOpenMockCard(card, proActive)}
             onOpenSpeaking={onOpenSpeaking}
             onOpenReading={onOpenReading}
             onOpenListening={onOpenListening}
@@ -4904,7 +4984,7 @@ function MockSkillCard({
   };
 
   return (
-    <article className={`rounded-[24px] border bg-white p-6 shadow-soft ${card.featured ? 'border-amber-400 ring-4 ring-amber-100' : 'border-brand-100'}`}>
+    <article className={`mock-selection-card rounded-[24px] border bg-white p-6 shadow-soft ${card.featured ? 'border-amber-400 ring-4 ring-amber-100' : 'border-brand-100'}`}>
       <div className="flex items-start justify-between gap-4">
         <div className={`grid h-14 w-14 place-items-center rounded-2xl ${card.color}`}>
           <Icon size={23} />
@@ -7476,6 +7556,8 @@ function FullResult({
   speaking,
   totalScore,
   writing,
+  speakingError,
+  writingError,
   onExit,
   onRetry
 }: {
@@ -7485,18 +7567,21 @@ function FullResult({
   speaking: AiSpeakingScore | null;
   totalScore: number;
   writing: AiWritingScore | null;
+  speakingError: string;
+  writingError: string;
   onExit: () => void;
   onRetry: () => void;
 }) {
   const readingAptisCorrect = correctToAptis25(reading.correct, reading.total);
   const skillRows = [
-    { skill: 'Speaking', score: clampScore50(speaking?.overallScore ?? 0), cefr: speaking?.cefrLevel ?? 'A1', note: speaking ? 'Chấm bằng AI' : 'Chưa có kết quả AI' },
+    { skill: 'Speaking', score: speaking ? clampScore50(speaking.overallScore) : null, cefr: speaking?.cefrLevel ?? 'Chưa chấm', note: speaking ? 'Chấm bằng AI' : speakingError || 'Chưa có kết quả AI' },
     { skill: 'Listening', score: listening.score, cefr: listening.cefr, note: `${listening.correct}/${listening.total} câu đúng` },
     { skill: 'Grammar & Vocabulary', score: grammar.score, cefr: grammar.cefr, note: 'Báo cáo riêng theo thang 50' },
     { skill: 'Reading', score: clampScore50(reading.score), cefr: reading.cefr, note: `${reading.correct}/${reading.total} câu đúng, quy đổi ${readingAptisCorrect}/25` },
-    { skill: 'Writing', score: clampScore50(writing?.overallScore ?? 0), cefr: writing?.cefrLevel ?? 'A1', note: writing ? 'Chấm bằng AI' : 'Chưa có kết quả AI' }
+    { skill: 'Writing', score: writing ? clampScore50(writing.overallScore) : null, cefr: writing?.cefrLevel ?? 'Chưa chấm', note: writing ? 'Chấm bằng AI' : writingError || 'Chưa có kết quả AI' }
   ];
-  const overallCefr = cefrFromAptisTotal(totalScore);
+  const completeScores = Boolean(speaking && writing && reading.total > 0 && listening.total > 0);
+  const overallCefr = completeScores ? cefrFromAptisTotal(totalScore) : 'Chưa đủ kết quả';
 
   return (
     <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '42px 24px 84px' }}>
@@ -7511,7 +7596,7 @@ function FullResult({
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 18, marginTop: 30 }}>
-            <FullResultStat label="Tổng điểm 4 kỹ năng" value={`${totalScore}/200`} />
+            <FullResultStat label="Tổng điểm 4 kỹ năng" value={completeScores ? `${totalScore}/200` : 'Chưa đủ kết quả'} />
             <FullResultStat label="CEFR tổng thể" value={overallCefr} />
             <FullResultStat label="Grammar & Vocabulary" value={`${grammar.score}/50`} />
           </div>
@@ -7520,7 +7605,7 @@ function FullResult({
             {skillRows.map((row) => (
               <div key={row.skill} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 220px', alignItems: 'center', gap: 14, borderRadius: 14, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: '16px 18px' }}>
                 <p style={{ color: '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>{row.skill}</p>
-                <p style={{ color: '#2b075c', fontSize: 18, fontWeight: 900, margin: 0 }}>{row.score}/50</p>
+                <p style={{ color: '#2b075c', fontSize: 18, fontWeight: 900, margin: 0 }}>{row.score === null ? '—' : `${row.score}/50`}</p>
                 <p style={{ color: '#047857', fontSize: 16, fontWeight: 900, margin: 0 }}>{row.cefr}</p>
                 <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{row.note}</p>
               </div>

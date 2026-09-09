@@ -3,6 +3,8 @@ package com.example.aptis.controller;
 import com.example.aptis.dto.ApiResponse;
 import com.example.aptis.dto.MockTestDtos;
 import com.example.aptis.service.MockTestService;
+import com.example.aptis.service.PaymentService;
+import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,10 +18,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MockTestController {
     private final MockTestService service;
+    private final PaymentService paymentService;
 
     @GetMapping
-    public ApiResponse<List<MockTestDtos.MockTestResponse>> published() {
-        return ApiResponse.ok(service.published());
+    public ApiResponse<List<MockTestDtos.MockTestResponse>> published(Authentication auth) {
+        boolean pro = auth != null && (auth.getAuthorities().stream()
+                .anyMatch(role -> role.getAuthority().equals("ROLE_ADMIN"))
+                || paymentService.hasProAccess(auth.getName()));
+        return ApiResponse.ok(service.published(pro));
     }
 
     @GetMapping("/admin")
