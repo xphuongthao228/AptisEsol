@@ -248,8 +248,10 @@ public class PaymentService {
         }
 
         Matcher matcher = PAYMENT_CODE_PATTERN.matcher(text);
-        if (matcher.find()) {
-            return matcher.group();
+        while (matcher.find()) {
+            if (paymentOrders.existsByPaymentCode(matcher.group())) {
+                return matcher.group();
+            }
         }
 
         String normalizedText = normalizePaymentText(text);
@@ -280,7 +282,8 @@ public class PaymentService {
         String bearer = authorizationHeader == null ? "" : authorizationHeader.trim();
         String rawToken = sepayTokenHeader == null ? "" : sepayTokenHeader.trim();
         String webhookToken = webhookTokenHeader == null ? "" : webhookTokenHeader.trim();
-        if (!bearer.equals("Bearer " + expectedToken) && !rawToken.equals(expectedToken)
+        if (!bearer.equals("Apikey " + expectedToken)
+                && !bearer.equals("Bearer " + expectedToken) && !rawToken.equals(expectedToken)
                 && !webhookToken.equals(expectedToken)) {
             throw new IllegalArgumentException("Invalid SePay webhook token");
         }

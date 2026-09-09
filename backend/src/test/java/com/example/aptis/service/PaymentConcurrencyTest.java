@@ -49,11 +49,39 @@ class PaymentConcurrencyTest {
     }
 
     @Test
+    void apiKeyCallbackExtendsSubscriptionAndRecordsRevenueOnlyOnce() throws Exception {
+        User user = user();
+        var before = payments.revenueSummary();
+        var order = payments.createRenewalPayment(user.getEmail(), request(7, 40000));
+        var callback = webhook(order.paymentCode());
+        assertTrue(payments.handleSepayWebhook(callback, "Apikey test-secret", null, null).matched());
+        assertTrue(payments.handleSepayWebhook(callback, "Apikey test-secret", null, null).matched());
+        assertEquals(user.getProExpiresAt().plusDays(7), users.findById(user.getId()).orElseThrow().getProExpiresAt());
+        assertEquals(com.example.aptis.enums.PaymentStatus.PAID,
+                payments.status(user.getEmail(), order.paymentCode()).status());
+        assertEquals(before.totalRevenue() + 40000, payments.revenueSummary().totalRevenue());
+        assertEquals(before.transactions() + 1, payments.revenueSummary().transactions());
+    }
+
+    @Test
+    void bankSuffixDoesNotHideExistingPaymentCode() throws Exception {
+        User user = user();
+        var order = payments.createRenewalPayment(user.getEmail(), request(7, 40000));
+        var callback = new ObjectMapper().readValue("{\"content\":\"" + order.paymentCode()
+                + "MBVCB123456\",\"transferType\":\"in\",\"transferAmount\":40000}",
+                PaymentDtos.SepayWebhookRequest.class);
+        assertTrue(payments.handleSepayWebhook(callback, "Apikey test-secret", null, null).matched());
+        assertEquals(user.getProExpiresAt().plusDays(7), users.findById(user.getId()).orElseThrow().getProExpiresAt());
+    }
+
+    @Test
     void tamperedPriceAndInvalidWebhookTokenAreRejected() throws Exception {
         User user = user();
         assertThrows(IllegalArgumentException.class,
                 () -> payments.createRenewalPayment(user.getEmail(), request(60, 1)));
         var order = payments.createRenewalPayment(user.getEmail(), request(7, 40000));
+        assertThrows(IllegalArgumentException.class,
+                () -> payments.handleSepayWebhook(webhook(order.paymentCode()), "Apikey wrong", null, null));
         assertThrows(IllegalArgumentException.class,
                 () -> payments.handleSepayWebhook(webhook(order.paymentCode()), null, "wrong", null));
         assertEquals(user.getProExpiresAt(), users.findById(user.getId()).orElseThrow().getProExpiresAt());
