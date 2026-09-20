@@ -235,6 +235,29 @@ const grammarThemes = [
   'future technology'
 ];
 
+const listeningPart4FollowUps = [
+  {
+    topic: 'Making study plans',
+    script: 'Good planning can make studying less stressful. When students divide their work into smaller tasks, they know exactly what to do each day and avoid leaving everything until the last minute. This also helps them notice which subjects need more attention. However, plans only work well when they are realistic. If a timetable is too strict, students may feel disappointed when they cannot follow it. A useful study plan should include short breaks and enough time for review.',
+    question1: 'What is one benefit of dividing study work into smaller tasks?',
+    question2: 'What does the speaker say about a useful study plan?',
+    options1: ['Students know what to do each day', 'Students can stop reviewing lessons', 'Students finish every subject immediately'],
+    options2: ['It should include breaks and review time', 'It should be as strict as possible', 'It should focus on only one subject'],
+    correct1: 'Students know what to do each day',
+    correct2: 'It should include breaks and review time'
+  },
+  {
+    topic: 'Concentration at work',
+    script: 'Many people think concentration depends only on personal effort, but the place where you work is also very important. A quiet room, a comfortable chair, and a tidy desk can help people stay focused for longer. Another important point is that attention does not last forever. People often work for hours without resting, but short breaks can actually make their work better because the mind has time to recover.',
+    question1: 'What does the speaker say can help people focus for longer?',
+    question2: 'Why can short breaks improve work?',
+    options1: ['A suitable working environment', 'A longer working day', 'A more difficult task'],
+    options2: ['The mind has time to recover', 'People can avoid all responsibility', 'The work becomes less important'],
+    correct1: 'A suitable working environment',
+    correct2: 'The mind has time to recover'
+  }
+];
+
 function parseCsv(text) {
   const rows = [];
   let row = [];
@@ -402,6 +425,114 @@ function rewriteSpeakingPart4(section, testIndex) {
   }];
 }
 
+function ensureListeningPart4(section, testIndex) {
+  if (section.skill !== 'LISTENING' || !Array.isArray(section.parts)) return;
+
+  const part4 = section.parts.find((part) => String(part.part) === '4');
+  if (!part4 || !Array.isArray(part4.questions)) return;
+
+  const recordingKeys = new Set(part4.questions.map((question) => {
+    const sectionKey = String(question.section ?? question.recording ?? question.recordingIndex ?? question.group ?? '').trim();
+    const audioKey = String(question.audio_url ?? question.audioUrl ?? '').trim();
+    const topicKey = String(question.topic ?? question.title ?? '').trim();
+    return sectionKey || audioKey || topicKey;
+  }).filter(Boolean));
+
+  if (recordingKeys.size >= 2) return;
+
+  const base = part4.questions[0] ?? {};
+  const followUp = listeningPart4FollowUps[testIndex % listeningPart4FollowUps.length];
+  part4.questions.push({
+    type: 'LISTENING_PART4',
+    template: 'LISTENING_AUDIO_MC',
+    skill: 'LISTENING',
+    part: 4,
+    section: 'q17',
+    recording: '2',
+    topic: followUp.topic,
+    audio_url: base.audio_url || base.audioUrl,
+    script_text: followUp.script,
+    content: followUp.topic,
+    points: 2,
+    sort_order: Number(base.sort_order ?? 16) + 1,
+    question1: `17.1 ${followUp.question1}`,
+    question2: `17.2 ${followUp.question2}`,
+    q1_answer1: followUp.options1[0],
+    q1_answer2: followUp.options1[1],
+    q1_answer3: followUp.options1[2],
+    q2_answer1: followUp.options2[0],
+    q2_answer2: followUp.options2[1],
+    q2_answer3: followUp.options2[2],
+    correct_answer1: followUp.correct1,
+    correct_answer2: followUp.correct2
+  });
+}
+
+function ensureReadingParts(section) {
+  if (section.skill !== 'READING' || !Array.isArray(section.parts)) return;
+
+  const hasPart3 = section.parts.some((part) => String(part.part) === '3');
+  if (!hasPart3) section.parts.push({
+    part: 3,
+    questions: [{
+      template: 'READING_SENTENCE_ORDER',
+      total: 6,
+      topic: 'Learning a new skill',
+      instructions: 'Put the sentences below in the right order. The first sentence is done for you.',
+      sentences: [
+        'After a few weeks, the new skill began to feel much easier.',
+        'At first, I was unsure which method would work best for me.',
+        'I decided to learn a new skill during my free time.',
+        'I practised a little every day and kept notes about my progress.',
+        'I asked a more experienced friend for advice when I had problems.',
+        'This experience showed me that regular practice is more important than speed.'
+      ],
+      displaySentences: [
+        'After a few weeks, the new skill began to feel much easier.',
+        'At first, I was unsure which method would work best for me.',
+        'I decided to learn a new skill during my free time.',
+        'I practised a little every day and kept notes about my progress.',
+        'I asked a more experienced friend for advice when I had problems.',
+        'This experience showed me that regular practice is more important than speed.'
+      ],
+      correctSentences: [
+        'I decided to learn a new skill during my free time.',
+        'At first, I was unsure which method would work best for me.',
+        'I practised a little every day and kept notes about my progress.',
+        'I asked a more experienced friend for advice when I had problems.',
+        'After a few weeks, the new skill began to feel much easier.',
+        'This experience showed me that regular practice is more important than speed.'
+      ],
+      type: 'TEXT',
+      points: 5,
+      sort_order: 2
+    }]
+  });
+
+  section.parts
+    .filter((part) => ['2', '3'].includes(String(part.part)))
+    .flatMap((part) => Array.isArray(part.questions) ? part.questions : [])
+    .filter((question) => question?.template === 'READING_SENTENCE_ORDER')
+    .forEach((question) => ensureReadingSentenceOrderHasSix(question));
+}
+
+function ensureReadingSentenceOrderHasSix(question) {
+  const correct = Array.isArray(question.correctSentences) && question.correctSentences.length
+    ? question.correctSentences
+    : Array.isArray(question.correctOrder) ? question.correctOrder : [];
+  if (correct.length >= 6) return;
+
+  const extra = 'This final step helped the whole process become more successful.';
+  question.correctSentences = [...correct, extra];
+  question.sentences = Array.isArray(question.sentences) && question.sentences.length
+    ? [extra, ...question.sentences]
+    : [...question.correctSentences];
+  question.displaySentences = Array.isArray(question.displaySentences) && question.displaySentences.length
+    ? [extra, ...question.displaySentences]
+    : [...question.sentences];
+  question.total = Math.max(Number(question.total ?? 0), question.correctSentences.length);
+}
+
 function normalizeQuestionData(rawQuestionData, testIndex) {
   const data = JSON.parse(rawQuestionData);
   return data.map((section) => {
@@ -426,6 +557,8 @@ function normalizeQuestionData(rawQuestionData, testIndex) {
       normalized.minutes = 25;
     }
 
+    ensureListeningPart4(normalized, testIndex);
+    ensureReadingParts(normalized);
     return normalized;
   });
 }

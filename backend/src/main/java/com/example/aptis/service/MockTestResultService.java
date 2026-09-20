@@ -22,8 +22,9 @@ public class MockTestResultService {
         result.setMockTestId(request.mockTestId());
         result.setTitle(request.title());
         result.setSkill(request.skill());
-        result.setScore(Math.max(0, request.score()));
-        result.setMaxScore(Math.max(1, request.maxScore()));
+        int maxScore = Math.max(1, request.maxScore());
+        result.setScore(Math.min(maxScore, Math.max(0, request.score())));
+        result.setMaxScore(maxScore);
         result.setCefrLevel(request.cefrLevel());
         result.setResultJson(request.resultJson());
         return response(results.save(result));

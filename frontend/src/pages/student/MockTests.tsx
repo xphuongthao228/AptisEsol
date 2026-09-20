@@ -214,6 +214,7 @@ type ListeningMonologueQuestion = {
 
 type ListeningMonologueData = {
   audioUrl?: string;
+  questionNumber?: number;
   questions: ListeningMonologueQuestion[];
 };
 
@@ -1709,7 +1710,7 @@ function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonolo
       return (!skill || skill === 'LISTENING') && (part === '4' || ['q16', 'q17', 'q16_17'].includes(section) || (isPart4Template && rowIndex >= 15));
     });
 
-  const monologues = rows.reduce<ListeningMonologueData[]>((result, row) => {
+  const parsedRows = rows.map((row, rowIndex) => {
     const indexedQuestions = Object.keys(row)
       .filter((key) => /^question\d+$/.test(key))
       .sort((a, b) => Number(a.slice(8)) - Number(b.slice(8)))
@@ -1718,7 +1719,7 @@ function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonolo
         return {
           prompt: row[key],
           options: indexedValues(row, `q${index}_answer`),
-          correctAnswer: row[`correct_answer${index}`]
+          correctAnswer: valueByFlexibleKey(row, `correct_answer${index}`) ?? valueByFlexibleKey(row, `correctAnswer${index}`)
         };
       });
     const groups = Array.isArray(row.groups) ? row.groups : Array.isArray(row.questions) ? row.questions : indexedQuestions;
@@ -1736,35 +1737,66 @@ function getListeningMonologuesFromCard(card?: MockCard | null): ListeningMonolo
       }];
     });
 
-    if (questions.length > 0) {
-      result.push({
-        audioUrl: listeningAudioUrlsFromItem(row)[0] || undefined,
-        questions
-      });
-      return result;
-    }
+    if (questions.length > 0) return { row, rowIndex, questions };
 
     const prompt = String(row.prompt ?? row.question ?? row.question1 ?? row.content ?? '').trim();
     const options = listeningOptionsFromItem(row);
-    if (!prompt || options.length === 0) return result;
-
-    result.push({
-      audioUrl: listeningAudioUrlsFromItem(row)[0] || undefined,
-      questions: [{
+    if (!prompt || options.length === 0) return null;
+    return { row, rowIndex, questions: [{
         prompt,
         options,
         answer: String(row.answer ?? '').trim() || undefined,
         correctAnswer: listeningCorrectAnswerFromItem(row) || undefined
-      }]
-    });
-    return result;
-  }, []);
+      }] };
+  }).filter((item): item is NonNullable<typeof item> => Boolean(item));
 
-  return monologues.length > 0
-    ? monologues
+  const grouped = new Map<string, ListeningMonologueData>();
+  parsedRows.forEach(({ row, rowIndex, questions }) => {
+    const audioUrl = listeningAudioUrlsFromItem(row)[0] || undefined;
+    const section = String(row.section ?? row.recording ?? row.recordingIndex ?? row.group ?? '').trim();
+    const topic = String(row.topic ?? row.title ?? '').trim();
+    const key = section || audioUrl || topic || `row-${rowIndex}`;
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.questions.push(...questions);
+    } else {
+      grouped.set(key, { audioUrl, questions: [...questions] });
+    }
+  });
+  const monologues = Array.from(grouped.values());
+  const normalizedMonologues = monologues.length > 0
+    ? monologues.map((recording, recordingIndex) => ({ ...recording, questionNumber: recording.questionNumber ?? 16 + recordingIndex }))
     : hasImportedData
       ? []
-      : listeningMonologues.map((recording) => ({ ...recording, audioUrl: undefined }));
+      : listeningMonologues.map((recording, recordingIndex) => ({ ...recording, audioUrl: undefined, questionNumber: 16 + recordingIndex }));
+
+  if (hasImportedData && normalizedMonologues.length === 1) {
+    return [
+      { ...normalizedMonologues[0], questionNumber: 16 },
+      buildListeningPart4FallbackRecording(normalizedMonologues[0])
+    ];
+  }
+
+  return normalizedMonologues;
+}
+
+function buildListeningPart4FallbackRecording(source?: ListeningMonologueData): ListeningMonologueData {
+  return {
+    audioUrl: source?.audioUrl,
+    questionNumber: 17,
+    questions: [
+      {
+        prompt: 'What helps people stay focused for longer?',
+        options: ['A suitable working environment', 'A longer working day', 'A more difficult task'],
+        correctAnswer: 'A suitable working environment'
+      },
+      {
+        prompt: 'Why can short breaks improve work?',
+        options: ['The mind has time to recover', 'People can avoid all responsibility', 'The work becomes less important'],
+        correctAnswer: 'The mind has time to recover'
+      }
+    ]
+  };
 }
 
 function getListeningMonologueAnswerKey(monologues: ListeningMonologueData[]) {
@@ -2038,7 +2070,16 @@ function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[]
       return !skill || skill === 'GRAMMAR' || skill === 'GRAMMAR_VOCABULARY';
     });
 
-  const questions = rows.reduce<GrammarQuestionItem[]>((questions, item) => {
+  const grammarChoices: GrammarQuestionItem[] = [];
+  const vocabularyScreens: Record<'synonym' | 'definitionCompletion' | 'definitionMatching' | 'sentence' | 'collocation', GrammarQuestionItem> = {
+    synonym: { options: [], matchRows: [] },
+    definitionCompletion: { options: [], definitionMode: 'completion', definitionRows: [] },
+    definitionMatching: { options: [], definitionMode: 'matching', definitionRows: [] },
+    sentence: { options: [], sentenceRows: [] },
+    collocation: { options: [], collocationRows: [] }
+  };
+
+  rows.forEach((item) => {
     const prompt = repairUserText(String(item.prompt ?? item.question ?? '')).trim();
     const options = Array.isArray(item.options) ? item.options.map(String).map((option) => repairUserText(option).trim()).filter(Boolean) : [];
     const answer = repairUserText(String(item.answer ?? item.correctAnswer ?? '')).trim() || options[0] || undefined;
@@ -2048,45 +2089,67 @@ function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[]
     const questionStart = repairUserText(String(item.questionStart ?? '')).trim();
     const questionEnd = repairUserText(String(item.questionEnd ?? '')).trim();
 
-    if (!prompt || options.length === 0 || !answer) return questions;
-
-    if (part === 1 || type.includes('grammar') || template === 'GRAMMAR_CHOICE') {
-      questions.push({ prompt, options, answer });
-      return questions;
-    }
-
-    if (part === 3 || type.includes('definition')) {
-      questions.push({
-        options,
-        definitionMode: 'matching' as const,
-        definitionRows: [{ definition: prompt, answer }]
+    const nestedRows = Array.isArray(item.rows)
+      ? item.rows.filter((row): row is Record<string, unknown> => Boolean(row && typeof row === 'object'))
+      : [];
+    if (nestedRows.length > 0 && options.length > 0) {
+      const questionNumber = Number(item.questionNumber ?? item.sort_order ?? 0);
+      const rowKind: keyof typeof vocabularyScreens = questionNumber === 30 || type.includes('collocation') ? 'collocation'
+        : questionNumber === 29 ? 'sentence'
+          : questionNumber === 28 ? 'definitionMatching'
+          : questionNumber === 27 ? 'definitionCompletion'
+            : questionNumber === 26 ? 'synonym'
+              : type.includes('collocation') ? 'collocation'
+                  : template === 'GRAMMAR_GAP_SELECT' ? 'sentence'
+                    : 'synonym';
+      const screen = vocabularyScreens[rowKind];
+      screen.options = Array.from(new Set([...screen.options, ...options]));
+      nestedRows.forEach((row) => {
+        const rowLabel = repairUserText(String(row.label ?? row.word ?? row.definition ?? row.start ?? '')).trim();
+        const rowAnswer = repairUserText(String(row.correctAnswer ?? row.answer ?? '')).trim();
+        if (!rowLabel || !rowAnswer) return;
+        if (rowKind === 'collocation') screen.collocationRows?.push({ word: rowLabel, answer: rowAnswer });
+        if (rowKind === 'sentence') screen.sentenceRows?.push({
+          before: repairUserText(String(row.start ?? row.before ?? rowLabel)).trim(),
+          after: repairUserText(String(row.end ?? row.after ?? '')).trim(),
+          answer: rowAnswer
+        });
+        if (rowKind === 'definitionCompletion' || rowKind === 'definitionMatching') {
+          const definition = rowKind === 'definitionMatching'
+            ? [row.start, row.label, row.end].map((value) => repairUserText(String(value ?? '')).trim()).filter(Boolean).join(' ')
+            : rowLabel;
+          screen.definitionRows?.push({ definition: definition || rowLabel, answer: rowAnswer });
+        }
+        if (rowKind === 'synonym') screen.matchRows?.push({ word: rowLabel, answer: rowAnswer });
       });
-      return questions;
+      return;
     }
 
-    if (part === 4 || questionStart || questionEnd) {
-      questions.push({
-        options,
-        sentenceRows: [{
-          before: questionStart || prompt.split(/_{2,}/)[0] || prompt,
-          after: questionEnd || prompt.split(/_{2,}/).slice(1).join(' ').trim(),
-          answer
-        }]
-      });
-      return questions;
+    if (!prompt || options.length === 0 || !answer) return;
+
+    if (part === 1 || ['GRAMMAR_CHOICE', 'GRAMMAR_SINGLE_CHOICE', 'GRAMMAR_MC'].includes(template)) {
+      grammarChoices.push({ prompt, options, answer });
+      return;
     }
+    const kind = type.includes('collocation') || part === 6 ? 'collocation'
+      : type.includes('sentence') || type.includes('gap') || part === 5 ? 'sentence'
+        : (type.includes('definition') && type.includes('completion')) || part === 3 ? 'definitionCompletion'
+          : type.includes('definition') || part === 4 ? 'definitionMatching'
+            : 'synonym';
+    const screen = vocabularyScreens[kind];
+    screen.options = Array.from(new Set([...screen.options, ...options]));
+    if (kind === 'collocation') screen.collocationRows?.push({ word: prompt, answer });
+    if (kind === 'sentence') screen.sentenceRows?.push({
+      before: questionStart || prompt.split(/_{2,}/)[0] || prompt,
+      after: questionEnd || prompt.split(/_{2,}/).slice(1).join(' ').trim(),
+      answer
+    });
+    if (kind === 'definitionCompletion' || kind === 'definitionMatching') screen.definitionRows?.push({ definition: prompt, answer });
+    if (kind === 'synonym') screen.matchRows?.push({ word: prompt, answer });
+  });
 
-    if (part === 6) {
-      questions.push({ options, collocationRows: [{ word: prompt, answer }] });
-      return questions;
-    }
-
-    questions.push({ options, matchRows: [{ word: prompt, answer }] });
-    return questions;
-  }, []);
-
-  if (questions.length === 0) return [];
-  return normalizeGrammarVocabularyScreens(questions, hasImportedData);
+  const vocabulary = (Object.values(vocabularyScreens) as GrammarQuestionItem[]).filter(isGrammarVocabularyScreen);
+  return normalizeGrammarVocabularyScreens([...grammarChoices.slice(0, 25), ...vocabulary], hasImportedData);
 }
 
 function normalizeGrammarVocabularyScreens(questions: GrammarQuestionItem[], _hasImportedData: boolean) {
@@ -2094,7 +2157,7 @@ function normalizeGrammarVocabularyScreens(questions: GrammarQuestionItem[], _ha
 }
 
 function isGrammarVocabularyScreen(question: GrammarQuestionItem) {
-  return Boolean(question.matchRows || question.definitionRows || question.sentenceRows || question.collocationRows);
+  return Boolean(question.matchRows?.length || question.definitionRows?.length || question.sentenceRows?.length || question.collocationRows?.length);
 }
 
 function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
@@ -2113,44 +2176,52 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
     .filter((item) => item.options.length > 0 && (item.prompt || item.questionStart || item.questionEnd));
 
   const cohesionRows = rows.filter((item) => ['2', '3'].includes(getReadingPart(item))
-    || String(item.template ?? '').trim().toUpperCase() === 'READING_SENTENCE_ORDER');
-  const cohesion = cohesionRows.map((row, index) => {
+    || String(item.template ?? '').trim().toUpperCase() === 'READING_SENTENCE_ORDER')
+    .flatMap((row) => Array.isArray(row.questions) && row.questions.some((question) => question && typeof question === 'object')
+      ? row.questions.flatMap((question) => question && typeof question === 'object' ? [{ ...row, ...(question as Record<string, unknown>), questions: undefined }] : [])
+      : [row]);
+  const cohesionCandidates = cohesionRows.map((row) => {
     const correctOrder = readingCorrectOrderFromItem(row);
     const choices = readingDisplayOrderFromItem(row, correctOrder);
-    return {
-      title: String(row?.topic ?? `Part ${index + 2}`).trim(),
-      choices,
-      correctOrder
-    };
-  }).filter((item) => item.correctOrder.length > 0);
+    return { part: getReadingPart(row), topic: String(row?.topic ?? '').trim(), choices, correctOrder };
+  }).filter((item) => item.correctOrder.length > 0)
+    .filter((item, index, items) => items.findIndex((candidate) => JSON.stringify(candidate.correctOrder) === JSON.stringify(item.correctOrder)) === index);
+  const normalizedCohesion = normalizeReadingCohesionScreens(cohesionCandidates);
+  const cohesion = normalizedCohesion.map((item) => ({
+    title: `Part ${item.part}${item.topic ? ` - ${item.topic}` : ''}`,
+    choices: item.choices,
+    correctOrder: item.correctOrder
+  }));
 
-  const part4Rows = rows.filter((item) => getReadingPart(item) === '4');
-  const context = readingForumContextFromRows(part4Rows);
-  const forumQuestions = part4Rows.flatMap((item) => asStringArray(item.questions).length > 0
+  const part3Rows = rows.filter((item) => getReadingPart(item) === '3');
+  const context = readingForumContextFromRows(part3Rows);
+  const forumQuestions = part3Rows.flatMap((item) => asStringArray(item.questions).length > 0
     ? asStringArray(item.questions)
     : [String(item.prompt ?? item.question ?? '').trim()].filter(Boolean));
-  const forumAnswers = part4Rows.flatMap((item) => asStringArray(item.correctAnswers).length > 0
+  const forumAnswers = part3Rows.flatMap((item) => asStringArray(item.correctAnswers).length > 0
     ? asStringArray(item.correctAnswers)
     : [String(item.answer ?? item.correctAnswer ?? '').trim()].filter(Boolean));
   const forumIntroText = context.find((line) => !/^<strong>[A-D]:/i.test(line))
-    ?? String(part4Rows[0]?.leftTitle ?? '').trim();
+    ?? String(part3Rows[0]?.leftTitle ?? '').trim();
   const forumIntro = forumIntroText || undefined;
+  const fallbackOpinion = fallbackReadingOpinion();
+  const parsedPeople = peopleFromReadingContext(context);
   const opinion = {
-    people: peopleFromReadingContext(context),
-    questions: forumQuestions,
-    correctAnswers: forumAnswers,
+    people: parsedPeople.length > 0 ? parsedPeople : fallbackOpinion.people,
+    questions: forumQuestions.length > 0 ? forumQuestions : fallbackOpinion.questions,
+    correctAnswers: forumAnswers.length > 0 ? forumAnswers : fallbackOpinion.correctAnswers,
     intro: forumIntro,
-    topic: String(part4Rows[0]?.topic ?? '').trim() || undefined
+    topic: String(part3Rows[0]?.topic ?? '').trim() || undefined
   };
 
-  const part5Row = rows.find((item) => getReadingPart(item) === '5');
-  const longOptions = asStringArray(part5Row?.options);
-  const paragraphs = asStringArray(part5Row?.paragraphs);
-  const longCorrectAnswers = asStringArray(part5Row?.correctAnswers).length > 0
-    ? asStringArray(part5Row?.correctAnswers).map((answer) => resolveOptionLabel(String(answer), longOptions)).filter(Boolean)
+  const part4Row = rows.find((item) => getReadingPart(item) === '4');
+  const longOptions = asStringArray(part4Row?.options);
+  const paragraphs = asStringArray(part4Row?.paragraphs);
+  const longCorrectAnswers = asStringArray(part4Row?.correctAnswers).length > 0
+    ? asStringArray(part4Row?.correctAnswers).map((answer) => resolveOptionLabel(String(answer), longOptions)).filter(Boolean)
     : paragraphs.map((_, index) => longOptions[index] ?? '');
   const long = {
-    title: String(part5Row?.topic ?? 'Long Reading').trim(),
+    title: String(part4Row?.topic ?? 'Long Reading').trim(),
     headings: rotateChoices(longOptions),
     paragraphs,
     correctAnswers: longCorrectAnswers
@@ -2164,18 +2235,70 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
   };
 }
 
+function fallbackReadingOpinion(): ReadingOpinionQuestion {
+  return {
+    intro: 'Four people respond in the comments section of an online magazine article about flying and air travel. Read the texts and then answer the questions below.',
+    people: [
+      { label: 'A', text: 'I was a businessman so I had to fly many times a week. I felt very tired every time I had to fly. Now I usually take the train when I can because I can relax and enjoy the journey.' },
+      { label: 'B', text: 'My family live quite far from me, so I often have to fly to visit them. I really appreciate the time we spend together, but I also try to protect the environment in other ways.' },
+      { label: 'C', text: 'I want to work as a tour guide, so I understand that I may need to fly. However, I think airline tickets should include extra taxes to encourage people to choose other transport when possible.' },
+      { label: 'D', text: 'If I can choose, I prefer other public transport, not planes. Flying makes me tired, but sometimes my work means I cannot avoid it.' }
+    ],
+    questions: [
+      'Who prefers travelling by train now?',
+      'Who flies to visit family?',
+      'Who thinks air tickets should be more expensive?',
+      'Who sometimes has to fly for work?'
+    ],
+    correctAnswers: ['A', 'B', 'C', 'D']
+  };
+}
+
+function normalizeReadingCohesionScreens(items: { part: string; topic: string; choices: string[]; correctOrder: string[] }[]) {
+  const part2 = items.filter((item) => item.part === '2');
+  const firstPart2 = part2[0] ?? fallbackReadingCohesion('2', 0);
+  const secondPart2 = part2[1] ?? fallbackReadingCohesion('2', 1);
+  return [firstPart2, secondPart2];
+}
+
+function fallbackReadingCohesion(part: '2', variant: number) {
+  const sets = [
+    [
+      'The club wanted to organize a trip for its members.',
+      'First, everyone suggested different places to visit.',
+      'After a short discussion, the group chose the coast.',
+      'They then planned the transport and the activities.',
+      'In the end, the trip was enjoyable for all members.'
+    ],
+    [
+      'Learning a new skill often begins with curiosity.',
+      'At first, the learner may not know the best method.',
+      'Regular practice helps the skill become easier.',
+      'Advice from experienced people can also be useful.',
+      'This shows that progress usually takes time and effort.'
+    ]
+  ];
+  const correctOrder = sets[variant] ?? sets[0];
+  return {
+    part,
+    topic: `Text Cohesion ${variant + 1}`,
+    choices: rotateChoices(correctOrder),
+    correctOrder
+  };
+}
+
 function getReadingPart(item: Record<string, unknown>) {
+  const template = String(item.template ?? '').trim().toUpperCase();
+  if (template === 'READING_FORUM_MATCH') return '3';
+  if (template === 'READING_HEADING_MATCH') return '4';
+  if (template === 'READING_GAP_FILL') return '1';
   const part = String(item.part ?? '').trim();
   if (part) return part.replace(/^part\s*/i, '');
 
-  const template = String(item.template ?? '').trim().toUpperCase();
-  if (template === 'READING_GAP_FILL') return '1';
   if (template === 'READING_SENTENCE_ORDER') {
     const topic = String(item.topic ?? item.title ?? '').toLowerCase();
     return topic.includes('part 3') ? '3' : '2';
   }
-  if (template === 'READING_FORUM_MATCH') return '4';
-  if (template === 'READING_HEADING_MATCH') return '5';
 
   const searchableText = removeVietnameseMarks([
     item.topic,
@@ -2188,8 +2311,8 @@ function getReadingPart(item: Record<string, unknown>) {
   if (searchableText.includes('right order') || searchableText.includes('sentence order') || searchableText.includes('sap xep')) {
     return searchableText.includes('part 3') ? '3' : '2';
   }
-  if (searchableText.includes('forum') || searchableText.includes('opinion matching')) return '4';
-  if (searchableText.includes('heading') || searchableText.includes('long reading')) return '5';
+  if (searchableText.includes('forum') || searchableText.includes('opinion matching')) return '3';
+  if (searchableText.includes('heading') || searchableText.includes('long reading')) return '4';
 
   return '';
 }
@@ -2299,7 +2422,13 @@ function resolveOptionLabel(value: string, options: string[]) {
 
 function peopleFromReadingContext(context: string[]) {
   return context.reduce<{ label: string; text: string }[]>((people, line) => {
-    const match = line.match(/^<strong>([A-D]):<\/strong>\s*(.*)$/i);
+    const normalized = repairUserText(line)
+      .replace(/<strong[^>]*>/gi, '')
+      .replace(/<\/strong>/gi, '')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const match = normalized.match(/^([A-D])[\).:]?\s*(.*)$/i);
     if (!match) return people;
     people.push({ label: match[1].toUpperCase(), text: match[2] });
     return people;
@@ -2736,15 +2865,16 @@ function scoreGrammarAnswers(answers: Record<number, string>, questions: Grammar
     }).length;
   });
   const correct = counts.reduce((sum, value) => sum + value, 0);
-  const grammarCount = questions.filter((question) => !question.matchRows && !question.definitionRows && !question.sentenceRows && !question.collocationRows).length;
-  const vocabularyCount = Math.max(0, questions.length - grammarCount);
-  const grammarCorrect = counts.slice(0, grammarCount).reduce((sum, value) => sum + value, 0);
-  const vocabularyCorrect = counts.slice(grammarCount).reduce((sum, value) => sum + value, 0);
+  const grammarCount = questions.filter((question) => !isGrammarVocabularyScreen(question)).length;
+  const vocabularyCount = questions.reduce((total, question) => total + (question.matchRows ?? question.definitionRows ?? question.sentenceRows ?? question.collocationRows ?? []).length, 0);
+  const grammarCorrect = questions.reduce((total, question, index) => total + (isGrammarVocabularyScreen(question) ? 0 : counts[index]), 0);
+  const vocabularyCorrect = correct - grammarCorrect;
+  const totalQuestions = grammarCount + vocabularyCount;
   const rows = [
-    { part: 'Grammar multiple choice', correct: `${grammarCorrect}/${grammarCount}`, score: `${scoreFromCorrect(grammarCorrect, grammarCount, Math.round((grammarCount / Math.max(1, questions.length)) * 50))}/50` },
-    { part: 'Vocabulary & matching', correct: `${vocabularyCorrect}/${vocabularyCount}`, score: `${scoreFromCorrect(vocabularyCorrect, vocabularyCount, Math.round((vocabularyCount / Math.max(1, questions.length)) * 50))}/50` }
+    { part: 'Grammar multiple choice', correct: `${grammarCorrect}/${grammarCount}`, score: `${scoreFromCorrect(grammarCorrect, grammarCount, Math.round((grammarCount / Math.max(1, totalQuestions)) * 50))}/50` },
+    { part: 'Vocabulary & matching', correct: `${vocabularyCorrect}/${vocabularyCount}`, score: `${scoreFromCorrect(vocabularyCorrect, vocabularyCount, Math.round((vocabularyCount / Math.max(1, totalQuestions)) * 50))}/50` }
   ];
-  return { correct, total: questions.length, score: scoreFromCorrect(correct, questions.length, 50), maxScore: 50, cefr: 'Không xếp CEFR', rows };
+  return { correct, total: totalQuestions, score: scoreFromCorrect(correct, totalQuestions, 50), maxScore: 50, cefr: 'Không xếp CEFR', rows };
 }
 
 function scoreListeningAnswers(
@@ -2784,21 +2914,27 @@ function scoreReadingAnswers(
   data: ReadingTestData = fallbackReadingTestData
 ): SkillScoreSummary {
   const gapCorrect = data.gaps.filter((question, index) => sameAnswer(gapAnswers[index], question.answer)).length;
-  const cohesionCorrect = data.cohesion.reduce((sum, question, index) => {
+  const cohesionCorrectCounts = data.cohesion.map((question, index) => {
     const userAnswers = cohesionAnswers[index] ?? [];
-    return sum + question.correctOrder.filter((answer, answerIndex) => sameAnswer(userAnswers[answerIndex], answer)).length;
-  }, 0);
+    return question.correctOrder.filter((answer, answerIndex) => sameAnswer(userAnswers[answerIndex], answer)).length;
+  });
+  const cohesionCorrect = cohesionCorrectCounts.reduce((sum, count) => sum + count, 0);
   const opinionCorrect = data.opinion.correctAnswers.filter((answer, index) => sameAnswer(opinionAnswers[index], answer)).length;
   const longCorrect = data.long.correctAnswers.filter((answer, index) => sameAnswer(longAnswers[index], answer)).length;
   const gapTotal = data.gaps.length;
   const cohesionTotal = data.cohesion.reduce((sum, question) => sum + question.correctOrder.length, 0);
   const opinionTotal = data.opinion.correctAnswers.length;
   const longTotal = data.long.correctAnswers.length;
+  const cohesionWeights = data.cohesion.length >= 2 ? [8, 9] : [17];
   const rows = [
     { part: 'Part 1 - Gap Fill', correct: `${gapCorrect}/${gapTotal}`, score: `${scoreFromCorrect(gapCorrect, gapTotal, 7)}/7` },
-    { part: 'Part 2 + 3 - Text Cohesion', correct: `${cohesionCorrect}/${cohesionTotal}`, score: `${scoreFromCorrect(cohesionCorrect, cohesionTotal, 17)}/17` },
-    { part: 'Part 4 - Opinion Matching', correct: `${opinionCorrect}/${opinionTotal}`, score: `${scoreFromCorrect(opinionCorrect, opinionTotal, 13)}/13` },
-    { part: 'Part 5 - Long Reading', correct: `${longCorrect}/${longTotal}`, score: `${scoreFromCorrect(longCorrect, longTotal, 13)}/13` }
+    ...data.cohesion.map((question, index) => ({
+      part: `Part ${index + 2} - Text Cohesion`,
+      correct: `${cohesionCorrectCounts[index]}/${question.correctOrder.length}`,
+      score: `${scoreFromCorrect(cohesionCorrectCounts[index], question.correctOrder.length, cohesionWeights[index] ?? 0)}/${cohesionWeights[index] ?? 0}`
+    })),
+    { part: 'Part 3 - Opinion Matching', correct: `${opinionCorrect}/${opinionTotal}`, score: `${scoreFromCorrect(opinionCorrect, opinionTotal, 13)}/13` },
+    { part: 'Part 4 - Long Reading', correct: `${longCorrect}/${longTotal}`, score: `${scoreFromCorrect(longCorrect, longTotal, 13)}/13` }
   ];
   const correct = gapCorrect + cohesionCorrect + opinionCorrect + longCorrect;
   const score = rows.reduce((sum, row) => sum + Number(row.score.split('/')[0]), 0);
@@ -2824,7 +2960,7 @@ function savedListeningReview(
     { title: 'Part 3 - Short Conversations', rows: shortData.statements.map((statement, index) => savedReviewRow(statement, shortAnswers[index], shortData.answerKey[index])) },
     { title: 'Part 4 - Monologues', rows: monologues.flatMap((recording, recordingIndex) => recording.questions.map((question, questionIndex) => {
       const key = `${recordingIndex}-${questionIndex}`;
-      return savedReviewRow(`Recording ${recordingIndex + 1}: ${question.prompt}`, monologueAnswers[key], monologueAnswerKey[key]);
+      return savedReviewRow(`Question ${recording.questionNumber ?? 16 + recordingIndex}.${questionIndex + 1}: ${question.prompt}`, monologueAnswers[key], monologueAnswerKey[key]);
     })) }
   ];
 }
@@ -2832,16 +2968,27 @@ function savedListeningReview(
 function savedReadingReview(data: ReadingTestData, gapAnswers: Record<number, string>, cohesionAnswers: Record<number, string[]>, opinionAnswers: Record<number, string>, longAnswers: Record<number, string>): SavedReviewGroup[] {
   return [
     { title: 'Part 1 - Gap Fill', rows: data.gaps.map((question, index) => savedReviewRow(formatGapPrompt(question), gapAnswers[index], question.answer)) },
-    { title: 'Part 2 + 3 - Text Cohesion', rows: data.cohesion.flatMap((question, questionIndex) => question.correctOrder.map((answer, index) => savedReviewRow(`${question.title} - Vị trí ${index + 1}`, cohesionAnswers[questionIndex]?.[index], answer))) },
-    { title: 'Part 4 - Opinion Matching', rows: data.opinion.questions.map((question, index) => savedReviewRow(question, opinionAnswers[index], data.opinion.correctAnswers[index])) },
-    { title: 'Part 5 - Long Reading', rows: data.long.correctAnswers.map((answer, index) => savedReviewRow(`Paragraph ${index + 1}`, longAnswers[index], resolveOptionLabel(answer, data.long.headings))) }
+    ...data.cohesion.map((question, questionIndex) => ({
+      title: `Part ${questionIndex + 2} - Text Cohesion`,
+      rows: question.correctOrder.map((answer, index) => savedReviewRow(`${question.title} - Vị trí ${index + 1}`, cohesionAnswers[questionIndex]?.[index], answer))
+    })),
+    { title: 'Part 3 - Opinion Matching', rows: data.opinion.questions.map((question, index) => savedReviewRow(question, opinionAnswers[index], data.opinion.correctAnswers[index])) },
+    { title: 'Part 4 - Long Reading', rows: data.long.correctAnswers.map((answer, index) => savedReviewRow(`Paragraph ${index + 1}`, longAnswers[index], resolveOptionLabel(answer, data.long.headings))) }
   ];
 }
 
 function savedGrammarReview(answers: Record<number, string>, questions: GrammarQuestionItem[]): SavedReviewGroup[] {
   return [{
     title: 'Grammar & Vocabulary',
-    rows: questions.map((question, index) => savedReviewRow(question.prompt || `Câu ${index + 1}`, answers[index], question.answer || 'Xem đáp án theo từng cặp ghép'))
+    rows: questions.flatMap((question, index) => {
+      if (question.answer) return [savedReviewRow(question.prompt || `Câu ${index + 1}`, answers[index], question.answer)];
+      const selections = parseGrammarMatchingAnswer(answers[index]);
+      const rows = question.matchRows ?? question.definitionRows ?? question.sentenceRows ?? question.collocationRows ?? [];
+      return rows.map((row) => {
+        const label = 'word' in row ? row.word : 'definition' in row ? row.definition : row.before;
+        return savedReviewRow(`Câu ${index + 1}: ${label}`, selections[label], row.answer);
+      });
+    })
   }];
 }
 
@@ -4354,9 +4501,9 @@ export function MockTests() {
         )),
         questionItem(bookmarkKey('listening-part2', 1), 'Part 2', 'Matching Information', screen === 'listeningMatching', () => setScreen('listeningMatching')),
         questionItem(bookmarkKey('listening-part3', 1), 'Part 3', 'Short Conversations', screen === 'listeningShort', () => setScreen('listeningShort')),
-        ...activeListeningMonologues.map((_, index) => questionItem(
+        ...activeListeningMonologues.map((recording, index) => questionItem(
           bookmarkKey('listening-part4', index + 1),
-          `Part 4 - Recording ${index + 1}`,
+          `Part 4 - Question ${recording.questionNumber ?? 16 + index}`,
           'Monologues',
           screen === 'listeningMonologues' && listeningMonologueIndex === index,
           () => {
@@ -4380,8 +4527,8 @@ export function MockTests() {
             setScreen('readingCohesion');
           }
         )),
-        questionItem(bookmarkKey('reading-part4', 1), 'Part 4', 'Opinion Matching', screen === 'readingOpinion', () => setScreen('readingOpinion')),
-        questionItem(bookmarkKey('reading-part5', 1), 'Part 5', 'Long Reading', screen === 'readingLong', () => setScreen('readingLong'))
+        questionItem(bookmarkKey('reading-part3', 1), 'Part 3', 'Opinion Matching', screen === 'readingOpinion', () => setScreen('readingOpinion')),
+        questionItem(bookmarkKey('reading-part4', 1), 'Part 4', 'Long Reading', screen === 'readingLong', () => setScreen('readingLong'))
       ];
     }
 
@@ -4466,7 +4613,7 @@ export function MockTests() {
         <div className="min-h-screen bg-white">
           {(screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong') && (
             <ReadingTopbar
-              title={screen === 'readingLong' ? 'Part 5 - Long Reading' : screen === 'readingOpinion' ? 'Part 4 - Opinion Matching' : screen === 'readingCohesion' ? `Part ${readingCohesionIndex + 2} - Text Cohesion` : 'Part 1 - Gap Fill'}
+              title={screen === 'readingLong' ? 'Part 4 - Long Reading' : screen === 'readingOpinion' ? 'Part 3 - Opinion Matching' : screen === 'readingCohesion' ? activeReadingData.cohesion[readingCohesionIndex]?.title ?? 'Part 2 - Text Cohesion' : 'Part 1 - Gap Fill'}
               onExit={() => setScreen('select')}
             />
           )}
@@ -4498,7 +4645,7 @@ export function MockTests() {
           {screen === 'readingInstructions' && <ReadingInstructions />}
           {screen === 'readingQuestion' && <ReadingQuestion data={activeReadingData.gaps} answers={readingGapAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part1', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part1', 1))} />}
           {screen === 'readingCohesion' && <ReadingCohesion data={activeReadingData.cohesion[readingCohesionIndex] ?? activeReadingData.cohesion[0]} answers={readingCohesionAnswers[readingCohesionIndex] ?? []} bookmarkActive={isBookmarked(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} questionIndex={readingCohesionIndex} total={activeReadingData.cohesion.length} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(answers) => setReadingCohesionAnswers((currentAnswers) => ({ ...currentAnswers, [readingCohesionIndex]: answers }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part2-3', readingCohesionIndex + 1))} />}
-          {screen === 'readingOpinion' && <ReadingOpinion data={activeReadingData.opinion} answers={readingOpinionAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part4', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingOpinionAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part4', 1))} />}
+          {screen === 'readingOpinion' && <ReadingOpinion data={activeReadingData.opinion} answers={readingOpinionAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part3', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingOpinionAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part3', 1))} />}
           {screen === 'readingLong' && <ReadingLong data={activeReadingData.long} answers={readingLongAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part5', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingLongAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part5', 1))} />}
           {screen === 'fullResult' && (
             <FullResult
@@ -5636,6 +5783,7 @@ function GrammarInstructions() {
 
 function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, timeRemaining, total, onAnswer, onToggleBookmark }: { answer?: string; bookmarkActive: boolean; index: number; question: GrammarQuestionItem; showAnswer?: boolean; timeRemaining: string; total: number; onAnswer: (answer: string) => void; onToggleBookmark: () => void }) {
   const matchingSelections = parseGrammarMatchingAnswer(answer);
+  const hasSentenceAfterText = Boolean(question.sentenceRows?.some((row) => row.after?.trim()));
   const updateMatchingAnswer = (word: string, value: string) => {
     onAnswer(JSON.stringify({ ...matchingSelections, [word]: value }));
   };
@@ -5731,15 +5879,28 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
           ) : question.sentenceRows ? (
             <>
               <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, borderRadius: 999, backgroundColor: '#f1eaff', color: '#2b075c', padding: '0 10px', fontSize: 15 }}>
-                Sentence Gap Fill
+                {hasSentenceAfterText ? 'Sentence Gap Fill' : 'Word Selection'}
               </span>
               <p style={{ color: '#1f2937', fontSize: 17, lineHeight: '27px', margin: '14px 0 24px' }}>
-                Select a word from each drop-down list on the right that has the same or a very similar meaning to each word on the left.
+                {hasSentenceAfterText
+                  ? 'Complete each sentence by choosing the best word from the drop-down list.'
+                  : 'Select the best matching word from each drop-down list.'}
               </p>
 
               <div style={{ display: 'grid', gap: 14 }}>
                 {question.sentenceRows.map((row) => (
-                  <div key={`${row.before}-${row.after}`} style={{ color: '#020817', fontSize: 17, lineHeight: '46px' }}>
+                  <div
+                    key={`${row.before}-${row.after}`}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: hasSentenceAfterText ? 'minmax(120px, max-content) 252px minmax(0, 1fr)' : 'minmax(72px, max-content) 252px',
+                      alignItems: 'center',
+                      gap: 10,
+                      color: '#020817',
+                      fontSize: 17,
+                      lineHeight: '26px'
+                    }}
+                  >
                     <span>{row.before}</span>
                     <select
                       value={matchingSelections[row.before] ?? ''}
@@ -5940,7 +6101,6 @@ const grammarSentenceSelectStyle = {
   backgroundColor: '#ffffff',
   color: '#020817',
   padding: '0 16px',
-  margin: '0 10px',
   fontSize: 16,
   outline: 'none'
 };
@@ -6895,8 +7055,9 @@ function ListeningMonologues({
   onToggleBookmark: () => void;
 }) {
   const labels = ['A', 'B', 'C'];
-  const currentRecording: ListeningMonologueData = recording ?? { title: '', questions: [] };
+  const currentRecording: ListeningMonologueData = recording ?? { questions: [] };
   const { playing, playsLeft, toggleAudio } = useAudioPlayer(audioUrl || currentRecording.audioUrl);
+  const questionNumber = currentRecording.questionNumber ?? 16 + index;
 
   return (
     <main
@@ -6910,7 +7071,7 @@ function ListeningMonologues({
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 4</p>
-            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Recording {index + 1}</h2>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question {questionNumber} of 17</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -6963,7 +7124,7 @@ function ListeningMonologues({
           {currentRecording.questions.map((question, questionIndex) => (
             <div key={question.prompt}>
               <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '0 0 14px' }}>
-                {questionIndex + 1}. {question.prompt}
+                {questionNumber}.{questionIndex + 1} {question.prompt.replace(/^\s*\d+\.\d+\s*/, '')}
               </p>
               <div
                 style={{
@@ -7033,7 +7194,7 @@ function ReadingStart({ data, mockCard, loading, onStart }: { data: ReadingTestD
   const hasGaps = data.gaps.length > 0;
   const hasOpinion = data.opinion.people.length > 0 && data.opinion.questions.length > 0;
   const hasLong = data.long.headings.length > 0 && data.long.paragraphs.length > 0;
-  const questionCount = Number(hasGaps) + data.cohesion.length + Number(hasOpinion) + Number(hasLong);
+  const questionCount = Number(hasGaps) + data.cohesion.length + Number(hasOpinion || hasLong);
   const canStart = !loading && questionCount > 0;
   return (
     <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
@@ -7958,8 +8119,8 @@ function ReadingReview({
             })}
           </ReadingAnswerSection>
 
-          <ReadingAnswerSection title="Part 2 + 3 - Text Cohesion">
-            {data.cohesion.map((question, questionIndex) => (
+          {data.cohesion.map((question, questionIndex) => (
+          <ReadingAnswerSection key={question.title} title={`Part ${questionIndex + 2} - Text Cohesion`}>
               <div key={question.title} style={{ display: 'grid', gap: 10 }}>
                 <h3 style={{ color: '#111827', fontSize: 18, fontWeight: 900, margin: questionIndex === 0 ? '0 0 2px' : '10px 0 2px' }}>{question.title}</h3>
                 {question.correctOrder.map((answer, sentenceIndex) => {
@@ -7977,10 +8138,10 @@ function ReadingReview({
                   );
                 })}
               </div>
-            ))}
           </ReadingAnswerSection>
+          ))}
 
-          <ReadingAnswerSection title="Part 4 - Opinion Matching">
+          <ReadingAnswerSection title="Part 3 - Opinion Matching">
             {data.opinion.questions.map((question, index) => {
               const answer = data.opinion.correctAnswers[index] ?? '';
               const user = opinionAnswers[index] || 'Chưa chọn';
@@ -7997,7 +8158,7 @@ function ReadingReview({
             })}
           </ReadingAnswerSection>
 
-          <ReadingAnswerSection title="Part 5 - Long Reading">
+          <ReadingAnswerSection title="Part 4 - Long Reading">
             {data.long.correctAnswers.map((answer, index) => {
               const correctAnswer = resolveOptionLabel(answer, data.long.headings);
               const user = longAnswers[index] || 'Chưa chọn';
