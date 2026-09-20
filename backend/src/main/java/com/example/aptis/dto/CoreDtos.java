@@ -11,6 +11,7 @@ import com.example.aptis.enums.TestStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -104,7 +105,11 @@ public class CoreDtos {
     public record ProgressResponse(Long skillId, String skillName, Integer completedTests, Integer bestScore) {
     }
 
-    public record MediaResponse(Long id, String originalName, String contentType, Long sizeBytes, MediaType type) {
+    public record MediaResponse(Long id, String originalName, String contentType, Long sizeBytes, MediaType type,
+                                boolean banner, boolean bannerActive, Integer bannerSortOrder) {
+    }
+
+    public record MediaBannerRequest(boolean banner, boolean active, @NotNull @PositiveOrZero Integer sortOrder) {
     }
 
     public record StatisticsResponse(long users, long tests, long submissions, double averageScore) {

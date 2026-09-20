@@ -68,14 +68,17 @@ app:
     transcription-base-url: ${TRANSCRIPTION_BASE_URL:https://api.groq.com/openai/v1}
     transcription-model: ${TRANSCRIPTION_MODEL:whisper-large-v3-turbo}
 
+  speaking:
+    max-audio-bytes: ${SPEAKING_MAX_AUDIO_BYTES:15728640}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
 logging:
   level:
-    root: WARN
-    com.example.aptis: WARN
+    root: INFO
+    com.example.aptis: INFO
     com.example.aptis.service.EmailService: ERROR
     org.springframework: WARN
     org.springframework.web: ERROR

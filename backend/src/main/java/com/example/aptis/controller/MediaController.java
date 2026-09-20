@@ -48,6 +48,18 @@ public class MediaController {
         return ApiResponse.ok(service.mediaList());
     }
 
+    @GetMapping("/banners")
+    public ApiResponse<List<CoreDtos.MediaResponse>> banners() {
+        return ApiResponse.ok(service.activeBannerMedia());
+    }
+
+    @PatchMapping("/{id}/banner")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<CoreDtos.MediaResponse> updateBanner(@PathVariable Long id,
+                                                            @RequestBody @jakarta.validation.Valid CoreDtos.MediaBannerRequest request) {
+        return ApiResponse.ok(service.updateBannerMedia(id, request));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Resource> get(@PathVariable Long id) throws Exception {
         MediaFile media = service.mediaEntity(id);

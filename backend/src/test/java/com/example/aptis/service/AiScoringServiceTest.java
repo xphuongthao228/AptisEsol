@@ -9,12 +9,24 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AiScoringServiceTest {
     @Test
-    void unavailableTranscriptionMustNotProduceALowScore() {
+    void unavailableTranscriptionProducesZeroAptisScore() {
         AiScoringService service = new AiScoringService(new ObjectMapper(), new DefaultResourceLoader());
         var part = new AiDtos.SpeakingPartRequest("Part 1", "Tell me about yourself",
                 "[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]", "answer.webm", "audio/webm", 1000L);
-        IllegalStateException error = assertThrows(IllegalStateException.class,
-                () -> service.scoreSpeaking(new AiDtos.SpeakingScoreRequest(List.of(part))));
-        assertTrue(error.getMessage().contains("bản ghi âm"));
+        var result = service.scoreSpeaking(new AiDtos.SpeakingScoreRequest(List.of(part)));
+        assertEquals(0, result.overallScore());
+        assertEquals("Below A1", result.cefrLevel());
+        assertEquals(0, result.parts().get(0).score());
+    }
+
+    @Test
+    void missingAudioProducesZeroAptisScore() {
+        AiScoringService service = new AiScoringService(new ObjectMapper(), new DefaultResourceLoader());
+        var part = new AiDtos.SpeakingPartRequest("Part 1", "Tell me about yourself",
+                "", "", "", 0L);
+        var result = service.scoreSpeaking(new AiDtos.SpeakingScoreRequest(List.of(part)));
+        assertEquals(0, result.overallScore());
+        assertEquals("Below A1", result.cefrLevel());
+        assertTrue(result.summary().contains("0/50"));
     }
 }

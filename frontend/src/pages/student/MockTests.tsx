@@ -1,4 +1,4 @@
-import {
+﻿import {
   ArrowLeft,
   ArrowRight,
   AlertCircle,
@@ -82,6 +82,13 @@ type AiSpeakingScore = {
   pronunciationTips: string[];
   fluencyTips: string[];
   improvedAnswer: string;
+  audioDiagnostics?: {
+    title: string;
+    status: 'RECOGNIZED' | 'NOT_RECOGNIZED' | 'NO_AUDIO';
+    audioReceived: boolean;
+    audioSizeBytes: number;
+    transcript: string;
+  }[];
 };
 
 type SpeakingScorePartPayload = {
@@ -273,6 +280,11 @@ type SkillScoreSummary = {
   rows: { part: string; correct: string; score: string }[];
 };
 
+type SavedReviewGroup = {
+  title: string;
+  rows: { question: string; userAnswer: string; correctAnswer: string; correct: boolean }[];
+};
+
 type QuestionListItem = {
   key: string;
   label: string;
@@ -310,9 +322,10 @@ function canOpenMockCard(card: MockCard, proActive: boolean) {
 
 function aiScoringError(error: unknown, skill: string) {
   const status = (error as { response?: { status?: number } })?.response?.status;
+  const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
   return status === 403
     ? `Chấm ${skill} AI cần gia hạn tài khoản. Bạn vẫn có thể làm 2 đề miễn phí.`
-    : `Chưa chấm được ${skill} AI. Vui lòng thử lại.`;
+    : apiMessage?.trim() || (error instanceof Error && error.message.trim() ? error.message : `Chưa chấm được ${skill} AI. Vui lòng thử lại.`);
 }
 const fullRequiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
 
@@ -927,6 +940,15 @@ function normalizeQuestionSection(value: unknown, skill: MockSkill, inheritedPar
     ['LISTENING_PEOPLE_MATCH', 'LISTENING_OPINION_MATCH'].includes(String(listeningRow.template ?? ''))
     || (Array.isArray(row.options) && Array.isArray(row.questions) && row.questions.every((question) => typeof question === 'string'))
   )) {
+    return [listeningRow];
+  }
+
+  if (skill === 'READING' && [
+    'READING_GAP_FILL',
+    'READING_SENTENCE_ORDER',
+    'READING_FORUM_MATCH',
+    'READING_HEADING_MATCH'
+  ].includes(String(listeningRow.template ?? '').toUpperCase())) {
     return [listeningRow];
   }
 
@@ -2017,17 +2039,18 @@ function grammarQuestionsFromCard(card?: MockCard | null): GrammarQuestionItem[]
     });
 
   const questions = rows.reduce<GrammarQuestionItem[]>((questions, item) => {
-    const prompt = String(item.prompt ?? item.question ?? '').trim();
-    const options = Array.isArray(item.options) ? item.options.map(String).map((option) => option.trim()).filter(Boolean) : [];
-    const answer = String(item.answer ?? item.correctAnswer ?? '').trim() || options[0] || undefined;
+    const prompt = repairUserText(String(item.prompt ?? item.question ?? '')).trim();
+    const options = Array.isArray(item.options) ? item.options.map(String).map((option) => repairUserText(option).trim()).filter(Boolean) : [];
+    const answer = repairUserText(String(item.answer ?? item.correctAnswer ?? '')).trim() || options[0] || undefined;
     const part = Number(item.part ?? 1);
     const type = String(item.type ?? '').toLowerCase();
-    const questionStart = String(item.questionStart ?? '').trim();
-    const questionEnd = String(item.questionEnd ?? '').trim();
+    const template = String(item.template ?? '').toUpperCase();
+    const questionStart = repairUserText(String(item.questionStart ?? '')).trim();
+    const questionEnd = repairUserText(String(item.questionEnd ?? '')).trim();
 
     if (!prompt || options.length === 0 || !answer) return questions;
 
-    if (part === 1 || type.includes('grammar')) {
+    if (part === 1 || type.includes('grammar') || template === 'GRAMMAR_CHOICE') {
       questions.push({ prompt, options, answer });
       return questions;
     }
@@ -2406,7 +2429,7 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
       ...current,
       heading: heading || (clubName ? current.heading.replace(/(?:an?|the)\s+[^.]+ club/i, `the ${clubName}`) : current.heading),
       prompt: partIndex === 3 ? context || prompt || current.prompt : prompt || current.prompt,
-      questions: (partIndex === 0 || partIndex === 2) && rowQuestions.length > 0 ? rowQuestions : current.questions,
+      questions: partIndex < 3 && rowQuestions.length > 0 ? rowQuestions : current.questions,
       helper: String(first.helper ?? first.wordLimit ?? '').trim() || current.helper,
       sampleAnswers: sampleAnswers.length > 0 ? sampleAnswers : current.sampleAnswers,
       emailPrompts
@@ -2632,6 +2655,41 @@ function clampScore50(score: number) {
   return Math.min(50, Math.max(0, Math.round(Number.isFinite(score) ? score : 0)));
 }
 
+type AptisBand = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
+
+function aptisSkillBand(skill: 'LISTENING' | 'READING' | 'SPEAKING' | 'WRITING', rawScore: number, grammarScore: number): AptisBand {
+  const score = clampScore50(rawScore);
+  const grammarAllowsBorderline = clampScore50(grammarScore) > 32;
+
+  if (skill === 'LISTENING') {
+    if (score > 40 || (score === 40 && grammarAllowsBorderline)) return 'C1';
+    if (score >= 34) return 'B2';
+    if (score >= 24) return 'B1';
+  }
+  if (skill === 'READING') {
+    if (score > 44 || (score === 44 && grammarAllowsBorderline)) return 'C1';
+    if (score > 36 || (score === 36 && grammarAllowsBorderline)) return 'B2';
+    if (score >= 24) return 'B1';
+  }
+  if (skill === 'SPEAKING') {
+    if (score >= 46) return 'C1';
+    if (score > 40 || (score === 40 && grammarAllowsBorderline)) return 'B2';
+    if (score >= 26) return 'B1';
+  }
+  if (skill === 'WRITING') {
+    if (score >= 46) return 'C1';
+    if (score > 38 || (score === 38 && grammarAllowsBorderline)) return 'B2';
+    if (score >= 26) return 'B1';
+  }
+  return score >= 14 ? 'A2' : 'A1';
+}
+
+function overallBandFromSkills(bands: AptisBand[]): AptisBand {
+  const levels: AptisBand[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
+  const average = bands.reduce((sum, band) => sum + levels.indexOf(band), 0) / Math.max(1, bands.length);
+  return levels[Math.min(levels.length - 1, Math.max(0, Math.round(average)))];
+}
+
 function wordCount(value: string) {
   return value.trim().split(/\s+/).filter(Boolean).length;
 }
@@ -2749,8 +2807,53 @@ function scoreReadingAnswers(
   return { correct, total, score: clampScore50(score), maxScore: 50, cefr: cefrFromReadingCorrect25(aptisCorrect), rows };
 }
 
+function savedListeningReview(
+  part1Answers: Record<number, string>,
+  part1Questions: ListeningPart1Question[],
+  matchingAnswers: Record<string, string>,
+  matchingData: ListeningMatchingData,
+  shortAnswers: Record<number, string>,
+  shortData: ListeningShortData,
+  monologueAnswers: Record<string, string>,
+  monologues: ListeningMonologueData[],
+  monologueAnswerKey: Record<string, string>
+): SavedReviewGroup[] {
+  return [
+    { title: 'Part 1 - Word Recognition', rows: part1Questions.map((question, index) => savedReviewRow(question.prompt, part1Answers[index], question.answer ?? question.correctAnswer ?? '')) },
+    { title: 'Part 2 - Matching Information', rows: matchingData.speakers.map((speaker) => savedReviewRow(speaker, matchingAnswers[speaker], matchingData.answerKey[speaker])) },
+    { title: 'Part 3 - Short Conversations', rows: shortData.statements.map((statement, index) => savedReviewRow(statement, shortAnswers[index], shortData.answerKey[index])) },
+    { title: 'Part 4 - Monologues', rows: monologues.flatMap((recording, recordingIndex) => recording.questions.map((question, questionIndex) => {
+      const key = `${recordingIndex}-${questionIndex}`;
+      return savedReviewRow(`Recording ${recordingIndex + 1}: ${question.prompt}`, monologueAnswers[key], monologueAnswerKey[key]);
+    })) }
+  ];
+}
+
+function savedReadingReview(data: ReadingTestData, gapAnswers: Record<number, string>, cohesionAnswers: Record<number, string[]>, opinionAnswers: Record<number, string>, longAnswers: Record<number, string>): SavedReviewGroup[] {
+  return [
+    { title: 'Part 1 - Gap Fill', rows: data.gaps.map((question, index) => savedReviewRow(formatGapPrompt(question), gapAnswers[index], question.answer)) },
+    { title: 'Part 2 + 3 - Text Cohesion', rows: data.cohesion.flatMap((question, questionIndex) => question.correctOrder.map((answer, index) => savedReviewRow(`${question.title} - Vị trí ${index + 1}`, cohesionAnswers[questionIndex]?.[index], answer))) },
+    { title: 'Part 4 - Opinion Matching', rows: data.opinion.questions.map((question, index) => savedReviewRow(question, opinionAnswers[index], data.opinion.correctAnswers[index])) },
+    { title: 'Part 5 - Long Reading', rows: data.long.correctAnswers.map((answer, index) => savedReviewRow(`Paragraph ${index + 1}`, longAnswers[index], resolveOptionLabel(answer, data.long.headings))) }
+  ];
+}
+
+function savedGrammarReview(answers: Record<number, string>, questions: GrammarQuestionItem[]): SavedReviewGroup[] {
+  return [{
+    title: 'Grammar & Vocabulary',
+    rows: questions.map((question, index) => savedReviewRow(question.prompt || `Câu ${index + 1}`, answers[index], question.answer || 'Xem đáp án theo từng cặp ghép'))
+  }];
+}
+
+function savedReviewRow(question: string, userAnswer?: string, correctAnswer?: string) {
+  const user = userAnswer || 'Chưa chọn';
+  const answer = correctAnswer || 'Không có đáp án';
+  return { question, userAnswer: user, correctAnswer: answer, correct: sameAnswer(user, answer) };
+}
+
 export function MockTests() {
   const accessToken = useAuthStore((state) => state.accessToken);
+  const currentUser = useAuthStore((state) => state.user);
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTestId = readTestId(searchParams.get('testId'));
   const [screen, setScreen] = useState<SpeakingScreen>(() => readScreen(searchParams.get('screen')));
@@ -3013,19 +3116,20 @@ export function MockTests() {
       const audioContext = AudioContextClass ? new AudioContextClass() : null;
       const analyser = audioContext?.createAnalyser();
 
-      recordingChunksRef.current = [];
+      const recordingChunks: BlobPart[] = [];
+      recordingChunksRef.current = recordingChunks;
       activeRecordingKeyRef.current = recordingKey;
       recordingStreamRef.current = stream;
       mediaRecorderRef.current = recorder;
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) recordingChunksRef.current.push(event.data);
+        if (event.data.size > 0) recordingChunks.push(event.data);
       };
       recorder.onstop = () => {
-        const blob = new Blob(recordingChunksRef.current, { type: recorder.mimeType || 'audio/webm' });
+        const blob = new Blob(recordingChunks, { type: recorder.mimeType || 'audio/webm' });
         speakingRecordingsRef.current = { ...speakingRecordingsRef.current, [recordingKey]: blob };
         setSpeakingRecordings(speakingRecordingsRef.current);
-        recordingChunksRef.current = [];
+        if (recordingChunksRef.current === recordingChunks) recordingChunksRef.current = [];
       };
       recorder.start();
       startSpeechRecognition(recordingKey);
@@ -3673,7 +3777,9 @@ export function MockTests() {
     setScreen('writingResult');
 
     try {
-      const result = await unwrap<AiWritingScore>(api.post('/ai/writing/score', payload));
+      const result = await unwrap<AiWritingScore>(api.post('/ai/writing/score', payload, {
+        timeout: 180_000
+      }));
       setWritingScore(result);
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
@@ -3728,11 +3834,6 @@ export function MockTests() {
       return transcript;
     };
 
-    const audioFileForAi = (key: string, fileName: string) => {
-      const blob = recordings[key] ?? new Blob([], { type: 'audio/webm' });
-      return new File([blob], fileName, { type: blob.type || 'audio/webm' });
-    };
-
     const items = [
         ...activeSpeakingData.part1.map((question, index) => ({
           key: `part1-${index}`,
@@ -3775,7 +3876,12 @@ export function MockTests() {
 
     const formData = new FormData();
     formData.append('payload', JSON.stringify({ parts }));
-    items.forEach((item) => formData.append('files', audioFileForAi(item.key, `${item.key}.webm`)));
+    items.forEach((item) => {
+      const blob = recordings[item.key];
+      if (blob && blob.size > 0) {
+        formData.append('files', new File([blob], `${item.key}.webm`, { type: blob.type || 'audio/webm' }));
+      }
+    });
 
     return { formData, parts };
   }
@@ -3796,7 +3902,9 @@ export function MockTests() {
     setScreen('complete');
 
     try {
-      const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score-audio', payload.formData));
+      const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score-audio', payload.formData, {
+        timeout: 180_000
+      }));
       setSpeakingScore(sanitizeSpeakingScore(result, payload.parts));
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
@@ -3864,7 +3972,7 @@ export function MockTests() {
         || normalized.includes('khong the danh gia noi dung')
         || normalized.includes('khong co du lieu de cham')
         || normalized.includes('diem rat thap')
-        || normalized.includes('chua lay duoc')
+        || normalized.includes('chưa lay duoc')
         || normalized.includes('unavailable')
         || normalized.includes('cannot verify')
       );
@@ -4066,6 +4174,71 @@ export function MockTests() {
   const activeWritingParts = useMemo(() => writingPartsFromCard(activeWritingCard), [activeWritingCard]);
   const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
   const questionListItems = buildCurrentQuestionListItems();
+  const savedResultKeyRef = useRef('');
+
+  useEffect(() => {
+    if (!accessToken || !selectedMockCard) return;
+
+    let score: number | null = null;
+    let maxScore = 50;
+    let cefrLevel: string | null = null;
+    let details: unknown = null;
+
+    if (screen === 'readingResult') {
+      score = clampScore50(readingSummary.score);
+      details = { summary: readingSummary, reviewGroups: savedReadingReview(activeReadingData, readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers) };
+    } else if (screen === 'listeningResult') {
+      score = clampScore50(listeningSummary.score);
+      details = { summary: listeningSummary, reviewGroups: savedListeningReview(listeningAnswers, activeListeningPart1Questions, listeningMatchingAnswers, activeListeningMatchingData, listeningShortAnswers, activeListeningShortData, listeningMonologueAnswers, activeListeningMonologues, activeListeningMonologueAnswerKey) };
+    } else if (screen === 'grammarResult') {
+      score = clampScore50(grammarSummary.score);
+      details = { summary: grammarSummary, reviewGroups: savedGrammarReview(grammarAnswers, activeGrammarQuestions) };
+    } else if (screen === 'writingResult' && writingScore) {
+      score = clampScore50(writingScore.overallScore);
+      cefrLevel = writingScore.cefrLevel;
+      details = writingScore;
+    } else if (screen === 'complete' && speakingScore) {
+      score = clampScore50(speakingScore.overallScore);
+      cefrLevel = speakingScore.cefrLevel;
+      details = speakingScore;
+    } else if (screen === 'fullResult' && speakingScore && writingScore) {
+      score = fullTotalScore;
+      maxScore = 200;
+      const bands = [
+        aptisSkillBand('LISTENING', listeningSummary.score, grammarSummary.score),
+        aptisSkillBand('READING', readingSummary.score, grammarSummary.score),
+        aptisSkillBand('SPEAKING', speakingScore.overallScore, grammarSummary.score),
+        aptisSkillBand('WRITING', writingScore.overallScore, grammarSummary.score)
+      ];
+      cefrLevel = overallBandFromSkills(bands);
+      details = {
+        grammar: grammarSummary, listening: listeningSummary, reading: readingSummary, speaking: speakingScore, writing: writingScore,
+        reviewGroups: [
+          ...savedListeningReview(listeningAnswers, activeListeningPart1Questions, listeningMatchingAnswers, activeListeningMatchingData, listeningShortAnswers, activeListeningShortData, listeningMonologueAnswers, activeListeningMonologues, activeListeningMonologueAnswerKey),
+          ...savedReadingReview(activeReadingData, readingGapAnswers, readingCohesionAnswers, readingOpinionAnswers, readingLongAnswers),
+          ...savedGrammarReview(grammarAnswers, activeGrammarQuestions)
+        ]
+      };
+    }
+
+    if (score === null || !details) return;
+    const saveKey = `${selectedMockCard.id}:${screen}:${JSON.stringify(details)}`;
+    if (savedResultKeyRef.current === saveKey) return;
+    savedResultKeyRef.current = saveKey;
+
+    void unwrap(api.post('/mock-tests/results', {
+      mockTestId: selectedMockCard.id,
+      title: selectedMockCard.title,
+      skill: isFullMock ? 'FULL' : selectedMockCard.skill,
+      score,
+      maxScore,
+      cefrLevel,
+      resultJson: JSON.stringify(details)
+    })).catch(() => {
+      savedResultKeyRef.current = '';
+      toast.error('Chưa lưu được kết quả vào lịch sử. Vui lòng thử lại.');
+    });
+  }, [accessToken, fullTotalScore, grammarSummary, isFullMock, listeningSummary, readingSummary, screen, selectedMockCard, speakingScore, writingScore]);
 
   function hasActiveListeningData() {
     return activeListeningPart1Questions.length > 0
@@ -4199,7 +4372,7 @@ export function MockTests() {
         questionItem(bookmarkKey('reading-part1', 1), 'Part 1', 'Gap Fill', screen === 'readingQuestion', () => setScreen('readingQuestion')),
         ...activeReadingData.cohesion.map((_, index) => questionItem(
           bookmarkKey('reading-part2-3', index + 1),
-          `Part 2 + 3 - Question ${index + 1}`,
+          `Part ${index + 2}`,
           'Text Cohesion',
           screen === 'readingCohesion' && readingCohesionIndex === index,
           () => {
@@ -4293,7 +4466,7 @@ export function MockTests() {
         <div className="min-h-screen bg-white">
           {(screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong') && (
             <ReadingTopbar
-              title={screen === 'readingLong' ? 'Part 5 - Long Reading' : screen === 'readingOpinion' ? 'Part 4 - Opinion Matching' : screen === 'readingCohesion' ? 'Part 2 + 3 - Text Cohesion' : 'Part 1 - Gap Fill'}
+              title={screen === 'readingLong' ? 'Part 5 - Long Reading' : screen === 'readingOpinion' ? 'Part 4 - Opinion Matching' : screen === 'readingCohesion' ? `Part ${readingCohesionIndex + 2} - Text Cohesion` : 'Part 1 - Gap Fill'}
               onExit={() => setScreen('select')}
             />
           )}
@@ -4329,6 +4502,8 @@ export function MockTests() {
           {screen === 'readingLong' && <ReadingLong data={activeReadingData.long} answers={readingLongAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part5', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingLongAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part5', 1))} />}
           {screen === 'fullResult' && (
             <FullResult
+              candidateName={currentUser?.fullName || 'Học viên Aptis Lingo'}
+              candidateReference={currentUser ? `AL-${String(currentUser.id).padStart(6, '0')}` : 'AL-GUEST'}
               grammar={grammarSummary}
               listening={listeningSummary}
               reading={readingSummary}
@@ -4828,6 +5003,8 @@ function MockSelectLayout({ children }: { children: ReactNode }) {
 function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull, proActive, authenticated, accessLoading }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void; proActive: boolean; authenticated: boolean; accessLoading: boolean }) {
   const [adminCards, setAdminCards] = useState<MockCard[]>([]);
   const [cardsLoading, setCardsLoading] = useState(true);
+  const [cardsError, setCardsError] = useState(false);
+  const [reloadIndex, setReloadIndex] = useState(0);
   const [creatingRandom, setCreatingRandom] = useState(false);
   const navigate = useNavigate();
 
@@ -4838,6 +5015,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     const reloadAdminCards = () => {
       const version = ++requestVersion;
       setCardsLoading(true);
+      setCardsError(false);
       Promise.all([
         unwrap<ApiMockTest[]>(api.get('/mock-tests')),
         unwrap<Test[]>(api.get('/tests')).catch(() => [])
@@ -4847,11 +5025,15 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
           const examCards = await apiExamTestsToCards(tests);
           const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
-          if (!cancelled && version === requestVersion) setAdminCards(cards);
+          if (!cancelled && version === requestVersion) {
+            setAdminCards(cards);
+            setCardsError(false);
+          }
         })
         .catch(() => {
           if (!cancelled && version === requestVersion) {
             setAdminCards([]);
+            setCardsError(true);
             toast.error('Không tải được danh sách đề. Vui lòng tải lại trang.');
           }
         })
@@ -4869,7 +5051,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       window.removeEventListener('storage', reloadAdminCards);
       window.removeEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     };
-  }, [authenticated, proActive, accessLoading]);
+  }, [authenticated, proActive, accessLoading, reloadIndex]);
 
   const visibleCards = adminCards
     .filter((card) => card.skill === selectedSkill)
@@ -4904,6 +5086,17 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
 
   if (accessLoading || cardsLoading) {
     return <div className="p-10 text-center text-slate-600" role="status">Đang tải đề và kiểm tra quyền truy cập...</div>;
+  }
+
+  if (cardsError) {
+    return (
+      <div className="p-10 text-center" role="alert">
+        <p className="font-semibold text-red-700">Không kết nối được backend để tải danh sách đề.</p>
+        <button type="button" className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-brand-700" onClick={() => setReloadIndex((value) => value + 1)}>
+          Thử lại
+        </button>
+      </div>
+    );
   }
 
   return (
@@ -5948,7 +6141,7 @@ function WritingPart({
             <div style={{ marginTop: 24, borderRadius: 14, border: '1px solid #dce3ee', overflow: 'hidden' }}>
             <textarea
               value={answer}
-              onChange={(event) => onAnswer(partIndex === 1 ? limitWords(event.target.value, 45) : event.target.value)}
+              onChange={(event) => onAnswer(partIndex === 1 ? limitWords(event.target.value, 30) : event.target.value)}
               placeholder="Type your answer here..."
               style={{
                 width: '100%',
@@ -5965,7 +6158,7 @@ function WritingPart({
             />
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e5e7eb', backgroundColor: '#f8fafc', padding: '12px 16px' }}>
               <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{part.helper}</p>
-              <p style={{ color: '#020817', fontSize: 14, fontWeight: 800, margin: 0 }}>{wordCount}{partIndex === 1 ? ' / 45' : ''} words</p>
+              <p style={{ color: '#020817', fontSize: 14, fontWeight: 800, margin: 0 }}>{wordCount}{partIndex === 1 ? ' / 30' : ''} words</p>
             </div>
           </div>
           {showAnswer && (
@@ -7003,7 +7196,7 @@ function EmptyImportedPart() {
 }
 
 function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data?: ReadingCohesionQuestion; answers: string[]; bookmarkActive: boolean; questionIndex: number; total: number; showAnswer?: boolean; timeRemaining: string; onAnswer: (answers: string[]) => void; onToggleBookmark: () => void }) {
-  if (!data) return <EmptyReadingScreen title="Part 2 + 3 - Text Cohesion" timeRemaining={timeRemaining} bookmarkActive={bookmarkActive} onToggleBookmark={onToggleBookmark} />;
+  if (!data) return <EmptyReadingScreen title={`Part ${questionIndex + 2} - Text Cohesion`} timeRemaining={timeRemaining} bookmarkActive={bookmarkActive} onToggleBookmark={onToggleBookmark} />;
   const choices = data.choices;
   const correctAnswers = data.correctOrder;
   const slots = Array.from({ length: correctAnswers.length }, (_, index) => answers[index] || null);
@@ -7032,7 +7225,7 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: 0 }}>Reading</p>
-            <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Question {questionIndex + 1} of {total}</h2>
+            <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Part {questionIndex + 2}</h2>
           </div>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -7576,6 +7769,8 @@ function GrammarResult({ summary, onExit, onRetry }: { summary: SkillScoreSummar
 }
 
 function FullResult({
+  candidateName,
+  candidateReference,
   grammar,
   listening,
   reading,
@@ -7587,6 +7782,8 @@ function FullResult({
   onExit,
   onRetry
 }: {
+  candidateName: string;
+  candidateReference: string;
   grammar: SkillScoreSummary;
   listening: SkillScoreSummary;
   reading: SkillScoreSummary;
@@ -7599,46 +7796,85 @@ function FullResult({
   onRetry: () => void;
 }) {
   const readingAptisCorrect = correctToAptis25(reading.correct, reading.total);
+  const grammarScore = clampScore50(grammar.score);
   const skillRows = [
-    { skill: 'Speaking', score: speaking ? clampScore50(speaking.overallScore) : null, cefr: speaking?.cefrLevel ?? 'Chưa chấm', note: speaking ? 'Chấm bằng AI' : speakingError || 'Chưa có kết quả AI' },
-    { skill: 'Listening', score: listening.score, cefr: listening.cefr, note: `${listening.correct}/${listening.total} câu đúng` },
-    { skill: 'Grammar & Vocabulary', score: grammar.score, cefr: grammar.cefr, note: 'Báo cáo riêng theo thang 50' },
-    { skill: 'Reading', score: clampScore50(reading.score), cefr: reading.cefr, note: `${reading.correct}/${reading.total} câu đúng, quy đổi ${readingAptisCorrect}/25` },
-    { skill: 'Writing', score: writing ? clampScore50(writing.overallScore) : null, cefr: writing?.cefrLevel ?? 'Chưa chấm', note: writing ? 'Chấm bằng AI' : writingError || 'Chưa có kết quả AI' }
+    { skill: 'Listening', score: clampScore50(listening.score), cefr: aptisSkillBand('LISTENING', listening.score, grammarScore), note: `${listening.correct}/${listening.total} câu đúng` },
+    { skill: 'Reading', score: clampScore50(reading.score), cefr: aptisSkillBand('READING', reading.score, grammarScore), note: `${reading.correct}/${reading.total} câu đúng, quy đổi ${readingAptisCorrect}/25` },
+    { skill: 'Speaking', score: speaking ? clampScore50(speaking.overallScore) : null, cefr: speaking ? aptisSkillBand('SPEAKING', speaking.overallScore, grammarScore) : null, note: speaking ? 'Chấm bằng AI' : speakingError },
+    { skill: 'Writing', score: writing ? clampScore50(writing.overallScore) : null, cefr: writing ? aptisSkillBand('WRITING', writing.overallScore, grammarScore) : null, note: writing ? 'Chấm bằng AI' : writingError }
   ];
   const completeScores = Boolean(speaking && writing && reading.total > 0 && listening.total > 0);
-  const overallCefr = completeScores ? cefrFromAptisTotal(totalScore) : 'Chưa đủ kết quả';
+  const overallCefr = completeScores ? overallBandFromSkills(skillRows.map((row) => row.cefr).filter((band): band is AptisBand => Boolean(band))) : null;
+  const overallScore = completeScores ? Math.round(totalScore / 4) : null;
+  const chartColumns = [
+    ...skillRows.map((row) => ({ label: row.skill, score: row.score, band: row.cefr })),
+    { label: 'Grammar', score: grammarScore, band: null },
+    { label: 'Overall', score: overallScore, band: overallCefr }
+  ];
+  const reportDate = new Intl.DateTimeFormat('vi-VN').format(new Date());
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '42px 24px 84px' }}>
-      <section style={{ width: 'min(980px, 100%)', margin: '0 auto' }}>
-        <article style={{ borderRadius: 18, border: '1px solid #bbf7d0', backgroundColor: '#ffffff', padding: '38px 34px', boxShadow: '0 12px 30px rgba(15,23,42,0.08)' }}>
-          <div style={{ textAlign: 'center' }}>
-            <CheckCircle2 size={70} color="#16a34a" style={{ margin: '0 auto' }} />
-            <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '20px 0 0' }}>Kết quả Full Aptis Mock Test</h1>
-            <p style={{ color: '#64748b', fontSize: 16, lineHeight: '26px', margin: '10px auto 0', maxWidth: 700 }}>
-              Tổng điểm Aptis tính 4 kỹ năng Reading, Listening, Speaking và Writing. Grammar & Vocabulary được báo cáo riêng theo thang 50.
-            </p>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 18, marginTop: 30 }}>
-            <FullResultStat label="Tổng điểm 4 kỹ năng" value={completeScores ? `${totalScore}/200` : 'Chưa đủ kết quả'} />
-            <FullResultStat label="CEFR tổng thể" value={overallCefr} />
-            <FullResultStat label="Grammar & Vocabulary" value={`${grammar.score}/50`} />
-          </div>
-
-          <div style={{ marginTop: 28, display: 'grid', gap: 12 }}>
-            {skillRows.map((row) => (
-              <div key={row.skill} style={{ display: 'grid', gridTemplateColumns: '1fr 110px 110px 220px', alignItems: 'center', gap: 14, borderRadius: 14, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', padding: '16px 18px' }}>
-                <p style={{ color: '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>{row.skill}</p>
-                <p style={{ color: '#2b075c', fontSize: 18, fontWeight: 900, margin: 0 }}>{row.score === null ? '—' : `${row.score}/50`}</p>
-                <p style={{ color: '#047857', fontSize: 16, fontWeight: 900, margin: 0 }}>{row.cefr}</p>
-                <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{row.note}</p>
+    <main className="min-h-screen bg-[#eef2f8] px-4 py-8 sm:px-6 sm:py-12">
+      <section className="mx-auto w-full max-w-[1040px]">
+        <article className="overflow-hidden border border-[#d8deea] bg-white shadow-[0_18px_50px_rgba(15,23,42,0.12)]">
+          <div className="h-2 bg-[#e52b50]" />
+          <div className="p-6 sm:p-10 lg:p-12">
+            <header className="flex flex-col gap-6 border-b-2 border-[#25236b] pb-7 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-3 text-[#25236b]">
+                  <div className="grid h-11 w-11 grid-cols-2 gap-1" aria-hidden="true">{[0, 1, 2, 3].map((item) => <span key={item} className="rounded-sm bg-[#25236b]" />)}</div>
+                  <div><p className="m-0 text-xl font-black leading-none">APTIS LINGO</p><p className="mt-1 text-xs font-bold uppercase text-[#e52b50]">Learning assessment</p></div>
+                </div>
+                <h1 className="mt-7 text-3xl font-black text-[#25236b] sm:text-4xl">Phiếu kết quả Full Test</h1>
               </div>
-            ))}
-          </div>
+              <div className="border-l-4 border-[#e52b50] pl-4 sm:text-right"><p className="m-0 text-xs font-bold uppercase text-slate-500">Overall CEFR level</p><p className="mt-1 text-5xl font-black text-[#e52b50]">{overallCefr ?? '--'}</p></div>
+            </header>
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32 }}>
+            <div className="grid gap-5 border-b border-slate-200 py-7 sm:grid-cols-3">
+              <ReportIdentity label="Họ và tên học viên" value={candidateName} />
+              <ReportIdentity label="Ngày hoàn thành" value={reportDate} />
+              <ReportIdentity label="Mã kết quả" value={candidateReference} />
+            </div>
+
+            <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
+              <div className="overflow-x-auto">
+                <h2 className="mb-4 text-lg font-black text-[#25236b]">Bảng điểm kỹ năng</h2>
+                <table className="w-full min-w-[480px] border-collapse text-left">
+                  <thead><tr className="bg-[#25236b] text-white"><th className="p-3">Kỹ năng</th><th className="p-3 text-center">Điểm</th><th className="p-3 text-center">CEFR</th></tr></thead>
+                  <tbody>
+                    {skillRows.map((row) => <tr key={row.skill} className="border-b border-slate-200"><td className="p-3"><p className="m-0 font-bold text-slate-900">{row.skill}</p><p className="mt-1 text-xs text-slate-500">{row.note}</p></td><td className="p-3 text-center text-lg font-black text-[#25236b]">{row.score === null ? '--' : `${row.score}/50`}</td><td className="p-3 text-center text-lg font-black text-[#e52b50]">{row.cefr ?? '--'}</td></tr>)}
+                    <tr className="bg-slate-50"><td className="p-3 font-bold text-slate-900">Grammar & Vocabulary</td><td className="p-3 text-center text-lg font-black text-[#25236b]">{grammarScore}/50</td><td className="p-3" /></tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div>
+                <h2 className="mb-4 text-lg font-black text-[#25236b]">Hồ sơ CEFR</h2>
+                <div className="overflow-x-auto border border-slate-200 p-4">
+                  <div className="grid min-w-[430px] grid-cols-[30px_repeat(6,minmax(48px,1fr))] gap-x-2">
+                    <div className="relative h-52 text-[10px] font-bold text-slate-500">
+                      <span className="absolute -top-1 right-0">C1</span>
+                      <span className="absolute right-0 top-[20%]">B2</span>
+                      <span className="absolute right-0 top-[40%]">B1</span>
+                      <span className="absolute right-0 top-[60%]">A2</span>
+                      <span className="absolute bottom-0 right-0">A1</span>
+                    </div>
+                    {chartColumns.map((column) => (
+                      <div key={column.label} className="flex h-52 items-end justify-center bg-white px-2">
+                        {column.score !== null && <div className="relative w-full max-w-12 bg-[#e52b50]" style={{ height: `${Math.max(4, (column.score / 50) * 100)}%` }}><span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-[#25236b]">{column.band ?? column.score}</span></div>}
+                      </div>
+                    ))}
+                    <span />
+                    {chartColumns.map((column) => <span key={column.label} className="break-words pt-2 text-center text-[9px] font-bold leading-3 text-slate-600">{column.label}</span>)}
+                  </div>
+                </div>
+                <div className="mt-5 grid grid-cols-2 gap-3"><FullResultStat label="Tổng điểm 4 kỹ năng" value={completeScores ? `${totalScore}/200` : '--'} /><FullResultStat label="Overall" value={overallCefr ?? '--'} /></div>
+              </div>
+            </div>
+
+            <p className="mt-7 border-t border-slate-200 pt-5 text-xs leading-5 text-slate-500">Kết quả luyện tập do Aptis Lingo phát hành để theo dõi tiến độ học. Đây không phải chứng chỉ Aptis ESOL chính thức. Điểm biên CEFR được xét thêm bằng điểm Grammar & Vocabulary.</p>
+
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
               Thoát
@@ -7647,18 +7883,22 @@ function FullResult({
               <RotateCcw size={18} />
               Làm lại Full Test
             </button>
-          </div>
+          </div></div>
         </article>
       </section>
     </main>
   );
 }
 
+function ReportIdentity({ label, value }: { label: string; value: string }) {
+  return <div><p className="m-0 text-xs font-bold uppercase text-slate-500">{label}</p><p className="mt-2 border-b border-slate-400 pb-2 text-base font-bold text-slate-900">{value}</p></div>;
+}
+
 function FullResultStat({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: 18, textAlign: 'center' }}>
-      <p style={{ color: '#111827', fontSize: 28, fontWeight: 900, margin: 0 }}>{value}</p>
-      <p style={{ color: '#64748b', fontSize: 14, margin: '8px 0 0' }}>{label}</p>
+    <div className="border border-slate-200 bg-slate-50 p-4 text-center">
+      <p className="m-0 text-2xl font-black text-[#25236b]">{value}</p>
+      <p className="mt-2 text-xs text-slate-500">{label}</p>
     </div>
   );
 }
@@ -9074,8 +9314,8 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
           <Mic size={30} />
         </div>
         <div className="text-center">
-          <h2 className="mt-6 text-[26px] font-extrabold leading-8 text-navy">Speaking AI Result</h2>
-          <p className="mt-4 text-base leading-7 text-slate-600">Lingo scores from your recorded speaking answers.</p>
+          <h2 className="mt-6 text-[26px] font-extrabold leading-8 text-navy">Kết quả Speaking AI</h2>
+          <p className="mt-4 text-base leading-7 text-slate-600">Kết quả chấm từ các câu trả lời đã ghi âm.</p>
         </div>
         {!result && !loading && !error && <p className="mt-8 text-center text-sm font-semibold text-slate-500">Preparing your Speaking score...</p>}
         {loading && (
@@ -9091,35 +9331,23 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
         {result && (
           <div className="mt-8 space-y-5">
             <div className="rounded-xl border border-brand-100 bg-sky-50 p-5">
-              <p className="text-sm font-bold uppercase text-slate-600">Overall</p>
+              <p className="text-sm font-bold uppercase text-slate-600">Tổng quan</p>
               <div className="mt-2 flex flex-wrap items-end gap-4">
                 <span className="text-4xl font-black text-[#2b075c]">{result.overallScore}/50</span>
                 <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-extrabold text-emerald-700">{result.cefrLevel}</span>
               </div>
-              <p className="mt-3 text-sm leading-7 text-slate-700">{result.summary}</p>
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              {result.criteria.map((item) => (
-                <div key={item.name} className="rounded-xl border border-brand-100 p-4">
-                  <div className="flex items-center justify-between gap-3">
-                    <h3 className="font-extrabold text-navy">{item.name}</h3>
-                    <span className="font-black text-[#2b075c]">{item.score}/10</span>
-                  </div>
-                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.feedback}</p>
-                </div>
-              ))}
+              <p className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-700">{result.summary}</p>
             </div>
             {result.parts.length > 0 && (
               <div className="rounded-xl border border-brand-100 p-5">
-                <p className="text-sm font-extrabold uppercase text-slate-600">Part feedback</p>
-                <div className="mt-3 grid gap-3">
+                <p className="text-sm font-extrabold uppercase text-slate-600">Điểm từng phần</p>
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
                   {result.parts.map((part) => (
                     <div key={part.title} className="rounded-lg bg-sky-50 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <h3 className="font-extrabold text-navy">{part.title}</h3>
                         <span className="font-black text-[#2b075c]">{part.score}/50</span>
                       </div>
-                      {part.feedback.trim() && <p className="mt-2 text-sm leading-6 text-slate-700">{part.feedback}</p>}
                     </div>
                   ))}
                 </div>
@@ -9248,3 +9476,6 @@ function Meta({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+
+

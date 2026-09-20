@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ByteArrayResource;
@@ -24,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
@@ -32,6 +34,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AiScoringService {
     private final ObjectMapper objectMapper;
     private final ResourceLoader resourceLoader;
@@ -103,36 +106,40 @@ public class AiScoringService {
 
     public AiDtos.SpeakingScoreResponse scoreSpeaking(AiDtos.SpeakingScoreRequest request, List<MultipartFile> audioFiles) {
         AiDtos.SpeakingScoreRequest requestWithAudio = attachAudioMetadata(request, audioFiles);
-        if (requestWithAudio.parts().stream().anyMatch(part ->
-                "[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]".equals(part.transcript()))) {
-            throw new IllegalStateException("Chưa nhận dạng được nội dung bản ghi âm. Vui lòng thử chấm lại.");
+        if (requestWithAudio.parts().stream().noneMatch(this::hasScorableSpeakingAudio)) {
+            return fallbackSpeakingScore(requestWithAudio);
         }
         String answers = requestWithAudio.parts().stream()
                 .map(part -> """
                         %s
                         Prompt: %s
-                        Audio file: %s
-                        Audio type: %s
-                        Audio size: %s bytes
                         Transcript:
                         %s
                         """.formatted(
                         part.title(),
                         part.prompt(),
-                        blankToEmpty(part.audioFileName()),
-                        blankToEmpty(part.audioContentType()),
-                        part.audioSizeBytes() == null ? 0 : part.audioSizeBytes(),
                         part.transcript()))
                 .collect(Collectors.joining("\n---\n"));
 
         String prompt = loadPrompt("aptis-speaking-score.md")
                 .replace("{{ANSWERS}}", answers);
+        long recognizedParts = requestWithAudio.parts().stream().filter(this::hasScorableSpeakingAudio).count();
+        int transcriptChars = requestWithAudio.parts().stream()
+                .filter(this::hasScorableSpeakingAudio)
+                .mapToInt(part -> blankToEmpty(part.transcript()).length())
+                .sum();
+        log.info("Submitting Speaking to DeepSeek: parts={}, recognizedParts={}, transcriptChars={}",
+                requestWithAudio.parts().size(), recognizedParts, transcriptChars);
         String content = chatJson(
                 "You are an Aptis ESOL Speaking examiner. Return only valid JSON.",
                 prompt);
 
         try {
-            return objectMapper.treeToValue(normalizeSpeakingJson(content), AiDtos.SpeakingScoreResponse.class);
+            AiDtos.SpeakingScoreResponse result = objectMapper.treeToValue(
+                    normalizeSpeakingJson(content), AiDtos.SpeakingScoreResponse.class);
+            log.info("DeepSeek Speaking result received: score={}, cefr={}",
+                    result.overallScore(), result.cefrLevel());
+            return withAudioDiagnostics(result, requestWithAudio);
         } catch (Exception ex) {
             throw new IllegalStateException("Không đọc được kết quả chấm Speaking AI. Vui lòng thử chấm lại.", ex);
         }
@@ -143,10 +150,20 @@ public class AiScoringService {
             return request;
         }
 
+        Map<String, MultipartFile> filesByName = new HashMap<>();
+        for (MultipartFile file : audioFiles) {
+            if (file != null && !file.isEmpty() && file.getOriginalFilename() != null) {
+                filesByName.put(file.getOriginalFilename(), file);
+            }
+        }
+
         List<AiDtos.SpeakingPartRequest> parts = new ArrayList<>();
         for (int i = 0; i < request.parts().size(); i++) {
             AiDtos.SpeakingPartRequest part = request.parts().get(i);
-            MultipartFile file = i < audioFiles.size() ? audioFiles.get(i) : null;
+            MultipartFile file = filesByName.get(blankToEmpty(part.audioFileName()));
+            if (file == null && i < audioFiles.size()) {
+                file = audioFiles.get(i);
+            }
             if (file == null || file.isEmpty()) {
                 parts.add(new AiDtos.SpeakingPartRequest(
                         part.title(),
@@ -176,7 +193,10 @@ public class AiScoringService {
         }
         try {
             return transcribeAudio(file);
-        } catch (Exception ignored) {
+        } catch (Exception ex) {
+            log.warn("Groq transcription failed for file={}, size={} bytes: {}",
+                    file.getOriginalFilename(), file.getSize(), ex.getMessage());
+            // Keep the browser transcript as a fallback when the transcription provider is unavailable.
             return "";
         }
     }
@@ -192,6 +212,8 @@ public class AiScoringService {
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         body.add("model", transcriptionModel);
+        body.add("language", "en");
+        body.add("response_format", "json");
         body.add("file", audioResource);
 
         String response = transcriptionClient
@@ -334,10 +356,13 @@ public class AiScoringService {
     }
 
     private String friendlyAiUnavailableMessage(int statusCode) {
-        if (statusCode == 402 || statusCode == 429) {
-            return "AI đang tạm hết lượt xử lý. Mỗi tài khoản có tối đa 10 lượt AI mỗi ngày; vui lòng thử lại sau.";
+        if (statusCode == 402) {
+            return "DeepSeek API không đủ số dư hoặc đã hết hạn mức sử dụng. Hãy kiểm tra Billing/Balance của tài khoản DeepSeek rồi thử lại.";
         }
-        return "AI đang tạm bận nên chưa xử lý được yêu cầu. Vui lòng thử lại sau ít phút.";
+        if (statusCode == 429) {
+            return "DeepSeek API đang giới hạn tần suất hoặc đã hết quota. Hãy chờ một lúc, kiểm tra hạn mức DeepSeek rồi thử lại.";
+        }
+        return "DeepSeek API đang tạm thời không xử lý được yêu cầu (HTTP " + statusCode + "). Vui lòng thử lại sau ít phút.";
     }
 
     private String loadPrompt(String fileName) {
@@ -408,20 +433,15 @@ public class AiScoringService {
     private AiDtos.SpeakingScoreResponse fallbackSpeakingScore(AiDtos.SpeakingScoreRequest request) {
         List<AiDtos.PartFeedback> parts = request.parts().stream()
                 .map(part -> {
-                    String transcript = blankToEmpty(part.transcript()).trim();
-                    boolean hasAudio = part.audioSizeBytes() != null && part.audioSizeBytes() > 0;
-                    int score = (!hasAudio || transcript.equals("[NO_AUDIO_FILE_SUBMITTED]")) ? 0 : 1;
-                    String feedback = score == 0
+                    String feedback = part.audioSizeBytes() == null || part.audioSizeBytes() <= 0
                             ? "Phần này chưa có file ghi âm nên tính 0 điểm."
-                            : "Đã nhận file ghi âm. AI chưa chấm chi tiết được lúc này, bạn có thể thử chấm lại sau.";
-                    return new AiDtos.PartFeedback(part.title(), score, feedback);
+                            : "Không nhận dạng được nội dung bản ghi âm nên phần này tính 0 điểm.";
+                    return new AiDtos.PartFeedback(part.title(), 0, feedback);
                 })
                 .toList();
 
-        int overallScore = parts.isEmpty()
-                ? 0
-                : Math.round((float) parts.stream().mapToInt(AiDtos.PartFeedback::score).sum() / parts.size());
-        String cefrLevel = overallScore < 4 ? "Below A1" : "A1";
+        int overallScore = 0;
+        String cefrLevel = "Below A1";
 
         List<AiDtos.CriteriaScore> criteria = List.of(
                 new AiDtos.CriteriaScore("Task response", 0, "Chưa có đủ nội dung bài nói để đánh giá mức độ trả lời đúng yêu cầu."),
@@ -431,16 +451,59 @@ public class AiScoringService {
                 new AiDtos.CriteriaScore("Pronunciation", 0, "Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại.")
         );
 
-        return new AiDtos.SpeakingScoreResponse(
+        AiDtos.SpeakingScoreResponse result = new AiDtos.SpeakingScoreResponse(
                 overallScore,
                 cefrLevel,
-                "AI chưa chấm chi tiết được lúc này. Các phần thiếu file ghi âm được tính 0; phần đã có file ghi âm được ghi nhận để bạn có thể thử chấm lại sau.",
+                "Không có bản ghi âm nhận dạng được để chấm. Bài Speaking được tính 0/50 theo thang điểm Aptis.",
                 criteria,
                 parts,
                 List.of("Kiểm tra quyền microphone của trình duyệt.", "Nói rõ hơn, gần microphone hơn và tránh tiếng ồn nền.", "Dùng Chrome/Edge để trình duyệt hỗ trợ nhận diện giọng nói tốt hơn."),
                 List.of("Trả lời trực tiếp câu hỏi, sau đó thêm lý do và ví dụ.", "Nói thành câu hoàn chỉnh thay vì từng từ rời.", "Dùng từ nối như because, for example, in my opinion để bài nói mạch lạc hơn."),
-                "I think it is important to answer the question directly, give one clear reason, and add a short example from personal experience."
+                "I think it is important to answer the question directly, give one clear reason, and add a short example from personal experience.",
+                List.of()
         );
+        return withAudioDiagnostics(result, request);
+    }
+
+    private AiDtos.SpeakingScoreResponse withAudioDiagnostics(
+            AiDtos.SpeakingScoreResponse result,
+            AiDtos.SpeakingScoreRequest request) {
+        List<AiDtos.SpeakingAudioDiagnostic> diagnostics = request.parts().stream()
+                .map(part -> {
+                    long audioSize = part.audioSizeBytes() == null ? 0 : part.audioSizeBytes();
+                    String transcript = blankToEmpty(part.transcript()).trim();
+                    boolean unavailable = transcript.isBlank()
+                            || "[NO_AUDIO_FILE_SUBMITTED]".equals(transcript)
+                            || "[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]".equals(transcript);
+                    String status = audioSize <= 0
+                            ? "NO_AUDIO"
+                            : unavailable ? "NOT_RECOGNIZED" : "RECOGNIZED";
+                    log.info("Speaking audio check: part={}, status={}, size={} bytes, transcriptLength={}",
+                            part.title(), status, audioSize, unavailable ? 0 : transcript.length());
+                    return new AiDtos.SpeakingAudioDiagnostic(
+                            part.title(), status, audioSize > 0, audioSize, unavailable ? "" : transcript);
+                })
+                .toList();
+        return new AiDtos.SpeakingScoreResponse(
+                result.overallScore(),
+                result.cefrLevel(),
+                result.summary(),
+                result.criteria(),
+                result.parts(),
+                result.pronunciationTips(),
+                result.fluencyTips(),
+                result.improvedAnswer(),
+                diagnostics);
+    }
+
+    private boolean hasScorableSpeakingAudio(AiDtos.SpeakingPartRequest part) {
+        if (part.audioSizeBytes() == null || part.audioSizeBytes() <= 0) {
+            return false;
+        }
+        String transcript = blankToEmpty(part.transcript()).trim();
+        return !transcript.isBlank()
+                && !"[NO_AUDIO_FILE_SUBMITTED]".equals(transcript)
+                && !"[AUDIO_FILE_RECORDED_BUT_TRANSCRIPTION_UNAVAILABLE]".equals(transcript);
     }
 
     private ArrayNode buildSpeakingCriteria(JsonNode sourceParts) {
@@ -525,7 +588,9 @@ public class AiScoringService {
         });
         String strengthText = strengths.isEmpty() ? "chưa thể hiện nhiều điểm mạnh rõ ràng" : String.join("; ", strengths);
         String weaknessText = weaknesses.isEmpty() ? "cần phát triển câu trả lời đầy đủ hơn" : String.join("; ", weaknesses);
-        return "Điểm Speaking ước tính: " + score + "/50 (" + level + "). Điểm mạnh: " + strengthText + ". Điểm cần cải thiện: " + weaknessText + ".";
+        return "Điểm Speaking: " + score + "/50 (" + level + ")\n"
+                + "Điểm mạnh: " + strengthText + ".\n"
+                + "Cần cải thiện: " + weaknessText + ".";
     }
 
     private String buildImprovedSpeakingAnswer(JsonNode root) {
@@ -539,7 +604,13 @@ public class AiScoringService {
     }
 
     private String speakingPartTitle(String key) {
-        return switch (key.toLowerCase()) {
+        String normalized = key.toLowerCase().replace('_', ' ').replaceAll("\\s+", " ").trim();
+        if (normalized.startsWith("part ")) {
+            String[] numbers = normalized.replaceAll("[^0-9]+", " ").trim().split("\\s+");
+            if (numbers.length >= 2) return "Phần " + numbers[0] + " - Câu " + numbers[1];
+            if (numbers.length == 1 && !numbers[0].isBlank()) return "Phần " + numbers[0];
+        }
+        return switch (normalized) {
             case "part1" -> "Part 1 - Personal information";
             case "part2" -> "Part 2 - Describe and give reasons";
             case "part3" -> "Part 3 - Compare and explain";

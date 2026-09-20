@@ -48,6 +48,13 @@ $values["DEEPSEEK_API_KEY"] = Quote-EnvValue $apiKey.Trim()
 $values["DEEPSEEK_MODEL"] = Quote-EnvValue $model.Trim()
 $values["DEEPSEEK_BASE_URL"] = Quote-EnvValue "https://api.deepseek.com"
 
+$transcriptionKey = Read-Host "Paste your Groq transcription API key (required for Speaking audio)"
+if (-not [string]::IsNullOrWhiteSpace($transcriptionKey)) {
+    $values["TRANSCRIPTION_API_KEY"] = Quote-EnvValue $transcriptionKey.Trim()
+    $values["TRANSCRIPTION_BASE_URL"] = Quote-EnvValue "https://api.groq.com/openai/v1"
+    $values["TRANSCRIPTION_MODEL"] = Quote-EnvValue "whisper-large-v3-turbo"
+}
+
 $lines = @(
     "# Local backend environment. Do not commit this file.",
     "# Created by setup-ai.ps1."
@@ -59,5 +66,8 @@ foreach ($key in $values.Keys) {
 
 Set-Content -Path $envFile -Value $lines -Encoding UTF8
 
-Write-Host "Saved DeepSeek config to backend/.env" -ForegroundColor Green
+Write-Host "Saved AI config to backend/.env" -ForegroundColor Green
+if ([string]::IsNullOrWhiteSpace($transcriptionKey)) {
+    Write-Host "Speaking audio is not configured. Add TRANSCRIPTION_API_KEY to enable Speaking scoring." -ForegroundColor Yellow
+}
 Write-Host "Start backend with: .\run-backend.ps1" -ForegroundColor Cyan

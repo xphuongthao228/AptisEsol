@@ -1,4 +1,4 @@
-import {
+﻿import {
   Bell,
   BookOpen,
   CalendarPlus,
@@ -17,7 +17,7 @@ import {
   Menu,
   Monitor,
   Moon,
-  MoreHorizontal,
+  Shuffle,
   Settings,
   Shield,
   Sun,
@@ -51,6 +51,7 @@ type LayoutLink = {
 const studentLinks: LayoutLink[] = [
   { to: '/app/tests/parts', label: 'Luyện tập theo part', icon: BookOpen },
   { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
+  { to: '/app/history', label: 'Lịch sử', icon: Clock3 },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/lessons/LISTENING', label: 'Mẹo thi', icon: Lightbulb },
   { to: '/app/predictions', label: 'Đề Key Dự Đoán', icon: FileSearch },
@@ -60,7 +61,6 @@ const studentLinks: LayoutLink[] = [
 
 const studentMoreLinks: LayoutLink[] = [
   { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
-  { to: '/app/history', label: 'Lịch sử', icon: Clock3 },
   { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },
   { to: '/app/contact', label: 'Liên hệ', icon: Mail },
   { to: '/app/settings', label: 'Cài đặt', icon: Settings }
@@ -88,12 +88,10 @@ const themeOptions: Array<{ value: ThemePreference; label: string; icon: LucideI
 export function AppLayout() {
   const { user, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [navHidden, setNavHidden] = useState(false);
-  const moreMenuRef = useRef<HTMLDivElement>(null);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const lastScrollYRef = useRef(0);
   const { preference, resolvedTheme, setPreference } = useThemePreference();
@@ -130,23 +128,9 @@ export function AppLayout() {
 
   useEffect(() => {
     setAccountMenuOpen(false);
-    setMoreMenuOpen(false);
     setThemeMenuOpen(false);
     setMobileMenuOpen(false);
   }, [location.pathname]);
-
-  useEffect(() => {
-    if (!moreMenuOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!moreMenuRef.current?.contains(event.target as Node)) {
-        setMoreMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [moreMenuOpen]);
 
   useEffect(() => {
     if (!accountMenuOpen) return;
@@ -179,10 +163,10 @@ export function AppLayout() {
   }, []);
 
   useEffect(() => {
-    if (mobileMenuOpen || moreMenuOpen || accountMenuOpen || themeMenuOpen) {
+    if (mobileMenuOpen || accountMenuOpen || themeMenuOpen) {
       setNavHidden(false);
     }
-  }, [accountMenuOpen, mobileMenuOpen, moreMenuOpen, themeMenuOpen]);
+  }, [accountMenuOpen, mobileMenuOpen, themeMenuOpen]);
 
   const signOut = async () => {
     setMobileMenuOpen(false);
@@ -207,15 +191,15 @@ export function AppLayout() {
       <SEO {...seo} />
 
       <header className={`fixed inset-x-0 top-0 z-40 border-b border-brand-100 bg-white/92 shadow-[0_8px_28px_rgba(165,15,21,0.09)] backdrop-blur-xl transition-transform duration-300 ease-out ${navHidden ? '-translate-y-full' : 'translate-y-0'}`}>
-        <div className="mx-auto flex h-16 max-w-[1600px] items-center gap-3 px-4 sm:px-6 lg:px-8 xl:px-10">
-          <Link to={isAdmin ? '/admin' : '/'} className="flex min-w-0 shrink-0 items-center gap-2.5 text-brand-700">
+        <div className="mx-auto flex h-16 w-full items-center gap-4 px-4 sm:px-6 lg:px-8 2xl:gap-6">
+          <Link to={isAdmin ? '/admin' : '/'} className="flex min-w-0 shrink-0 items-center gap-2.5 text-brand-700 xl:w-[150px] 2xl:w-[180px]">
             <span className="grid h-10 w-10 place-items-center rounded-xl border border-brand-100 bg-white shadow-soft">
               <img src="/brand/lingomaster-logo.svg" alt="Aptis Lingo" className="h-7 w-7 rounded-lg" />
             </span>
             <span className="mobile-wordmark hidden max-w-[130px] truncate text-base font-extrabold tracking-tight xl:inline 2xl:max-w-[170px] 2xl:text-lg">Aptis Lingo</span>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 pr-1 lg:flex xl:gap-1.5 xl:pr-2 2xl:gap-2.5 2xl:pr-4">
+          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex 2xl:gap-2">
             {mainLinks.map((link) => (
               <TopNavLink key={link.to} link={link} />
             ))}
@@ -225,40 +209,14 @@ export function AppLayout() {
             {!isAuthenticated && <Link to="/login" className="mobile-sign-in rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white sm:hidden">Đăng nhập</Link>}
             {!isAdmin && (
               <div className="hidden items-center xl:flex">
-                <div className="relative" ref={moreMenuRef}>
-                  <button
-                    type="button"
-                    className={`grid h-9 w-9 place-items-center rounded-full text-navy transition hover:bg-brand-50 hover:text-brand-700 ${moreMenuOpen ? 'bg-brand-50 text-brand-700' : ''}`}
-                    aria-label="Mở menu thêm"
-                    aria-expanded={moreMenuOpen}
-                    onClick={() => {
-                      setMoreMenuOpen((open) => !open);
-                      setThemeMenuOpen(false);
-                      setAccountMenuOpen(false);
-                    }}
-                  >
-                    <MoreHorizontal size={20} />
-                  </button>
-                  {moreMenuOpen && (
-                  <div className="absolute right-0 top-full z-50 mt-3 w-56 rounded-xl border border-brand-100 bg-white p-2 shadow-lift">
-                    {studentMoreLinks.map((link) => {
-                      const Icon = link.icon;
-                      return (
-                        <NavLink
-                          key={link.to}
-                          to={link.to}
-                          end={link.end}
-                          onClick={() => setMoreMenuOpen(false)}
-                          className={({ isActive }) => `flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-bold transition ${isActive ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-sky-100 hover:text-brand-700'}`}
-                        >
-                          <Icon size={17} />
-                          {link.label}
-                        </NavLink>
-                      );
-                    })}
-                  </div>
-                  )}
-                </div>
+                <Link
+                  to="/app/mock-tests"
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-brand-100 bg-brand-50 px-3 text-sm font-extrabold text-brand-700 transition hover:border-brand-200 hover:bg-brand-100"
+                  title="Gộp và tạo đề luyện tập"
+                >
+                  <Shuffle size={17} />
+                  Gộp đề
+                </Link>
               </div>
             )}
             <div className="relative hidden md:block">
@@ -361,7 +319,7 @@ export function AppLayout() {
               </div>
             )}
             <button
-              className="grid h-10 w-10 place-items-center rounded-lg text-brand-700 transition hover:bg-brand-50 lg:hidden"
+              className="grid h-10 w-10 place-items-center rounded-lg text-brand-700 transition hover:bg-brand-50 xl:hidden"
               onClick={() => setMobileMenuOpen((open) => !open)}
               aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
               aria-expanded={mobileMenuOpen}
@@ -372,7 +330,7 @@ export function AppLayout() {
         </div>
 
         {mobileMenuOpen && (
-          <div className="mobile-menu-panel border-t border-brand-100 bg-white px-4 py-3 shadow-soft lg:hidden">
+          <div className="mobile-menu-panel border-t border-brand-100 bg-white px-4 py-3 shadow-soft xl:hidden">
             <nav className="mx-auto grid max-w-[720px] gap-1">
               {mobileLinks.map((link) => (
                 <MobileNavLink key={link.to} link={link} onClick={() => setMobileMenuOpen(false)} />
@@ -443,6 +401,7 @@ export function AppLayout() {
           { to: '/', label: 'Trang chủ', icon: LayoutDashboard, active: location.pathname === '/' },
           { to: '/app/tests/parts', label: 'Theo part', icon: BookOpen, active: location.pathname.startsWith('/app/tests') },
           { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck, active: location.pathname.startsWith('/app/mock-tests') },
+          { to: '/app/history', label: 'Lịch sử', icon: Clock3, active: location.pathname.startsWith('/app/history') },
           { to: '/app/lessons', label: 'Bài học', icon: GraduationCap, active: location.pathname.startsWith('/app/lessons') },
           { to: isAuthenticated ? '/app/settings' : '/login', label: 'Tài khoản', icon: UserRound, active: location.pathname === '/app/settings' }
         ].map(({ to, label, icon: Icon, active }) => <Link key={label} to={to} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)}><span><Icon size={21} /></span><span>{label}</span></Link>)}
@@ -698,3 +657,4 @@ function MobileNavLink({ link, onClick }: { link: LayoutLink; onClick: () => voi
     </NavLink>
   );
 }
+

@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+﻿import { FormEvent, useState } from 'react';
 import type { ReactNode } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -144,3 +144,4 @@ function AuthInput({ icon, label, value, onChange, placeholder, type = 'text' }:
     </label>
   );
 }
+

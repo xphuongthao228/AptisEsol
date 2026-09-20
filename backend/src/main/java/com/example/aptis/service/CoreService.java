@@ -1988,11 +1988,28 @@ public class CoreService {
 
     public CoreDtos.MediaResponse media(MediaFile media) {
         return new CoreDtos.MediaResponse(media.getId(), media.getOriginalName(), media.getContentType(),
-                media.getSizeBytes(), media.getType());
+                media.getSizeBytes(), media.getType(), media.isBanner(), media.isBannerActive(),
+                media.getBannerSortOrder());
     }
 
     public List<CoreDtos.MediaResponse> mediaList() {
         return mediaFiles.findAll().stream().map(this::media).toList();
+    }
+
+    public List<CoreDtos.MediaResponse> activeBannerMedia() {
+        return mediaFiles.findByBannerTrueAndBannerActiveTrueOrderByBannerSortOrderAscIdAsc()
+                .stream().map(this::media).toList();
+    }
+
+    public CoreDtos.MediaResponse updateBannerMedia(Long id, CoreDtos.MediaBannerRequest request) {
+        MediaFile media = mediaEntity(id);
+        if (request.banner() && media.getType() != MediaType.IMAGE) {
+            throw new IllegalArgumentException("Only images can be used as banners");
+        }
+        media.setBanner(request.banner());
+        media.setBannerActive(request.banner() && request.active());
+        media.setBannerSortOrder(request.sortOrder());
+        return media(mediaFiles.save(media));
     }
 
     public MediaFile mediaEntity(Long id) {

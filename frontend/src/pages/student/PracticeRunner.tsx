@@ -2,7 +2,7 @@
 import { Fragment } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, Languages, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
@@ -104,7 +104,7 @@ export function PracticeRunner() {
   const fullReadingExam = useMemo(() => isExamSetMode && isFullReadingExam(test, questions ?? []), [isExamSetMode, test, questions]);
   const readingReview = useMemo(() => buildReadingExamReview(test, questions ?? [], answers), [test, questions, answers]);
   const canCheckCurrent = !fullReadingExam || currentIndex >= totalQuestions - 1;
-  const showClassicCheckButton = (!fullListeningExam && !fullReadingExam) || currentIndex >= totalQuestions - 1;
+  const showClassicCheckButton = !fullReadingExam || currentIndex >= totalQuestions - 1;
   const activeChecked = activeQuestion ? checkedAnswers[activeQuestion.id] : undefined;
   const sharedAudioUrl = useMemo(() => getSharedAudioUrl(questions ?? []), [questions]);
   const audioUrl = activeQuestion ? getQuestionAudioUrl(activeQuestion, mergedTemplateData, sharedAudioUrl) : '';
@@ -373,11 +373,7 @@ export function PracticeRunner() {
   function checkCurrentQuestion() {
     if (!activeQuestion) return;
 
-    if (fullListeningExam) {
-      if (currentIndex < totalQuestions - 1) {
-        toast.error('Bạn làm tới câu 17 rồi bấm Kiểm tra để xem điểm bài luyện.');
-        return;
-      }
+    if (fullListeningExam && currentIndex >= totalQuestions - 1) {
       const nextChecked = { ...checkedAnswers };
       (questions ?? []).forEach((question) => {
         nextChecked[question.id] = true;
@@ -1280,12 +1276,11 @@ function HighlightableText({ storageId, text, html, className = '' }: {
   const storageKey = `${HIGHLIGHT_STORAGE_PREFIX}:${storageId}`;
   const contentRef = useRef<HTMLDivElement | null>(null);
   const [highlights, setHighlights] = useState<TextHighlight[]>(() => loadTextHighlights(storageKey));
-  const [pendingRange, setPendingRange] = useState<Pick<TextHighlight, 'start' | 'end'> | null>(null);
+  const [selectionMenu, setSelectionMenu] = useState<({ text: string; left: number; top: number } & Pick<TextHighlight, 'start' | 'end'>) | null>(null);
   const hasContent = Boolean((html ?? text ?? '').trim());
 
   useEffect(() => {
     setHighlights(loadTextHighlights(storageKey));
-    setPendingRange(null);
   }, [storageKey]);
 
   useEffect(() => {
@@ -1299,63 +1294,93 @@ function HighlightableText({ storageId, text, html, className = '' }: {
     applyTextHighlights(root, highlights);
   }, [html, text, highlights]);
 
-  function rememberSelection() {
+  function showSelectionMenu() {
     const root = contentRef.current;
     if (!root) return;
-    setPendingRange(getSelectionTextRange(root));
+    const selectedRange = getSelectionTextRange(root);
+    if (!selectedRange) return;
+    const selection = window.getSelection();
+    const selectionRect = selection?.getRangeAt(0).getBoundingClientRect();
+    const selectedText = root.textContent?.slice(selectedRange.start, selectedRange.end).trim() ?? '';
+    if (!selectionRect || !selectedText) return;
+    setSelectionMenu({
+      ...selectedRange,
+      text: selectedText,
+      left: Math.min(Math.max(selectionRect.left + selectionRect.width / 2, 112), window.innerWidth - 112),
+      top: Math.max(selectionRect.top - 12, 56)
+    });
   }
 
-  function addHighlight() {
-    if (!pendingRange) {
-      toast.error('Bạn hãy bôi den do?n ch? cần ghi nh? trước.');
-      return;
-    }
-    const next = mergeTextHighlights([
-      ...highlights.filter((item) => !(item.start === pendingRange.start && item.end === pendingRange.end)),
-      { id: `${Date.now()}-${pendingRange.start}-${pendingRange.end}`, ...pendingRange, color: HIGHLIGHT_COLOR }
-    ]);
-    setHighlights(next);
-    saveTextHighlights(storageKey, next);
-    setPendingRange(null);
+  const selectionIsHighlighted = Boolean(selectionMenu && highlights.some(
+    (item) => item.start <= selectionMenu.start && item.end >= selectionMenu.end
+  ));
+
+  function updateSelectionHighlight() {
+    if (!selectionMenu) return;
+    setHighlights((current) => {
+      const next = selectionIsHighlighted
+        ? current.flatMap((item) => {
+            if (item.end <= selectionMenu.start || item.start >= selectionMenu.end) return [item];
+            const remaining: TextHighlight[] = [];
+            if (item.start < selectionMenu.start) {
+              remaining.push({ ...item, id: `${item.id}-left`, end: selectionMenu.start });
+            }
+            if (item.end > selectionMenu.end) {
+              remaining.push({ ...item, id: `${item.id}-right`, start: selectionMenu.end });
+            }
+            return remaining;
+          })
+        : mergeTextHighlights([
+            ...current,
+            { id: `${Date.now()}-${selectionMenu.start}-${selectionMenu.end}`, start: selectionMenu.start, end: selectionMenu.end, color: HIGHLIGHT_COLOR }
+          ]);
+      saveTextHighlights(storageKey, next);
+      return next;
+    });
     window.getSelection()?.removeAllRanges();
+    setSelectionMenu(null);
   }
 
-  function clearHighlights() {
-    setHighlights([]);
-    saveTextHighlights(storageKey, []);
-    setPendingRange(null);
+  function translateSelection() {
+    if (!selectionMenu) return;
+    const url = `https://translate.google.com/?sl=en&tl=vi&text=${encodeURIComponent(selectionMenu.text)}&op=translate`;
+    window.open(url, 'aptis-selection-translation', 'popup,width=560,height=680,resizable=yes,scrollbars=yes');
+    setSelectionMenu(null);
   }
 
   if (!hasContent) return null;
 
   return (
     <div className={className}>
-      <div className="mb-2 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={addHighlight}
-          disabled={!pendingRange}
-          title="Bôi đen đoạn chữ rồi bấm để tô sáng"
+      {selectionMenu && (
+        <div
+          className="fixed z-[70] flex -translate-x-1/2 -translate-y-full overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl"
+          style={{ left: selectionMenu.left, top: selectionMenu.top }}
+          onMouseDown={(event) => event.preventDefault()}
         >
-          <Highlighter size={14} />Tô sáng
-        </button>
-        <button
-          type="button"
-          className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-3 text-xs font-bold text-slate-700 hover:bg-sky-50 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={clearHighlights}
-          disabled={!highlights.length}
-          title="Xóa các đoạn đã tô sáng trong vùng này"
-        >
-          <Eraser size={14} />Xóa
-        </button>
-      </div>
+          <button
+            type="button"
+            className="inline-flex h-10 items-center gap-1.5 border-r border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-sky-50 hover:text-sky-700"
+            onClick={translateSelection}
+          >
+            <Languages size={16} />Dịch
+          </button>
+          <button
+            type="button"
+            className={`inline-flex h-10 items-center gap-1.5 px-3 text-sm font-semibold ${selectionIsHighlighted ? 'text-red-600 hover:bg-red-50' : 'text-amber-700 hover:bg-amber-50'}`}
+            onClick={updateSelectionHighlight}
+          >
+            {selectionIsHighlighted ? <Eraser size={16} /> : <Highlighter size={16} />}
+            {selectionIsHighlighted ? 'Xóa highlight' : 'Highlight'}
+          </button>
+        </div>
+      )}
       <div
         ref={contentRef}
         className="select-text"
-        onMouseUp={rememberSelection}
-        onKeyUp={rememberSelection}
-        onTouchEnd={rememberSelection}
+        onMouseUp={showSelectionMenu}
+        onKeyUp={showSelectionMenu}
+        onTouchEnd={showSelectionMenu}
       />
     </div>
   );
@@ -2818,7 +2843,7 @@ function evaluateTemplateAnswer(data: TemplateData | null, value: string) {
     if (!correctAnswers.length) return null;
     return correctAnswers.every((answer, index) => saved[`grammar${index}`] === answer);
   }
-  if (!data?.correctAnswers?.length) return null;
+  if (!data?.correctAnswers.length) return null;
   return data.correctAnswers.every((answer: string, index: number) => saved[`r${index}`] === answer);
 }
 
@@ -2841,6 +2866,11 @@ function isClassicAptisTemplate(data: TemplateData | null) {
   return data?.template === 'LISTENING_AUDIO_MC'
     || data?.template === 'LISTENING_OPINION_MATCH'
     || data?.template === 'LISTENING_PEOPLE_MATCH';
+}
+
+function autoGrowTextarea(textarea: HTMLTextAreaElement) {
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
 function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions, featured, initialClubIndex, checked, value, onChange }: {
@@ -3570,9 +3600,10 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
           )}
         </div>
         {showTips && data.tips && (
-          <div className="mb-5 whitespace-pre-line rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900">
-            {data.tips}
-          </div>
+          <div
+            className="mb-5 whitespace-pre-line rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900"
+            dangerouslySetInnerHTML={{ __html: sanitizeAnswerHtml(String(data.tips).replace(/\n/g, '<br />')) }}
+          />
         )}
         <div className="space-y-3">
           {paragraphs.map((paragraph: string, index: number) => {
@@ -3835,7 +3866,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
               return (
                 <label className="mb-8 block" key={prompt}>
                   <span className="mb-2 block font-semibold">{prompt}</span>
-                  <textarea className="min-h-28 w-full rounded border border-slate-300 p-3 outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" value={text} onChange={(event) => updateWriting(`p4-${index}`, event.target.value)} />
+                  <textarea className={`${index === 0 ? 'min-h-[180px]' : 'min-h-[280px]'} w-full resize-none overflow-hidden rounded border border-slate-300 p-3 outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100`} value={text} onInput={(event) => autoGrowTextarea(event.currentTarget)} onChange={(event) => updateWriting(`p4-${index}`, event.target.value)} />
                   <span className="mt-2 block text-right text-slate-700">Word Count: {wordCount(text)}</span>
                 </label>
               );
@@ -4994,7 +5025,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
             return (
               <label className="mb-4 block" key={prompt}>
                 <span className="mb-1 block text-sm font-semibold">{prompt}</span>
-                <textarea className="min-h-20 w-full rounded border border-slate-300 p-3 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" value={text} onChange={(event) => updateWriting(`p4-${index}`, event.target.value)} />
+                <textarea className={`${index === 0 ? 'min-h-[150px]' : 'min-h-[240px]'} w-full resize-none overflow-hidden rounded border border-slate-300 p-3 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100`} value={text} onInput={(event) => autoGrowTextarea(event.currentTarget)} onChange={(event) => updateWriting(`p4-${index}`, event.target.value)} />
                 <span className="mt-1 block text-right text-sm text-slate-700">Word Count: {wordCount(text)}</span>
               </label>
             );
@@ -5191,3 +5222,5 @@ function TemplateSelect({ value, options, onChange, wide, compact, status }: {
 function ShowParagraphButton() {
   return <button type="button" className="h-10 rounded-lg bg-brand-600 px-4 text-sm font-extrabold text-white shadow-soft hover:bg-brand-700">Show paragraph</button>;
 }
+
+

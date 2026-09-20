@@ -1,21 +1,25 @@
-import {
+﻿import {
   ArrowRight,
   BarChart3,
   Bell,
   Bot,
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   ExternalLink,
   FileText,
-  LayoutDashboard,
-  Lightbulb,
+  Flame,
+  GraduationCap,
   MessageCircle,
   Monitor,
   Pin,
   Rocket,
   Send,
   Sparkles,
+  Target,
   TrendingUp,
+  Trophy,
   Users,
   X,
   type LucideIcon
@@ -24,7 +28,10 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { NotificationDialog } from '../../components/NotificationDialog';
-import type { AppNotification } from '../../types';
+import { useApi } from '../../hooks/useApi';
+import { useAuthStore } from '../../store/authStore';
+import type { AppNotification, MockTestResult, Progress, Submission } from '../../types';
+import { repairMojibake } from '../../utils/textRepair';
 
 const stats = [
   ['120+', 'Bộ luyện Aptis'],
@@ -114,6 +121,20 @@ import { communityInviteDismissedKey } from '../../utils/community';
 const facebookCommunityUrl = 'https://www.facebook.com/groups/1017783430680359';
 const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
 const zaloContactUrl = 'https://zalo.me/0867833227';
+const mediaBaseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8080';
+
+type BannerMedia = { id: number; originalName: string };
+type HeroSlide = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  action: string;
+  href: string;
+  tone: string;
+  visual: string;
+  imageUrl?: string;
+  imageAlt?: string;
+};
 
 const flagFlakes = [
   { left: '4%', size: 22, delay: '-1s', duration: '13s' },
@@ -135,18 +156,22 @@ const flagFlakes = [
 ];
 
 export function Dashboard() {
+  const user = useAuthStore((state) => state.user);
   const [showCommunityInvite, setShowCommunityInvite] = useState(false);
 
   useEffect(() => {
+    if (user) return;
     if (sessionStorage.getItem(communityInviteDismissedKey)) return;
     const timer = window.setTimeout(() => setShowCommunityInvite(true), 850);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   function closeCommunityInvite() {
     sessionStorage.setItem(communityInviteDismissedKey, '1');
     setShowCommunityInvite(false);
   }
+
+  if (user) return <StudentLearningDashboard />;
 
   return (
     <div className="dashboard-page -mx-4 -mt-6 overflow-hidden bg-[#fff8f2] text-navy sm:-mx-6 lg:-mx-10">
@@ -184,6 +209,407 @@ export function Dashboard() {
   );
 }
 
+function StudentLearningDashboard() {
+  const user = useAuthStore((state) => state.user)!;
+  const goalStorageKey = `aptis-learning-goal:${user.id}`;
+  const [learningGoal, setLearningGoal] = useState<{ examDate: string; level: 'B1' | 'B2' | 'C1' } | null>(() => loadLearningGoal(goalStorageKey));
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false);
+  const [goalDraft, setGoalDraft] = useState<{ examDate: string; level: 'B1' | 'B2' | 'C1' }>(() => learningGoal ?? { examDate: '', level: 'B2' });
+  const { data: submissionData, loading: loadingSubmissions } = useApi<Submission[]>(
+    () => unwrap(api.get('/submissions/my-results')),
+    []
+  );
+  const { data: mockResultData, loading: loadingMockResults } = useApi<MockTestResult[]>(
+    () => unwrap(api.get('/mock-tests/results/my')),
+    []
+  );
+  const { data: progressData } = useApi<Progress[]>(
+    () => unwrap(api.get('/progress/me')),
+    []
+  );
+  const submissions = submissionData ?? [];
+  const progress = progressData ?? [];
+  const totalQuestions = submissions.reduce((total, item) => total + (item.answers?.length ?? 0), 0);
+  const correctQuestions = submissions.reduce(
+    (total, item) => total + (item.answers?.filter((answer) => answer.correct).length ?? 0),
+    0
+  );
+  const accuracy = totalQuestions ? Math.round((correctQuestions / totalQuestions) * 100) : 0;
+  const averageScore = submissions.length
+    ? Math.round(submissions.reduce((total, item) => total + submissionPercent(item), 0) / submissions.length)
+    : 0;
+  const streak = calculateLearningStreak(submissions);
+  const skillProgress = buildSkillProgress(progress, submissions);
+  const recentResults = [
+    ...submissions.map((value) => ({ kind: 'submission' as const, value })),
+    ...(mockResultData ?? []).map((value) => ({ kind: 'mock' as const, value }))
+  ]
+    .sort((first, second) => new Date(second.value.createdAt).getTime() - new Date(first.value.createdAt).getTime())
+    .slice(0, 4);
+  const isPro = Boolean(user.proExpiresAt && new Date(user.proExpiresAt).getTime() > Date.now());
+  const level = averageScore >= 80 ? 'C1' : averageScore >= 65 ? 'B2' : averageScore >= 45 ? 'B1' : 'Đang xác định';
+
+  function openGoalDialog() {
+    setGoalDraft(learningGoal ?? { examDate: '', level: 'B2' });
+    setGoalDialogOpen(true);
+  }
+
+  function saveLearningGoal() {
+    if (!goalDraft.examDate) return;
+    window.localStorage.setItem(goalStorageKey, JSON.stringify(goalDraft));
+    setLearningGoal(goalDraft);
+    setGoalDialogOpen(false);
+  }
+
+  return (
+    <div className="space-y-6 pb-10">
+      <div className="overflow-hidden rounded-lg border border-brand-100 shadow-soft">
+        <HeroSection showNotifications={false} />
+      </div>
+
+      <section className="relative overflow-hidden rounded-lg border border-red-100 bg-[linear-gradient(110deg,#fff1eb_0%,#fff_48%,#fff3ed_100%)] p-5 shadow-soft sm:p-7">
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(#e2e8f0_1px,transparent_1px),linear-gradient(90deg,#e2e8f0_1px,transparent_1px)] [background-size:48px_48px]" />
+        <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
+          <div>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white/80 px-3 py-1 text-xs font-extrabold text-brand-700">
+              <BarChart3 size={14} /> Dashboard
+            </span>
+            <h1 className="mt-4 text-3xl font-black text-slate-950 sm:text-4xl">
+              Xin chào, <span className="text-brand-600">{user.fullName}</span>
+            </h1>
+            <p className="mt-2 text-sm font-medium text-slate-600 sm:text-base">
+              Đã có dữ liệu <strong className="text-slate-900">{skillProgress.filter((item) => item.completedTests > 0).length}/4 kỹ năng</strong>
+              {' '}· Chuỗi học <strong className="text-brand-600">{streak} ngày</strong> · Hôm nay luyện tiếp nhé!
+            </p>
+          </div>
+          <Link to="/app/mock-tests" className="btn-primary h-11 self-start px-5">
+            <Rocket size={17} /> Thi thử ngay
+          </Link>
+        </div>
+
+        <div className="relative mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <DashboardMetric icon={Flame} label="Chuỗi ngày" value={`${streak} ngày`} tone="bg-red-100 text-red-600" />
+          <DashboardMetric icon={CheckCircle2} label="Câu đã làm" value={String(totalQuestions)} tone="bg-amber-100 text-amber-600" />
+          <DashboardMetric icon={Target} label="Chính xác" value={`${accuracy}%`} tone="bg-emerald-100 text-emerald-600" />
+          <DashboardMetric icon={TrendingUp} label="Trình độ" value={level} tone="bg-violet-100 text-violet-600" />
+          <DashboardMetric icon={Trophy} label="Gói hiện tại" value={isPro ? 'Pro' : 'Miễn phí'} tone="bg-slate-100 text-slate-600" />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <div className="flex flex-col gap-4 rounded-lg border border-red-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-red-50 text-brand-600">
+            <GraduationCap size={20} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-black text-slate-950 sm:text-lg">Hướng dẫn người mới học Aptis trên Aptis Lingo</h2>
+            <p className="mt-1 text-sm text-slate-500">Xem lộ trình và các bước bắt đầu luyện Aptis hiệu quả trên Aptis Lingo.</p>
+          </div>
+          <a
+            href="https://docs.google.com/document/d/1watnMSe6cibOX1qRb31z4DKerySzN56g/edit"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-brand-600 px-4 text-sm font-extrabold text-brand-600 transition hover:bg-brand-50"
+          >
+            Xem hướng dẫn <ArrowRight size={16} />
+          </a>
+        </div>
+
+        <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-amber-50 text-brand-600">
+            <Target size={20} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-black text-slate-950 sm:text-lg">Set up mục tiêu của bạn</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              {learningGoal
+                ? `Mục tiêu ${learningGoal.level} · Ngày thi ${formatGoalDate(learningGoal.examDate)}`
+                : 'Chọn ngày thi và trình độ mục tiêu B1, B2 hoặc C1.'}
+            </p>
+          </div>
+          <button type="button" onClick={openGoalDialog} className="inline-flex h-10 shrink-0 items-center justify-center rounded-md bg-brand-600 px-5 text-sm font-extrabold text-white transition hover:bg-brand-700">
+            {learningGoal ? 'Thay đổi' : 'Đặt ngay'}
+          </button>
+        </div>
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+          <div>
+            <h2 className="text-xl font-black text-slate-950">Thống kê tiến độ luyện tập</h2>
+            <p className="mt-3 text-sm text-slate-600 sm:text-base">Theo dõi sự tiến bộ điểm số của bạn qua các lần luyện tập và thi thử.</p>
+          </div>
+          <Link to="/app/history" className="text-sm font-extrabold text-brand-600 hover:text-brand-700">Xem lịch sử</Link>
+        </div>
+        {loadingSubmissions ? <DashboardLoading /> : <ProgressLineChart submissions={submissions} />}
+      </section>
+
+      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <p className="text-xs font-extrabold uppercase text-brand-600">Học tiếp</p>
+            <h2 className="mt-1 text-xl font-black text-navy">Bài làm gần đây</h2>
+          </div>
+          <Link to="/app/tests/parts" className="btn-primary h-10 px-4 text-sm">Luyện ngay <ArrowRight size={16} /></Link>
+        </div>
+        {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : recentResults.length ? (
+          <div className="mt-5 divide-y divide-slate-100">
+            {recentResults.map((item) => {
+              const title = item.kind === 'submission' ? item.value.testTitle : item.value.title;
+              const skill = item.kind === 'submission' ? item.value.skillName : item.value.skill;
+              const percent = item.value.maxScore ? Math.round(((item.kind === 'submission' ? item.value.totalScore : item.value.score) * 100) / item.value.maxScore) : 0;
+              return (
+              <Link to={`/app/history?result=${item.kind}:${item.value.id}`} className="flex items-center gap-4 py-4 transition hover:bg-slate-50" key={`${item.kind}:${item.value.id}`}>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-700"><FileText size={18} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-extrabold text-navy">{repairMojibake(title)}</p>
+                  <p className="mt-1 text-xs font-medium text-slate-500">{item.kind === 'mock' ? 'Thi thử · ' : ''}{repairMojibake(skill)} · {formatDashboardDate(item.value.createdAt)}</p>
+                </div>
+                <span className="text-sm font-black text-brand-600">{percent}%</span>
+              </Link>
+            );})}
+          </div>
+        ) : (
+          <div className="mt-5 border border-dashed border-slate-300 p-7 text-center text-sm font-medium text-slate-600">
+            Bạn chưa có bài làm nào. Hãy bắt đầu một bài luyện để tạo thống kê tiến độ.
+          </div>
+        )}
+      </section>
+
+      {goalDialogOpen && (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="learning-goal-title">
+          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-extrabold uppercase text-brand-600">Mục tiêu học tập</p>
+                <h2 id="learning-goal-title" className="mt-1 text-2xl font-black text-navy">Bạn muốn đạt band nào?</h2>
+              </div>
+              <button type="button" onClick={() => setGoalDialogOpen(false)} className="grid h-9 w-9 place-items-center rounded-md text-slate-500 hover:bg-slate-100" aria-label="Đóng"><X size={19} /></button>
+            </div>
+
+            <div className="mt-6">
+              <p className="mb-2 text-sm font-extrabold text-slate-800">Trình độ mục tiêu</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(['B1', 'B2', 'C1'] as const).map((targetLevel) => (
+                  <button
+                    type="button"
+                    key={targetLevel}
+                    onClick={() => setGoalDraft((current) => ({ ...current, level: targetLevel }))}
+                    className={`h-12 rounded-md border text-base font-black transition ${goalDraft.level === targetLevel ? 'border-brand-600 bg-brand-600 text-white' : 'border-slate-200 bg-white text-slate-700 hover:border-brand-300'}`}
+                  >
+                    {targetLevel}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <label className="mt-5 block">
+              <span className="mb-2 block text-sm font-extrabold text-slate-800">Ngày thi dự kiến</span>
+              <input
+                type="date"
+                min={localDateKey(new Date())}
+                value={goalDraft.examDate}
+                onChange={(event) => setGoalDraft((current) => ({ ...current, examDate: event.target.value }))}
+                className="input"
+              />
+            </label>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button type="button" onClick={() => setGoalDialogOpen(false)} className="btn-secondary h-10 px-4 text-sm">Hủy</button>
+              <button type="button" onClick={saveLearningGoal} disabled={!goalDraft.examDate} className="btn-primary h-10 px-5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Lưu mục tiêu</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function DashboardMetric({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: string; tone: string }) {
+  return (
+    <div className="flex min-h-[112px] items-center gap-3 rounded-lg border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
+      <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${tone}`}><Icon size={22} /></span>
+      <div className="min-w-0"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 truncate text-xl font-black text-slate-950">{value}</p></div>
+    </div>
+  );
+}
+
+const progressChartSeries = [
+  { key: 'reading', label: 'Reading Practice', color: '#3b82f6' },
+  { key: 'listening', label: 'Listening Practice', color: '#10b981' },
+  { key: 'writing', label: 'Writing Practice', color: '#8b5cf6' },
+  { key: 'grammar', label: 'Grammar Practice', color: '#ec4899' },
+  { key: 'speaking', label: 'Speaking Practice', color: '#f97316' },
+  { key: 'full', label: 'Mock Test (Full)', color: '#f59e0b', dashed: true }
+] as const;
+
+function ProgressLineChart({ submissions }: { submissions: Submission[] }) {
+  const chart = buildProgressChart(submissions);
+  if (!chart.dates.length) {
+    return (
+      <div className="mt-6 border border-dashed border-slate-300 p-10 text-center text-sm font-medium text-slate-600">
+        Hoàn thành bài luyện hoặc thi thử để bắt đầu biểu đồ tiến độ.
+      </div>
+    );
+  }
+
+  const width = Math.max(920, chart.dates.length * 72);
+  const height = 330;
+  const left = 48;
+  const right = 20;
+  const top = 18;
+  const bottom = 42;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const x = (index: number) => left + (chart.dates.length === 1 ? plotWidth / 2 : (index / (chart.dates.length - 1)) * plotWidth);
+  const y = (value: number) => top + ((100 - value) / 100) * plotHeight;
+
+  return (
+    <div className="mt-6">
+      <div className="mb-4 flex flex-wrap justify-center gap-x-5 gap-y-2">
+        {progressChartSeries.map((series) => (
+          <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600" key={series.key}>
+            <span className="h-2.5 w-8 border-2 bg-white" style={{ borderColor: series.color, borderStyle: 'dashed' in series && series.dashed ? 'dashed' : 'solid' }} />
+            {series.label}
+          </span>
+        ))}
+      </div>
+      <div className="overflow-x-auto pb-2">
+        <svg viewBox={`0 0 ${width} ${height}`} className="h-[330px] min-w-[920px] w-full" role="img" aria-label="Biểu đồ tiến độ điểm số theo ngày">
+          {Array.from({ length: 11 }, (_, index) => index * 10).map((value) => (
+            <g key={value}>
+              <line x1={left} x2={width - right} y1={y(value)} y2={y(value)} stroke="#e2e8f0" strokeWidth="1" />
+              <text x={left - 8} y={y(value) + 4} textAnchor="end" fontSize="11" fill="#64748b">{value}%</text>
+            </g>
+          ))}
+          {chart.dates.map((date, index) => (
+            <g key={date}>
+              <line x1={x(index)} x2={x(index)} y1={top} y2={height - bottom} stroke="#e2e8f0" strokeWidth="1" />
+              <text x={x(index)} y={height - 17} textAnchor="middle" fontSize="11" fill="#64748b">{formatChartDate(date)}</text>
+            </g>
+          ))}
+          {progressChartSeries.map((series) => {
+            const points = chart.values[series.key];
+            const path = points.map((point, index) => `${index ? 'L' : 'M'} ${x(point.dateIndex)} ${y(point.value)}`).join(' ');
+            return (
+              <g key={series.key}>
+                {points.length > 1 && <path d={path} fill="none" stroke={series.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={'dashed' in series && series.dashed ? '7 6' : undefined} />}
+                {points.map((point) => (
+                  <circle key={`${point.dateIndex}-${point.value}`} cx={x(point.dateIndex)} cy={y(point.value)} r="3.5" fill="white" stroke={series.color} strokeWidth="2.5">
+                    <title>{`${series.label} · ${formatChartDate(chart.dates[point.dateIndex])}: ${point.value}%`}</title>
+                  </circle>
+                ))}
+              </g>
+            );
+          })}
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+function buildProgressChart(submissions: Submission[]) {
+  const sorted = [...submissions].sort((first, second) => new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime());
+  const dates = Array.from(new Set(sorted.map((item) => localDateKey(new Date(item.createdAt))))).slice(-24);
+  const values: Record<typeof progressChartSeries[number]['key'], Array<{ dateIndex: number; value: number }>> = {
+    reading: [],
+    listening: [],
+    writing: [],
+    grammar: [],
+    speaking: [],
+    full: []
+  };
+
+  dates.forEach((date, dateIndex) => {
+    progressChartSeries.forEach((series) => {
+      const matching = sorted.filter((submission) => localDateKey(new Date(submission.createdAt)) === date && submissionChartSeries(submission) === series.key);
+      if (!matching.length) return;
+      const value = Math.round(matching.reduce((total, submission) => total + submissionPercent(submission), 0) / matching.length);
+      values[series.key].push({ dateIndex, value });
+    });
+  });
+  return { dates, values };
+}
+
+function submissionChartSeries(submission: Submission): typeof progressChartSeries[number]['key'] {
+  const searchable = `${submission.skillName} ${submission.testTitle}`.toLowerCase();
+  if (/full|toàn bộ|tong hop|tổng hợp/.test(searchable)) return 'full';
+  if (searchable.includes('listening')) return 'listening';
+  if (searchable.includes('writing')) return 'writing';
+  if (searchable.includes('grammar')) return 'grammar';
+  if (searchable.includes('speaking')) return 'speaking';
+  return 'reading';
+}
+
+function formatChartDate(value: string) {
+  const [, month, day] = value.split('-');
+  return `${day}/${month}`;
+}
+
+function DashboardLoading() {
+  return <div className="mt-6 h-32 animate-pulse rounded-md bg-slate-100" />;
+}
+
+function submissionPercent(submission: Submission) {
+  return submission.maxScore ? Math.round((submission.totalScore / submission.maxScore) * 100) : 0;
+}
+
+function calculateLearningStreak(submissions: Submission[]) {
+  const activeDays = new Set(submissions.map((item) => localDateKey(new Date(item.createdAt))));
+  if (!activeDays.size) return 0;
+  const cursor = new Date();
+  if (!activeDays.has(localDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let streak = 0;
+  while (activeDays.has(localDateKey(cursor))) {
+    streak += 1;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+  return streak;
+}
+
+function buildSkillProgress(progress: Progress[], submissions: Submission[]) {
+  const skills = [
+    { name: 'Listening', color: 'bg-sky-500' },
+    { name: 'Speaking', color: 'bg-violet-500' },
+    { name: 'Reading', color: 'bg-emerald-500' },
+    { name: 'Writing', color: 'bg-amber-500' }
+  ];
+  return skills.map((skill) => {
+    const progressItem = progress.find((item) => item.skillName.toLowerCase().includes(skill.name.toLowerCase()));
+    const skillSubmissions = submissions.filter((item) => item.skillName.toLowerCase().includes(skill.name.toLowerCase()));
+    const percent = skillSubmissions.length
+      ? Math.round(skillSubmissions.reduce((total, item) => total + submissionPercent(item), 0) / skillSubmissions.length)
+      : 0;
+    return { ...skill, percent, completedTests: progressItem?.completedTests ?? skillSubmissions.length };
+  });
+}
+
+function localDateKey(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatDashboardDate(value: string) {
+  return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
+}
+
+function loadLearningGoal(storageKey: string) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null');
+    if (!parsed?.examDate || !['B1', 'B2', 'C1'].includes(parsed.level)) return null;
+    return parsed as { examDate: string; level: 'B1' | 'B2' | 'C1' };
+  } catch {
+    return null;
+  }
+}
+
+function formatGoalDate(value: string) {
+  const [year, month, day] = value.split('-');
+  return year && month && day ? `${day}/${month}/${year}` : value;
+}
+
 function FlagFall() {
   return (
     <div className="flag-fall" aria-hidden="true">
@@ -206,42 +632,172 @@ function FlagFall() {
   );
 }
 
-function HeroSection() {
+function HeroSection({ showNotifications = true }: { showNotifications?: boolean } = {}) {
+  const defaultSlides: HeroSlide[] = [
+    {
+      eyebrow: 'Aptis Lingo học theo lộ trình',
+      title: 'Học Aptis đúng hướng, tiến bộ mỗi ngày',
+      description: 'Biết nên luyện phần nào trước và tập trung sửa đúng lỗi để về đích nhanh hơn.',
+      action: 'Vào luyện ngay',
+      href: '/app/tests/parts',
+      tone: 'from-[#fff8f2] via-[#fff1c7] to-[#fffdf7]',
+      visual: 'study'
+    },
+    {
+      eyebrow: 'Lộ trình cá nhân',
+      title: 'Một ca học gọn trong 35 phút',
+      description: 'Reading, Speaking và Writing được sắp xếp thành từng bước rõ ràng, dễ bắt đầu.',
+      action: 'Xem lộ trình',
+      href: '/app/tests/parts',
+      tone: 'from-[#fff4f4] via-white to-[#fff6d8]',
+      visual: 'plan'
+    },
+    {
+      eyebrow: 'Phản hồi sau bài làm',
+      title: 'Biết lỗi ở đâu, sửa ngay ở đó',
+      description: 'Nhận góp ý cho Speaking và Writing, theo dõi tiến độ để ưu tiên đúng kỹ năng còn yếu.',
+      action: 'Luyện kỹ năng',
+      href: '/app/tests/parts',
+      tone: 'from-[#f3fbff] via-white to-[#fff3d5]',
+      visual: 'feedback'
+    }
+  ];
+  const [bannerMedia, setBannerMedia] = useState<BannerMedia[]>([]);
+  const [activeSlide, setActiveSlide] = useState(0);
+  const [slideDirection, setSlideDirection] = useState<'next' | 'previous'>('next');
+  const [sliderPaused, setSliderPaused] = useState(false);
+  const slides = bannerMedia.length
+    ? bannerMedia.map((media, index) => ({
+        ...defaultSlides[index % defaultSlides.length],
+        imageUrl: `${mediaBaseUrl}/api/media/${media.id}`,
+        imageAlt: media.originalName
+      }))
+    : defaultSlides;
+
+  useEffect(() => {
+    let mounted = true;
+    unwrap<BannerMedia[]>(api.get('/media/banners'))
+      .then((items) => {
+        if (mounted) setBannerMedia(items);
+      })
+      .catch(() => {
+        if (mounted) setBannerMedia([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (sliderPaused) return;
+    const timer = window.setInterval(() => {
+      setSlideDirection('next');
+      setActiveSlide((current) => (current + 1) % slides.length);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [sliderPaused, slides.length]);
+
+  const slide = slides[activeSlide];
+  const moveSlide = (direction: number) => {
+    setSlideDirection(direction > 0 ? 'next' : 'previous');
+    setActiveSlide((current) => (current + direction + slides.length) % slides.length);
+  };
+
+  const selectSlide = (index: number) => {
+    if (index === activeSlide) return;
+    setSlideDirection(index > activeSlide ? 'next' : 'previous');
+    setActiveSlide(index);
+  };
+
   return (
-    <section className="dashboard-hero relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[linear-gradient(135deg,#fff8f2_0%,#fff0c2_48%,#ffffff_100%)] px-4 pb-14 pt-12 sm:px-6 lg:px-10 lg:pb-16 lg:pt-16">
-      <div className="dashboard-hero-shape absolute right-0 top-0 h-full w-1/2 translate-x-1/4 rounded-l-full bg-brand-100/70" />
-      <div className="dashboard-hero-glow absolute left-[-10%] top-[-20%] h-72 w-72 rounded-full bg-red-100/60 blur-3xl" />
-      <DashboardNotificationPanel />
-      <div className="relative mx-auto grid min-h-[calc(100vh-10rem)] max-w-[1720px] gap-12 lg:grid-cols-[0.86fr_1.14fr] lg:items-center xl:gap-16">
-        <div>
-          <div className="mb-7 inline-flex w-fit items-center gap-2 rounded-full border border-brand-200 bg-white px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-brand-700 shadow-soft">
+    <section
+      className={`dashboard-hero relative overflow-hidden bg-gradient-to-r ${slide.tone} px-4 py-6 transition-colors duration-700 sm:px-6 lg:px-10 lg:py-8`}
+      onMouseEnter={() => setSliderPaused(true)}
+      onMouseLeave={() => setSliderPaused(false)}
+    >
+      {showNotifications && <DashboardNotificationPanel />}
+      <div className="relative mx-auto max-w-[1560px]">
+        <div key={activeSlide} className={`dashboard-slide dashboard-slide-${slideDirection} grid min-h-[430px] items-center gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10`}>
+          <div className="relative z-10 px-1 py-8 sm:px-5 lg:py-6">
+            <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-3 py-1.5 text-xs font-extrabold uppercase text-brand-700 shadow-soft">
             <Sparkles size={17} />
-            Aptis Lingo học theo lộ trình
-          </div>
-          <h1 className="max-w-[820px] text-5xl font-extrabold leading-[1.02] text-navy sm:text-6xl lg:text-[68px] 2xl:text-[76px]">
-            Học Aptis <span className="text-brand-500">đến ngay Aptis Lingo</span>
-          </h1>
-          <p className="mt-7 max-w-[760px] text-lg font-medium leading-9 text-slate-700 sm:text-xl">
-            Mỗi ngày mở web là biết nên luyện phần nào, làm bài nào trước và cần sửa lỗi gì để tiến bộ nhanh hơn.
-          </p>
-          <div className="mt-9 flex flex-col gap-4 sm:flex-row">
-            <Link to="/app/tests/parts" className="btn-primary h-14 px-7 text-base">
-              Vào luyện ngay <ArrowRight size={18} />
-            </Link>
-            <Link to="/app/tests/parts" className="btn-secondary h-14 px-7 text-base">
-              Xem các kỹ năng
+              {slide.eyebrow}
+            </div>
+            <h1 className="max-w-[680px] text-4xl font-extrabold leading-tight text-navy sm:text-5xl lg:text-[52px]">
+              {slide.title}
+            </h1>
+            <p className="mt-4 max-w-[650px] text-base font-medium leading-7 text-slate-700 sm:text-lg">
+              {slide.description}
+            </p>
+            <Link to={slide.href} className="btn-primary mt-6 h-12 px-6 text-sm sm:text-base">
+              {slide.action} <ArrowRight size={18} />
             </Link>
           </div>
-          <div className="dashboard-trust-pills mt-9 flex flex-wrap gap-4">
-            <TrustPill>Lộ trình học theo ngày</TrustPill>
-            <TrustPill>Gợi ý sửa lỗi sau bài làm</TrustPill>
+
+          <div className="relative hidden h-[350px] items-center justify-center lg:flex" aria-hidden="true">
+            <HeroSlideVisual visual={slide.visual} imageUrl={slide.imageUrl} imageAlt={slide.imageAlt} />
           </div>
         </div>
 
-        <img src="/brand/mobile-study-reference.png" alt="Minh họa học Aptis trên điện thoại" width={512} height={279} className="w-full rounded-2xl object-cover shadow-soft sm:hidden" />
-        <ExamMockup />
+        <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+          {slides.map((item, index) => (
+            <button
+              type="button"
+              key={item.title}
+              onClick={() => selectSlide(index)}
+              className={`h-2.5 transition-all ${index === activeSlide ? 'w-7 bg-brand-600' : 'w-2.5 bg-slate-300 hover:bg-slate-400'}`}
+              aria-label={`Xem banner ${index + 1}`}
+              aria-current={index === activeSlide}
+            />
+          ))}
+        </div>
+        <button type="button" onClick={() => moveSlide(-1)} className="absolute left-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-brand-100 bg-white/90 text-navy shadow-soft hover:bg-white sm:grid" aria-label="Banner trước">
+          <ChevronLeft size={20} />
+        </button>
+        <button type="button" onClick={() => moveSlide(1)} className="absolute right-0 top-1/2 z-20 hidden h-10 w-10 -translate-y-1/2 place-items-center rounded-full border border-brand-100 bg-white/90 text-navy shadow-soft hover:bg-white sm:grid" aria-label="Banner tiếp theo">
+          <ChevronRight size={20} />
+        </button>
       </div>
     </section>
+  );
+}
+
+function HeroSlideVisual({ visual, imageUrl, imageAlt }: { visual: string; imageUrl?: string; imageAlt?: string }) {
+  if (imageUrl) {
+    return <img src={imageUrl} alt={imageAlt ?? ''} className="h-[340px] w-full max-w-[680px] rounded-lg border border-white/80 object-cover shadow-lift" />;
+  }
+
+  if (visual === 'study') {
+    return <img src="/brand/mobile-study-reference.png" alt="" width={512} height={279} className="w-full max-w-[650px] rounded-lg border border-white/80 object-cover shadow-lift" />;
+  }
+
+  if (visual === 'plan') {
+    return (
+      <div className="w-full max-w-[650px] rounded-lg border border-brand-100 bg-white p-5 shadow-lift">
+        <div className="mb-4 flex items-center justify-between">
+          <div><p className="text-xs font-extrabold uppercase text-brand-700">Lộ trình hôm nay</p><p className="mt-1 text-xl font-black text-navy">Ca học 35 phút</p></div>
+          <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-extrabold text-white">B2 target</span>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {['Ôn Reading', 'Ghi âm Speaking', 'Sửa Writing'].map((label, index) => (
+            <div className="border-l-4 border-brand-500 bg-[#fffaf0] p-4" key={label}>
+              <span className="text-xs font-black text-brand-600">0{index + 1}</span>
+              <p className="mt-2 text-sm font-extrabold text-navy">{label}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid w-full max-w-[650px] grid-cols-[1.2fr_0.8fr] gap-4">
+      <div className="rounded-lg border border-brand-100 bg-white p-6 shadow-lift">
+        <div className="flex items-center gap-3"><span className="grid h-11 w-11 place-items-center rounded-lg bg-brand-50 text-brand-700"><Bot size={23} /></span><div><p className="font-extrabold text-navy">Chấm Speaking & Writing</p><p className="text-xs text-slate-500">Góp ý theo tiêu chí</p></div></div>
+        <div className="mt-5 space-y-3">{[82, 68, 74].map((value, index) => <div key={value}><div className="mb-1 flex justify-between text-xs font-bold text-slate-600"><span>{['Từ vựng', 'Ngữ pháp', 'Mạch lạc'][index]}</span><span>{value}%</span></div><div className="h-2 bg-slate-100"><div className="h-full bg-brand-500" style={{ width: `${value}%` }} /></div></div>)}</div>
+      </div>
+      <div className="flex flex-col justify-center rounded-lg bg-[#5f0b0f] p-5 text-white shadow-lift"><TrendingUp size={28} className="text-yellow-300" /><p className="mt-4 text-3xl font-black">+18%</p><p className="mt-1 text-sm font-semibold text-white/75">Tiến bộ tuần này</p></div>
+    </div>
   );
 }
 
@@ -350,102 +906,6 @@ function dashboardNotificationLevelLabel(level: AppNotification['level']) {
     DANGER: 'Gấp'
   };
   return labels[level];
-}
-
-function TrustPill({ children }: { children: ReactNode }) {
-  return (
-    <span className="inline-flex items-center gap-2 rounded-lg border border-brand-100 bg-white px-4 py-2.5 text-sm font-extrabold text-slate-700 shadow-soft">
-      <CheckCircle2 size={17} className="text-brand-600" />
-      {children}
-    </span>
-  );
-}
-
-function ExamMockup() {
-  return (
-    <div className="relative hidden min-h-[690px] lg:block">
-      <div className="dashboard-annotation absolute -left-8 top-28 z-10 flex items-center gap-3 rounded-xl border border-brand-100 bg-white px-5 py-4 text-base font-extrabold text-navy shadow-lift">
-        <Lightbulb size={18} className="text-brand-600" />
-        Lộ trình hôm nay
-      </div>
-      <div className="dashboard-annotation dashboard-annotation-delay absolute -right-3 top-56 z-10 flex items-center gap-3 rounded-xl border border-emerald-100 bg-white px-5 py-4 text-base font-extrabold text-navy shadow-lift">
-        <Bot size={18} className="text-brand-600" />
-        Chấm Speaking-Writing
-      </div>
-      <div className="dashboard-annotation dashboard-annotation-slow absolute bottom-24 left-8 z-10 rounded-xl border border-yellow-200 bg-white px-5 py-4 shadow-lift">
-        <p className="text-[11px] font-extrabold uppercase tracking-wide text-slate-500">Mục tiêu</p>
-        <p className="mt-1 text-base font-black text-navy">7 ngày lên nhịp ôn</p>
-      </div>
-      <div className="ml-auto max-w-[760px] overflow-hidden rounded-[28px] border border-brand-200 bg-white shadow-[0_24px_80px_rgba(165,15,21,0.18)]">
-        <div className="grid grid-cols-[240px_1fr]">
-          <div className="bg-[#5f0b0f] p-6 text-white">
-            <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#ffde00] text-[#5f0b0f] shadow-soft">
-              <LayoutDashboard size={28} />
-            </div>
-            <p className="mt-7 text-xs font-extrabold uppercase tracking-[0.18em] text-brand-100">Bàn học Aptis</p>
-            <h3 className="mt-2 text-3xl font-black leading-tight">Hôm nay luyện gì?</h3>
-            <p className="mt-4 text-sm font-semibold leading-6 text-white/78">
-              Gợi ý tự động theo kỹ năng còn yếu và bài vừa làm gần nhất.
-            </p>
-
-            <div className="mt-8 rounded-2xl bg-white/10 p-4">
-              <p className="text-xs font-bold text-white/70">Tiến độ tuần</p>
-              <div className="mt-3 flex items-end gap-2">
-                {[42, 62, 48, 78, 70, 34, 58].map((height, index) => (
-                  <span
-                    className={`w-full rounded-t-lg ${index === 3 ? 'bg-[#ffde00]' : 'bg-white/35'}`}
-                    key={height + index}
-                    style={{ height }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#fffaf0] p-7">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Lộ trình cá nhân</p>
-                <h3 className="mt-2 text-2xl font-black text-slate-950">Ca học 35 phút</h3>
-              </div>
-              <span className="rounded-full bg-brand-600 px-3 py-1 text-xs font-extrabold text-white">B2 target</span>
-            </div>
-
-            <div className="mt-6 space-y-3">
-              {[
-                ['01', 'Ôn Reading Part 2', 'Sắp xếp câu theo logic đoạn văn', 'bg-brand-600 text-white'],
-                ['02', 'Ghi âm Speaking', 'Trả lời 2 câu cá nhân và nhận góp ý', 'bg-white text-brand-700'],
-                ['03', 'Sửa Writing task', 'Nâng cấp câu trả lời theo gợi ý AI', 'bg-white text-brand-700']
-              ].map(([step, title, text, tone]) => (
-                <article className="flex items-start gap-4 rounded-2xl border border-brand-100 bg-white p-4 shadow-soft" key={step}>
-                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl text-sm font-black ${tone}`}>
-                    {step}
-                  </span>
-                  <div>
-                    <h4 className="text-sm font-extrabold text-slate-950">{title}</h4>
-                    <p className="mt-1 text-xs font-medium leading-5 text-slate-600">{text}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="mt-5 grid grid-cols-3 gap-3">
-              {[
-                ['Reading', '68%'],
-                ['Speaking', '52%'],
-                ['Writing', '74%']
-              ].map(([label, value]) => (
-                <div className="rounded-2xl border border-brand-100 bg-white p-3 text-center shadow-soft" key={label}>
-                  <p className="text-lg font-black text-navy">{value}</p>
-                  <p className="mt-1 text-[11px] font-extrabold text-slate-500">{label}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 }
 
 function StatsBanner() {
@@ -974,3 +1434,5 @@ function Reveal({ children, className = '', delay = 0 }: { children: ReactNode; 
     </div>
   );
 }
+
+

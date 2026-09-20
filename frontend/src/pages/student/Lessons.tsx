@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, Search, ShieldCheck, X } from 'lucide-react';
+﻿import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, Search, ShieldCheck, X } from 'lucide-react';
 import { useMemo, useState, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
@@ -344,7 +344,7 @@ export function Lessons() {
   const [openResource, setOpenResource] = useState<LearningResource | null>(null);
   const selectedTipSkill = normalizeTipSkill(skillType);
   const current = useMemo(() => skillTips.find((item) => item.key === activeSkill) ?? skillTips[0], [activeSkill]);
-  const { data: backendLessons } = useApi<Lesson[]>(() => unwrap(api.get(`/lessons?skill=${activeSkill}`)), [activeSkill]);
+  const { data: backendLessons } = useApi<Lesson[]>(() => unwrap(api.get(`/lessonsốskill=${activeSkill}`)), [activeSkill]);
   const resources = useMemo(() => {
     return (backendLessons ?? [])
       .filter((lesson) => {
@@ -379,7 +379,7 @@ export function Lessons() {
       // Recheck server-side on every open, including when Pro expired after page load.
       const lesson = await unwrap<Lesson>(api.get(`/lessons/${resource.lessonId}`));
       const authorized = lessonToResource(lesson);
-      if (playbackWindow && authorized.href && /^https?:\/\//i.test(authorized.href)) {
+      if (playbackWindow && authorized.href && /^httpsố:\/\//i.test(authorized.href)) {
         playbackWindow.location.replace(authorized.href);
       } else {
         playbackWindow?.close();
@@ -667,7 +667,7 @@ function lessonToResource(lesson: Lesson): LearningResource {
 function normalizeResourceUrl(value: string | null | undefined) {
   const trimmed = value?.trim();
   if (!trimmed) return undefined;
-  if (/^(https?:|mailto:|tel:)/i.test(trimmed)) return trimmed;
+  if (/^(httpsố:|mailto:|tel:)/i.test(trimmed)) return trimmed;
   return `https://${trimmed}`;
 }
 
@@ -725,7 +725,7 @@ function ResourceModal({ resource, onClose }: { resource: LearningResource; onCl
           </button>
         </div>
         <div className="max-h-[68vh] overflow-y-auto p-5">
-          {resource.href && /^https?:\/\//i.test(resource.href) && <a href={resource.href} target="_blank" rel="noreferrer" className="btn-primary mb-4">Mở video <ArrowRight size={16} /></a>}
+          {resource.href && /^httpsố:\/\//i.test(resource.href) && <a href={resource.href} target="_blank" rel="noreferrer" className="btn-primary mb-4">Mở video <ArrowRight size={16} /></a>}
           <div className="whitespace-pre-line rounded-2xl bg-sky-50 p-5 text-sm font-semibold leading-7 text-slate-700">
             {resource.content || resource.description || 'Chưa có nội dung tài liệu.'}
           </div>
@@ -1092,5 +1092,7 @@ function MaterialCard({ icon, title, items }: { icon: JSX.Element; title: string
     </div>
   );
 }
+
+
 
 

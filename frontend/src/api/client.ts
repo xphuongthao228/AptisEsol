@@ -3,10 +3,11 @@ import { useAuthStore } from '../store/authStore';
 import type { ApiResponse, AuthResponse } from '../types';
 
 const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+const REQUEST_TIMEOUT_MS = 15_000;
 
-export const api = axios.create({ baseURL });
-export const publicApi = axios.create({ baseURL });
-const authApi = axios.create({ baseURL });
+export const api = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS });
+export const publicApi = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS });
+const authApi = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS });
 const REFRESH_SKEW_SECONDS = 90;
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {
@@ -191,6 +192,8 @@ export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Pro
         error.message = 'Không xác thực được yêu cầu. Phiên hiện tại vẫn được giữ; vui lòng thử tải lại trang.';
       } else if (error.response?.status === 403) {
         error.message = 'Phiên học đã hết hạn hoặc tài khoản chưa có quyền truy cập.';
+      } else if (error.code === 'ECONNABORTED') {
+        error.message = 'Backend phản hồi quá lâu. Hãy kiểm tra backend đang chạy ở cổng 8080 rồi thử lại.';
       }
 
       throw error;
@@ -208,3 +211,5 @@ function isAuthEndpoint(url: string) {
     url.includes('/auth/forgot-password') ||
     url.includes('/auth/reset-password');
 }
+
+

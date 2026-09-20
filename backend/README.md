@@ -64,6 +64,48 @@ $env:TRANSCRIPTION_MODEL="whisper-large-v3-turbo"
 
 DeepSeek does not accept raw audio files directly, so `DEEPSEEK_API_KEY` is used for scoring text and `TRANSCRIPTION_API_KEY` is used for listening to the submitted `.webm` recordings.
 
+When using `backend/.env`, each setting must be on its own line with a plain URL:
+
+```text
+TRANSCRIPTION_API_KEY=your-new-groq-key
+TRANSCRIPTION_BASE_URL=https://api.groq.com/openai/v1
+TRANSCRIPTION_MODEL=whisper-large-v3-turbo
+```
+
+After changing `.env`, stop the old backend process and start it again with
+`.\run-backend.ps1`. Spring Boot does not reload `.env` while it is already running.
+
+## Speaking submit API
+
+`POST /api/speaking/submit` accepts one Speaking answer at a time. The backend validates the
+audio, sends it to Groq Whisper, sends the transcript to DeepSeek, and stores only the
+transcript and scores. Audio files are not stored.
+
+Multipart fields:
+
+```text
+studentId: 12
+testId: 34
+part: PART1
+question: Tell me about yourself.
+audio: answer.webm
+```
+
+Example:
+
+```powershell
+curl.exe -X POST "http://localhost:8080/api/speaking/submit" `
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" `
+  -F "studentId=12" `
+  -F "testId=34" `
+  -F "part=PART1" `
+  -F "question=Tell me about yourself." `
+  -F "audio=@answer.webm;type=audio/webm"
+```
+
+Allowed audio formats are `mp3`, `wav`, and `webm`. The default maximum size is 15 MB
+and can be changed with `SPEAKING_MAX_AUDIO_BYTES`.
+
 AI prompts are stored here so you can edit them without changing Java code:
 
 ```text

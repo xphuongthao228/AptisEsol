@@ -1,4 +1,4 @@
-export type RoleName = 'ADMIN' | 'STUDENT';
+﻿export type RoleName = 'ADMIN' | 'STUDENT';
 export type SkillType = 'LISTENING' | 'SPEAKING' | 'READING' | 'WRITING' | 'GRAMMAR';
 export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TEXT' | 'AUDIO' | 'SPEAKING';
 export type TestMode = 'PRACTICE' | 'EXAM';
@@ -121,6 +121,18 @@ export interface SubmissionAnswer {
   explanation: string | null;
 }
 
+export interface MockTestResult {
+  id: number;
+  mockTestId: string;
+  title: string;
+  skill: string;
+  score: number;
+  maxScore: number;
+  cefrLevel: string | null;
+  resultJson: string;
+  createdAt: string;
+}
+
 export interface LeaderboardRow {
   rank: number;
   userId: number;
@@ -191,3 +203,4 @@ export interface AppNotification {
   createdAt: string;
   updatedAt: string;
 }
+

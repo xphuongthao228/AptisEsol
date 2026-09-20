@@ -95,3 +95,5 @@ export function getSeoByPath(pathname: string, isAdmin = false): SEOProps {
   return { title: 'Luyện thi Aptis online', description: 'Luyện thi Aptis online với lộ trình rõ ràng, tài liệu ôn tập và theo dõi tiến độ học tập.' };
 }
 
+
+

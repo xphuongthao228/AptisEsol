@@ -3,6 +3,7 @@ package com.example.aptis.controller;
 import com.example.aptis.dto.ApiResponse;
 import com.example.aptis.dto.MockTestDtos;
 import com.example.aptis.service.MockTestService;
+import com.example.aptis.service.MockTestResultService;
 import com.example.aptis.service.PaymentService;
 import org.springframework.security.core.Authentication;
 import jakarta.validation.Valid;
@@ -18,6 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class MockTestController {
     private final MockTestService service;
+    private final MockTestResultService resultService;
     private final PaymentService paymentService;
 
     @GetMapping
@@ -32,6 +34,17 @@ public class MockTestController {
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<MockTestDtos.MockTestResponse>> all() {
         return ApiResponse.ok(service.all());
+    }
+
+    @PostMapping("/results")
+    public ApiResponse<MockTestDtos.ResultResponse> saveResult(Authentication auth,
+            @Valid @RequestBody MockTestDtos.ResultRequest request) {
+        return ApiResponse.ok(resultService.save(auth.getName(), request));
+    }
+
+    @GetMapping("/results/my")
+    public ApiResponse<List<MockTestDtos.ResultResponse>> myResults(Authentication auth) {
+        return ApiResponse.ok(resultService.mine(auth.getName()));
     }
 
     @PostMapping

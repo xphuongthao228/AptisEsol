@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Copy, Loader2, QrCode, Sparkles, Star, UserCircle2 } from 'lucide-react';
+﻿import { ArrowRight, CheckCircle2, Copy, Loader2, QrCode, Sparkles, Star, UserCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
@@ -421,3 +421,4 @@ function PlanCard({ item, selected, onSelect }: {
 function formatMoney(value: number) {
   return new Intl.NumberFormat('vi-VN').format(value);
 }
+

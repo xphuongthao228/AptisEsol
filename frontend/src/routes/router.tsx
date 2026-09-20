@@ -1,4 +1,4 @@
-import { lazy } from 'react';
+﻿import { lazy } from 'react';
 import { createBrowserRouter, Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
 const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword').then((module) => ({ default: module.ForgotPassword })));
@@ -32,7 +32,7 @@ import { ProtectedRoute } from './ProtectedRoute';
 import { SubscriptionGate } from './SubscriptionGate';
 
 export const router = createBrowserRouter([
-  { path: '*', element: <main className="min-h-screen grid place-content-center gap-5 p-8 text-center"><h1 className="text-3xl font-bold">404 — Không tìm thấy trang</h1><p>Đường dẫn này không tồn tại hoặc đã được thay đổi.</p><Link to="/" className="btn-primary">Về trang chủ</Link></main> },
+  { path: '*', element: <main className="min-h-screen grid place-content-center gap-5 p-8 text-center"><h1 className="text-3xl font-bold">404 â€” Không tìm thấy trang</h1><p>Đường dẫn này không tồn tại hoặc đã được thay đổi.</p><Link to="/" className="btn-primary">Về trang chủ</Link></main> },
   { path: '/', element: <AppLayout />, children: [
     { index: true, element: <Dashboard /> },
     { path: 'leaderboard', element: <Leaderboard /> }
@@ -131,3 +131,4 @@ export const router = createBrowserRouter([
     ] }]
   }
 ]);
+

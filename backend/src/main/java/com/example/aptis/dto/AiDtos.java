@@ -37,6 +37,14 @@ public class AiDtos {
     public record PartFeedback(String title, int score, String feedback) {
     }
 
+    public record SpeakingAudioDiagnostic(
+            String title,
+            String status,
+            boolean audioReceived,
+            long audioSizeBytes,
+            String transcript) {
+    }
+
     public record WritingScoreResponse(
             int overallScore,
             String cefrLevel,
@@ -55,7 +63,8 @@ public class AiDtos {
             List<PartFeedback> parts,
             List<String> pronunciationTips,
             List<String> fluencyTips,
-            String improvedAnswer) {
+            String improvedAnswer,
+            List<SpeakingAudioDiagnostic> audioDiagnostics) {
     }
 
     public record LingoChatResponse(String reply) {

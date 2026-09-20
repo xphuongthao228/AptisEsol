@@ -33,6 +33,15 @@ public class MediaFile extends BaseEntity {
     @Column(nullable = false, length = 20)
     private MediaType type;
 
+    @Column(nullable = false)
+    private boolean banner = false;
+
+    @Column(nullable = false)
+    private boolean bannerActive = false;
+
+    @Column(nullable = false)
+    private Integer bannerSortOrder = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by")
     private User uploadedBy;

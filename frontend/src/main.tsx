@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect } from 'react';
+﻿import React, { Suspense, useEffect } from 'react';
 import ReactDOM from 'react-dom/client';
 import { Toaster } from 'react-hot-toast';
 import { RouterProvider } from 'react-router-dom';
@@ -51,3 +51,4 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <Toaster position="top-right" />
   </React.StrictMode>
 );
+

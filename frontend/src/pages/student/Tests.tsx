@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, FileText, Headphones, Lightbulb, Loader2, Lock, Mic, PenLine, Search, Shuffle, SpellCheck, Star, Timer } from 'lucide-react';
+﻿import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, FileText, Headphones, Lightbulb, Loader2, Lock, Mic, PenLine, Search, Shuffle, SpellCheck, Star, Timer } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -239,7 +239,7 @@ export function TestPartMenu() {
               <Link
                 key={`${topic.testId}-${topic.questionId}-${topic.clubIndex}`}
                 to={`/app/tests/${topic.testId}?questionId=${topic.questionId}&clubIndex=${topic.clubIndex}`}
-                state={{ returnTo: '/app/tests/parts?skill=WRITING' }}
+                state={{ returnTo: '/app/tests/partsốskill=WRITING' }}
                 onClick={requireLogin}
                 className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
               >
@@ -292,7 +292,7 @@ export function TestPartMenu() {
               <Link
                 key={`${selectedSkill.type}-${part}`}
                 to={`/app/tests/${firstTest.id}`}
-                state={{ returnTo: `/app/tests/parts?skill=${selectedSkill.type}` }}
+                state={{ returnTo: `/app/tests/partsốskill=${selectedSkill.type}` }}
                 className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
               >
                 {cardContent}
@@ -363,7 +363,7 @@ export function SkillQuestionParts() {
       if (selectedSkill !== 'WRITING' || !tests.length) return [];
       return Promise.all(tests.map(async (test) => ({
         test,
-        questions: await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`))
+        questions: await unwrap<Question[]>(api.get(`/questionsốtestId=${test.id}`))
       })));
     },
     [selectedSkill, tests.map((test) => test.id).join(',')]
@@ -466,7 +466,7 @@ export function SkillPartQuestions() {
       if (!partTests.length) return [];
       const groups = await Promise.all(partTests.map(async (test) => ({
         test,
-        questions: (await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`)))
+        questions: (await unwrap<Question[]>(api.get(`/questionsốtestId=${test.id}`)))
           .filter((question) => isQuestionInPart(question, selectedSkill, selectedPart))
       })));
       return groups.filter((group) => group.questions.length > 0);
@@ -796,7 +796,7 @@ function getWritingClubTopics(groups: Array<{ test: Test; questions: Question[] 
 function parseQuestionTemplate(content: string) {
   try {
     const parsed = JSON.parse(content);
-    return parsed && typeof parsed === 'object' ? parsed as { template?: string; clubs?: Array<{ clubName?: string }> } : null;
+    return parsed && typeof parsed === 'object' ? parsed as { template?: string; clubs: Array<{ clubName?: string }> } : null;
   } catch {
     return null;
   }
@@ -860,3 +860,5 @@ function displayQuestionMeta(question: Question) {
   const prefix = topic ? `${topic} - ` : '';
   return `${prefix}${POINTS_PER_QUESTION} điểm`;
 }
+
+
