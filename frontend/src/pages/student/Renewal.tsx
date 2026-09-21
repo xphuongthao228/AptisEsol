@@ -1,7 +1,7 @@
 ﻿import { ArrowRight, CheckCircle2, Copy, Loader2, QrCode, Sparkles, Star, UserCircle2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { PaymentOrder, SubscriptionResponse } from '../../types';
@@ -89,6 +89,7 @@ export function Renewal() {
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [paidHandled, setPaidHandled] = useState(false);
   const [serverSubscription, setServerSubscription] = useState<SubscriptionResponse | null>(null);
+  const paymentPanelRef = useRef<HTMLElement | null>(null);
 
   const selectedPackage = packages.find((item) => item.id === selectedPackageId) ?? packages[3];
   const isFreeSelected = selectedPackage.price === 0;
@@ -155,6 +156,7 @@ export function Renewal() {
       setPayment(created);
       setPaidHandled(false);
       toast.success('Đã tạo mã thanh toán. Hãy chuyển đúng số tiền và đúng nội dung.');
+      window.setTimeout(() => paymentPanelRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
     } catch {
       toast.error('Không tạo được mã thanh toán.');
     } finally {
@@ -195,23 +197,23 @@ export function Renewal() {
   }
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-8">
-      <section className="relative overflow-hidden rounded-[24px] border border-brand-100 bg-white px-4 py-7 shadow-soft sm:px-6 lg:px-8">
-        <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(180deg,#eef6ff,transparent)]" />
+    <div className="mx-auto max-w-[1260px] space-y-8">
+      <section className="relative overflow-hidden rounded-[24px] border border-amber-200 bg-white px-3 py-3 shadow-soft sm:px-5 lg:px-6">
+        <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,#eef6ff,transparent)]" />
         <div className="relative text-center">
-          <div className="mx-auto mb-4 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-4 py-2 text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
+          <div className="mx-auto mb-1.5 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
             <Sparkles size={15} />
             Aptis Pro Access
           </div>
-          <h1 className="text-3xl font-extrabold leading-tight text-navy sm:text-4xl">
+          <h1 className="text-[25px] font-extrabold leading-tight text-navy">
             Đầu tư cho tương lai với Aptis Lingo
           </h1>
-          <p className="mx-auto mt-3 max-w-2xl text-sm font-medium leading-6 text-slate-700 sm:text-base">
+          <p className="mx-auto mt-0.5 max-w-2xl text-xs font-medium leading-5 text-slate-700">
             Chọn gói học phù hợp với lịch ôn thi của bạn. Gói trả phí mở dự đoán đề và đề trọng điểm.
           </p>
         </div>
 
-        <div className="relative mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="relative mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
           {packages.map((item) => (
             <PlanCard
               key={item.id}
@@ -226,11 +228,11 @@ export function Renewal() {
           ))}
         </div>
 
-        <div className="relative mt-6 rounded-2xl border border-brand-100 bg-sky-50 p-4">
+        <div className="relative mt-3 rounded-2xl border border-amber-200 bg-[#fffaf4] p-2.5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
-              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white text-brand-700 shadow-soft">
-                <UserCircle2 size={22} />
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-red-600 shadow-soft">
+                <UserCircle2 size={20} />
               </div>
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-600">
@@ -246,7 +248,7 @@ export function Renewal() {
             <div className="grid gap-3 sm:grid-cols-[1fr_auto] lg:min-w-[520px]">
               {!isFreeSelected && (
                 <input
-                  className="input h-12 rounded-xl"
+                  className="input h-10 rounded-xl border-amber-200 bg-white"
                   value={fullName}
                   onChange={(event) => setFullName(event.target.value)}
                   placeholder="Họ và tên người chuyển khoản"
@@ -256,7 +258,7 @@ export function Renewal() {
                 type="button"
                 onClick={createPayment}
                 disabled={creating}
-                className={`${isFreeSelected ? 'btn-secondary' : 'btn-primary'} h-12 rounded-xl px-5`}
+                className={`${isFreeSelected ? 'btn-secondary' : 'btn-primary'} h-10 rounded-xl px-5`}
               >
                 {creating ? <Loader2 className="animate-spin" size={18} /> : isFreeSelected ? <ArrowRight size={18} /> : <QrCode size={18} />}
                 {creating ? 'Đang tạo mã...' : isFreeSelected ? 'Vào 2 đề miễn phí' : 'Thanh toán'}
@@ -264,10 +266,26 @@ export function Renewal() {
             </div>
           </div>
         </div>
-      </section>
+        {payment && (
+          <section
+            ref={paymentPanelRef}
+            className="mt-8 border-t border-brand-100 pt-8"
+          >
+            <div className="mb-5 flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-brand-700">Bước 2</p>
+                <h2 className="mt-1 text-xl font-extrabold text-navy">Hoàn tất thanh toán ngay tại đây</h2>
+                <p className="mt-1 text-sm font-medium text-slate-600">
+                  Quét mã QR hoặc chuyển khoản đúng số tiền và nội dung bên dưới.
+                </p>
+              </div>
+              <span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-50 px-3 py-2 text-xs font-extrabold text-emerald-700">
+                <QrCode size={15} />
+                Không rời khỏi trang
+              </span>
+            </div>
 
-      {payment && (
-        <section className="grid gap-6 rounded-[28px] border border-brand-100 bg-white p-5 shadow-soft lg:grid-cols-[300px_1fr_auto] lg:items-center">
+            <div className="grid gap-6 rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft lg:grid-cols-[300px_1fr_auto] lg:items-center">
           <div className="mx-auto grid h-56 w-56 place-items-center rounded-3xl border border-brand-100 bg-white shadow-soft">
             <img className="h-44 w-44 object-contain" src={payment.qrUrl} alt="QR thanh toán" />
           </div>
@@ -305,23 +323,11 @@ export function Renewal() {
               {checkingPayment ? 'Đang kiểm tra...' : payment.status === 'PAID' ? 'Đã hoàn thành' : 'Tôi đã chuyển khoản'}
             </button>
           </div>
-        </section>
-      )}
-
-      <section className="rounded-[24px] bg-[linear-gradient(135deg,#0057d9,#0b7cff)] p-6 text-center text-white shadow-lift sm:p-8">
-        <h2 className="text-3xl font-extrabold">Sẵn sàng chinh phục Aptis</h2>
-        <p className="mx-auto mt-3 max-w-2xl text-sm font-medium leading-6 text-brand-100">
-          Bắt đầu ngay hôm nay với kho đề luyện tập, đề trọng điểm và lộ trình học rõ ràng.
-        </p>
-        <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-          <Link to="/app/tests/parts" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-white px-6 text-sm font-extrabold text-brand-700 transition hover:bg-brand-50">
-            Luyện tập ngay <ArrowRight size={17} />
-          </Link>
-          <Link to="/app/tests" className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border border-white/30 px-6 text-sm font-extrabold text-white transition hover:bg-white/10">
-            Vào luyện tập
-          </Link>
-        </div>
+            </div>
+          </section>
+        )}
       </section>
+
     </div>
   );
 }
@@ -340,7 +346,7 @@ function PlanCard({ item, selected, onSelect }: {
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative min-w-0 flex min-h-[520px] flex-col rounded-[18px] border bg-white p-4 text-center transition hover:-translate-y-1 hover:shadow-lift lg:p-3 xl:p-4 ${
+      className={`group relative min-w-0 flex min-h-[440px] flex-col rounded-[16px] border bg-white p-2 text-center transition hover:shadow-lift ${
         highlighted
           ? 'border-red-600 shadow-lift'
           : selected
@@ -355,9 +361,9 @@ function PlanCard({ item, selected, onSelect }: {
         </span>
       )}
 
-      <div className="flex min-h-[150px] flex-col items-center">
-        <div className="flex min-h-[42px] items-center justify-center gap-2">
-          <h3 className="text-base font-extrabold text-navy xl:text-lg">{item.label}</h3>
+      <div className="flex min-h-[98px] flex-col items-center">
+        <div className="flex min-h-[34px] items-center justify-center gap-2">
+          <h3 className="text-base font-extrabold text-navy">{item.label}</h3>
           {item.saving && (
             <span className={`rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
               highlighted ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'
@@ -367,11 +373,11 @@ function PlanCard({ item, selected, onSelect }: {
           )}
         </div>
 
-        <div className="mt-4 flex min-h-[52px] items-end justify-center">
+        <div className="mt-2 flex min-h-[40px] items-end justify-center">
           {isFree ? (
-            <p className="text-[25px] font-black leading-none text-navy xl:text-[30px]">Miễn phí</p>
+            <p className="text-[25px] font-black leading-none text-navy">Miễn phí</p>
           ) : (
-            <p className={`inline-flex items-baseline justify-center whitespace-nowrap text-[22px] font-black leading-none xl:text-[26px] 2xl:text-[31px] ${
+            <p className={`inline-flex items-baseline justify-center whitespace-nowrap text-[23px] font-black leading-none ${
               highlighted ? 'text-red-600' : 'text-navy'
             }`}>
               {formatMoney(item.price)}đ
@@ -380,15 +386,15 @@ function PlanCard({ item, selected, onSelect }: {
           )}
         </div>
 
-        <p className={`mt-4 inline-flex min-h-[38px] items-center justify-center rounded-full bg-slate-50 px-3 text-[11px] font-extrabold leading-5 xl:px-4 xl:text-xs ${
+        <p className={`mt-2 inline-flex min-h-[30px] items-center justify-center rounded-full bg-slate-50 px-3 text-[11px] font-extrabold leading-4 ${
           highlighted ? 'text-red-600' : 'text-navy'
         }`}>
           {item.note}
         </p>
       </div>
 
-      <div className="mt-5">
-        <span className={`flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition ${
+      <div className="mt-2.5">
+        <span className={`flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition ${
           selected
             ? highlighted
               ? 'bg-red-600 text-white'
@@ -400,15 +406,15 @@ function PlanCard({ item, selected, onSelect }: {
         </span>
       </div>
 
-      <div className={`mt-5 border-t pt-4 ${highlighted ? 'border-red-100' : 'border-slate-200'}`}>
-        <div className="space-y-2.5 text-left">
+      <div className={`mt-2.5 border-t pt-2.5 ${highlighted ? 'border-red-100' : 'border-slate-200'}`}>
+        <div className="space-y-1 text-left">
           {Array.from({ length: featureSlots }).map((_, index) => {
             const feature = item.features[index];
 
             return (
-              <div className={`flex min-h-[25px] items-start gap-2 ${feature ? '' : 'invisible'}`} key={feature ?? `empty-${index}`}>
-                <CheckCircle2 className={`mt-0.5 shrink-0 ${highlighted ? 'text-red-600' : 'text-emerald-600'}`} size={17} />
-                <span className="text-[11px] font-semibold leading-5 text-slate-800 xl:text-xs 2xl:text-[13px]">{feature ?? 'Ưu đãi'}</span>
+              <div className={`flex min-h-[22px] items-start gap-1.5 ${feature ? '' : 'invisible'}`} key={feature ?? `empty-${index}`}>
+                <CheckCircle2 className={`mt-0.5 shrink-0 ${highlighted ? 'text-red-600' : 'text-emerald-600'}`} size={15} />
+                <span className="text-[10px] font-semibold leading-4 text-slate-800 xl:text-[11px]">{feature ?? 'Ưu đãi'}</span>
               </div>
             );
           })}
