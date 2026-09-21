@@ -24,9 +24,9 @@
   X,
   type LucideIcon
 } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { api, unwrap } from '../../api/client';
+import { api, publicApi, unwrap } from '../../api/client';
 import { NotificationDialog } from '../../components/NotificationDialog';
 import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
@@ -123,7 +123,7 @@ const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
 const zaloContactUrl = 'https://zalo.me/0867833227';
 const mediaBaseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8080';
 
-type BannerMedia = { id: number; originalName: string };
+type BannerMedia = { id: number; originalName: string; sourceUrl?: string | null };
 type HeroSlide = {
   eyebrow: string;
   title: string;
@@ -228,22 +228,24 @@ function StudentLearningDashboard() {
     []
   );
   const submissions = submissionData ?? [];
+  const mockResults = mockResultData ?? [];
   const progress = progressData ?? [];
+  const scoreEntries = useMemo(() => [
+    ...submissions.map((value) => ({ kind: 'submission' as const, value })),
+    ...mockResults.map((value) => ({ kind: 'mock' as const, value }))
+  ], [mockResults, submissions]);
   const totalQuestions = submissions.reduce((total, item) => total + (item.answers?.length ?? 0), 0);
   const correctQuestions = submissions.reduce(
     (total, item) => total + (item.answers?.filter((answer) => answer.correct).length ?? 0),
     0
   );
   const accuracy = totalQuestions ? Math.round((correctQuestions / totalQuestions) * 100) : 0;
-  const averageScore = submissions.length
-    ? Math.round(submissions.reduce((total, item) => total + submissionPercent(item), 0) / submissions.length)
+  const averageScore = scoreEntries.length
+    ? Math.round(scoreEntries.reduce((total, item) => total + scoreEntryPercent(item), 0) / scoreEntries.length)
     : 0;
-  const streak = calculateLearningStreak(submissions);
+  const streak = calculateLearningStreak(scoreEntries);
   const skillProgress = buildSkillProgress(progress, submissions);
-  const recentResults = [
-    ...submissions.map((value) => ({ kind: 'submission' as const, value })),
-    ...(mockResultData ?? []).map((value) => ({ kind: 'mock' as const, value }))
-  ]
+  const recentResults = scoreEntries
     .sort((first, second) => new Date(second.value.createdAt).getTime() - new Date(first.value.createdAt).getTime())
     .slice(0, 4);
   const isPro = Boolean(user.proExpiresAt && new Date(user.proExpiresAt).getTime() > Date.now());
@@ -341,7 +343,7 @@ function StudentLearningDashboard() {
           </div>
           <Link to="/app/history" className="text-sm font-extrabold text-brand-600 hover:text-brand-700">Xem lịch sử</Link>
         </div>
-        {loadingSubmissions ? <DashboardLoading /> : <ProgressLineChart submissions={submissions} />}
+        {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : <ProgressLineChart submissions={submissions} mockResults={mockResults} />}
       </section>
 
       <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
@@ -443,8 +445,15 @@ const progressChartSeries = [
   { key: 'full', label: 'Mock Test (Full)', color: '#f59e0b', dashed: true }
 ] as const;
 
-function ProgressLineChart({ submissions }: { submissions: Submission[] }) {
-  const chart = buildProgressChart(submissions);
+type ScoreEntry =
+  | { kind: 'submission'; value: Submission }
+  | { kind: 'mock'; value: MockTestResult };
+
+function ProgressLineChart({ submissions, mockResults }: { submissions: Submission[]; mockResults: MockTestResult[] }) {
+  const chart = buildProgressChart([
+    ...submissions.map((value) => ({ kind: 'submission' as const, value })),
+    ...mockResults.map((value) => ({ kind: 'mock' as const, value }))
+  ]);
   if (!chart.dates.length) {
     return (
       <div className="mt-6 border border-dashed border-slate-300 p-10 text-center text-sm font-medium text-slate-600">
@@ -508,9 +517,9 @@ function ProgressLineChart({ submissions }: { submissions: Submission[] }) {
   );
 }
 
-function buildProgressChart(submissions: Submission[]) {
-  const sorted = [...submissions].sort((first, second) => new Date(first.createdAt).getTime() - new Date(second.createdAt).getTime());
-  const dates = Array.from(new Set(sorted.map((item) => localDateKey(new Date(item.createdAt))))).slice(-24);
+function buildProgressChart(entries: ScoreEntry[]) {
+  const sorted = [...entries].sort((first, second) => new Date(first.value.createdAt).getTime() - new Date(second.value.createdAt).getTime());
+  const dates = Array.from(new Set(sorted.map((item) => localDateKey(new Date(item.value.createdAt))))).slice(-24);
   const values: Record<typeof progressChartSeries[number]['key'], Array<{ dateIndex: number; value: number }>> = {
     reading: [],
     listening: [],
@@ -522,17 +531,19 @@ function buildProgressChart(submissions: Submission[]) {
 
   dates.forEach((date, dateIndex) => {
     progressChartSeries.forEach((series) => {
-      const matching = sorted.filter((submission) => localDateKey(new Date(submission.createdAt)) === date && submissionChartSeries(submission) === series.key);
+      const matching = sorted.filter((entry) => localDateKey(new Date(entry.value.createdAt)) === date && scoreEntryChartSeries(entry) === series.key);
       if (!matching.length) return;
-      const value = Math.round(matching.reduce((total, submission) => total + submissionPercent(submission), 0) / matching.length);
+      const value = Math.round(matching.reduce((total, entry) => total + scoreEntryPercent(entry), 0) / matching.length);
       values[series.key].push({ dateIndex, value });
     });
   });
   return { dates, values };
 }
 
-function submissionChartSeries(submission: Submission): typeof progressChartSeries[number]['key'] {
-  const searchable = `${submission.skillName} ${submission.testTitle}`.toLowerCase();
+function scoreEntryChartSeries(entry: ScoreEntry): typeof progressChartSeries[number]['key'] {
+  const searchable = entry.kind === 'submission'
+    ? `${entry.value.skillName} ${entry.value.testTitle}`.toLowerCase()
+    : `${entry.value.skill} ${entry.value.title}`.toLowerCase();
   if (/full|toàn bộ|tong hop|tổng hợp/.test(searchable)) return 'full';
   if (searchable.includes('listening')) return 'listening';
   if (searchable.includes('writing')) return 'writing';
@@ -554,8 +565,16 @@ function submissionPercent(submission: Submission) {
   return submission.maxScore ? Math.round((submission.totalScore / submission.maxScore) * 100) : 0;
 }
 
-function calculateLearningStreak(submissions: Submission[]) {
-  const activeDays = new Set(submissions.map((item) => localDateKey(new Date(item.createdAt))));
+function mockResultPercent(result: MockTestResult) {
+  return result.maxScore ? Math.round((result.score / result.maxScore) * 100) : 0;
+}
+
+function scoreEntryPercent(entry: ScoreEntry) {
+  return entry.kind === 'submission' ? submissionPercent(entry.value) : mockResultPercent(entry.value);
+}
+
+function calculateLearningStreak(entries: ScoreEntry[]) {
+  const activeDays = new Set(entries.map((item) => localDateKey(new Date(item.value.createdAt))));
   if (!activeDays.size) return 0;
   const cursor = new Date();
   if (!activeDays.has(localDateKey(cursor))) cursor.setDate(cursor.getDate() - 1);
@@ -669,14 +688,14 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
   const slides = bannerMedia.length
     ? bannerMedia.map((media, index) => ({
         ...defaultSlides[index % defaultSlides.length],
-        imageUrl: `${mediaBaseUrl}/api/media/${media.id}`,
+        imageUrl: media.sourceUrl || `${mediaBaseUrl}/api/media/${media.id}`,
         imageAlt: media.originalName
       }))
     : defaultSlides;
 
   useEffect(() => {
     let mounted = true;
-    unwrap<BannerMedia[]>(api.get('/media/banners'))
+    unwrap<BannerMedia[]>(publicApi.get('/media/banners'))
       .then((items) => {
         if (mounted) setBannerMedia(items);
       })
@@ -711,12 +730,15 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
 
   return (
     <section
-      className={`dashboard-hero relative overflow-hidden bg-gradient-to-r ${slide.tone} px-4 py-6 transition-colors duration-700 sm:px-6 lg:px-10 lg:py-8`}
+      className={`dashboard-hero relative overflow-hidden ${bannerMedia.length ? 'min-h-[430px] bg-slate-100' : `bg-gradient-to-r ${slide.tone} px-4 py-6 sm:px-6 lg:px-10 lg:py-8`} transition-colors duration-700`}
       onMouseEnter={() => setSliderPaused(true)}
       onMouseLeave={() => setSliderPaused(false)}
     >
       {showNotifications && <DashboardNotificationPanel />}
-      <div className="relative mx-auto max-w-[1560px]">
+      <div className="relative mx-auto min-h-[430px] max-w-[1560px]">
+        {bannerMedia.length ? (
+          <img key={activeSlide} src={slide.imageUrl} alt={slide.imageAlt ?? ''} className={`dashboard-slide dashboard-slide-${slideDirection} absolute inset-0 h-full min-h-[430px] w-full object-cover`} />
+        ) : (
         <div key={activeSlide} className={`dashboard-slide dashboard-slide-${slideDirection} grid min-h-[430px] items-center gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10`}>
           <div className="relative z-10 px-1 py-8 sm:px-5 lg:py-6">
             <div className="mb-4 inline-flex w-fit items-center gap-2 rounded-full border border-brand-200 bg-white/90 px-3 py-1.5 text-xs font-extrabold uppercase text-brand-700 shadow-soft">
@@ -738,6 +760,7 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
             <HeroSlideVisual visual={slide.visual} imageUrl={slide.imageUrl} imageAlt={slide.imageAlt} />
           </div>
         </div>
+        )}
 
         <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
           {slides.map((item, index) => (

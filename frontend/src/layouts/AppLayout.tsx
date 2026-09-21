@@ -210,7 +210,7 @@ export function AppLayout() {
             {!isAdmin && (
               <div className="hidden items-center xl:flex">
                 <Link
-                  to="/app/mock-tests"
+                  to="/app/combine-speaking"
                   className="inline-flex h-9 items-center gap-2 rounded-lg border border-brand-100 bg-brand-50 px-3 text-sm font-extrabold text-brand-700 transition hover:border-brand-200 hover:bg-brand-100"
                   title="Gộp và tạo đề luyện tập"
                 >

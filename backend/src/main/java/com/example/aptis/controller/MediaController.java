@@ -42,6 +42,13 @@ public class MediaController {
         return ApiResponse.ok(service.upload(auth.getName(), file));
     }
 
+    @PostMapping("/banner-url")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<CoreDtos.MediaResponse> addBannerUrl(Authentication auth,
+                                                             @RequestBody @jakarta.validation.Valid CoreDtos.MediaUrlRequest request) {
+        return ApiResponse.ok(service.addBannerUrl(auth.getName(), request));
+    }
+
     @GetMapping
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<CoreDtos.MediaResponse>> all() {
@@ -61,8 +68,11 @@ public class MediaController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Resource> get(@PathVariable Long id) throws Exception {
+    public ResponseEntity<?> get(@PathVariable Long id) throws Exception {
         MediaFile media = service.mediaEntity(id);
+        if (media.getSourceUrl() != null) {
+            return ResponseEntity.status(302).location(URI.create(media.getSourceUrl())).build();
+        }
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_TYPE, media.getContentType())
                 .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")

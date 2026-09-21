@@ -1,6 +1,6 @@
 ﻿import { ChangeEvent, useState } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDown, ArrowUp, Eye, EyeOff, FileAudio, FileImage, ImagePlus, Trash2, UploadCloud } from 'lucide-react';
+import { ArrowDown, ArrowUp, Eye, EyeOff, FileAudio, FileImage, ImagePlus, Link, Trash2, UploadCloud } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 
@@ -13,6 +13,7 @@ interface MediaResponse {
   banner: boolean;
   bannerActive: boolean;
   bannerSortOrder: number;
+  sourceUrl?: string | null;
 }
 
 const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8080';
@@ -20,6 +21,7 @@ const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://loc
 export function AdminMedia() {
   const { data, loading: loadingList, setData } = useApi<MediaResponse[]>(() => unwrap(api.get('/media')), []);
   const [loading, setLoading] = useState(false);
+  const [bannerUrl, setBannerUrl] = useState('');
   const mediaList = data ?? [];
   const bannerList = mediaList
     .filter((media) => media.banner)
@@ -82,6 +84,25 @@ export function AdminMedia() {
     }
   }
 
+  async function addBannerUrl() {
+    const url = bannerUrl.trim();
+    if (!/^https?:\/\/\S+$/i.test(url)) {
+      toast.error('Vui lòng nhập URL ảnh hợp lệ (http hoặc https)');
+      return;
+    }
+    setLoading(true);
+    try {
+      const banner = await unwrap<MediaResponse>(api.post('/media/banner-url', { url, sortOrder: bannerList.length }));
+      setData((current) => [banner, ...(current ?? [])]);
+      setBannerUrl('');
+      toast.success('Đã thêm URL vào banner');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Không thể thêm URL banner');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function moveBanner(index: number, direction: number) {
     const targetIndex = index + direction;
     if (targetIndex < 0 || targetIndex >= bannerList.length) return;
@@ -133,12 +154,19 @@ export function AdminMedia() {
             <input className="hidden" type="file" accept="image/*" onChange={uploadBanner} disabled={loading} />
           </label>
         </div>
+        <div className="flex flex-col gap-2 border-b border-brand-100 p-5 sm:flex-row">
+          <div className="relative flex-1">
+            <Link size={17} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input className="input h-10 w-full pl-10" type="url" value={bannerUrl} onChange={(event) => setBannerUrl(event.target.value)} placeholder="Dán URL ảnh banner, ví dụ https://.../banner.jpg" disabled={loading} />
+          </div>
+          <button type="button" className="btn-secondary h-10 px-4 text-sm" onClick={addBannerUrl} disabled={loading || !bannerUrl.trim()}>Thêm từ URL</button>
+        </div>
         {bannerList.length ? (
           <div className="grid gap-4 p-5 lg:grid-cols-2">
             {bannerList.map((media, index) => (
               <article className="overflow-hidden rounded-lg border border-brand-100 bg-white" key={media.id}>
                 <div className="aspect-[16/6] bg-slate-100">
-                  <img src={`${baseUrl}/api/media/${media.id}`} alt={media.originalName} className="h-full w-full object-cover" />
+                  <img src={media.sourceUrl || `${baseUrl}/api/media/${media.id}`} alt={media.originalName} className="h-full w-full object-cover" />
                 </div>
                 <div className="flex items-center gap-2 p-3">
                   <div className="min-w-0 flex-1">
@@ -183,7 +211,7 @@ export function AdminMedia() {
                     </div>
                   </div>
                   <div className="mt-4 flex gap-2">
-                    <a className="btn-secondary h-9 flex-1 px-3" href={`${baseUrl}/api/media/${media.id}`} target="_blank">Xem</a>
+                    <a className="btn-secondary h-9 flex-1 px-3" href={media.sourceUrl || `${baseUrl}/api/media/${media.id}`} target="_blank" rel="noreferrer">Xem</a>
                     <button className="btn-secondary h-9 px-3 text-red-600" onClick={() => remove(media)}><Trash2 size={16} /></button>
                   </div>
                 </div>

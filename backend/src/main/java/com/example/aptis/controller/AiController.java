@@ -36,6 +36,12 @@ public class AiController {
         return ApiResponse.ok(scoringService.scoreSpeaking(request));
     }
 
+    @PostMapping("/speaking/part4-sample")
+    @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
+    public ApiResponse<AiDtos.SpeakingPart4SampleResponse> generateSpeakingPart4Sample(@Valid @RequestBody AiDtos.SpeakingPart4SampleRequest request) {
+        return ApiResponse.ok(scoringService.generateSpeakingPart4Sample(request));
+    }
+
     @PostMapping(value = "/speaking/score-audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
     public ApiResponse<AiDtos.SpeakingScoreResponse> scoreSpeakingAudio(

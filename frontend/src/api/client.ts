@@ -44,7 +44,8 @@ function isPublicRequest(config: InternalAxiosRequestConfig) {
     url === '/submissions/leaderboard/settings' ||
     url.startsWith('/submissions/leaderboard?') ||
     url === '/notifications/public' ||
-    url.startsWith('/notifications/public?')
+    url.startsWith('/notifications/public?') ||
+    url === '/media/banners'
   );
 }
 

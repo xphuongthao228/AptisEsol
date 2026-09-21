@@ -31,6 +31,9 @@ public class AiDtos {
     public record LingoChatRequest(@NotBlank String message, List<@Valid LingoChatMessage> history) {
     }
 
+    public record SpeakingPart4SampleRequest(@NotEmpty List<@NotBlank String> topics) {
+    }
+
     public record CriteriaScore(String name, int score, String feedback) {
     }
 
@@ -68,6 +71,9 @@ public class AiDtos {
     }
 
     public record LingoChatResponse(String reply) {
+    }
+
+    public record SpeakingPart4SampleResponse(String prompt, String sampleAnswer) {
     }
 
 }

@@ -23,6 +23,9 @@ public class MediaFile extends BaseEntity {
     @Column(nullable = false)
     private String storedName;
 
+    @Column(length = 2000)
+    private String sourceUrl;
+
     @Column(nullable = false)
     private String contentType;
 

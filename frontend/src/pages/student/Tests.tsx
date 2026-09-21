@@ -239,7 +239,7 @@ export function TestPartMenu() {
               <Link
                 key={`${topic.testId}-${topic.questionId}-${topic.clubIndex}`}
                 to={`/app/tests/${topic.testId}?questionId=${topic.questionId}&clubIndex=${topic.clubIndex}`}
-                state={{ returnTo: '/app/tests/partsốskill=WRITING' }}
+                state={{ returnTo: '/app/tests/parts?skill=WRITING' }}
                 onClick={requireLogin}
                 className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
               >
@@ -292,7 +292,7 @@ export function TestPartMenu() {
               <Link
                 key={`${selectedSkill.type}-${part}`}
                 to={`/app/tests/${firstTest.id}`}
-                state={{ returnTo: `/app/tests/partsốskill=${selectedSkill.type}` }}
+                state={{ returnTo: `/app/tests/parts?skill=${selectedSkill.type}` }}
                 className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
               >
                 {cardContent}
@@ -363,7 +363,7 @@ export function SkillQuestionParts() {
       if (selectedSkill !== 'WRITING' || !tests.length) return [];
       return Promise.all(tests.map(async (test) => ({
         test,
-        questions: await unwrap<Question[]>(api.get(`/questionsốtestId=${test.id}`))
+        questions: await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`))
       })));
     },
     [selectedSkill, tests.map((test) => test.id).join(',')]
@@ -466,7 +466,7 @@ export function SkillPartQuestions() {
       if (!partTests.length) return [];
       const groups = await Promise.all(partTests.map(async (test) => ({
         test,
-        questions: (await unwrap<Question[]>(api.get(`/questionsốtestId=${test.id}`)))
+        questions: (await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`)))
           .filter((question) => isQuestionInPart(question, selectedSkill, selectedPart))
       })));
       return groups.filter((group) => group.questions.length > 0);
@@ -474,7 +474,7 @@ export function SkillPartQuestions() {
     [partTests.map((test) => test.id).join(','), selectedPart, selectedSkill]
   );
 
-  if (testsLoading || questionsLoading) return <InfoCard>Đang tải câu hỏi...</InfoCard>;
+  if (testsLoading || questionsLoading) return <QuestionLoadingState skillTitle={skill?.title ?? 'Aptis'} part={selectedPart} />;
   if (testsError || questionsError) return <InfoCard error>{testsError || questionsError}</InfoCard>;
   if (!skill) return <InfoCard>Không tìm thấy kỹ năng.</InfoCard>;
 
@@ -613,6 +613,34 @@ function InfoCard({ children, error }: { children: ReactNode; error?: boolean })
   return (
     <div className={`rounded-[18px] border bg-white p-7 ${error ? 'border-red-200 text-red-600' : 'border-brand-100 text-slate-700'}`}>
       {children}
+    </div>
+  );
+}
+
+function QuestionLoadingState({ skillTitle, part }: { skillTitle: string; part: number }) {
+  return (
+    <div className="space-y-6">
+      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
+        <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold text-blue-100">
+          <Loader2 className="animate-spin" size={18} />
+          Đang lấy đề
+        </div>
+        <h1 className="mt-5 text-4xl font-extrabold">{skillTitle} - Part {Number.isFinite(part) ? part : ''}</h1>
+        <p className="mt-3 max-w-2xl text-slate-300">Hệ thống đang tải danh sách câu hỏi cho phần luyện này.</p>
+      </section>
+
+      <section className="space-y-4 rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft" aria-busy="true" aria-live="polite">
+        <div className="flex items-center gap-3 text-brand-700">
+          <Loader2 className="animate-spin" size={22} />
+          <span className="font-extrabold">Đang chuẩn bị câu hỏi...</span>
+        </div>
+        {[0, 1, 2].map((item) => (
+          <div key={item} className="animate-pulse rounded-2xl border border-brand-100 bg-sky-50 p-4">
+            <div className="h-4 w-2/3 rounded-full bg-slate-200" />
+            <div className="mt-3 h-3 w-1/2 rounded-full bg-slate-200" />
+          </div>
+        ))}
+      </section>
     </div>
   );
 }

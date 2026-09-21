@@ -45,6 +45,7 @@ import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { Question, SubscriptionResponse, Test } from '../../types';
+import { getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 import { repairUserText } from '../../utils/textRepair';
 
 type SpeakingScreen = 'select' | 'fullStart' | 'fullResult' | 'start' | 'instructions' | 'prompt' | 'question' | 'part2Prompt' | 'part2Question' | 'part3Prompt' | 'part3Question' | 'part4Prompt' | 'part4Question' | 'complete' | 'readingStart' | 'readingInstructions' | 'readingQuestion' | 'readingCohesion' | 'readingOpinion' | 'readingLong' | 'readingResult' | 'readingReview' | 'listeningStart' | 'listeningInstructions' | 'listeningQuestion' | 'listeningMatching' | 'listeningShort' | 'listeningMonologues' | 'listeningResult' | 'listeningReview' | 'writingInstructions' | 'writingPart' | 'writingResult' | 'grammarStart' | 'grammarInstructions' | 'grammarQuestion' | 'grammarResult';
@@ -319,6 +320,18 @@ const skillFilters: { key: MockSkill; label: string }[] = [
 
 function canOpenMockCard(card: MockCard, proActive: boolean) {
   return card.accessible === true || (card.accessible !== false && proActive);
+}
+
+function cachedSubscriptionResponse(): SubscriptionResponse | null {
+  if (typeof window === 'undefined') return null;
+  const status = getSubscriptionStatus();
+  if (!status.active) return null;
+  return {
+    active: true,
+    proActive: true,
+    expiresAt: status.expireDate?.toISOString() ?? null,
+    daysLeft: status.daysLeft
+  };
 }
 
 function aiScoringError(error: unknown, skill: string) {
@@ -3001,6 +3014,7 @@ function savedReviewRow(question: string, userAnswer?: string, correctAnswer?: s
 export function MockTests() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentUser = useAuthStore((state) => state.user);
+  const initialSubscription = useMemo(() => cachedSubscriptionResponse(), []);
   const [searchParams, setSearchParams] = useSearchParams();
   const urlTestId = readTestId(searchParams.get('testId'));
   const [screen, setScreen] = useState<SpeakingScreen>(() => readScreen(searchParams.get('screen')));
@@ -3053,8 +3067,8 @@ export function MockTests() {
   const [speakingDraftLevel, setSpeakingDraftLevel] = useState<DraftLevel>('B1');
   const [bookmarks, setBookmarks] = useState<string[]>(() => loadMockBookmarks());
   const [questionListOpen, setQuestionListOpen] = useState(false);
-  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
-  const [subscriptionLoading, setSubscriptionLoading] = useState(Boolean(accessToken));
+  const [subscription, setSubscription] = useState<SubscriptionResponse | null>(() => initialSubscription);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(Boolean(accessToken) && !initialSubscription);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const speechRecognitionRef = useRef<{ stop: () => void } | null>(null);
   const recordingStreamRef = useRef<MediaStream | null>(null);
@@ -3085,6 +3099,7 @@ export function MockTests() {
     setSubscriptionLoading(true);
     unwrap<SubscriptionResponse>(api.get('/payments/subscription/me'))
       .then((data) => {
+        saveSubscriptionUntil(data.expiresAt);
         if (mounted) setSubscription(data);
       })
       .catch(() => {
@@ -5147,6 +5162,39 @@ function MockSelectLayout({ children }: { children: ReactNode }) {
   );
 }
 
+function MockListLoading({ checkingAccess }: { checkingAccess: boolean }) {
+  return (
+    <section className="rounded-2xl border border-brand-100 bg-white p-7 shadow-soft md:p-8" role="status" aria-live="polite">
+      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+        <div>
+          <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">
+            <FileCheck size={18} />
+            Đang lấy đề
+          </p>
+          <h1 className="mt-5 text-3xl font-extrabold text-navy">Đang tải danh sách thi thử</h1>
+          <p className="mt-2 text-sm font-semibold text-slate-600">
+            {checkingAccess ? 'Quyền truy cập đang được kiểm tra song song.' : 'Dữ liệu đề đang được chuẩn bị.'}
+          </p>
+        </div>
+      </div>
+      <div className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        {[0, 1, 2, 3, 4, 5].map((item) => (
+          <div key={item} className="animate-pulse rounded-[22px] border border-brand-100 bg-sky-50 p-6">
+            <div className="h-14 w-14 rounded-2xl bg-slate-200" />
+            <div className="mt-7 h-5 w-2/3 rounded-full bg-slate-200" />
+            <div className="mt-3 h-4 w-1/2 rounded-full bg-slate-200" />
+            <div className="mt-8 grid grid-cols-2 gap-3">
+              <div className="h-20 rounded-2xl bg-white" />
+              <div className="h-20 rounded-2xl bg-white" />
+            </div>
+            <div className="mt-6 h-12 rounded-xl bg-slate-200" />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReading, onOpenListening, onOpenWriting, onOpenGrammar, onOpenFull, proActive, authenticated, accessLoading }: { selectedSkill: MockSkill; onSkillChange: (skill: MockSkill) => void; onOpenSpeaking: (card: MockCard) => void; onOpenReading: (card: MockCard) => void; onOpenListening: (card: MockCard) => void; onOpenWriting: (card: MockCard) => void; onOpenGrammar: (card: MockCard) => void; onOpenFull: (card: MockCard) => void; proActive: boolean; authenticated: boolean; accessLoading: boolean }) {
   const [adminCards, setAdminCards] = useState<MockCard[]>([]);
   const [cardsLoading, setCardsLoading] = useState(true);
@@ -5156,7 +5204,6 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (accessLoading) return;
     let cancelled = false;
     let requestVersion = 0;
     const reloadAdminCards = () => {
@@ -5198,7 +5245,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       window.removeEventListener('storage', reloadAdminCards);
       window.removeEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     };
-  }, [authenticated, proActive, accessLoading, reloadIndex]);
+  }, [authenticated, reloadIndex]);
 
   const visibleCards = adminCards
     .filter((card) => card.skill === selectedSkill)
@@ -5231,8 +5278,8 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     }, 250);
   }
 
-  if (accessLoading || cardsLoading) {
-    return <div className="p-10 text-center text-slate-600" role="status">Đang tải đề và kiểm tra quyền truy cập...</div>;
+  if (cardsLoading) {
+    return <MockListLoading checkingAccess={accessLoading} />;
   }
 
   if (cardsError) {

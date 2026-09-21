@@ -34,6 +34,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -803,10 +804,10 @@ public class CoreService {
     }
 
     public List<CoreDtos.LessonResponse> lessons(com.example.aptis.enums.SkillType skill) {
-        List<Lesson> list = skill == null
-                ? lessons.findByDeletedAtIsNullOrderByUpdatedAtDesc()
-                : lessons.findBySkillAndDeletedAtIsNullOrderByUpdatedAtDesc(skill);
-        return list.stream().map(mapper::lesson).toList();
+        return lessons.findByDeletedAtIsNullOrderByUpdatedAtDesc().stream()
+                .filter(lesson -> skill == null || lesson.getSkill() == skill)
+                .map(mapper::lesson)
+                .toList();
     }
 
     public CoreDtos.LessonResponse lesson(Long id) {
@@ -1989,7 +1990,7 @@ public class CoreService {
     public CoreDtos.MediaResponse media(MediaFile media) {
         return new CoreDtos.MediaResponse(media.getId(), media.getOriginalName(), media.getContentType(),
                 media.getSizeBytes(), media.getType(), media.isBanner(), media.isBannerActive(),
-                media.getBannerSortOrder());
+                media.getBannerSortOrder(), media.getSourceUrl());
     }
 
     public List<CoreDtos.MediaResponse> mediaList() {
@@ -2012,11 +2013,46 @@ public class CoreService {
         return media(mediaFiles.save(media));
     }
 
+    public CoreDtos.MediaResponse addBannerUrl(String email, CoreDtos.MediaUrlRequest request) {
+        URI uri;
+        try {
+            uri = URI.create(request.url().trim());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("URL banner không hợp lệ");
+        }
+        String scheme = uri.getScheme() == null ? "" : uri.getScheme().toLowerCase();
+        if ((!scheme.equals("http") && !scheme.equals("https")) || uri.getHost() == null) {
+            throw new IllegalArgumentException("URL banner phải bắt đầu bằng http:// hoặc https://");
+        }
+
+        User uploader = users.findByEmailAndDeletedAtIsNull(email).orElseThrow();
+        MediaFile media = new MediaFile();
+        media.setOriginalName(uri.getHost());
+        media.setStoredName("external-" + UUID.randomUUID());
+        media.setSourceUrl(uri.toString());
+        media.setContentType("image/*");
+        media.setSizeBytes(0L);
+        media.setType(MediaType.IMAGE);
+        media.setBanner(true);
+        media.setBannerActive(true);
+        media.setBannerSortOrder(request.sortOrder());
+        media.setUploadedBy(uploader);
+        return media(mediaFiles.save(media));
+    }
+
     public MediaFile mediaEntity(Long id) {
         return mediaFiles.findById(id).orElseThrow(() -> new ResourceNotFoundException("Media not found"));
     }
 
     public void deleteMedia(Long id) {
+        MediaFile media = mediaEntity(id);
+        if (media.getSourceUrl() == null) {
+            try {
+                Files.deleteIfExists(Path.of(uploadDir, media.getStoredName()));
+            } catch (Exception ignored) {
+                // Keep the database deletion even if the local file is already missing.
+            }
+        }
         mediaFiles.deleteById(id);
     }
 }

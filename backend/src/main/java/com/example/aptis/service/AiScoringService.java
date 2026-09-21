@@ -247,6 +247,12 @@ public class AiScoringService {
         return "";
     }
 
+    private String compactForPrompt(String value, int maxLength) {
+        String compact = blankToEmpty(value).replaceAll("\\s+", " ").trim();
+        if (compact.length() <= maxLength) return compact;
+        return compact.substring(0, Math.max(0, maxLength - 3)).trim() + "...";
+    }
+
     public AiDtos.LingoChatResponse chatWithLingo(AiDtos.LingoChatRequest request) {
         List<Map<String, String>> messages = new ArrayList<>();
         messages.add(Map.of("role", "system", "content", loadPrompt("lingo-system.md")));
@@ -263,6 +269,38 @@ public class AiScoringService {
         return new AiDtos.LingoChatResponse(reply);
     }
 
+    public AiDtos.SpeakingPart4SampleResponse generateSpeakingPart4Sample(AiDtos.SpeakingPart4SampleRequest request) {
+        List<String> topics = request.topics().stream()
+                .map(this::blankToEmpty)
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(value -> compactForPrompt(value, 220))
+                .distinct()
+                .limit(5)
+                .toList();
+
+        if (topics.isEmpty()) {
+            throw new IllegalArgumentException("Vui lòng chọn ít nhất một đề Speaking Part 4.");
+        }
+
+        String selectedTopics = topics.stream()
+                .map(topic -> "- " + topic)
+                .collect(Collectors.joining("\n"));
+        String prompt = """
+                Write one Aptis Speaking Part 4 answer, about 150 words.
+                Topics:
+                %s
+
+                Rules: natural spoken English, B1-B2 level, one coherent answer, clear opinion, reasons, one personal example. No headings, bullets, translation, or analysis.
+                """.formatted(selectedTopics);
+
+        List<Map<String, String>> messages = List.of(
+                Map.of("role", "system", "content", "You write natural Aptis Speaking Part 4 model answers for learners."),
+                Map.of("role", "user", "content", prompt));
+        String sampleAnswer = chatText(messages, 260).trim();
+        return new AiDtos.SpeakingPart4SampleResponse(prompt, sampleAnswer);
+    }
+
     private String chatJson(String systemPrompt, String userPrompt) {
         List<Map<String, String>> messages = List.of(
                 Map.of("role", "system", "content", systemPrompt),
@@ -271,10 +309,18 @@ public class AiScoringService {
     }
 
     private String chatText(List<Map<String, String>> messages) {
-        return chat(messages, false);
+        return chat(messages, false, null);
+    }
+
+    private String chatText(List<Map<String, String>> messages, Integer maxTokens) {
+        return chat(messages, false, maxTokens);
     }
 
     private String chat(List<Map<String, String>> messages, boolean jsonMode) {
+        return chat(messages, jsonMode, null);
+    }
+
+    private String chat(List<Map<String, String>> messages, boolean jsonMode, Integer maxTokens) {
         if (apiKey == null || apiKey.isBlank()) {
             throw new IllegalStateException("Chưa cấu hình DEEPSEEK_API_KEY cho backend.");
         }
@@ -285,11 +331,11 @@ public class AiScoringService {
             if (!acquired) {
                 throw new IllegalStateException("AI is busy. Please try again later.");
             }
-            return callDeepSeek(messages, jsonMode, model);
+            return callDeepSeek(messages, jsonMode, model, maxTokens);
         } catch (RestClientResponseException ex) {
             String body = ex.getResponseBodyAsString(StandardCharsets.UTF_8);
             if (!"deepseek-chat".equals(model) && isModelError(body)) {
-                return callDeepSeek(messages, jsonMode, "deepseek-chat");
+                return callDeepSeek(messages, jsonMode, "deepseek-chat", maxTokens);
             }
             throw new IllegalStateException(friendlyAiUnavailableMessage(ex.getStatusCode().value()));
         } catch (InterruptedException ex) {
@@ -302,17 +348,17 @@ public class AiScoringService {
         }
     }
 
-    private String callDeepSeek(List<Map<String, String>> messages, boolean jsonMode, String selectedModel) {
-        Map<String, Object> body = jsonMode
-                ? Map.of(
-                        "model", selectedModel,
-                        "messages", messages,
-                        "temperature", 0.2,
-                        "response_format", Map.of("type", "json_object"))
-                : Map.of(
-                        "model", selectedModel,
-                        "messages", messages,
-                        "temperature", 0.5);
+    private String callDeepSeek(List<Map<String, String>> messages, boolean jsonMode, String selectedModel, Integer maxTokens) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("model", selectedModel);
+        body.put("messages", messages);
+        body.put("temperature", jsonMode ? 0.2 : 0.5);
+        if (jsonMode) {
+            body.put("response_format", Map.of("type", "json_object"));
+        }
+        if (maxTokens != null && maxTokens > 0) {
+            body.put("max_tokens", maxTokens);
+        }
 
         String response = deepSeekClient
                 .post()

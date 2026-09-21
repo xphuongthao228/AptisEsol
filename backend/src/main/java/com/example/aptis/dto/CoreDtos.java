@@ -106,10 +106,13 @@ public class CoreDtos {
     }
 
     public record MediaResponse(Long id, String originalName, String contentType, Long sizeBytes, MediaType type,
-                                boolean banner, boolean bannerActive, Integer bannerSortOrder) {
+                                boolean banner, boolean bannerActive, Integer bannerSortOrder, String sourceUrl) {
     }
 
     public record MediaBannerRequest(boolean banner, boolean active, @NotNull @PositiveOrZero Integer sortOrder) {
+    }
+
+    public record MediaUrlRequest(@NotBlank String url, @NotNull @PositiveOrZero Integer sortOrder) {
     }
 
     public record StatisticsResponse(long users, long tests, long submissions, double averageScore) {
