@@ -619,7 +619,6 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
         })}
       </section>
 
-      {isWriting && <WritingLetterPdfSection />}
 
       <div className="mt-8 grid gap-5 md:grid-cols-2">
         {search && !data.sections.some((section) => `${section.title} ${section.description}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))) && <p role="status" className="py-6 text-slate-600">Không tìm thấy mẹo phù hợp. Hãy thử từ khóa khác.</p>}
@@ -776,21 +775,6 @@ function WritingLetterPdfSection() {
 
         <div className="border-t border-brand-100 bg-sky-50 px-4 py-4 sm:px-6">
           <div className="overflow-hidden rounded-[20px] border border-brand-100 bg-white shadow-soft">
-            <div className="flex flex-col gap-3 border-b border-brand-100 bg-[#071426] px-4 py-3 text-white sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <span className="grid h-9 w-9 place-items-center rounded-xl bg-white/10 text-white">
-                  <FileText size={19} />
-                </span>
-                <div>
-                  <p className="text-sm font-extrabold">Xem tài liệu</p>
-                  <p className="text-xs text-slate-300">PDF được nhúng trực tiếp trong trang</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <a className="rounded-lg bg-white px-3 py-2 text-xs font-extrabold text-navy hover:bg-sky-100" href={writingLetterPdfUrl} target="_blank" rel="noreferrer">Mở tab mới</a>
-                <a className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-extrabold text-white hover:bg-brand-700" href={writingLetterPdfUrl} download>Tải xuống</a>
-              </div>
-            </div>
             <div className="h-[72vh] min-h-[580px] bg-[#eef2f7] p-3">
               <object data={`${writingLetterPdfUrl}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`} type="application/pdf" className="h-full w-full rounded-xl bg-white">
                 <div className="flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
