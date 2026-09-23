@@ -192,14 +192,14 @@ export function AppLayout() {
 
       <header className={`fixed inset-x-0 top-0 z-40 border-b border-brand-100 bg-white/92 shadow-[0_8px_28px_rgba(165,15,21,0.09)] backdrop-blur-xl transition-transform duration-300 ease-out ${navHidden ? '-translate-y-full' : 'translate-y-0'}`}>
         <div className="mx-auto flex h-16 w-full items-center gap-4 px-4 sm:px-6 lg:px-8 2xl:gap-6">
-          <Link to={isAdmin ? '/admin' : '/'} className="flex min-w-0 shrink-0 items-center gap-2.5 text-brand-700 xl:w-[150px] 2xl:w-[180px]">
+          <Link to={isAdmin ? '/admin' : '/'} className="mr-4 flex w-[230px] shrink-0 items-center gap-2 text-brand-700 2xl:mr-2 2xl:w-[230px]">
             <span className="grid h-10 w-10 place-items-center rounded-xl border border-brand-100 bg-white shadow-soft">
               <img src="/brand/lingomaster-logo.svg" alt="Aptis Lingo" className="h-7 w-7 rounded-lg" />
             </span>
-            <span className="mobile-wordmark hidden max-w-[130px] truncate text-base font-extrabold tracking-tight xl:inline 2xl:max-w-[170px] 2xl:text-lg">Aptis Lingo</span>
+            <span className="mobile-wordmark hidden whitespace-nowrap text-base font-extrabold tracking-tight xl:inline 2xl:text-lg">Aptis Lingo</span>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 xl:flex 2xl:gap-2">
+          <nav className="hidden min-w-0 flex-1 items-center justify-start gap-0.5 xl:flex 2xl:justify-center 2xl:gap-2">
             {mainLinks.map((link) => (
               <TopNavLink key={link.to} link={link} />
             ))}
@@ -632,9 +632,9 @@ function TopNavLink({ link }: { link: LayoutLink }) {
       to={link.to}
       end={link.end}
       className={({ isActive }) => {
-        const base = 'inline-flex h-10 items-center justify-center whitespace-nowrap text-[13px] font-extrabold transition 2xl:text-sm';
+        const base = 'inline-flex h-10 items-center justify-center whitespace-nowrap text-[12px] font-extrabold transition 2xl:text-sm';
         const active = isActive || isLeaderboardActive || (link.to === '/app/tests/parts' && isPracticeActive) || (link.to === '/app/mock-tests' && isMockTestActive);
-        return `${base} rounded-xl px-2.5 2xl:px-3 ${active ? 'bg-brand-50 text-brand-700 shadow-soft' : 'text-navy hover:bg-brand-50 hover:text-brand-700'}`;
+        return `${base} rounded-xl px-2 2xl:px-3 ${active ? 'bg-brand-50 text-brand-700 shadow-soft' : 'text-navy hover:bg-brand-50 hover:text-brand-700'}`;
       }}
     >
       {link.label}

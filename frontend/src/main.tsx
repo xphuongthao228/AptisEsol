@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { RouterProvider } from 'react-router-dom';
 import { api, unwrap } from './api/client';
 import { router } from './routes/router';
+import { registerServiceWorker } from './pwa';
 import './styles.css';
 import './mobile.css';
 import type { HeartbeatResponse } from './types';
@@ -13,6 +14,7 @@ import { applyThemePreference } from './utils/theme';
 const VISITOR_ID_KEY = 'aptis-esol-visitor-id';
 
 applyThemePreference();
+registerServiceWorker();
 
 function OnlineHeartbeat() {
   const accessToken = useAuthStore((state) => state.accessToken);

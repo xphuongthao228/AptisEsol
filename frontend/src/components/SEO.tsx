@@ -52,7 +52,7 @@ export function SEO({ title, description, robots = 'index, follow', image = DEFA
     document.title = fullTitle;
     upsertMeta('meta[name="description"]', 'name', 'description', description);
     upsertMeta('meta[name="robots"]', 'name', 'robots', robots);
-    upsertMeta('meta[name="theme-color"]', 'name', 'theme-color', '#2563eb');
+    upsertMeta('meta[name="theme-color"]', 'name', 'theme-color', '#2b075c');
     upsertMeta('meta[property="og:type"]', 'property', 'og:type', type);
     upsertMeta('meta[property="og:site_name"]', 'property', 'og:site_name', SITE_NAME);
     upsertMeta('meta[property="og:title"]', 'property', 'og:title', fullTitle);

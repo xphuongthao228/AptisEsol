@@ -7,6 +7,7 @@
   ChevronLeft,
   ChevronRight,
   ClipboardList,
+  Download,
   ExternalLink,
   FileText,
   Flame,
@@ -136,6 +137,11 @@ type HeroSlide = {
   imageAlt?: string;
 };
 
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
+};
+
 const flagFlakes = [
   { left: '4%', size: 22, delay: '-1s', duration: '13s' },
   { left: '9%', size: 17, delay: '-11s', duration: '16s' },
@@ -215,6 +221,8 @@ function StudentLearningDashboard() {
   const [learningGoal, setLearningGoal] = useState<{ examDate: string; level: 'B1' | 'B2' | 'C1' } | null>(() => loadLearningGoal(goalStorageKey));
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
   const [goalDraft, setGoalDraft] = useState<{ examDate: string; level: 'B1' | 'B2' | 'C1' }>(() => learningGoal ?? { examDate: '', level: 'B2' });
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [appInstalled, setAppInstalled] = useState(() => window.matchMedia?.('(display-mode: standalone)').matches ?? false);
   const { data: submissionData, loading: loadingSubmissions } = useApi<Submission[]>(
     () => unwrap(api.get('/submissions/my-results')),
     []
@@ -250,6 +258,26 @@ function StudentLearningDashboard() {
     .slice(0, 4);
   const isPro = Boolean(user.proExpiresAt && new Date(user.proExpiresAt).getTime() > Date.now());
   const level = averageScore >= 80 ? 'C1' : averageScore >= 65 ? 'B2' : averageScore >= 45 ? 'B1' : 'Đang xác định';
+  const canInstallApp = Boolean(installPrompt) && !appInstalled;
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (event: Event) => {
+      event.preventDefault();
+      setInstallPrompt(event as BeforeInstallPromptEvent);
+    };
+    const handleAppInstalled = () => {
+      setAppInstalled(true);
+      setInstallPrompt(null);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
+  }, []);
 
   function openGoalDialog() {
     setGoalDraft(learningGoal ?? { examDate: '', level: 'B2' });
@@ -261,6 +289,13 @@ function StudentLearningDashboard() {
     window.localStorage.setItem(goalStorageKey, JSON.stringify(goalDraft));
     setLearningGoal(goalDraft);
     setGoalDialogOpen(false);
+  }
+
+  async function installApp() {
+    if (!installPrompt) return;
+    await installPrompt.prompt();
+    const choice = await installPrompt.userChoice.catch(() => null);
+    if (!choice || choice.outcome !== 'dismissed') setInstallPrompt(null);
   }
 
   return (
@@ -284,9 +319,16 @@ function StudentLearningDashboard() {
               {' '}· Chuỗi học <strong className="text-brand-600">{streak} ngày</strong> · Hôm nay luyện tiếp nhé!
             </p>
           </div>
-          <Link to="/app/mock-tests" className="btn-primary h-11 self-start px-5">
-            <Rocket size={17} /> Thi thử ngay
-          </Link>
+          <div className="flex flex-wrap gap-2 lg:justify-end">
+            {canInstallApp && (
+              <button type="button" onClick={installApp} className="btn-secondary h-11 self-start px-5">
+                <Download size={17} /> Cài đặt app
+              </button>
+            )}
+            <Link to="/app/mock-tests" className="btn-primary h-11 self-start px-5">
+              <Rocket size={17} /> Thi thử ngay
+            </Link>
+          </div>
         </div>
 
         <div className="relative mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
