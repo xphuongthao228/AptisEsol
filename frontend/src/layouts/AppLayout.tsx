@@ -401,7 +401,7 @@ export function AppLayout() {
           { to: '/', label: 'Trang chủ', icon: LayoutDashboard, active: location.pathname === '/' },
           { to: '/app/tests/parts', label: 'Theo part', icon: BookOpen, active: location.pathname.startsWith('/app/tests') },
           { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck, active: location.pathname.startsWith('/app/mock-tests') },
-          { to: '/app/history', label: 'Lịch sử', icon: Clock3, active: location.pathname.startsWith('/app/history') },
+          { to: '/app/renewal', label: 'Bảng giá', icon: CalendarPlus, active: location.pathname.startsWith('/app/renewal') },
           { to: '/app/lessons', label: 'Bài học', icon: GraduationCap, active: location.pathname.startsWith('/app/lessons') },
           { to: isAuthenticated ? '/app/settings' : '/login', label: 'Tài khoản', icon: UserRound, active: location.pathname === '/app/settings' }
         ].map(({ to, label, icon: Icon, active }) => <Link key={label} to={to} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)}><span><Icon size={21} /></span><span>{label}</span></Link>)}

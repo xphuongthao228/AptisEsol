@@ -540,6 +540,25 @@ html.dark .dashboard-hero .border-slate-200 {
   .mock-test-topbar > div {
     align-items: center;
     gap: 0.75rem;
+    min-width: 0;
+  }
+
+  .mock-test-topbar-title {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .mock-test-topbar-title p {
+    font-size: 0.82rem !important;
+    line-height: 1.05 !important;
+    margin: 0;
+  }
+
+  .mock-test-topbar-title h1 {
+    max-width: 100% !important;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .mock-speaking-title {
@@ -572,11 +591,711 @@ html.dark .dashboard-hero .border-slate-200 {
 
   .mock-test-topbar button {
     height: 38px;
+    flex: 0 0 auto;
     min-width: 0;
     padding-left: 0.75rem !important;
     padding-right: 0.75rem !important;
     font-size: 0.875rem !important;
     white-space: nowrap;
+  }
+
+  .mock-test-exit-button {
+    width: 42px;
+    justify-content: center;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .mock-test-exit-button span {
+    display: none;
+  }
+
+  .mock-test-exit-button svg {
+    flex-shrink: 0;
+  }
+
+  .mock-assessment-header {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1rem !important;
+  }
+
+  .mock-assessment-header > div:first-child p,
+  .mock-assessment-header > div:first-child h2 {
+    overflow-wrap: anywhere;
+  }
+
+  .mock-assessment-header > div:first-child p:first-child {
+    font-size: 1rem !important;
+    line-height: 1.3 !important;
+  }
+
+  .mock-assessment-header > div:first-child h2,
+  .mock-assessment-header > div:first-child p:nth-child(2) {
+    font-size: 0.95rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .mock-assessment-tools {
+    align-items: center !important;
+    gap: 0.65rem !important;
+    justify-content: space-between;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .mock-assessment-tools > button {
+    height: 42px !important;
+    min-width: 42px !important;
+  }
+
+  .mock-assessment-tools > button:first-child {
+    flex: 1 1 auto;
+    justify-content: center;
+    max-width: 190px;
+    padding: 0 0.8rem !important;
+  }
+
+  .mock-assessment-tools > button:not(:first-child) {
+    flex: 0 0 42px;
+    width: 42px !important;
+    padding: 0 !important;
+  }
+
+  .mock-assessment-tools > div {
+    flex: 0 1 104px;
+    min-width: 0 !important;
+  }
+
+  .mock-assessment-tools > div p:first-child {
+    font-size: 1.25rem !important;
+    letter-spacing: 0 !important;
+    overflow: hidden;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  .mock-assessment-tools > div p:nth-child(2) {
+    font-size: 0.72rem !important;
+  }
+
+  .mock-assessment-tools > div div {
+    max-width: 100%;
+    width: 100% !important;
+  }
+
+  .mock-listening-screen {
+    overflow-x: hidden;
+    padding: 1.25rem 1rem 11rem !important;
+  }
+
+  .mock-listening-screen section {
+    width: 100% !important;
+  }
+
+  .mock-listening-content {
+    margin-top: 1.65rem !important;
+  }
+
+  .mock-listening-content > p {
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    padding: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-listening-content > button {
+    height: 42px;
+    border: 1px solid #dce3ee !important;
+    border-radius: 999px;
+    background: #ffffff !important;
+    padding: 0 1rem !important;
+    text-decoration: none !important;
+  }
+
+  .mock-choice-list {
+    border-radius: 14px !important;
+    margin-top: 1rem !important;
+  }
+
+  .mock-choice-list button {
+    grid-template-columns: 46px minmax(0, 1fr) !important;
+    min-height: 52px !important;
+  }
+
+  .mock-choice-list button > span:first-child {
+    font-size: 1rem !important;
+  }
+
+  .mock-choice-list button > span:last-child {
+    align-items: center !important;
+    font-size: 0.98rem !important;
+    line-height: 1.4 !important;
+    overflow-wrap: anywhere;
+    padding: 0.75rem 0.9rem !important;
+  }
+
+  .mock-listening-match-list,
+  .mock-listening-short-list {
+    width: 100% !important;
+    gap: 0.8rem !important;
+  }
+
+  .mock-listening-match-list label,
+  .mock-listening-short-list label {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.5rem !important;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    background: #ffffff;
+    font-size: 0.98rem !important;
+    line-height: 1.45 !important;
+    padding: 0.9rem;
+  }
+
+  .mock-listening-match-list select,
+  .mock-listening-short-list select {
+    width: 100% !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    font-size: 0.98rem !important;
+  }
+
+  .mock-listening-monologue-list {
+    gap: 1rem !important;
+  }
+
+  .mock-listening-monologue-list > div {
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 1rem;
+  }
+
+  .mock-listening-monologue-list > div > p {
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-grammar-screen {
+    overflow-x: hidden;
+    padding: 1.25rem 1rem 11rem !important;
+  }
+
+  .mock-grammar-screen section {
+    max-width: 100% !important;
+  }
+
+  .mock-grammar-header {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mock-grammar-actions {
+    padding-top: 0 !important;
+  }
+
+  .mock-grammar-timer {
+    display: none;
+  }
+
+  .mock-grammar-card {
+    margin-top: 1.25rem !important;
+    border-radius: 16px !important;
+    padding: 1rem !important;
+  }
+
+  .mock-grammar-card p,
+  .mock-grammar-card h3 {
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-grammar-card div[style*="grid-template-columns"] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.65rem !important;
+  }
+
+  .mock-grammar-card select {
+    width: 100% !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    font-size: 0.98rem !important;
+  }
+
+  .mock-grammar-card button {
+    grid-template-columns: 42px minmax(0, 1fr) !important;
+    min-height: 52px !important;
+  }
+
+  .mock-grammar-card button > span:last-child {
+    font-size: 0.98rem !important;
+    line-height: 1.4 !important;
+    padding: 0.75rem 0.9rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-writing-screen {
+    overflow-x: hidden;
+    padding: 1.25rem 1rem 11rem !important;
+  }
+
+  .mock-writing-screen section {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+
+  .mock-writing-instructions-content {
+    max-width: 100% !important;
+  }
+
+  .mock-writing-screen h2 {
+    max-width: 100% !important;
+    font-size: 1.05rem !important;
+    line-height: 1.45 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-writing-screen h3 {
+    font-size: 1.35rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .mock-writing-instructions-copy {
+    max-width: 100% !important;
+    font-size: 1rem !important;
+    line-height: 1.65 !important;
+  }
+
+  .mock-writing-instructions-copy p {
+    max-width: 100% !important;
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-writing-content {
+    gap: 1rem !important;
+    margin-top: 1.25rem !important;
+  }
+
+  .mock-writing-content article,
+  .mock-writing-content-source,
+  article.mock-writing-content {
+    border-radius: 16px !important;
+    padding: 1rem !important;
+  }
+
+  .mock-writing-content-source p,
+  .mock-writing-content p {
+    font-size: 0.98rem !important;
+    line-height: 1.5 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-writing-content textarea {
+    min-height: 110px !important;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    padding: 0.85rem !important;
+  }
+
+  .mock-writing-content div[style*="justify-content: space-between"] {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .mock-reading-instructions {
+    min-height: calc(100vh - 64px) !important;
+    overflow-x: hidden;
+    padding: 2rem 1.25rem 8rem !important;
+  }
+
+  .mock-reading-instructions section {
+    max-width: 100% !important;
+  }
+
+  .mock-reading-instructions h2 {
+    font-size: 1.75rem !important;
+    line-height: 1.18 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-reading-instructions h3 {
+    margin-top: 2rem !important;
+    font-size: 1.45rem !important;
+    line-height: 1.25 !important;
+  }
+
+  .mock-reading-instructions div {
+    font-size: 1.1rem !important;
+    line-height: 1.55 !important;
+  }
+
+  .mock-reading-instructions p {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-reading-gap-screen {
+    padding: 1.25rem 1rem 8.5rem !important;
+  }
+
+  .mock-reading-gap-screen section {
+    width: 100% !important;
+  }
+
+  .mock-reading-gap-screen section > div:first-child {
+    align-items: stretch !important;
+    gap: 1rem !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mock-reading-gap-screen section > div:first-child > div:first-child p {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+  }
+
+  .mock-reading-gap-screen section > div:first-child > div:first-child h2 {
+    font-size: 1.7rem !important;
+    line-height: 1.16 !important;
+  }
+
+  .mock-reading-gap-screen section > div:first-child > div:last-child {
+    align-items: center !important;
+    gap: 0.65rem !important;
+    justify-content: space-between;
+  }
+
+  .mock-reading-gap-screen section > div:first-child > div:last-child > button {
+    height: 42px !important;
+    width: 42px !important;
+    min-width: 42px !important;
+    padding: 0 !important;
+  }
+
+  .mock-reading-gap-screen section > div:first-child > div:last-child > div {
+    min-width: 112px !important;
+  }
+
+  .mock-reading-gap-screen section > div:first-child > div:last-child > div p:first-child {
+    font-size: 1.25rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  .mock-reading-gap-screen section > div:nth-child(2) {
+    margin-top: 1.75rem !important;
+  }
+
+  .mock-reading-gap-instruction {
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+    padding: 0.9rem 1rem;
+  }
+
+  .mock-reading-gap-list {
+    display: grid;
+    gap: 0.85rem;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    margin-top: 1rem !important;
+  }
+
+  .mock-reading-gap-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.65rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    background: #ffffff;
+    padding: 0.95rem;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+  }
+
+  .mock-reading-gap-number {
+    color: #2b075c;
+    font-size: 1rem;
+    font-weight: 900;
+    line-height: 1.55;
+  }
+
+  .mock-reading-gap-content {
+    display: grid;
+    gap: 0.65rem;
+    min-width: 0;
+  }
+
+  .mock-reading-gap-text {
+    overflow-wrap: anywhere;
+  }
+
+  .mock-reading-gap-select {
+    display: block !important;
+    margin: 0 !important;
+    width: 100%;
+  }
+
+  .mock-reading-gap-select-button {
+    width: 100%;
+    height: 42px !important;
+    min-width: 0 !important;
+    border-radius: 12px !important;
+    padding: 0 0.85rem !important;
+    font-size: 0.98rem !important;
+    line-height: 1 !important;
+  }
+
+  .mock-reading-gap-select-menu {
+    top: 46px !important;
+  }
+
+  .mock-reading-cohesion-screen {
+    padding: 1.25rem 1rem 11rem !important;
+  }
+
+  .mock-reading-cohesion-screen section {
+    width: 100% !important;
+  }
+
+  .mock-reading-screen-header {
+    align-items: stretch !important;
+    gap: 1rem !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mock-reading-screen-header > div:first-child p {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+  }
+
+  .mock-reading-screen-header > div:first-child h2 {
+    font-size: 1.7rem !important;
+    line-height: 1.12 !important;
+  }
+
+  .mock-reading-screen-tools {
+    align-items: center !important;
+    gap: 0.65rem !important;
+    justify-content: space-between;
+  }
+
+  .mock-reading-screen-tools > button {
+    height: 42px !important;
+    min-width: 42px !important;
+    padding: 0 0.8rem !important;
+  }
+
+  .mock-reading-screen-tools > button:not(:first-child) {
+    width: 42px !important;
+    padding: 0 !important;
+  }
+
+  .mock-reading-screen-tools > div {
+    min-width: 112px !important;
+  }
+
+  .mock-reading-screen-tools > div p:first-child {
+    font-size: 1.25rem !important;
+    letter-spacing: 0 !important;
+  }
+
+  .mock-reading-cohesion-instruction {
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+    margin: 1.5rem 0 0.85rem !important;
+    padding: 0.9rem 1rem;
+  }
+
+  .mock-reading-cohesion-board {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1rem !important;
+    border-radius: 16px !important;
+    padding: 1rem !important;
+  }
+
+  .mock-reading-cohesion-slots h3 {
+    font-size: 1.3rem !important;
+    line-height: 1.25 !important;
+    margin: 0 0 0.85rem !important;
+  }
+
+  .mock-reading-cohesion-divider {
+    display: none;
+  }
+
+  .mock-reading-cohesion-choice-list {
+    min-height: 0 !important;
+    padding-top: 0 !important;
+  }
+
+  .mock-reading-cohesion-choice-list::before {
+    content: "Các câu cần sắp xếp";
+    display: block;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.02em;
+    margin: 0.15rem 0 0.1rem;
+    text-transform: uppercase;
+  }
+
+  .mock-reading-cohesion-choice {
+    min-height: 0 !important;
+    border-radius: 14px !important;
+    padding: 0.85rem 0.95rem !important;
+    font-size: 0.98rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .mock-reading-cohesion-slot {
+    min-height: 56px !important;
+    border-radius: 14px !important;
+    gap: 0.75rem !important;
+    grid-template-columns: 24px minmax(0, 1fr) !important;
+    padding: 0.8rem 0.85rem !important;
+  }
+
+  .mock-reading-cohesion-slot > span:last-child {
+    font-size: 0.98rem !important;
+    line-height: 1.45 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-reading-opinion-screen {
+    padding: 1.25rem 1rem 11rem !important;
+  }
+
+  .mock-reading-opinion-screen section {
+    width: 100% !important;
+  }
+
+  .mock-reading-opinion-intro {
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    font-size: 1.05rem !important;
+    line-height: 1.5 !important;
+    margin: 1.5rem 0 1rem !important;
+    padding: 1rem;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-reading-opinion-people,
+  .mock-reading-opinion-questions {
+    border: 1px solid #e2e8f0;
+    border-radius: 16px !important;
+    padding: 1rem !important;
+  }
+
+  .mock-reading-opinion-people section {
+    margin-bottom: 1rem !important;
+  }
+
+  .mock-reading-opinion-people h3 {
+    font-size: 1rem !important;
+    margin-bottom: 0.4rem !important;
+  }
+
+  .mock-reading-opinion-people p {
+    font-size: 0.98rem !important;
+    line-height: 1.55 !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-reading-opinion-question {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.65rem !important;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 0.9rem;
+  }
+
+  .mock-reading-opinion-question p {
+    font-size: 0.98rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .mock-reading-opinion-question select {
+    width: 100%;
+    height: 42px !important;
+    border-radius: 12px !important;
+    font-size: 1rem !important;
+  }
+
+  .mock-reading-long-screen {
+    padding: 1.25rem 1rem 11rem !important;
+  }
+
+  .mock-reading-long-screen section {
+    width: 100% !important;
+  }
+
+  .mock-reading-long-screen .mock-reading-screen-header > div:first-child p:last-child {
+    font-size: 0.9rem !important;
+    line-height: 1.4 !important;
+    max-width: 8rem;
+  }
+
+  .mock-reading-long-instruction {
+    margin-top: 1.5rem !important;
+    border-radius: 14px !important;
+    padding: 1rem !important;
+  }
+
+  .mock-reading-long-instruction p {
+    font-size: 1rem !important;
+    line-height: 1.45 !important;
+  }
+
+  .mock-reading-long-title {
+    font-size: 1.45rem !important;
+    line-height: 1.2 !important;
+    margin: 1rem 0 1rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-reading-long-list {
+    gap: 1rem !important;
+  }
+
+  .mock-reading-long-paragraph {
+    border-radius: 16px !important;
+    padding: 1rem !important;
+  }
+
+  .mock-reading-long-paragraph > span:first-child {
+    position: static !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.8rem;
+    height: 1.8rem;
+    border-radius: 999px;
+    background: #f1f5f9;
+    margin-bottom: 0.75rem;
+  }
+
+  .mock-reading-long-paragraph select {
+    width: 100% !important;
+    height: 42px !important;
+    border-radius: 12px !important;
+    padding: 0 0.85rem !important;
+    font-size: 0.95rem !important;
+  }
+
+  .mock-reading-long-paragraph p {
+    font-size: 0.98rem !important;
+    line-height: 1.55 !important;
+    overflow-wrap: anywhere;
   }
 
   .mock-speaking-topbar-actions .mock-topbar-action {
@@ -592,31 +1311,63 @@ html.dark .dashboard-hero .border-slate-200 {
 
   .mock-speaking-main {
     min-height: calc(100vh - 64px) !important;
-    padding: 0.85rem 0.75rem 8.5rem !important;
+    overflow-x: hidden;
+    padding: 1rem 0.85rem 9.5rem !important;
   }
 
   .mock-speaking-grid {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
-    gap: 1rem !important;
+    gap: 0.9rem !important;
+    width: 100% !important;
   }
 
   .mock-speaking-card {
+    width: 100% !important;
+    max-width: 100% !important;
     min-height: 0 !important;
-    padding: 1rem !important;
+    border-radius: 16px !important;
+    padding: 1.1rem !important;
   }
 
   .mock-speaking-card p {
     max-width: 100%;
+    font-size: 1rem !important;
+    line-height: 1.5 !important;
+    overflow-wrap: anywhere;
   }
 
   .mock-speaking-card h2 {
-    font-size: 1rem !important;
+    font-size: 1.35rem !important;
+    line-height: 1.2 !important;
   }
 
-  .mock-speaking-card img {
+  .mock-speaking-prompt-card {
+    margin: 0 auto !important;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.05) !important;
+  }
+
+  .mock-speaking-prompt-card > div {
+    font-size: 1rem !important;
+    line-height: 1.55 !important;
+    margin-top: 1.25rem !important;
+    max-width: 100% !important;
+  }
+
+  .mock-speaking-prompt-card p {
+    margin-bottom: 1rem !important;
+    overflow-wrap: anywhere;
+  }
+
+  .mock-speaking-card .mock-speaking-picture {
+    display: block !important;
+    width: auto !important;
+    max-width: 100% !important;
     height: auto !important;
-    max-height: 220px;
+    max-height: min(46vh, 260px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    object-fit: contain !important;
   }
 
   .mock-speaking-image-grid {
@@ -629,21 +1380,29 @@ html.dark .dashboard-hero .border-slate-200 {
 
   .mock-speaking-recorder > div {
     min-height: 0 !important;
+    border-radius: 16px !important;
     padding: 1rem !important;
   }
 
   .mock-speaking-recorder > div > div {
-    height: 118px !important;
+    height: 112px !important;
     margin-top: 0.85rem !important;
-    width: 118px !important;
+    width: 112px !important;
   }
 
   .mock-speaking-recorder > div > div p {
-    font-size: 2rem !important;
+    font-size: 1.8rem !important;
+  }
+
+  .mock-speaking-recorder > button {
+    height: 46px !important;
+    margin-top: 0.75rem !important;
+    font-size: 1rem !important;
+    border-radius: 14px !important;
   }
 
   .mock-speaking-side-actions {
-    bottom: 4.7rem !important;
+    bottom: 5.6rem !important;
     left: 0.75rem !important;
     right: 0.75rem !important;
     display: grid !important;
@@ -671,6 +1430,51 @@ html.dark .dashboard-hero .border-slate-200 {
 
   .mock-speaking-draft-panel footer {
     padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+
+  .mock-speaking-footer {
+    padding: 0.65rem 0.75rem calc(0.65rem + env(safe-area-inset-bottom)) !important;
+  }
+
+  .mock-speaking-footer-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.55rem !important;
+    width: 100% !important;
+  }
+
+  .mock-speaking-footer-tools {
+    display: grid !important;
+    gap: 0.45rem !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .mock-speaking-footer-tools button {
+    height: 40px !important;
+    width: 100% !important;
+  }
+
+  .mock-speaking-footer-nav {
+    display: grid !important;
+    gap: 0.55rem !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    width: 100%;
+  }
+
+  .mock-speaking-footer-nav > button:first-child {
+    display: none !important;
+  }
+
+  .mock-speaking-footer-nav > button {
+    height: 46px !important;
+    justify-content: center;
+    min-width: 0;
+    padding: 0 0.75rem !important;
+    width: 100%;
+  }
+
+  .mock-speaking-footer-nav > button:last-child:nth-child(2) {
+    grid-column: 1 / -1;
   }
 
   .mock-reading-footer {

@@ -1240,7 +1240,40 @@ function resolveImportedSpeakingImage(rawValue: unknown) {
   const localSpeakingPath = raw.match(/(?:^|\/)images\/(speaking\/part[23]\/[^?#]+)/i)?.[1];
   if (localSpeakingPath) return `/images/${normalizeLocalSpeakingPath(localSpeakingPath)}`;
 
+  if (isRejectedSpeakingImage(raw)) return '';
+
   return raw;
+}
+
+function isRejectedSpeakingImage(url: string) {
+  const normalized = url.toLowerCase();
+  const host = typeof window !== 'undefined' ? window.location.host.toLowerCase() : '';
+  const isLocalAsset = normalized.startsWith('/') || (host ? normalized.includes(host) : false);
+  if (!isLocalAsset) return false;
+  return [
+    '/brand/',
+    '/testimonials/',
+    'og-image',
+    'favicon',
+    'mobile-study',
+    'aptis-lingo',
+    'lingomaster',
+    '50k',
+    'promo',
+    'banner'
+  ].some((pattern) => normalized.includes(pattern));
+}
+
+function fallbackSpeakingImageFromOrder(item: Record<string, unknown>, part: 2 | 3, imageNumber: 1 | 2 = 1) {
+  const rawOrder = valueByFlexibleKey(item, 'sort_order')
+    ?? valueByFlexibleKey(item, 'sortOrder')
+    ?? valueByFlexibleKey(item, 'order')
+    ?? valueByFlexibleKey(item, 'index')
+    ?? valueByFlexibleKey(item, 'id');
+  const order = Number(String(rawOrder ?? '').match(/\d+/)?.[0] ?? 0);
+  if (!Number.isFinite(order) || order <= 0) return '';
+  if (part === 2) return `/images/speaking/part2/${order}.png`;
+  return `/images/speaking/part3/de${String(order).padStart(2, '0')}_${imageNumber}.png`;
 }
 
 function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 2): string {
@@ -1266,6 +1299,10 @@ function speakingImageFromItem(item: Record<string, unknown>, imageNumber?: 1 | 
     const value: string = speakingImageFromItem(nested as Record<string, unknown>, imageNumber);
     if (value) return value;
   }
+
+  const part = getSpeakingPart(item);
+  if (part === '2') return fallbackSpeakingImageFromOrder(item, 2, imageNumber ?? 1);
+  if (part === '3') return fallbackSpeakingImageFromOrder(item, 3, imageNumber ?? 1);
 
   return '';
 }
@@ -2509,7 +2546,7 @@ const listeningSpeakerOptions: string[] = [];
 const listeningShortAnswerKey: string[] = [];
 const listeningMonologues: ListeningMonologueData[] = [];
 const listeningMonologueAnswerKey: Record<string, string> = {};
-const writingParts = Array.from({ length: 4 }, (_, index) => ({ title: `Part ${index + 1}`, heading: '', prompt: '', questions: [] as string[], helper: '' }));
+const writingParts = Array.from({ length: 4 }, (_, index) => ({ title: `Part ${index + 1}`, heading: '', content: '', prompt: '', questions: [] as string[], helper: '' }));
 type WritingPartData = typeof writingParts[number] & {
   sampleAnswers?: string[];
   emailPrompts?: Record<string, string>;
@@ -2561,8 +2598,8 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
       .map((row) => repairUserText(String(row.sampleAnswer ?? row.answer ?? '')).trim())
       .filter(Boolean);
     const heading = repairUserText(String(first.heading ?? first.instructions ?? first.title ?? '')).trim();
-    const context = repairUserText(String(first.context ?? first.mainText ?? '')).trim();
-    const prompt = repairUserText(String(first.prompt ?? first.content ?? '')).trim();
+    const content = repairUserText(String(first.content ?? first.context ?? first.mainText ?? first.passage ?? first.text ?? '')).trim();
+    const prompt = repairUserText(String(first.prompt ?? '')).trim();
     const emailPrompts = partIndex === 3 && rowQuestions.length > 0
       ? { friend: rowQuestions[0] ?? '', president: rowQuestions[1] ?? '' }
       : current.emailPrompts;
@@ -2570,7 +2607,8 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
     nextParts[partIndex] = {
       ...current,
       heading: heading || (clubName ? current.heading.replace(/(?:an?|the)\s+[^.]+ club/i, `the ${clubName}`) : current.heading),
-      prompt: partIndex === 3 ? context || prompt || current.prompt : prompt || current.prompt,
+      content: content || current.content,
+      prompt: partIndex === 3 ? prompt || content || current.prompt : prompt || current.prompt,
       questions: partIndex < 3 && rowQuestions.length > 0 ? rowQuestions : current.questions,
       helper: String(first.helper ?? first.wordLimit ?? '').trim() || current.helper,
       sampleAnswers: sampleAnswers.length > 0 ? sampleAnswers : current.sampleAnswers,
@@ -2582,7 +2620,7 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
 }
 
 function hasWritingPartData(part?: WritingPartData) {
-  return Boolean(part && (part.heading.trim() || part.prompt.trim() || part.questions.length
+  return Boolean(part && (part.heading.trim() || part.content.trim() || part.prompt.trim() || part.questions.length
     || Object.values(part.emailPrompts ?? {}).some((value) => value.trim())));
 }
 
@@ -3886,30 +3924,31 @@ export function MockTests() {
   }
 
   function buildWritingScorePayload() {
+    const writingPrompt = (part: WritingPartData) => [part.heading, part.content, part.prompt].filter((value) => value.trim()).join('\n');
     return {
       parts: [
         {
           title: (activeWritingParts[0] ?? writingParts[0]).title,
-          prompt: (activeWritingParts[0] ?? writingParts[0]).heading,
+          prompt: writingPrompt(activeWritingParts[0] ?? writingParts[0]),
           answer: (activeWritingParts[0] ?? writingParts[0]).questions
             .map((question, index) => `${index + 1}. ${question}\n${writingShortAnswers[index] ?? ''}`)
             .join('\n\n')
         },
         {
           title: (activeWritingParts[1] ?? writingParts[1]).title,
-          prompt: `${(activeWritingParts[1] ?? writingParts[1]).heading}\n${(activeWritingParts[1] ?? writingParts[1]).prompt}`,
+          prompt: writingPrompt(activeWritingParts[1] ?? writingParts[1]),
           answer: writingAnswers[1] ?? ''
         },
         {
           title: (activeWritingParts[2] ?? writingParts[2]).title,
-          prompt: (activeWritingParts[2] ?? writingParts[2]).heading,
+          prompt: writingPrompt(activeWritingParts[2] ?? writingParts[2]),
           answer: (activeWritingParts[2] ?? writingParts[2]).questions
             .map((question, index) => `${index + 1}. ${question}\n${writingThreeAnswers[index] ?? ''}`)
             .join('\n\n')
         },
         {
           title: (activeWritingParts[3] ?? writingParts[3]).title,
-          prompt: `${(activeWritingParts[3] ?? writingParts[3]).heading}\n${(activeWritingParts[3] ?? writingParts[3]).prompt}`,
+          prompt: writingPrompt(activeWritingParts[3] ?? writingParts[3]),
           answer: [
             `Email to friend:\n${writingEmailAnswers.friend ?? ''}`,
             `Email to president:\n${writingEmailAnswers.president ?? ''}`
@@ -4628,7 +4667,7 @@ export function MockTests() {
         <div className="min-h-screen bg-white">
           {(screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong') && (
             <ReadingTopbar
-              title={screen === 'readingLong' ? 'Part 4 - Long Reading' : screen === 'readingOpinion' ? 'Part 3 - Opinion Matching' : screen === 'readingCohesion' ? activeReadingData.cohesion[readingCohesionIndex]?.title ?? 'Part 2 - Text Cohesion' : 'Part 1 - Gap Fill'}
+              title={screen === 'readingLong' ? 'Part 4 - Long Reading' : screen === 'readingOpinion' ? 'Part 3 - Opinion Matching' : screen === 'readingCohesion' ? `Part ${readingCohesionIndex + 2} - Text Cohesion` : 'Part 1 - Gap Fill'}
               onExit={() => setScreen('select')}
             />
           )}
@@ -5644,13 +5683,13 @@ function ReadingTopbar({ title, onExit }: { title: string; onExit: () => void })
   return (
     <header className="mock-test-topbar h-[74px] px-7 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
-        <div>
+        <div className="mock-test-topbar-title">
           <p className="text-base font-semibold text-[#d9c7f3]">Reading</p>
           <h1 className="text-xl font-extrabold leading-6 text-white">{title}</h1>
         </div>
-        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+        <button type="button" onClick={onExit} className="mock-test-exit-button inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
           <LogOut size={21} />
-          Thoát
+          <span>Thoát</span>
         </button>
       </div>
     </header>
@@ -5661,13 +5700,13 @@ function ListeningTopbar({ title, onExit }: { title: string; onExit: () => void 
   return (
     <header className="mock-test-topbar h-[66px] px-7 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
-        <div>
+        <div className="mock-test-topbar-title">
           <p className="text-base font-semibold text-[#d9c7f3]">Listening</p>
           <h1 className="text-xl font-extrabold leading-6 text-white">{title}</h1>
         </div>
-        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+        <button type="button" onClick={onExit} className="mock-test-exit-button inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
           <LogOut size={21} />
-          Thoát
+          <span>Thoát</span>
         </button>
       </div>
     </header>
@@ -5678,13 +5717,13 @@ function WritingTopbar({ title, onExit }: { title: string; onExit: () => void })
   return (
     <header className="mock-test-topbar h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
-        <div>
+        <div className="mock-test-topbar-title">
           <p className="text-base font-medium text-[#d9c7f3]">Writing</p>
           <h1 className="text-[17px] font-extrabold leading-6 text-white">{title}</h1>
         </div>
-        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+        <button type="button" onClick={onExit} className="mock-test-exit-button inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
           <LogOut size={21} />
-          Thoát
+          <span>Thoát</span>
         </button>
       </div>
     </header>
@@ -5695,13 +5734,13 @@ function GrammarTopbar({ onExit }: { onExit: () => void }) {
   return (
     <header className="mock-test-topbar h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
-        <div>
+        <div className="mock-test-topbar-title">
           <p className="text-base font-medium text-[#d9c7f3]">Grammar & Vocabulary</p>
           <h1 className="text-[17px] font-extrabold leading-6 text-white">Grammar & Vocabulary - Full Practice</h1>
         </div>
-        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+        <button type="button" onClick={onExit} className="mock-test-exit-button inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
           <LogOut size={21} />
-          Thoát
+          <span>Thoát</span>
         </button>
       </div>
     </header>
@@ -5837,6 +5876,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
 
   return (
     <main
+      className="mock-grammar-screen"
       style={{
         minHeight: 'calc(100vh - 68px)',
         backgroundColor: '#f1f1f1',
@@ -5844,13 +5884,13 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
       }}
     >
       <section style={{ maxWidth: 830, margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'start', gap: 28 }}>
+        <div className="mock-assessment-header mock-grammar-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto auto', alignItems: 'start', gap: 28 }}>
           <div>
             <h2 style={{ color: '#020817', fontSize: 17, lineHeight: '24px', fontWeight: 900, margin: 0 }}>Grammar & Vocabulary</h2>
             <p style={{ color: '#020817', fontSize: 17, lineHeight: '24px', margin: 0 }}>Question {index + 1} of {total}</p>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12 }}>
+          <div className="mock-assessment-tools mock-grammar-actions" style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} padding="0 18px" />
             <button
               type="button"
@@ -5869,7 +5909,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
             </button>
           </div>
 
-          <div style={{ minWidth: 170, textAlign: 'center', paddingTop: 2 }}>
+          <div className="mock-grammar-timer" style={{ minWidth: 170, textAlign: 'center', paddingTop: 2 }}>
             <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 31, lineHeight: '38px', fontWeight: 900, letterSpacing: 0, margin: 0 }}>{timeRemaining}</p>
             <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 0' }}>Time remaining</p>
             <div style={{ height: 4, width: 162, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0' }} />
@@ -5877,6 +5917,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
         </div>
 
         <article
+          className="mock-grammar-card"
           style={{
             marginTop: 34,
             border: '1px solid #e2e8f0',
@@ -6155,16 +6196,17 @@ const grammarSentenceSelectStyle = {
 function WritingInstructions() {
   return (
     <main
+      className="mock-writing-screen"
       style={{
         minHeight: 'calc(100vh - 68px)',
         backgroundColor: '#ffffff',
         padding: '44px 24px 132px'
       }}
     >
-      <section style={{ maxWidth: 980, marginLeft: 63 }}>
+      <section className="mock-writing-instructions-content" style={{ maxWidth: 980, marginLeft: 63 }}>
         <h2 style={{ color: '#000000', fontSize: 24, lineHeight: '32px', fontWeight: 900, margin: 0 }}>Aptis General Writing Instructions</h2>
         <h3 style={{ color: '#000000', fontSize: 20, lineHeight: '28px', fontWeight: 900, margin: '18px 0 0' }}>Writing</h3>
-        <div style={{ color: '#020817', fontSize: 17, lineHeight: '28px', marginTop: 10 }}>
+        <div className="mock-writing-instructions-copy" style={{ color: '#020817', fontSize: 17, lineHeight: '28px', marginTop: 10 }}>
           <p style={{ margin: 0 }}>The test has four parts and takes up to 50 minutes.</p>
           <p style={{ margin: '2px 0 0' }}>Recommended times: Part One: 6 min / Part Two: 12 min / Part Three: 17 min / Part Four: 15 min</p>
           <p style={{ margin: '30px 0 0' }}>When you click on the 'Next' button, the test will begin.</p>
@@ -6214,6 +6256,7 @@ function WritingPart({
   const friendWordCount = friendEmail.trim() ? friendEmail.trim().split(/\s+/).length : 0;
   const presidentWordCount = presidentEmail.trim() ? presidentEmail.trim().split(/\s+/).length : 0;
   const heading = repairUserText(part.heading);
+  const content = repairUserText(part.content);
   const prompt = repairUserText(part.prompt);
   const questions = part.questions.map((question) => repairUserText(question));
   const sampleAnswers = (part as { sampleAnswers?: string[] }).sampleAnswers?.map((sample) => repairUserText(sample));
@@ -6228,6 +6271,7 @@ function WritingPart({
 
   return (
     <main
+      className="mock-speaking-main mock-speaking-prompt-main"
       style={{
         minHeight: 'calc(100vh - 68px)',
         backgroundColor: '#f1f1f1',
@@ -6235,12 +6279,12 @@ function WritingPart({
       }}
     >
       <section style={{ width: 'min(828px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-assessment-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Writing - Part {partIndex + 1}</p>
             <h2 style={{ color: '#020817', fontSize: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? 17 : 28, fontWeight: 900, lineHeight: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? '23px' : '34px', margin: '4px 0 0', maxWidth: isEmailPart ? 620 : isThreeQuestionsPart ? 470 : 450 }}>{heading}</h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-assessment-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button type="button" style={{ width: 44, height: 44, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
               <Pause size={18} />
@@ -6253,8 +6297,16 @@ function WritingPart({
           </div>
         </div>
 
+        {content && content !== prompt && (
+          <article className="mock-writing-content-source" style={{ marginTop: 28, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '22px 24px', boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+            {content.split('\n').filter((line) => line.trim()).map((line) => (
+              <p key={line} style={{ color: '#020817', fontSize: 17, lineHeight: '28px', margin: 0 }}>{line}</p>
+            ))}
+          </article>
+        )}
+
         {isEmailPart ? (
-          <div style={{ display: 'grid', gap: 32, marginTop: 34 }}>
+          <div className="mock-writing-content" style={{ display: 'grid', gap: 32, marginTop: 34 }}>
             <article style={{ borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '22px 24px' }}>
               {prompt.split('\n').map((line) => (
                 <p key={line} style={{ color: '#020817', fontSize: 17, lineHeight: '27px', margin: line === 'Dear all members,' ? '0 0 4px' : 0 }}>{line}</p>
@@ -6288,7 +6340,7 @@ function WritingPart({
             )}
           </div>
         ) : isShortAnswerPart || isThreeQuestionsPart ? (
-          <div style={{ display: 'grid', gap: 20, marginTop: 34 }}>
+          <div className="mock-writing-content" style={{ display: 'grid', gap: 20, marginTop: 34 }}>
             {questions.map((question, index) => {
               const value = isThreeQuestionsPart ? threeAnswers[index] ?? '' : shortAnswers[index] ?? '';
               const questionWordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -6332,7 +6384,7 @@ function WritingPart({
             })}
           </div>
         ) : (
-          <article style={{ marginTop: 38, borderRadius: 16, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 28, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+          <article className="mock-writing-content" style={{ marginTop: 38, borderRadius: 16, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 28, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
             <p style={{ color: '#020817', fontSize: 17, lineHeight: '28px', margin: 0 }}>{prompt}</p>
 
             {questions.length > 0 && (
@@ -6682,6 +6734,7 @@ function ListeningQuestion({
 
   return (
     <main
+      className="mock-listening-screen"
       style={{
         minHeight: 'calc(100vh - 66px)',
         backgroundColor: '#f1f1f1',
@@ -6689,12 +6742,12 @@ function ListeningQuestion({
       }}
     >
       <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-assessment-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 1</p>
             <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question {displayTotal ? index + 1 : 0} of {displayTotal}</h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-assessment-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
@@ -6719,7 +6772,7 @@ function ListeningQuestion({
           </div>
         </div>
 
-        <div style={{ marginTop: 58 }}>
+        <div className="mock-listening-content" style={{ marginTop: 58 }}>
           <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>{prompt}</p>
           <button
             type="button"
@@ -6744,6 +6797,7 @@ function ListeningQuestion({
           </button>
 
           <div
+            className="mock-choice-list"
             style={{
               marginTop: 28,
               border: '1px solid #dce3ee',
@@ -6830,6 +6884,7 @@ function ListeningMatching({
 
   return (
     <main
+      className="mock-listening-screen"
       style={{
         minHeight: 'calc(100vh - 66px)',
         backgroundColor: '#f1f1f1',
@@ -6837,12 +6892,12 @@ function ListeningMatching({
       }}
     >
       <section style={{ width: 'min(820px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-assessment-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 2</p>
             <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question 1 of 1</h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-assessment-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
@@ -6867,7 +6922,7 @@ function ListeningMatching({
           </div>
         </div>
 
-        <div style={{ marginTop: 58 }}>
+        <div className="mock-listening-content" style={{ marginTop: 58 }}>
           <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: 0 }}>
             {data.prompt}
           </p>
@@ -6893,7 +6948,7 @@ function ListeningMatching({
             {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
           </button>
 
-          <div style={{ display: 'grid', gap: 14, marginTop: 26, width: 'min(695px, 100%)' }}>
+          <div className="mock-listening-match-list" style={{ display: 'grid', gap: 14, marginTop: 26, width: 'min(695px, 100%)' }}>
             {speakers.map((speaker) => (
               <label
                 key={speaker}
@@ -6967,6 +7022,7 @@ function ListeningShortConversations({
 
   return (
     <main
+      className="mock-listening-screen"
       style={{
         minHeight: 'calc(100vh - 66px)',
         backgroundColor: '#f1f1f1',
@@ -6974,12 +7030,12 @@ function ListeningShortConversations({
       }}
     >
       <section style={{ width: 'min(820px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-assessment-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 3</p>
             <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question 1 of 1</h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-assessment-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
@@ -7004,8 +7060,7 @@ function ListeningShortConversations({
           </div>
         </div>
 
-        <div style={{ marginTop: 52 }}>
-          {data.topic && <p style={{ color: '#020817', fontSize: 19, lineHeight: '28px', margin: 0 }}>{data.topic}</p>}
+        <div className="mock-listening-content" style={{ marginTop: 52 }}>
           <button
             type="button"
             onClick={toggleAudio}
@@ -7030,7 +7085,7 @@ function ListeningShortConversations({
 
           {data.prompt && <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', margin: '44px 0 30px' }}>{data.prompt}</p>}
 
-          <div style={{ display: 'grid', gap: 28, width: 'min(650px, 100%)' }}>
+          <div className="mock-listening-short-list" style={{ display: 'grid', gap: 28, width: 'min(650px, 100%)' }}>
             {statements.map((statement, statementIndex) => (
               <label
                 key={statement}
@@ -7108,6 +7163,7 @@ function ListeningMonologues({
 
   return (
     <main
+      className="mock-listening-screen"
       style={{
         minHeight: 'calc(100vh - 66px)',
         backgroundColor: '#f1f1f1',
@@ -7115,12 +7171,12 @@ function ListeningMonologues({
       }}
     >
       <section style={{ width: 'min(828px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-assessment-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Listening - Part 4</p>
             <h2 style={{ color: '#020817', fontSize: 17, fontWeight: 500, lineHeight: 1.2, margin: '4px 0 0' }}>Question {questionNumber} of 17</h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-assessment-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               type="button"
@@ -7167,7 +7223,7 @@ function ListeningMonologues({
           {!playing && <span style={{ color: '#64748b', fontSize: 14 }}>({playsLeft} lượt)</span>}
         </button>
 
-        <div style={{ display: 'grid', gap: 36, marginTop: 26 }}>
+        <div className="mock-listening-content mock-listening-monologue-list" style={{ display: 'grid', gap: 36, marginTop: 26 }}>
           {currentRecording.questions.map((question, questionIndex) => (
             <div key={question.prompt}>
               <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '0 0 14px' }}>
@@ -7288,7 +7344,7 @@ function ReadingStart({ data, mockCard, loading, onStart }: { data: ReadingTestD
 
 function ReadingInstructions() {
   return (
-    <main className="min-h-[calc(100vh-74px)] bg-white px-6 pb-28 pt-14 sm:px-[100px]">
+    <main className="mock-reading-instructions min-h-[calc(100vh-74px)] bg-white px-6 pb-28 pt-14 sm:px-[100px]">
       <section className="max-w-[760px]">
         <h2 className="text-[26px] font-extrabold leading-8 text-black">Aptis General Reading Instructions</h2>
         <h3 className="mt-10 text-[22px] font-extrabold text-black">Reading</h3>
@@ -7305,6 +7361,7 @@ function ReadingInstructions() {
 function ReadingQuestion({ data, answers, bookmarkActive, showAnswer, timeRemaining, onAnswer, onToggleBookmark }: { data: ReadingGapQuestion[]; answers: Record<number, string>; bookmarkActive: boolean; showAnswer?: boolean; timeRemaining: string; onAnswer: (index: number, answer: string) => void; onToggleBookmark: () => void }) {
   return (
     <main
+      className="mock-reading-gap-screen"
       style={{
         minHeight: 'calc(100vh - 74px)',
         backgroundColor: '#f1f1f1',
@@ -7342,11 +7399,11 @@ function ReadingQuestion({ data, answers, bookmarkActive, showAnswer, timeRemain
         </div>
 
         <div style={{ marginTop: 56 }}>
-          <p style={{ color: '#000000', fontSize: 22, lineHeight: '32px', fontWeight: 900, margin: 0 }}>
+          <p className="mock-reading-gap-instruction" style={{ color: '#000000', fontSize: 22, lineHeight: '32px', fontWeight: 900, margin: 0 }}>
             Choose the word that fits in each gap.
           </p>
 
-          <div style={{ color: '#000000', fontSize: 22, lineHeight: '44px', marginTop: 42 }}>
+          <div className="mock-reading-gap-list" style={{ color: '#000000', fontSize: 22, lineHeight: '44px', marginTop: 42 }}>
             {data.length === 0 ? (
               <EmptyImportedPart />
             ) : data.map((question, index) => {
@@ -7354,12 +7411,13 @@ function ReadingQuestion({ data, answers, bookmarkActive, showAnswer, timeRemain
               const before = question.questionStart ?? promptParts[0] ?? '';
               const after = question.questionEnd ?? promptParts.slice(1).join('___') ?? '';
               return (
-                <div key={`${index}-${question.answer}`}>
-                  <p>
-                    {index + 1}. {before}
+                <div className="mock-reading-gap-item" key={`${index}-${question.answer}`}>
+                  <span className="mock-reading-gap-number">{index + 1}.</span>
+                  <div className="mock-reading-gap-content">
+                    <span className="mock-reading-gap-text">{before}</span>
                     <ReadingGapSelect value={answers[index] ?? ''} options={question.options} onChange={(answer) => onAnswer(index, answer)} />
-                    {after}
-                  </p>
+                    <span className="mock-reading-gap-text">{after}</span>
+                  </div>
                   {showAnswer && <InlineAnswer>{question.answer}</InlineAnswer>}
                 </div>
               );
@@ -7423,6 +7481,7 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
 
   return (
     <main
+      className="mock-reading-cohesion-screen"
       style={{
         minHeight: 'calc(100vh - 74px)',
         backgroundColor: '#f1f1f1',
@@ -7430,12 +7489,12 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
       }}
     >
       <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-reading-screen-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: 0 }}>Reading</p>
             <h2 style={{ color: '#020817', fontSize: 36, fontWeight: 900, lineHeight: 1.1, margin: '8px 0 0' }}>Part {questionIndex + 2}</h2>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-reading-screen-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
             <button
               style={{
@@ -7459,11 +7518,12 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
           </div>
         </div>
 
-        <p style={{ color: '#000000', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '34px 0 8px' }}>
+        <p className="mock-reading-cohesion-instruction" style={{ color: '#000000', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '34px 0 8px' }}>
           The sentences below make a complete text. Put them in the correct order.
         </p>
 
         <div
+          className="mock-reading-cohesion-board"
           style={{
             display: 'grid',
             gridTemplateColumns: '1fr 1px 0.9fr',
@@ -7475,8 +7535,8 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
             boxShadow: '0 1px 2px rgba(15,23,42,0.04)'
           }}
         >
-          <div>
-            <h3 style={{ color: '#020817', fontSize: 21, fontWeight: 900, margin: '4px 0 16px' }}>{data.title}</h3>
+          <div className="mock-reading-cohesion-slots">
+            <h3 style={{ color: '#020817', fontSize: 21, fontWeight: 900, margin: '4px 0 16px' }}>Text Cohesion</h3>
             <div style={{ display: 'grid', gap: 12 }}>
               {correctAnswers.map((_, index) => {
                 const number = index + 1;
@@ -7493,9 +7553,10 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
             </div>
           </div>
 
-          <div style={{ width: 1, backgroundColor: '#e5e7eb' }} />
+          <div className="mock-reading-cohesion-divider" style={{ width: 1, backgroundColor: '#e5e7eb' }} />
 
           <div
+            className="mock-reading-cohesion-choice-list"
             onDragOver={(event) => {
               event.preventDefault();
               event.dataTransfer.dropEffect = 'move';
@@ -7516,6 +7577,7 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
           >
             {availableChoices.map((choice) => (
               <div
+                className="mock-reading-cohesion-choice"
                 key={choice}
                 draggable
                 onDragStart={(event) => {
@@ -7570,6 +7632,7 @@ function ReadingCohesion({ data, answers, bookmarkActive, questionIndex, total, 
 function CohesionSlot({ number, filled, onDropChoice }: { number: number; filled?: string; onDropChoice: (choice: string) => void }) {
   return (
     <div
+      className="mock-reading-cohesion-slot"
       draggable={Boolean(filled)}
       onDragStart={(event) => {
         if (!filled) return;
@@ -7611,13 +7674,13 @@ function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaini
   const questions = data.questions;
   const correctAnswers = data.correctAnswers;
   return (
-    <main style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
+    <main className="mock-reading-opinion-screen" style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
       <section style={{ width: 'min(920px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-reading-screen-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 20, fontWeight: 800, margin: 0 }}>Reading</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-reading-screen-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} height={46} onToggle={onToggleBookmark} />
             <button style={{ width: 46, height: 46, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
               <Pause size={18} />
@@ -7630,11 +7693,11 @@ function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaini
           </div>
         </div>
 
-        <p style={{ color: '#000000', fontSize: 22, lineHeight: '30px', fontWeight: 900, margin: '34px 0 30px' }}>
-          {data.intro ? stripHtml(data.intro) : `Four people respond to the topic${data.topic ? `: ${data.topic}` : ''}. Read the texts and then answer the questions below.`}
+        <p className="mock-reading-opinion-intro" style={{ color: '#000000', fontSize: 22, lineHeight: '30px', fontWeight: 900, margin: '34px 0 30px' }}>
+          {data.intro ? stripHtml(data.intro) : 'Four people respond to the same topic. Read the texts and then answer the questions below.'}
         </p>
 
-        {people.length === 0 || questions.length === 0 ? <EmptyImportedPart /> : <article style={{ borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+        {people.length === 0 || questions.length === 0 ? <EmptyImportedPart /> : <article className="mock-reading-opinion-people" style={{ borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
           {people.map((person) => (
             <section key={person.label} style={{ marginBottom: person.label === 'D' ? 0 : 26 }}>
               <h3 style={{ color: '#020817', fontSize: 19, fontWeight: 900, margin: '0 0 8px' }}>{person.label}</h3>
@@ -7643,10 +7706,10 @@ function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaini
           ))}
         </article>}
 
-        {people.length > 0 && questions.length > 0 && <article style={{ marginTop: 26, borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
+        {people.length > 0 && questions.length > 0 && <article className="mock-reading-opinion-questions" style={{ marginTop: 26, borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
           <div style={{ display: 'grid', gap: 18 }}>
             {questions.map((question, index) => (
-              <div key={question} style={{ display: 'grid', gridTemplateColumns: '1fr 156px', alignItems: 'center', gap: 24 }}>
+              <div className="mock-reading-opinion-question" key={question} style={{ display: 'grid', gridTemplateColumns: '1fr 156px', alignItems: 'center', gap: 24 }}>
                 <p style={{ color: '#020817', fontSize: 17, lineHeight: '24px', fontWeight: 700, margin: 0 }}>
                   {index + 1}. {question}
                 </p>
@@ -7675,14 +7738,14 @@ function ReadingLong({ data, answers, bookmarkActive, showAnswer, timeRemaining,
   const paragraphs = data.paragraphs;
   const correctAnswers = data.correctAnswers;
   return (
-    <main style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
+    <main className="mock-reading-long-screen" style={{ minHeight: 'calc(100vh - 74px)', backgroundColor: '#f1f1f1', padding: '36px 24px 132px' }}>
       <section style={{ width: 'min(830px, 100%)', margin: '0 auto' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
+        <div className="mock-reading-screen-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
             <p style={{ color: '#020817', fontSize: 17, fontWeight: 800, margin: 0 }}>Reading</p>
             <p style={{ color: '#64748b', fontSize: 16, margin: '4px 0 0' }}>7 paragraphs · 7 headings</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
+          <div className="mock-reading-screen-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} height={46} onToggle={onToggleBookmark} />
             <button style={{ width: 46, height: 46, display: 'grid', placeItems: 'center', borderRadius: '50%', border: '1px solid #dce3ee', backgroundColor: '#ffffff', color: '#64748b' }}>
               <Pause size={18} />
@@ -7695,17 +7758,15 @@ function ReadingLong({ data, answers, bookmarkActive, showAnswer, timeRemaining,
           </div>
         </div>
 
-        <div style={{ marginTop: 40, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '18px 20px' }}>
+        <div className="mock-reading-long-instruction" style={{ marginTop: 40, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '18px 20px' }}>
           <p style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: 0 }}>
             Read the passage quickly. Choose a heading for each numbered paragraph from the drop-down box.
           </p>
         </div>
 
-        <h2 style={{ color: '#020817', fontSize: 30, fontWeight: 900, margin: '20px 0 28px' }}>{data.title}</h2>
-
-        <div style={{ display: 'grid', gap: 28 }}>
+        <div className="mock-reading-long-list" style={{ display: 'grid', gap: 28 }}>
           {paragraphs.length === 0 ? <EmptyImportedPart /> : paragraphs.map((paragraph, index) => (
-            <article key={index} style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '24px 22px 24px 62px', position: 'relative' }}>
+            <article className="mock-reading-long-paragraph" key={index} style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '24px 22px 24px 62px', position: 'relative' }}>
               <span style={{ position: 'absolute', left: 22, top: 38, color: '#020817', fontSize: 16, fontWeight: 900 }}>{index + 1}.</span>
               <select value={answers[index] ?? ''} onChange={(event) => onAnswer(index, event.target.value)} style={{ width: 'min(432px, 100%)', height: 48, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 20px', color: '#64748b', fontSize: 16, fontStyle: 'italic', outline: 'none' }}>
                 <option value="">Choose a heading...</option>
@@ -8299,8 +8360,9 @@ function ReadingGapSelect({ options, value, onChange }: { options: string[]; val
   const [open, setOpen] = useState(false);
 
   return (
-    <span style={{ position: 'relative', display: 'inline-block', margin: '0 8px', verticalAlign: 'middle' }}>
+    <span className="mock-reading-gap-select" style={{ position: 'relative', display: 'inline-block', margin: '0 8px', verticalAlign: 'middle' }}>
       <button
+        className="mock-reading-gap-select-button"
         type="button"
         onClick={() => setOpen((current) => !current)}
         style={{
@@ -8325,6 +8387,7 @@ function ReadingGapSelect({ options, value, onChange }: { options: string[]; val
       </button>
       {open && (
         <span
+          className="mock-reading-gap-select-menu"
           style={{
             position: 'absolute',
             left: 0,
@@ -8557,7 +8620,7 @@ function SpeakingInstructions() {
       }}
     >
       <section
-        className="mock-speaking-grid"
+        className="mock-speaking-card mock-speaking-prompt-card"
         style={{
           width: 'min(960px, 100%)',
           margin: '0 auto',
@@ -8626,6 +8689,7 @@ function SpeakingPrompt({ part }: { part: 1 | 2 | 3 | 4 }) {
 function SpeakingQuestion({ question, index, total, seconds, showAnswer, isReading, microphoneLevel, onToggleAnswer, onFinish }: { question: string; index: number; total: number; seconds: number; showAnswer?: boolean; isReading: boolean; microphoneLevel: number; onToggleAnswer: () => void; onFinish: () => void }) {
   return (
     <main
+      className="mock-speaking-main"
       style={{
         minHeight: 'calc(100vh - 74px)',
         backgroundColor: '#f1f1f1',
@@ -8634,6 +8698,7 @@ function SpeakingQuestion({ question, index, total, seconds, showAnswer, isReadi
       }}
     >
       <section
+        className="mock-speaking-grid"
         style={{
           width: 'min(1400px, 100%)',
           margin: '0 auto',
@@ -8764,13 +8829,14 @@ function Part2Question({ question, imageUrl, index, total, seconds, showAnswer, 
           <p style={{ color: '#7a8393', fontSize: 16, fontWeight: 500, margin: 0 }}>Speaking</p>
           <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Question {index + 1} of {total}</h2>
           <img
+            className="mock-speaking-picture"
             src={imageUrl}
             alt={`Speaking Part 2 prompt ${index + 1}`}
             style={{
               display: 'block',
               width: 'min(560px, 100%)',
               height: 374,
-              objectFit: 'cover',
+              objectFit: 'contain',
               borderRadius: 12,
               marginTop: 30
             }}
@@ -8901,16 +8967,18 @@ function Part3Question({ question, imageUrls, index, total, seconds, showAnswer,
           >
             {firstImage && (
               <img
+                className="mock-speaking-picture"
                 src={firstImage}
                 alt="Speaking Part 3 picture 1"
-                style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
+                style={{ width: '100%', height: 280, objectFit: 'contain', borderRadius: 12, display: 'block' }}
               />
             )}
             {secondImage && (
               <img
+                className="mock-speaking-picture"
                 src={secondImage}
                 alt="Speaking Part 3 picture 2"
-                style={{ width: '100%', height: 280, objectFit: 'cover', borderRadius: 12, display: 'block' }}
+                style={{ width: '100%', height: 280, objectFit: 'contain', borderRadius: 12, display: 'block' }}
               />
             )}
           </div>
@@ -9581,6 +9649,7 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
 function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onOpenQuestionList, onPrevious, onNext }: { canPrevious: boolean; canNext?: boolean; showNext: boolean; nextLabel: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void }) {
   return (
     <footer
+      className="mock-speaking-footer"
       style={{
         position: 'fixed',
         left: 0,
@@ -9593,6 +9662,7 @@ function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onOp
       }}
     >
       <div
+        className="mock-speaking-footer-grid"
         style={{
           width: 'min(1240px, 100%)',
           margin: '0 auto',
@@ -9602,13 +9672,13 @@ function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onOp
           gap: 16
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="mock-speaking-footer-tools" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <UtilityIcon icon={<List size={21} />} label="Danh sách câu hỏi" onClick={onOpenQuestionList} />
           <UtilityIcon icon={<Info size={21} />} />
           <UtilityIcon icon={<Move size={20} />} />
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="mock-speaking-footer-nav" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <UtilityIcon icon={<LogOut size={21} />} />
           {canPrevious && (
             <button
