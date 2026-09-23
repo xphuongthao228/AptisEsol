@@ -292,10 +292,18 @@ function StudentLearningDashboard() {
   }
 
   async function installApp() {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const choice = await installPrompt.userChoice.catch(() => null);
-    if (!choice || choice.outcome !== 'dismissed') setInstallPrompt(null);
+    if (installPrompt) {
+      await installPrompt.prompt();
+      const choice = await installPrompt.userChoice.catch(() => null);
+      if (!choice || choice.outcome !== 'dismissed') setInstallPrompt(null);
+      return;
+    }
+
+    window.alert(
+      /iPad|iPhone|iPod/.test(navigator.userAgent)
+        ? 'Bấm nút Chia sẻ trên Safari, sau đó chọn “Thêm vào Màn hình chính”.'
+        : 'Mở menu trình duyệt rồi chọn “Thêm vào màn hình chính” hoặc “Cài đặt ứng dụng”.'
+    );
   }
 
   return (
@@ -320,6 +328,9 @@ function StudentLearningDashboard() {
             </p>
           </div>
           <div className="flex flex-wrap gap-2 lg:justify-end">
+            <button type="button" onClick={installApp} className="btn-secondary h-11 self-start px-5 sm:hidden">
+              <Download size={17} /> Cài đặt app
+            </button>
             {canInstallApp && (
               <button type="button" onClick={installApp} className="btn-secondary h-11 self-start px-5">
                 <Download size={17} /> Cài đặt app
