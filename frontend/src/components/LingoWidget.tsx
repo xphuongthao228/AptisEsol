@@ -2,9 +2,7 @@ import { FormEvent, ReactNode, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Bot, ExternalLink, MessageCircle, Send, Sparkles, UserRound, Users, X } from 'lucide-react';
 import { api, unwrap } from '../api/client';
-
-const facebookCommunityUrl = 'https://www.facebook.com/groups/1017783430680359';
-const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
+import { facebookCommunityUrl, zaloCommunityUrl, zaloCommunityUrl2 } from '../utils/community';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -91,6 +89,15 @@ export function LingoWidget() {
                   <MessageCircle size={17} />
                 </span>
                 Nhóm Zalo
+              </span>
+              <ExternalLink size={16} />
+            </a>
+            <a href={zaloCommunityUrl2} target="_blank" rel="noreferrer" className="flex min-h-12 items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 text-sm font-extrabold text-navy shadow-soft transition hover:-translate-y-0.5 hover:text-brand-700">
+              <span className="flex items-center gap-3">
+                <span className="grid h-9 w-9 place-items-center rounded-lg bg-[#0068ff] text-white">
+                  <MessageCircle size={17} />
+                </span>
+                Nhóm Zalo 2
               </span>
               <ExternalLink size={16} />
             </a>

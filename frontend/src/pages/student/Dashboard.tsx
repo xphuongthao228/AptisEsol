@@ -117,10 +117,8 @@ const whyChooseItems: Array<{ icon: LucideIcon; title: string; text: string }> =
   }
 ];
 
-import { communityInviteDismissedKey } from '../../utils/community';
+import { communityInviteDismissedKey, facebookCommunityUrl, zaloCommunityUrl, zaloCommunityUrl2 } from '../../utils/community';
 
-const facebookCommunityUrl = 'https://www.facebook.com/groups/1017783430680359';
-const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
 const zaloContactUrl = 'https://zalo.me/0867833227';
 const mediaBaseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8080';
 
@@ -1334,6 +1332,11 @@ function CommunityInviteModal({ onClose }: { onClose: () => void }) {
           <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" onClick={onClose} className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-[#d71920] px-5 text-base font-extrabold text-white shadow-[0_16px_36px_rgba(80,0,0,0.16)] transition hover:-translate-y-0.5 hover:bg-[#a50f15]">
             <MessageCircle size={21} fill="currentColor" strokeWidth={0} />
             Cộng đồng Zalo
+            <ArrowRight size={21} />
+          </a>
+          <a href={zaloCommunityUrl2} target="_blank" rel="noreferrer" onClick={onClose} className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-[#d71920] px-5 text-base font-extrabold text-white shadow-[0_16px_36px_rgba(80,0,0,0.16)] transition hover:-translate-y-0.5 hover:bg-[#a50f15]">
+            <MessageCircle size={21} fill="currentColor" strokeWidth={0} />
+            Cộng đồng Zalo 2
             <ArrowRight size={21} />
           </a>
           </div>

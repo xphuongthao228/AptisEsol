@@ -5,11 +5,9 @@ import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
 import type { LeaderboardRow, LeaderboardSettings } from '../../types';
+import { facebookCommunityUrl, zaloCommunityUrl, zaloCommunityUrl2 } from '../../utils/community';
 import { userHasRole } from '../../utils/roles';
 import { repairMojibake } from '../../utils/textRepair';
-
-const facebookCommunityUrl = 'https://www.facebook.com/groups/1017783430680359';
-const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
 
 export function Leaderboard() {
   const { data, loading, error } = useApi<LeaderboardRow[]>(() => unwrap(api.get('/submissions/leaderboard')), []);
@@ -147,6 +145,9 @@ export function Leaderboard() {
               </a>
               <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#0068ff] px-3 text-xs font-extrabold text-white hover:bg-[#0054cc]">
                 Zalo <ExternalLink size={14} />
+              </a>
+              <a href={zaloCommunityUrl2} target="_blank" rel="noreferrer" className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#0068ff] px-3 text-xs font-extrabold text-white hover:bg-[#0054cc]">
+                Zalo 2 <ExternalLink size={14} />
               </a>
             </div>
           </div>

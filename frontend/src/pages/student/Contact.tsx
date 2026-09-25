@@ -3,11 +3,11 @@ import toast from 'react-hot-toast';
 import { ArrowRight, Clock, ExternalLink, HelpCircle, Mail, MessageCircle, QrCode, Send, Users, UserRound } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
+import { facebookCommunityUrl, zaloCommunityUrl, zaloCommunityUrl2 } from '../../utils/community';
 
 const adminEmail = 'admin@aptis.com';
-const facebookGroupUrl = 'https://www.facebook.com/groups/1017783430680359';
-const zaloCommunityUrl = 'https://zalo.me/g/n1f3m9mamomr1vnhs6lw';
 const zaloQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(zaloCommunityUrl)}`;
+const zaloQrUrl2 = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=12&data=${encodeURIComponent(zaloCommunityUrl2)}`;
 
 const contactCards = [
   {
@@ -101,13 +101,17 @@ export function Contact() {
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            <a href={facebookGroupUrl} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#1877f2] px-4 text-sm font-extrabold text-white hover:bg-[#0f65d8]">
+            <a href={facebookCommunityUrl} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#1877f2] px-4 text-sm font-extrabold text-white hover:bg-[#0f65d8]">
               <ExternalLink size={18} />
               Group Facebook
             </a>
             <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0068ff] px-4 text-sm font-extrabold text-white hover:bg-[#0054cc]">
               <MessageCircle size={18} />
               Cộng đồng Zalo
+            </a>
+            <a href={zaloCommunityUrl2} target="_blank" rel="noreferrer" className="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-[#0068ff] px-4 text-sm font-extrabold text-white hover:bg-[#0054cc]">
+              <MessageCircle size={18} />
+              Cộng đồng Zalo 2
             </a>
           </div>
         </div>
@@ -120,6 +124,10 @@ export function Contact() {
           <img src={zaloQrUrl} alt="QR cộng đồng Zalo Tự ôn Aptis" className="mx-auto mt-4 w-full max-w-[220px] rounded-2xl border border-brand-100 bg-white p-2" />
           <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" className="mt-4 block break-all rounded-2xl bg-sky-50 px-3 py-2 text-sm font-bold text-brand-700">
             zalo.me/g/n1f3m9mamomr1vnhs6lw
+          </a>
+          <img src={zaloQrUrl2} alt="QR cộng đồng Zalo 2" className="mx-auto mt-4 w-full max-w-[220px] rounded-2xl border border-brand-100 bg-white p-2" />
+          <a href={zaloCommunityUrl2} target="_blank" rel="noreferrer" className="mt-4 block break-all rounded-2xl bg-sky-50 px-3 py-2 text-sm font-bold text-brand-700">
+            zalo.me/g/z3eairxiwgjxc9ciussz
           </a>
         </div>
       </section>
