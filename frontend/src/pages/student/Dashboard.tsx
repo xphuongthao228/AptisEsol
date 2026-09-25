@@ -307,7 +307,7 @@ function StudentLearningDashboard() {
   }
 
   return (
-    <div className="space-y-6 pb-10">
+    <div className="student-dashboard space-y-6 pb-10">
       <div className="overflow-hidden rounded-lg border border-brand-100 shadow-soft">
         <HeroSection showNotifications={false} />
       </div>

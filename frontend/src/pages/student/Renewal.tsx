@@ -228,7 +228,7 @@ export function Renewal() {
           ))}
         </div>
 
-        <div className="relative mt-3 rounded-2xl border border-amber-200 bg-[#fffaf4] p-2.5">
+        <div className="renewal-payment-summary relative mt-3 rounded-2xl border border-amber-200 bg-[#fffaf4] p-2.5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-red-600 shadow-soft">
