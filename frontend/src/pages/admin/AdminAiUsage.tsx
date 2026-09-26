@@ -10,7 +10,9 @@ const PAGE_SIZE_OPTIONS = [10, 20, 50, 0];
 const usageLabels: Record<AiScoringUsageType, string> = {
   WRITING: 'Writing',
   SPEAKING: 'Speaking luyện riêng',
-  SPEAKING_FULL_TEST: 'Speaking Full Test'
+  SPEAKING_FULL_TEST: 'Speaking Full Test',
+  SPEAKING_PART4_SAMPLE: 'Speaking Part 4 Sample',
+  LINGO_CHAT: 'Lingo Chat'
 };
 
 export function AdminAiUsage() {
@@ -93,6 +95,8 @@ export function AdminAiUsage() {
             <option value="WRITING">Writing</option>
             <option value="SPEAKING">Speaking luyện riêng</option>
             <option value="SPEAKING_FULL_TEST">Speaking Full Test</option>
+            <option value="SPEAKING_PART4_SAMPLE">Speaking Part 4 Sample</option>
+            <option value="LINGO_CHAT">Lingo Chat</option>
           </select>
           <input className="input" type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} aria-label="Từ ngày" />
           <input className="input" type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} aria-label="Đến ngày" />

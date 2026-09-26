@@ -33,6 +33,11 @@ public class SpeakingController {
             @RequestParam String question,
             @RequestPart("audio") MultipartFile audio) {
         usageService.consume(principal.getName(), AiScoringUsageType.SPEAKING);
-        return ApiResponse.ok(service.submit(principal.getName(), studentId, testId, part, question, audio));
+        try {
+            return ApiResponse.ok(service.submit(principal.getName(), studentId, testId, part, question, audio));
+        } catch (RuntimeException ex) {
+            usageService.refund(principal.getName(), AiScoringUsageType.SPEAKING);
+            throw ex;
+        }
     }
 }

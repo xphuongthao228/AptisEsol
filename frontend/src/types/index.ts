@@ -3,7 +3,7 @@ export type SkillType = 'LISTENING' | 'SPEAKING' | 'READING' | 'WRITING' | 'GRAM
 export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TEXT' | 'AUDIO' | 'SPEAKING';
 export type TestMode = 'PRACTICE' | 'EXAM';
 export type LessonResourceType = 'TIP' | 'VIDEO' | 'DOCUMENT';
-export type AiScoringUsageType = 'WRITING' | 'SPEAKING' | 'SPEAKING_FULL_TEST';
+export type AiScoringUsageType = 'WRITING' | 'SPEAKING' | 'SPEAKING_FULL_TEST' | 'SPEAKING_PART4_SAMPLE' | 'LINGO_CHAT';
 
 export interface ApiResponse<T> {
   success: boolean;

@@ -11,7 +11,6 @@ const premiumFeatures = [
   'Học cùng giáo viên',
   'Cập nhật đề thường xuyên',
   'Chấm theo AI',
-  'AI không giới hạn',
   'Chấm Writing theo AI',
   'Luyện tập theo part đầy đủ',
   'Bộ mẫu tài liệu video',

@@ -16,7 +16,6 @@ const AdminPredictions = lazy(() => import('../pages/admin/AdminPredictions').th
 const AdminRevenue = lazy(() => import('../pages/admin/AdminRevenue').then((module) => ({ default: module.AdminRevenue })));
 const AdminUsers = lazy(() => import('../pages/admin/AdminUsers').then((module) => ({ default: module.AdminUsers })));
 const Dashboard = lazy(() => import('../pages/student/Dashboard').then((module) => ({ default: module.Dashboard })));
-const CombineSpeaking = lazy(() => import('../pages/student/CombineSpeaking').then((module) => ({ default: module.CombineSpeaking })));
 const Contact = lazy(() => import('../pages/student/Contact').then((module) => ({ default: module.Contact })));
 const Donate = lazy(() => import('../pages/student/Donate').then((module) => ({ default: module.Donate })));
 const ExamHistory = lazy(() => import('../pages/student/ExamHistory').then((module) => ({ default: module.ExamHistory })));
@@ -51,7 +50,7 @@ export const router = createBrowserRouter([
     { path: 'lessons/:skillType/:tipSlug', element: <Lessons /> },
     { path: 'tests', element: <Navigate to="/app/tests/parts" replace /> },
     { path: 'mock-tests', element: <MockTests /> },
-    { path: 'combine-speaking', element: <SubscriptionGate requirePro><CombineSpeaking /></SubscriptionGate> },
+    { path: 'combine-speaking', element: <Navigate to="/app/mock-tests" replace /> },
     { path: 'history', element: <ProtectedRoute role="STUDENT" />, children: [
       { index: true, element: <ExamHistory /> }
     ] },

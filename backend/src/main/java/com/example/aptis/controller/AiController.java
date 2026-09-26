@@ -31,21 +31,23 @@ public class AiController {
     @PostMapping("/writing/score")
     @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
     public ApiResponse<AiDtos.WritingScoreResponse> scoreWriting(Principal principal, @Valid @RequestBody AiDtos.WritingScoreRequest request) {
-        usageService.consume(principal.getName(), AiScoringUsageType.WRITING);
-        return ApiResponse.ok(scoringService.scoreWriting(request));
+        return ApiResponse.ok(withUsage(principal.getName(), AiScoringUsageType.WRITING,
+                () -> scoringService.scoreWriting(request)));
     }
 
     @PostMapping("/speaking/score")
     @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
     public ApiResponse<AiDtos.SpeakingScoreResponse> scoreSpeaking(Principal principal, @Valid @RequestBody AiDtos.SpeakingScoreRequest request) {
-        usageService.consume(principal.getName(), AiScoringUsageType.SPEAKING_FULL_TEST);
-        return ApiResponse.ok(scoringService.scoreSpeaking(request));
+        return ApiResponse.ok(withUsage(principal.getName(), AiScoringUsageType.SPEAKING_FULL_TEST,
+                () -> scoringService.scoreSpeaking(request)));
     }
 
     @PostMapping("/speaking/part4-sample")
     @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
-    public ApiResponse<AiDtos.SpeakingPart4SampleResponse> generateSpeakingPart4Sample(@Valid @RequestBody AiDtos.SpeakingPart4SampleRequest request) {
-        return ApiResponse.ok(scoringService.generateSpeakingPart4Sample(request));
+    public ApiResponse<AiDtos.SpeakingPart4SampleResponse> generateSpeakingPart4Sample(
+            Principal principal,
+            @Valid @RequestBody AiDtos.SpeakingPart4SampleRequest request) {
+        throw new IllegalStateException("Tính năng gộp đề Speaking đang tạm tắt.");
     }
 
     @PostMapping(value = "/speaking/score-audio", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -55,14 +57,28 @@ public class AiController {
             @RequestPart("payload") String payload,
             @RequestPart(value = "files", required = false) List<MultipartFile> files) throws Exception {
         AiDtos.SpeakingScoreRequest request = objectMapper.readValue(payload, AiDtos.SpeakingScoreRequest.class);
-        usageService.consume(principal.getName(), AiScoringUsageType.SPEAKING_FULL_TEST);
-        return ApiResponse.ok(scoringService.scoreSpeaking(request, files == null ? List.of() : files));
+        return ApiResponse.ok(withUsage(principal.getName(), AiScoringUsageType.SPEAKING_FULL_TEST,
+                () -> scoringService.scoreSpeaking(request, files == null ? List.of() : files)));
     }
 
     @PostMapping("/lingo/chat")
     @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
-    public ApiResponse<AiDtos.LingoChatResponse> chatWithLingo(@Valid @RequestBody AiDtos.LingoChatRequest request) {
-        return ApiResponse.ok(scoringService.chatWithLingo(request));
+    public ApiResponse<AiDtos.LingoChatResponse> chatWithLingo(Principal principal, @Valid @RequestBody AiDtos.LingoChatRequest request) {
+        throw new IllegalStateException("Lingo Chat đang tạm tắt.");
     }
 
+    private <T> T withUsage(String email, AiScoringUsageType usageType, AiCall<T> call) {
+        usageService.consume(email, usageType);
+        try {
+            return call.execute();
+        } catch (RuntimeException ex) {
+            usageService.refund(email, usageType);
+            throw ex;
+        }
+    }
+
+    @FunctionalInterface
+    private interface AiCall<T> {
+        T execute();
+    }
 }

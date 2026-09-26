@@ -52,6 +52,17 @@ public class AiScoringUsageService {
         usageRepository.save(usage);
     }
 
+    @Transactional
+    public synchronized void refund(String email, AiScoringUsageType usageType) {
+        User user = userRepository.findByEmailAndDeletedAtIsNull(email)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        LocalDate today = LocalDate.now(VIETNAM_ZONE);
+        usageRepository.findForUpdate(user.getId(), today, usageType).ifPresent(usage -> {
+            usage.setUsageCount(Math.max(0, usage.getUsageCount() - 1));
+            usageRepository.save(usage);
+        });
+    }
+
     @Transactional(readOnly = true)
     public List<CoreDtos.AiScoringUsageResponse> adminUsage(String keyword, AiScoringUsageType usageType,
             LocalDate fromDate, LocalDate toDate) {
@@ -80,6 +91,8 @@ public class AiScoringUsageService {
             case WRITING -> "Writing";
             case SPEAKING -> "Speaking";
             case SPEAKING_FULL_TEST -> "Speaking Full Test";
+            case SPEAKING_PART4_SAMPLE -> "Speaking Part 4 Sample";
+            case LINGO_CHAT -> "Lingo Chat";
         };
     }
 }

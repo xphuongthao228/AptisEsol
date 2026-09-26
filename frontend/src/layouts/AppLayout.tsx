@@ -18,7 +18,6 @@
   Menu,
   Monitor,
   Moon,
-  Shuffle,
   Settings,
   Shield,
   Sun,
@@ -33,7 +32,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api, unwrap } from '../api/client';
-import { LingoWidget } from '../components/LingoWidget';
 import { NotificationDialog } from '../components/NotificationDialog';
 import { SEO, getSeoByPath } from '../components/SEO';
 import { communityInviteDismissedKey } from '../utils/community';
@@ -183,7 +181,6 @@ export function AppLayout() {
       <>
         <SEO {...seo} />
         <Outlet />
-        {!isMockTestMode && <LingoWidget />}
       </>
     );
   }
@@ -209,18 +206,6 @@ export function AppLayout() {
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
             {!isAuthenticated && <Link to="/login" className="mobile-sign-in rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white sm:hidden">Đăng nhập</Link>}
-            {!isAdmin && (
-              <div className="hidden items-center xl:flex">
-                <Link
-                  to="/app/combine-speaking"
-                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-brand-100 bg-brand-50 px-3 text-sm font-extrabold text-brand-700 transition hover:border-brand-200 hover:bg-brand-100"
-                  title="Gộp và tạo đề luyện tập"
-                >
-                  <Shuffle size={17} />
-                  Gộp đề
-                </Link>
-              </div>
-            )}
             <div className="relative hidden md:block">
               <button
                 type="button"
@@ -408,7 +393,6 @@ export function AppLayout() {
           { to: isAuthenticated ? '/app/settings' : '/login', label: 'Tài khoản', icon: UserRound, active: location.pathname === '/app/settings' }
         ].map(({ to, label, icon: Icon, active }) => <Link key={label} to={to} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)}><span><Icon size={21} /></span><span>{label}</span></Link>)}
       </nav>}
-      {!isAdmin && <LingoWidget />}
     </div>
   );
 }
