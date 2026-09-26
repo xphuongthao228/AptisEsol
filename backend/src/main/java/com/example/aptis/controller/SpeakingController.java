@@ -2,6 +2,8 @@ package com.example.aptis.controller;
 
 import com.example.aptis.dto.ApiResponse;
 import com.example.aptis.dto.SpeakingDtos;
+import com.example.aptis.enums.AiScoringUsageType;
+import com.example.aptis.service.AiScoringUsageService;
 import com.example.aptis.service.SpeakingAssessmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -19,6 +21,7 @@ import java.security.Principal;
 @RequiredArgsConstructor
 public class SpeakingController {
     private final SpeakingAssessmentService service;
+    private final AiScoringUsageService usageService;
 
     @PostMapping("/submit")
     @PreAuthorize("@paymentService.hasActiveAccess(authentication.name)")
@@ -29,6 +32,7 @@ public class SpeakingController {
             @RequestParam String part,
             @RequestParam String question,
             @RequestPart("audio") MultipartFile audio) {
+        usageService.consume(principal.getName(), AiScoringUsageType.SPEAKING);
         return ApiResponse.ok(service.submit(principal.getName(), studentId, testId, part, question, audio));
     }
 }

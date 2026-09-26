@@ -17,6 +17,11 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler(AiDailyLimitExceededException.class)
+    ResponseEntity<ApiResponse<Void>> aiDailyLimit(AiDailyLimitExceededException ex) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(ApiResponse.error(clean(ex.getMessage()), null));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     ResponseEntity<ApiResponse<Void>> notFound(ResourceNotFoundException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.error(clean(ex.getMessage()), null));
