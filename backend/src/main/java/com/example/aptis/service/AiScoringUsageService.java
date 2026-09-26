@@ -1,5 +1,6 @@
 package com.example.aptis.service;
 
+import com.example.aptis.dto.CoreDtos;
 import com.example.aptis.entity.AiScoringDailyUsage;
 import com.example.aptis.entity.User;
 import com.example.aptis.enums.AiScoringUsageType;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -48,6 +50,29 @@ public class AiScoringUsageService {
         }
         usage.setUsageCount(usage.getUsageCount() + 1);
         usageRepository.save(usage);
+    }
+
+    @Transactional(readOnly = true)
+    public List<CoreDtos.AiScoringUsageResponse> adminUsage(String keyword, AiScoringUsageType usageType,
+            LocalDate fromDate, LocalDate toDate) {
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        return usageRepository.searchForAdmin(normalizedKeyword, usageType, fromDate, toDate)
+                .stream()
+                .map(this::response)
+                .toList();
+    }
+
+    private CoreDtos.AiScoringUsageResponse response(AiScoringDailyUsage usage) {
+        User user = usage.getUser();
+        return new CoreDtos.AiScoringUsageResponse(
+                usage.getId(),
+                user.getId(),
+                user.getFullName(),
+                user.getEmail(),
+                usage.getUsageType(),
+                usage.getUsageDate(),
+                usage.getUsageCount(),
+                usage.getUpdatedAt());
     }
 
     private String displayName(AiScoringUsageType usageType) {

@@ -1,5 +1,6 @@
 package com.example.aptis.dto;
 
+import com.example.aptis.enums.AiScoringUsageType;
 import com.example.aptis.enums.MediaType;
 import com.example.aptis.enums.LessonResourceType;
 import com.example.aptis.enums.NotificationAudience;
@@ -22,6 +23,10 @@ public class CoreDtos {
     }
 
     public record ExtendUserAccessRequest(@NotNull @Positive Integer days) {
+    }
+
+    public record AiScoringUsageResponse(Long id, Long userId, String fullName, String email,
+            AiScoringUsageType usageType, LocalDate usageDate, Integer usageCount, LocalDateTime updatedAt) {
     }
 
     public record SkillRequest(@NotNull SkillType type, @NotBlank String name, String description) {

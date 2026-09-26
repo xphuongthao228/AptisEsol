@@ -1,6 +1,7 @@
 ﻿import {
   Bell,
   BookOpen,
+  Bot,
   CalendarPlus,
   Clock3,
   Crown,
@@ -75,6 +76,7 @@ const adminLinks: LayoutLink[] = [
   { to: '/admin/leaderboard', label: 'Bảng xếp hạng', icon: Trophy },
   { to: '/admin/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
+  { to: '/admin/ai-usage', label: 'Chấm AI', icon: Bot },
   { to: '/admin/notifications', label: 'Thông báo', icon: Bell },
   { to: '/admin/media', label: 'Media', icon: Upload }
 ];

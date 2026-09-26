@@ -1815,16 +1815,18 @@ public class CoreService {
         submissionRows.forEach(row -> {
             LeaderboardAccumulator item = scores.computeIfAbsent(row.getUserId(), id ->
                     new LeaderboardAccumulator(row.getUserId(), row.getFullName(), row.getEmail()));
+            item.applyProExpiration(row.getProExpiresAt(), startAt, endAt);
             item.add(row.getScore(), row.getSubmissions(), row.getLatestSubmissionAt());
         });
         practiceRows.forEach(row -> {
             LeaderboardAccumulator item = scores.computeIfAbsent(row.getUserId(), id ->
                     new LeaderboardAccumulator(row.getUserId(), row.getFullName(), row.getEmail()));
+            item.applyProExpiration(row.getProExpiresAt(), startAt, endAt);
             item.add(row.getScore(), row.getSubmissions(), row.getLatestSubmissionAt());
         });
 
         List<LeaderboardAccumulator> rows = scores.values().stream()
-                .filter(row -> row.score > 0)
+                .filter(row -> row.score() > 0)
                 .sorted(Comparator
                         .comparingLong(LeaderboardAccumulator::score).reversed()
                         .thenComparingLong(LeaderboardAccumulator::submissions)
@@ -1900,6 +1902,7 @@ public class CoreService {
         private long score;
         private long submissions;
         private LocalDateTime latestSubmissionAt;
+        private boolean expiredDuringCurrentPeriod;
 
         private LeaderboardAccumulator(Long userId, String fullName, String email) {
             this.userId = userId;
@@ -1912,6 +1915,15 @@ public class CoreService {
             this.submissions += submissions == null ? 0 : submissions;
             if (latestSubmissionAt != null && (this.latestSubmissionAt == null || latestSubmissionAt.isAfter(this.latestSubmissionAt))) {
                 this.latestSubmissionAt = latestSubmissionAt;
+            }
+        }
+
+        private void applyProExpiration(LocalDateTime proExpiresAt, LocalDateTime startAt, LocalDateTime endAt) {
+            if (proExpiresAt == null || proExpiresAt.isAfter(LocalDateTime.now())) {
+                return;
+            }
+            if (startAt == null || (!proExpiresAt.isBefore(startAt) && proExpiresAt.isBefore(endAt))) {
+                this.expiredDuringCurrentPeriod = true;
             }
         }
 
@@ -1928,7 +1940,7 @@ public class CoreService {
         }
 
         private long score() {
-            return score;
+            return expiredDuringCurrentPeriod ? 0 : score;
         }
 
         private long submissions() {

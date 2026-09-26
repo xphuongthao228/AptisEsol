@@ -3,6 +3,7 @@ export type SkillType = 'LISTENING' | 'SPEAKING' | 'READING' | 'WRITING' | 'GRAM
 export type QuestionType = 'SINGLE_CHOICE' | 'MULTIPLE_CHOICE' | 'TEXT' | 'AUDIO' | 'SPEAKING';
 export type TestMode = 'PRACTICE' | 'EXAM';
 export type LessonResourceType = 'TIP' | 'VIDEO' | 'DOCUMENT';
+export type AiScoringUsageType = 'WRITING' | 'SPEAKING' | 'SPEAKING_FULL_TEST';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -22,6 +23,17 @@ export interface User {
   accessExpiresAt: string | null;
   lastSeenAt: string | null;
   createdAt: string;
+}
+
+export interface AiScoringUsage {
+  id: number;
+  userId: number;
+  fullName: string;
+  email: string;
+  usageType: AiScoringUsageType;
+  usageDate: string;
+  usageCount: number;
+  updatedAt: string;
 }
 
 export interface AuthResponse {

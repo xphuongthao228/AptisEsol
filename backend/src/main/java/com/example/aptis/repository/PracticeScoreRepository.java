@@ -19,13 +19,14 @@ public interface PracticeScoreRepository extends JpaRepository<PracticeScore, Lo
             select ps.user.id as userId,
                    ps.user.fullName as fullName,
                    ps.user.email as email,
+                   ps.user.proExpiresAt as proExpiresAt,
                    coalesce(sum(ps.score), 0) as score,
                    count(ps.id) as submissions,
                    max(ps.updatedAt) as latestSubmissionAt
             from PracticeScore ps
             join ps.user.roles r
             where ps.user.deletedAt is null and r.name = :role
-            group by ps.user.id
+            group by ps.user.id, ps.user.fullName, ps.user.email, ps.user.proExpiresAt
             """)
     List<PracticeScoreProjection> leaderboard(@Param("role") RoleName role);
 
@@ -33,6 +34,7 @@ public interface PracticeScoreRepository extends JpaRepository<PracticeScore, Lo
             select ps.user.id as userId,
                    ps.user.fullName as fullName,
                    ps.user.email as email,
+                   ps.user.proExpiresAt as proExpiresAt,
                    coalesce(sum(ps.score), 0) as score,
                    count(ps.id) as submissions,
                    max(ps.updatedAt) as latestSubmissionAt
@@ -42,7 +44,7 @@ public interface PracticeScoreRepository extends JpaRepository<PracticeScore, Lo
               and r.name = :role
               and ps.updatedAt >= :startAt
               and ps.updatedAt < :endAt
-            group by ps.user.id, ps.user.fullName, ps.user.email
+            group by ps.user.id, ps.user.fullName, ps.user.email, ps.user.proExpiresAt
             """)
     List<PracticeScoreProjection> leaderboardBetween(
             @Param("role") RoleName role,
@@ -53,6 +55,7 @@ public interface PracticeScoreRepository extends JpaRepository<PracticeScore, Lo
         Long getUserId();
         String getFullName();
         String getEmail();
+        LocalDateTime getProExpiresAt();
         Long getScore();
         Long getSubmissions();
         LocalDateTime getLatestSubmissionAt();

@@ -16,6 +16,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             select u.id as userId,
                    u.fullName as fullName,
                    u.email as email,
+                   u.proExpiresAt as proExpiresAt,
                    coalesce(sum(s.totalScore), 0) as score,
                    count(distinct s.id) as submissions,
                    max(s.createdAt) as latestSubmissionAt
@@ -23,7 +24,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             join u.roles r
             left join Submission s on s.user = u
             where u.deletedAt is null and r.name = :role
-            group by u.id, u.fullName, u.email
+            group by u.id, u.fullName, u.email, u.proExpiresAt
             having coalesce(sum(s.totalScore), 0) > 0
             order by coalesce(sum(s.totalScore), 0) desc, count(distinct s.id) asc, max(s.createdAt) asc, u.fullName asc
             """)
@@ -33,6 +34,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             select u.id as userId,
                    u.fullName as fullName,
                    u.email as email,
+                   u.proExpiresAt as proExpiresAt,
                    coalesce(sum(s.totalScore), 0) as score,
                    count(distinct s.id) as submissions,
                    max(s.createdAt) as latestSubmissionAt
@@ -40,7 +42,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
             join u.roles r
             left join Submission s on s.user = u and s.createdAt >= :startAt and s.createdAt < :endAt
             where u.deletedAt is null and r.name = :role
-            group by u.id, u.fullName, u.email
+            group by u.id, u.fullName, u.email, u.proExpiresAt
             having coalesce(sum(s.totalScore), 0) > 0
             order by coalesce(sum(s.totalScore), 0) desc, count(distinct s.id) asc, max(s.createdAt) asc, u.fullName asc
             """)
@@ -53,6 +55,7 @@ public interface SubmissionRepository extends JpaRepository<Submission, Long> {
         Long getUserId();
         String getFullName();
         String getEmail();
+        LocalDateTime getProExpiresAt();
         Long getScore();
         Long getSubmissions();
         LocalDateTime getLatestSubmissionAt();

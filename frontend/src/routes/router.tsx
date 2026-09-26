@@ -5,6 +5,7 @@ const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword').then((m
 const Login = lazy(() => import('../pages/auth/Login').then((module) => ({ default: module.Login })));
 const Register = lazy(() => import('../pages/auth/Register').then((module) => ({ default: module.Register })));
 const VerifyEmail = lazy(() => import('../pages/auth/VerifyEmail').then((module) => ({ default: module.VerifyEmail })));
+const AdminAiUsage = lazy(() => import('../pages/admin/AdminAiUsage').then((module) => ({ default: module.AdminAiUsage })));
 const AdminContent = lazy(() => import('../pages/admin/AdminContent').then((module) => ({ default: module.AdminContent })));
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 const AdminLessons = lazy(() => import('../pages/admin/AdminLessons').then((module) => ({ default: module.AdminLessons })));
@@ -128,6 +129,7 @@ export const router = createBrowserRouter([
       { path: 'leaderboard', element: <Leaderboard /> },
       { path: 'predictions', element: <AdminPredictions /> },
       { path: 'revenue', element: <AdminRevenue /> },
+      { path: 'ai-usage', element: <AdminAiUsage /> },
       { path: 'notifications', element: <AdminNotifications /> },
       { path: 'media', element: <AdminMedia /> }
     ] }]
