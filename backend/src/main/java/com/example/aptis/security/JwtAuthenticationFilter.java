@@ -55,6 +55,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
+        if (header == null || !header.startsWith("Bearer ")) {
+            String cookieToken = request.getCookies() == null ? null
+                    : java.util.Arrays.stream(request.getCookies())
+                    .filter(cookie -> "aptis_access_token".equals(cookie.getName()))
+                    .map(jakarta.servlet.http.Cookie::getValue)
+                    .findFirst().orElse(null);
+            if (cookieToken != null) {
+                header = "Bearer " + cookieToken;
+            }
+        }
         if (header != null && header.startsWith("Bearer ")
                 && SecurityContextHolder.getContext().getAuthentication() == null) {
             String token = header.substring(7);

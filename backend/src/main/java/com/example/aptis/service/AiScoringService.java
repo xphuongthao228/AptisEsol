@@ -100,6 +100,204 @@ public class AiScoringService {
         }
     }
 
+    public String generatePracticeQuestions(String skill, int part, String level, String sourceTitle, String sourceContent) {
+        return generatePracticeQuestions(skill, part, level, sourceTitle, sourceContent, List.of());
+    }
+
+    public String generatePracticeQuestions(String skill, int part, String level, String sourceTitle,
+                                            String sourceContent, List<String> imageUrls) {
+        List<String> usableImages = imageUrls == null ? List.of() : imageUrls.stream()
+                .filter(url -> url != null && !url.isBlank())
+                .limit(2)
+                .toList();
+        if ("WRITING".equalsIgnoreCase(skill)) {
+            String partRules = writingPartRules(part);
+            String writingPrompt = """
+                    The text inside IMPORTED QUESTION is the exact Aptis question selected by the learner.
+                    Use that question as the only task to answer. Do not replace it, summarize it, or invent a different topic.
+                    Write a high-quality Aptis ESOL Writing model answer based directly on that exact question.
+                    Target CEFR level: %s. Follow Aptis conventions, answer every requirement, use natural English,
+                    appropriate vocabulary and grammar for the level, and stay within a realistic Aptis word count.
+                    Aptis Writing Part %d rules:
+                    %s
+                    For Part 4, the imported question contains TWO email tasks. You MUST answer both tasks:
+                    first the informal email to the friend, then the formal email to the club president.
+                    Do not stop after the first email. Clearly label them "Email 1 - Informal" and
+                    "Email 2 - Formal", and include a greeting, complete message, and closing for each one.
+                    %s
+                    For Part 4, use the following level-specific email form as the structure.
+                    Replace every placeholder in square brackets with specific information from the imported question.
+                    Never output square-bracket placeholders. Keep the meaning natural and answer the exact task.
+                    %s
+                    Return ONLY valid JSON in exactly this shape: {"paragraph":"your answer to the imported question"}.
+                    The paragraph must be the answer, not a new question and not an explanation.
+                    IMPORTED QUESTION TITLE: %s
+                    IMPORTED QUESTION:
+                    %s
+                    """.formatted(level, part, partRules, part == 4 ? writingPart4LengthRules() : "",
+                            part == 4 ? writingPart4Form(level) : "", sourceTitle, sourceContent);
+            return chatWithOptionalImages("You are DeepSeek Chat acting as an Aptis ESOL Writing tutor. Answer the learner's exact imported question.", writingPrompt, usableImages);
+        }
+        String prompt = """
+                Answer the exact Aptis %s Part %d question selected by the learner.
+                Do not create a new question, a practice set, or JSON array.
+                Target CEFR level: %s.
+                Give a clear, natural, high-quality model answer that directly addresses every requirement
+                in the imported question. If the imported question contains multiple numbered questions,
+                answer ALL of them in order and label the answers clearly as 1, 2, 3.
+                Use the correct format and length for this Aptis task.
+                Return ONLY valid JSON in exactly this shape:
+                {"paragraph":"your model answer"}
+                The paragraph must contain the answer for the learner to read, not an explanation of your process.
+                Source title: %s
+                Imported question:
+                %s
+                """.formatted(skill, part, level, sourceTitle, sourceContent);
+        String imageInstruction = usableImages.isEmpty() ? "" : """
+                Images attached to this Speaking task are authoritative. Analyze them before answering.
+                For Part 2, describe the visible picture accurately. For Part 3, compare both pictures,
+                identify similarities and differences, then answer the related questions. Do not invent
+                visual details that are not present.
+                """;
+        prompt = prompt + imageInstruction;
+        return chatWithOptionalImages("You are an Aptis ESOL tutor. Answer the learner's exact imported question.", prompt, usableImages);
+    }
+
+    private String chatWithOptionalImages(String systemPrompt, String userPrompt, List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) return chatJson(systemPrompt, userPrompt);
+        List<Map<String, Object>> content = new ArrayList<>();
+        content.add(Map.of("type", "text", "text", userPrompt));
+        imageUrls.forEach(url -> content.add(Map.of("type", "image_url", "image_url", Map.of("url", url))));
+        List<Map<String, Object>> messages = List.of(
+                Map.of("role", "system", "content", systemPrompt),
+                Map.of("role", "user", "content", content));
+        return chatVision(messages);
+    }
+
+    private String chatVision(List<Map<String, Object>> messages) {
+        if (apiKey == null || apiKey.isBlank()) {
+            throw new IllegalStateException("Chưa cấu hình DEEPSEEK_API_KEY cho backend.");
+        }
+        boolean acquired = false;
+        try {
+            acquired = aiRequestSemaphore.tryAcquire(30, TimeUnit.SECONDS);
+            if (!acquired) throw new IllegalStateException("AI is busy. Please try again later.");
+            return callDeepSeek(messages, true, model, null);
+        } catch (RestClientResponseException ex) {
+            throw new IllegalStateException(friendlyAiUnavailableMessage(ex.getStatusCode().value()));
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("AI request was interrupted.");
+        } finally {
+            if (acquired) aiRequestSemaphore.release();
+        }
+    }
+
+    private String writingPartRules(int part) {
+        return switch (part) {
+            case 1 -> "Form filling / short personal answers. Produce short, direct answers, usually words or brief sentences, simple and accurate.";
+            case 2 -> "Responding to short messages. Produce friendly, relevant replies with clear answers to every prompt, about 20-40 words where suitable.";
+            case 3 -> "Social network / forum-style responses. Produce connected comments for multiple prompts, clear opinion, reason and personal detail, about 30-40 words per response where suitable.";
+            case 4 -> "Email writing. Produce a complete email or message with greeting, clear purpose, developed details, appropriate tone, and closing. Match informal or formal style from the task.";
+            default -> "Match the imported Aptis Writing task format exactly and answer all requirements.";
+        };
+    }
+
+    private String writingPart4Form(String level) {
+        return switch (blankToEmpty(level).trim().toUpperCase()) {
+            case "B2" -> """
+                    B2 informal email:
+                    Hi [Name],
+                    Guess what? I've just found out that [news/situation], and I'm really [feeling] about it!
+                    Personally, I think [opinion], mainly because [reason]. To be honest, I didn't expect this,
+                    but it could actually [effect/result]. I'm thinking of [plan], which might be a great way to
+                    [benefit]. Maybe we could also [suggestion] together. Anyway, what do you reckon? I'd love
+                    to hear your ideas!
+                    Speak soon,
+                    [Your name]
+
+                    B2 formal email:
+                    Dear Sir or Madam,
+                    I am writing regarding [topic/news]. Having recently learned that [situation/change],
+                    I would like to express my views on this matter and suggest a few possible solutions.
+                    Firstly, I believe that [opinion 1], mainly because [reason]. This could have a significant
+                    impact on [people/group], particularly [example]. Therefore, I would suggest [suggestion 1],
+                    as this would [benefit/result].
+                    Another possible solution would be [suggestion 2]. Not only would this [benefit 1], but it
+                    could also [benefit 2]. I believe this would make the situation considerably better for
+                    everyone involved.
+                    I understand that [acknowledgement]. Nevertheless, I hope you will take these suggestions
+                    into consideration.
+                    Thank you for your time and attention. I look forward to hearing from you.
+                    Yours faithfully,
+                    [Your name]
+                    """;
+            case "C1" -> """
+                    C1 informal email:
+                    Hi [Name],
+                    Great to hear from you! I've just found out about [topic/news], and I must admit I'm rather
+                    [feeling] about the whole thing. While I can understand why [acknowledgement], I still feel
+                    that [opinion], particularly since [reason]. Perhaps the best way forward would be to
+                    [suggestion 1], which could [benefit]. Alternatively, we could [suggestion 2] and see
+                    whether that improves the situation. Hopefully, they'll take our concerns on board.
+                    Anyway, let me know what you reckon!
+                    Take care,
+                    [Your name]
+
+                    C1 formal email:
+                    Dear Sir or Madam,
+                    I am writing in response to the recent announcement regarding [topic]. While I fully
+                    appreciate that [acknowledgement], I would like to raise a few concerns and put forward
+                    some suggestions that may help address the situation.
+                    My main concern is that [problem/opinion], particularly given that [reason/context].
+                    This could potentially [negative consequence], especially for [affected group]. One
+                    practical way of addressing this issue would be to [suggestion 1], thereby [benefit/result].
+                    Alternatively, you may wish to consider [suggestion 2]. This would not only [benefit 1]
+                    but would also [benefit 2], making it a more practical solution for everyone concerned.
+                    I appreciate that implementing such changes may not be straightforward. Nevertheless, I
+                    believe these measures would go a long way towards improving the situation.
+                    Thank you for considering my suggestions. I look forward to your response.
+                    Yours faithfully,
+                    [Your name]
+                    """;
+            default -> """
+                    B1 informal email:
+                    Hi [Name],
+                    Guess what? I've just heard that [news/situation], and I'm really [feeling] about it!
+                    I think [opinion] because [reason]. It sounds like a [good/bad] idea to me. I'm thinking of
+                    [plan/action], and maybe we could [suggestion] together. I think it would be [positive result].
+                    Anyway, what do you think about it? Have you got any other ideas?
+                    Let me know!
+                    Take care,
+                    [Your name]
+
+                    B1 formal email:
+                    Dear Sir or Madam,
+                    I am writing about [topic/news]. I have recently heard that [situation], and I would like
+                    to share my opinion about it.
+                    Firstly, I think [opinion 1] because [reason]. This may cause some problems for [people/group].
+                    Therefore, I suggest [suggestion 1]. I think this would help [benefit].
+                    Secondly, I think [opinion 2]. It would be a good idea to [suggestion 2] because [reason].
+                    This could make the situation better for everyone.
+                    I hope you will consider my suggestions and find a good solution to this problem.
+                    Thank you for your time. I look forward to hearing from you.
+                    Yours faithfully,
+                    [Your name]
+                    """;
+        };
+    }
+
+    private String writingPart4LengthRules() {
+        return """
+                Part 4 length requirements are mandatory:
+                - Email 1 - Informal (to a friend): write approximately 65 words for the email body.
+                - Email 2 - Formal (to the club president): write between 120 and 150 words for the email body.
+                Do not count the greeting, sign-off, name, labels, or separator when counting words.
+                Develop the ideas with specific details from the imported question; do not produce short summaries.
+                Before returning the answer, check both word counts and expand or shorten the emails as needed.
+                """;
+    }
+
     public AiDtos.SpeakingScoreResponse scoreSpeaking(AiDtos.SpeakingScoreRequest request) {
         return scoreSpeaking(request, List.of());
     }
@@ -255,7 +453,17 @@ public class AiScoringService {
 
     public AiDtos.LingoChatResponse chatWithLingo(AiDtos.LingoChatRequest request) {
         List<Map<String, String>> messages = new ArrayList<>();
-        messages.add(Map.of("role", "system", "content", loadPrompt("lingo-system.md")));
+        String level = normalizeLingoLevel(request.level());
+        String levelInstruction = """
+
+                Learner target level: %s.
+                Adapt every answer to this Aptis target level:
+                - B1: simple common vocabulary, clear short-to-medium sentences, practical explanation and examples.
+                - B2: more varied vocabulary, connected reasoning, natural detail and moderate challenge.
+                - C1: precise and flexible vocabulary, complex but natural grammar, nuanced explanation and advanced examples.
+                When correcting English, show a version appropriate for the selected level and explain briefly in Vietnamese.
+                """.formatted(level);
+        messages.add(Map.of("role", "system", "content", loadPrompt("lingo-system.md") + levelInstruction));
         if (request.history() != null) {
             request.history().stream()
                     .filter(message -> "user".equals(message.role()) || "assistant".equals(message.role()))
@@ -267,6 +475,13 @@ public class AiScoringService {
 
         String reply = chatText(messages);
         return new AiDtos.LingoChatResponse(reply);
+    }
+
+    private String normalizeLingoLevel(String level) {
+        return switch (blankToEmpty(level).trim().toUpperCase()) {
+            case "B1", "B2", "C1" -> level.trim().toUpperCase();
+            default -> "B1";
+        };
     }
 
     public AiDtos.SpeakingPart4SampleResponse generateSpeakingPart4Sample(AiDtos.SpeakingPart4SampleRequest request) {
@@ -286,13 +501,20 @@ public class AiScoringService {
         String selectedTopics = topics.stream()
                 .map(topic -> "- " + topic)
                 .collect(Collectors.joining("\n"));
+        String level = normalizeLingoLevel(request.level());
         String prompt = """
-                Write one Aptis Speaking Part 4 answer, about 150 words.
+                Write one Aptis Speaking Part 4 answer of about 150-180 words at CEFR %s.
                 Topics:
                 %s
 
-                Rules: natural spoken English, B1-B2 level, one coherent answer, clear opinion, reasons, one personal example. No headings, bullets, translation, or analysis.
-                """.formatted(selectedTopics);
+                Rules:
+                - Create ONE coherent spoken answer that can address all the selected topics.
+                - Combine overlapping ideas naturally instead of writing separate answers.
+                - Mention or answer the key issue from every selected topic.
+                - Include a clear overall opinion, reasons, consequences or comparison where relevant, and one personal example.
+                - Use natural spoken English appropriate for %s, with clear linking phrases and no invented specific facts.
+                - Return only the answer. Do not use headings, bullets, topic labels, translation, or analysis.
+                """.formatted(level, selectedTopics, level);
 
         List<Map<String, String>> messages = List.of(
                 Map.of("role", "system", "content", "You write natural Aptis Speaking Part 4 model answers for learners."),
@@ -348,7 +570,7 @@ public class AiScoringService {
         }
     }
 
-    private String callDeepSeek(List<Map<String, String>> messages, boolean jsonMode, String selectedModel, Integer maxTokens) {
+    private String callDeepSeek(List<? extends Map<String, ?>> messages, boolean jsonMode, String selectedModel, Integer maxTokens) {
         Map<String, Object> body = new HashMap<>();
         body.put("model", selectedModel);
         body.put("messages", messages);

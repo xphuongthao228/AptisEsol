@@ -33,7 +33,7 @@ public class DtoMapper {
             accessExpiresAt = trialExpiresAt;
         }
         return new AuthDtos.UserResponse(user.getId(), user.getEmail(), clean(user.getFullName()), roles, user.isEnabled(),
-                user.getProExpiresAt(), accessExpiresAt, user.getLastSeenAt(), user.getCreatedAt());
+                user.getProExpiresAt(), accessExpiresAt, user.getLastSeenAt(), user.getCreatedAt(), user.getAvatarUrl());
     }
 
     public CoreDtos.SkillResponse skill(Skill skill) {

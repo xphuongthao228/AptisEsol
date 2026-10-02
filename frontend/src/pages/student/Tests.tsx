@@ -154,6 +154,17 @@ export function TestPartMenu() {
       .sort(compareTestsByNaturalNumber);
   }, [data, selectedSkill.type]);
   const selectedPracticeTestIds = selectedPracticeTests.map((test) => test.id).join(',');
+  const { data: selectedPracticeGroups, loading: practiceQuestionsLoading, error: practiceQuestionsError } = useApi<Array<{ test: Test; questions: Question[] }>>(
+    async () => {
+      if (!selectedPracticeTests.length) return [];
+      const groups = await Promise.all(selectedPracticeTests.map(async (test) => ({
+        test,
+        questions: await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`))
+      })));
+      return groups;
+    },
+    [selectedPracticeTestIds]
+  );
   const { data: writingGroups, loading: writingLoading, error: writingError } = useApi<Array<{ test: Test; questions: Question[] }>>(
     async () => {
       if (selectedSkill.type !== 'WRITING' || !selectedPracticeTests.length) return [];
@@ -215,7 +226,9 @@ export function TestPartMenu() {
         ))}
       </section>
 
-      {(error || (isWritingSelected && writingError)) && <InfoCard error>{error || writingError}</InfoCard>}
+      {(error || (isWritingSelected ? writingError : practiceQuestionsError)) && (
+        <InfoCard error>{error || (isWritingSelected ? writingError : practiceQuestionsError)}</InfoCard>
+      )}
 
       <section className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft">
         <div className="flex gap-4">
@@ -260,8 +273,13 @@ export function TestPartMenu() {
       ) : (
         <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {partsForSkill(selectedSkill.type).map((part) => {
-            const partTests = filterTestsByPart(selectedPracticeTests, part);
-            const firstTest = partTests[0];
+            const partGroups = (selectedPracticeGroups ?? [])
+              .map(({ test, questions }) => ({
+                test,
+                questions: questions.filter((question) => isQuestionInPart(question, selectedSkill.type, part))
+              }))
+              .filter(({ questions }) => questions.length > 0);
+            const firstGroup = partGroups[0];
             const cardContent = (
               <>
                 <div className={`mb-5 grid h-14 w-14 place-items-center rounded-2xl ${selectedSkill.accent}`}>
@@ -270,17 +288,17 @@ export function TestPartMenu() {
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">{selectedSkill.title}</p>
                 <h2 className="mt-1 text-2xl font-extrabold text-navy">Part {part}</h2>
                 <p className="mt-2 min-h-6 text-sm leading-6 text-slate-600">
-                  {loading ? 'Đang tải bài luyện...' : `${partTests.length} bài luyện`}
+                  {loading || practiceQuestionsLoading ? 'Đang tải bài luyện...' : `${partGroups.length} đề đã import`}
                 </p>
                 <span className={`mt-6 flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition ${
-                  firstTest ? 'bg-brand-600 text-white group-hover:bg-brand-700' : 'bg-sky-100 text-slate-500'
+                  firstGroup ? 'bg-brand-600 text-white group-hover:bg-brand-700' : 'bg-sky-100 text-slate-500'
                 }`}>
-                  {firstTest ? 'Bắt đầu' : 'Chưa có bài'} {firstTest && <ArrowRight size={17} />}
+                  {firstGroup ? 'Xem các đề' : 'Chưa có bài'} {firstGroup && <ArrowRight size={17} />}
                 </span>
               </>
             );
 
-            if (!firstTest) {
+            if (!firstGroup) {
               return (
                 <div key={`${selectedSkill.type}-${part}`} className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft">
                   {cardContent}
@@ -291,7 +309,7 @@ export function TestPartMenu() {
             return (
               <Link
                 key={`${selectedSkill.type}-${part}`}
-                to={`/app/tests/${firstTest.id}`}
+                to={`/app/tests/${firstGroup.test.id}`}
                 state={{ returnTo: `/app/tests/parts?skill=${selectedSkill.type}` }}
                 className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
               >
@@ -490,39 +508,30 @@ export function SkillPartQuestions() {
       </section>
 
       {questionGroups?.length ? (
-        <section className="space-y-5">
+        <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {questionGroups.map(({ test, questions }) => (
-            <div className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft" key={test.id}>
-              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
-                <div>
+            <Link
+              key={test.id}
+              to={`/app/tests/${test.id}`}
+              state={{ returnTo: `/app/tests/questions/${skill.type}/part/${selectedPart}` }}
+              onClick={requireLogin}
+              className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
+            >
+              <div className={`mb-5 grid h-14 w-14 place-items-center rounded-2xl ${skill.accent}`}>
+                <FileText />
+              </div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
                   <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">{skill.title} - Part {selectedPart}</p>
-                  <h2 className="mt-1 text-2xl font-extrabold text-navy">{test.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{questions.length} câu hỏi</p>
+                  <h2 className="mt-1 line-clamp-2 text-2xl font-extrabold text-navy">{test.title}</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{questions.length} câu hỏi trong part này</p>
                 </div>
-                <Link to={`/app/tests/${test.id}`} state={{ returnTo: `/app/tests/questions/${skill.type}/part/${selectedPart}` }} onClick={requireLogin} className="btn-primary h-11 px-5">Làm cả bài <ArrowRight size={17} /></Link>
+                <ArrowRight className="mt-2 shrink-0 text-slate-500 transition group-hover:translate-x-1 group-hover:text-brand-600" size={18} />
               </div>
-
-              <div className="mt-5 grid gap-3">
-                {questions.map((question, index) => (
-                  <Link
-                    to={`/app/tests/${test.id}?questionId=${question.id}`}
-                    state={{ returnTo: `/app/tests/questions/${skill.type}/part/${selectedPart}` }}
-                    onClick={requireLogin}
-                    className="flex items-start justify-between gap-4 rounded-2xl border border-brand-100 bg-sky-50 px-4 py-4 transition hover:border-brand-300 hover:bg-brand-50"
-                    key={question.id}
-                  >
-                    <div className="flex gap-3">
-                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white text-sm font-extrabold text-brand-700">{index + 1}</span>
-                      <div>
-                        <p className="line-clamp-2 font-bold text-navy">{previewQuestion(question)}</p>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">{question.type} - {displayQuestionMeta(question)}</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="mt-1 shrink-0 text-slate-500" size={18} />
-                  </Link>
-                ))}
-              </div>
-            </div>
+              <span className="mt-6 flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white transition group-hover:bg-brand-700">
+                Bắt đầu <ArrowRight size={17} />
+              </span>
+            </Link>
           ))}
         </section>
       ) : (

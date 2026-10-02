@@ -8,6 +8,7 @@ interface AuthState {
   accessToken: string | null;
   refreshToken: string | null;
   login: (email: string, password: string) => Promise<void>;
+  loginWithGoogle: () => void;
   register: (fullName: string, email: string, password: string) => Promise<OtpResponse>;
   setUser: (user: User) => void;
   logout: () => Promise<void>;
@@ -23,13 +24,17 @@ export const useAuthStore = create<AuthState>()(
         const data = await unwrap<AuthResponse>(publicApi.post('/auth/login', { email, password }));
         set({ user: data.user, accessToken: data.accessToken, refreshToken: data.refreshToken });
       },
+      loginWithGoogle: () => {
+        const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
+        window.location.assign(new URL('/oauth2/authorization/google', apiUrl).toString());
+      },
       register: async (fullName, email, password) => {
         return unwrap<OtpResponse>(publicApi.post('/auth/register', { fullName, email, password }));
       },
       setUser: (user) => set({ user }),
       logout: async () => {
         const refreshToken = get().refreshToken;
-        if (refreshToken) await api.post('/auth/logout', { refreshToken }).catch(() => undefined);
+        await api.post('/auth/logout', refreshToken ? { refreshToken } : undefined).catch(() => undefined);
         set({ user: null, accessToken: null, refreshToken: null });
       }
     }),

@@ -50,7 +50,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <OnlineHeartbeat />
     <Suspense fallback={<div role="status" className="p-8 text-center">Đang tải trang...</div>}><RouterProvider router={router} /></Suspense>
-    <Toaster position="top-right" />
+    <Toaster
+      position="top-right"
+      toastOptions={{
+        style: {
+          width: 'min(420px, calc(100vw - 32px))',
+          maxWidth: 'calc(100vw - 32px)',
+          overflowWrap: 'anywhere'
+        }
+      }}
+    />
   </React.StrictMode>
 );
 

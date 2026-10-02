@@ -1,4 +1,4 @@
-import { FormEvent, ReactNode, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Bot, ExternalLink, MessageCircle, Send, Sparkles, UserRound, Users, X } from 'lucide-react';
 import { api, unwrap } from '../api/client';
@@ -8,6 +8,15 @@ type ChatMessage = {
   role: 'user' | 'assistant';
   content: string;
 };
+
+type LingoHistoryItem = {
+  id: number;
+  question: string;
+  reply: string;
+  createdAt: string;
+};
+
+const LINGO_LEVEL_KEY = 'aptis-lingo-level';
 
 export function LingoWidget() {
   const [open, setOpen] = useState(false);
@@ -21,6 +30,23 @@ export function LingoWidget() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+    unwrap<LingoHistoryItem[]>(api.get('/ai/lingo/history'))
+      .then((items) => {
+        if (!items.length) return;
+        const restored = items
+          .slice()
+          .reverse()
+          .flatMap((item) => [
+            { role: 'user' as const, content: item.question },
+            { role: 'assistant' as const, content: item.reply }
+          ]);
+        setMessages(restored);
+      })
+      .catch(() => undefined);
+  }, [open]);
+
   async function submit(event: FormEvent) {
     event.preventDefault();
     const message = input.trim();
@@ -32,9 +58,11 @@ export function LingoWidget() {
     setLoading(true);
 
     try {
-      const result = await unwrap<{ reply: string }>(api.post('/ai/lingo/chat', {
+      const level = window.localStorage.getItem(LINGO_LEVEL_KEY) ?? 'B1';
+      const result = await unwrap<{ reply: string }>(api.post('/ai/lingo/ask', {
         message,
-        history: messages.slice(-10)
+        history: messages.slice(-10),
+        level
       }));
       setMessages([...nextMessages, { role: 'assistant', content: result.reply }]);
     } catch (error) {

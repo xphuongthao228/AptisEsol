@@ -14,10 +14,12 @@ import com.example.aptis.repository.UserRepository;
 import com.example.aptis.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +40,7 @@ public class AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final EmailVerificationTokenRepository emailTokenRepository;
     private final PasswordEncoder encoder;
-    private final AuthenticationManager authenticationManager;
+    private final ObjectProvider<AuthenticationManager> authenticationManagerProvider;
     private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
     private final DtoMapper mapper;
@@ -53,7 +55,7 @@ public class AuthService {
 
     @Transactional
     public AuthDtos.OtpResponse register(AuthDtos.RegisterRequest request) {
-        String email = request.email().trim();
+        String email = normalizeEmail(request.email());
         Role role = roleRepository.findByName(RoleName.STUDENT).orElseThrow();
         User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseGet(User::new);
 
@@ -74,8 +76,9 @@ public class AuthService {
     }
 
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
-        String email = request.email().trim();
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(email, request.password()));
+        String email = normalizeEmail(request.email());
+        authenticationManagerProvider.getObject()
+                .authenticate(new UsernamePasswordAuthenticationToken(email, request.password()));
         User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow();
         if (!user.isEmailVerified()) {
             throw new IllegalStateException("Bạn cần nhập đúng mã OTP trong Gmail trước khi đăng nhập");
@@ -84,10 +87,89 @@ public class AuthService {
     }
 
     @Transactional
+    public AuthDtos.AuthResponse loginWithGoogle(OAuth2User googleUser) {
+        String googleId = requiredAttribute(googleUser, "sub");
+        String email = normalizeEmail(requiredAttribute(googleUser, "email"));
+        boolean emailVerified = Boolean.TRUE.equals(googleUser.getAttribute("email_verified"));
+        if (!emailVerified) {
+            throw new IllegalArgumentException("Google chưa xác minh địa chỉ email này");
+        }
+
+        User user = userRepository.findByGoogleIdAndDeletedAtIsNull(googleId).orElse(null);
+        if (user == null) {
+            user = userRepository.findByEmailAndDeletedAtIsNull(email).orElse(null);
+            if (user != null) {
+                if (!user.isEnabled()) {
+                    throw new IllegalStateException("Account is disabled");
+                }
+                if (user.getGoogleId() != null && !user.getGoogleId().equals(googleId)) {
+                    throw new IllegalStateException("Email is already linked to another Google account");
+                }
+                // Keep the existing password and add Google as a second sign-in method.
+                user.setGoogleId(googleId);
+                user.setEmailVerified(true);
+                user.setFullName(firstNonBlank(googleUser.getAttribute("name"), user.getFullName()));
+                user.setAvatarUrl(googleUser.getAttribute("picture"));
+                user = userRepository.save(user);
+                /* if (false) {
+                throw new IllegalStateException(
+                        "Email đã có tài khoản mật khẩu. Hãy đăng nhập bằng mật khẩu rồi liên kết Google trong phần cài đặt.");
+            }
+
+                }
+
+            */
+            }
+            if (user == null) {
+                Role role = roleRepository.findByName(RoleName.STUDENT).orElseThrow();
+                user = new User();
+                user.setEmail(email);
+                user.setFullName(firstNonBlank(googleUser.getAttribute("name"), email));
+                user.setPassword(encoder.encode(UUID.randomUUID().toString()));
+                user.setEmailVerified(true);
+                user.setGoogleId(googleId);
+                user.setAvatarUrl(googleUser.getAttribute("picture"));
+                user.getRoles().add(role);
+                user = userRepository.save(user);
+            }
+        } else {
+            if (!user.isEnabled()) {
+                throw new IllegalStateException("Tài khoản đã bị khóa");
+            }
+            if (!user.getEmail().equalsIgnoreCase(email)) {
+                throw new IllegalStateException("Email Google không khớp với tài khoản đã liên kết");
+            }
+            user.setEmailVerified(true);
+            user.setFullName(firstNonBlank(googleUser.getAttribute("name"), user.getFullName()));
+            user.setAvatarUrl(googleUser.getAttribute("picture"));
+            user = userRepository.save(user);
+        }
+        return tokens(user);
+    }
+
+    private String requiredAttribute(OAuth2User user, String name) {
+        Object value = user.getAttributes().get(name);
+        if (value == null || value.toString().isBlank()) {
+            throw new IllegalArgumentException("Google không trả về thông tin bắt buộc: " + name);
+        }
+        return value.toString();
+    }
+
+    private String firstNonBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
+    }
+
+    @Transactional
     public AuthDtos.AuthResponse refresh(String refreshToken) {
         RefreshToken token = refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken)
                 .filter(rt -> rt.getExpiresAt().isAfter(Instant.now()))
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token không hợp lệ"));
+        token.setRevoked(true);
+        refreshTokenRepository.save(token);
         return tokens(token.getUser());
     }
 

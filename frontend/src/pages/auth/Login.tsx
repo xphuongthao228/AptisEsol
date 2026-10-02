@@ -1,4 +1,4 @@
-import { FormEvent, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, LockKeyhole, Mail } from 'lucide-react';
@@ -12,8 +12,19 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
+  const loginWithGoogle = useAuthStore((s) => s.loginWithGoogle);
   const user = useAuthStore((s) => s.user);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const oauthError = url.searchParams.get('oauthError');
+    if (!oauthError) return;
+
+    url.searchParams.delete('oauthError');
+    window.history.replaceState({}, document.title, `${url.pathname}${url.search}${url.hash}`);
+    toast.error(decodeURIComponent(oauthError), { id: 'oauth-login-error' });
+  }, []);
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -83,6 +94,20 @@ export function Login() {
         </div>
         <button className="btn-primary h-14 w-full rounded-2xl text-base" disabled={loading}>
           {loading ? 'Đang xử lý...' : 'Đăng nhập'} {!loading && <ArrowRight size={19} />}
+        </button>
+        <button
+          type="button"
+          className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white text-base font-bold text-slate-700 shadow-sm"
+          onClick={loginWithGoogle}
+          disabled={loading}
+        >
+          <span
+            aria-hidden="true"
+            className="bg-[conic-gradient(from_180deg_at_50%_50%,#4285f4_0deg,#34a853_105deg,#fbbc05_205deg,#ea4335_285deg,#4285f4_360deg)] bg-clip-text text-xl font-black text-transparent"
+          >
+            G
+          </span>
+          <span>Đăng nhập bằng Google</span>
         </button>
       </form>
       <p className="mt-7 text-center text-sm text-slate-600">

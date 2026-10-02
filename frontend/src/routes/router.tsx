@@ -5,6 +5,8 @@ const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword').then((m
 const Login = lazy(() => import('../pages/auth/Login').then((module) => ({ default: module.Login })));
 const Register = lazy(() => import('../pages/auth/Register').then((module) => ({ default: module.Register })));
 const VerifyEmail = lazy(() => import('../pages/auth/VerifyEmail').then((module) => ({ default: module.VerifyEmail })));
+const OAuth2Callback = lazy(() => import('../pages/auth/OAuth2Callback').then((module) => ({ default: module.OAuth2Callback })));
+const CombineSpeaking = lazy(() => import('../pages/student/CombineSpeaking').then((module) => ({ default: module.CombineSpeaking })));
 const AdminAiUsage = lazy(() => import('../pages/admin/AdminAiUsage').then((module) => ({ default: module.AdminAiUsage })));
 const AdminContent = lazy(() => import('../pages/admin/AdminContent').then((module) => ({ default: module.AdminContent })));
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
@@ -16,6 +18,7 @@ const AdminPredictions = lazy(() => import('../pages/admin/AdminPredictions').th
 const AdminRevenue = lazy(() => import('../pages/admin/AdminRevenue').then((module) => ({ default: module.AdminRevenue })));
 const AdminUsers = lazy(() => import('../pages/admin/AdminUsers').then((module) => ({ default: module.AdminUsers })));
 const Dashboard = lazy(() => import('../pages/student/Dashboard').then((module) => ({ default: module.Dashboard })));
+const AiPracticeDashboard = lazy(() => import('../pages/student/AiPracticeDashboard').then((module) => ({ default: module.AiPracticeDashboard })));
 const Contact = lazy(() => import('../pages/student/Contact').then((module) => ({ default: module.Contact })));
 const Donate = lazy(() => import('../pages/student/Donate').then((module) => ({ default: module.Donate })));
 const ExamHistory = lazy(() => import('../pages/student/ExamHistory').then((module) => ({ default: module.ExamHistory })));
@@ -42,15 +45,17 @@ export const router = createBrowserRouter([
   { path: '/forgot-password', element: <ForgotPassword /> },
   { path: '/register', element: <Register /> },
   { path: '/verify-email', element: <VerifyEmail /> },
+  { path: '/oauth2/callback', element: <OAuth2Callback /> },
   { path: '/app', element: <AppLayout />, children: [
     { index: true, element: <Navigate to="/" replace /> },
+    { path: 'ai-practice', element: <AiPracticeDashboard /> },
     { path: 'lessons', element: <Lessons /> },
     { path: 'leaderboard', element: <Leaderboard /> },
     { path: 'lessons/:skillType', element: <Lessons /> },
     { path: 'lessons/:skillType/:tipSlug', element: <Lessons /> },
     { path: 'tests', element: <Navigate to="/app/tests/parts" replace /> },
     { path: 'mock-tests', element: <MockTests /> },
-    { path: 'combine-speaking', element: <Navigate to="/app/mock-tests" replace /> },
+    { path: 'combine-speaking', element: <CombineSpeaking /> },
     { path: 'history', element: <ProtectedRoute role="STUDENT" />, children: [
       { index: true, element: <ExamHistory /> }
     ] },

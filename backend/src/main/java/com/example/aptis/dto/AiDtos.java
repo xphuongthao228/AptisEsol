@@ -3,10 +3,15 @@ package com.example.aptis.dto;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import java.util.List;
+import java.time.LocalDateTime;
 
 public class AiDtos {
+    public record PracticeGenerateRequest(@NotNull Long sourceTestId, Long sourceQuestionId, String sourcePrompt,
+                                          @NotNull Integer part, @NotBlank String level, List<String> imageUrls) {}
+    public record PracticeGenerateResponse(Long testId, String title, int questionCount, String generatedAnswer) {}
     public record WritingPartRequest(@NotBlank String title, String prompt, String answer) {
     }
 
@@ -28,10 +33,10 @@ public class AiDtos {
     public record LingoChatMessage(@NotBlank String role, @NotBlank String content) {
     }
 
-    public record LingoChatRequest(@NotBlank String message, List<@Valid LingoChatMessage> history) {
+    public record LingoChatRequest(@NotBlank String message, List<@Valid LingoChatMessage> history, String level) {
     }
 
-    public record SpeakingPart4SampleRequest(@NotEmpty List<@NotBlank String> topics) {
+    public record SpeakingPart4SampleRequest(@NotEmpty List<@NotBlank String> topics, String level) {
     }
 
     public record CriteriaScore(String name, int score, String feedback) {
@@ -71,6 +76,9 @@ public class AiDtos {
     }
 
     public record LingoChatResponse(String reply) {
+    }
+
+    public record LingoChatHistoryResponse(Long id, String question, String reply, LocalDateTime createdAt) {
     }
 
     public record SpeakingPart4SampleResponse(String prompt, String sampleAnswer) {

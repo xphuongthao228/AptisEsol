@@ -23,6 +23,7 @@ export interface User {
   accessExpiresAt: string | null;
   lastSeenAt: string | null;
   createdAt: string;
+  avatarUrl: string | null;
 }
 
 export interface AiScoringUsage {

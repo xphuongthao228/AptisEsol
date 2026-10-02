@@ -45,6 +45,26 @@ select:focus-visible {
   @apply rounded-2xl border border-brand-100/80 bg-white shadow-soft;
 }
 
+.ai-topic-list {
+  scrollbar-color: #f0a3a3 transparent;
+  scrollbar-width: thin;
+}
+
+.ai-topic-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ai-topic-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ai-topic-list::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+  background-color: #f0a3a3;
+}
+
 .input {
   @apply h-11 w-full rounded-lg border border-brand-100 bg-white px-3 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100/80;
 }

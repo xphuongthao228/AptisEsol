@@ -9,6 +9,7 @@ import com.example.aptis.enums.RoleName;
 import com.example.aptis.enums.SkillType;
 import com.example.aptis.enums.TestMode;
 import com.example.aptis.enums.TestStatus;
+import com.example.aptis.dto.AiDtos;
 import com.example.aptis.exception.ResourceNotFoundException;
 import com.example.aptis.mapper.DtoMapper;
 import com.example.aptis.repository.*;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
@@ -160,6 +162,211 @@ public class CoreService {
     public CoreDtos.TestResponse test(Long id) {
         Test test = tests.findById(id).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
         return mapper.test(test, questions.countByTestIdAndDeletedAtIsNull(test.getId()));
+    }
+
+    @Transactional(readOnly = true)
+    public CoreDtos.SourcePrompt sourcePrompt(Long testId, Long questionId) {
+        Test test = tests.findById(testId).orElseThrow(() -> new ResourceNotFoundException("Source test not found"));
+        var sourceQuestions = questions.findByTestIdAndDeletedAtIsNullOrderBySortOrderAsc(testId).stream()
+                .filter(question -> questionId == null || Objects.equals(question.getId(), questionId))
+                .toList();
+        if (sourceQuestions.isEmpty()) {
+            throw new ResourceNotFoundException("Source question not found");
+        }
+        String content = sourceQuestions.stream()
+                .map(question -> "Topic: " + Objects.toString(question.getTopic(), "") + "\n" + question.getContent())
+                .collect(Collectors.joining("\n---\n"));
+        return new CoreDtos.SourcePrompt(test.getSkill().getType().name(), test.getTitle(), content);
+    }
+
+    @Transactional
+    public AiDtos.PracticeGenerateResponse createAiPracticeTest(AiDtos.PracticeGenerateRequest request, String generatedJson) {
+        Test source = tests.findById(request.sourceTestId())
+                .orElseThrow(() -> new ResourceNotFoundException("Source test not found"));
+        CoreDtos.SourcePrompt sourcePrompt = sourcePrompt(request.sourceTestId(), request.sourceQuestionId());
+        if (request.sourcePrompt() != null && !request.sourcePrompt().isBlank()) {
+            sourcePrompt = new CoreDtos.SourcePrompt(sourcePrompt.skill(), sourcePrompt.title(), request.sourcePrompt());
+        }
+        try {
+            JsonNode root = parseGeneratedAiOutput(generatedJson);
+            JsonNode generatedQuestions = extractGeneratedQuestions(root);
+            JsonNode generatedParagraph = extractGeneratedParagraph(root);
+            if (generatedParagraph.isTextual() && !generatedParagraph.asText().isBlank()) {
+                generatedQuestions = objectMapper.createArrayNode().addObject()
+                        .put("content", sourcePrompt.content())
+                        .put("topic", source.getTitle())
+                        .put("type", "TEXT")
+                        .put("explanation", generatedParagraph.asText());
+            }
+            if ((!generatedQuestions.isArray() || generatedQuestions.isEmpty())
+                    && generatedJson != null && !generatedJson.isBlank()) {
+                generatedParagraph = objectMapper.getNodeFactory().textNode(cleanGeneratedText(generatedJson));
+                generatedQuestions = objectMapper.createArrayNode().addObject()
+                        .put("content", sourcePrompt.content())
+                        .put("topic", source.getTitle())
+                        .put("type", "TEXT")
+                        .put("explanation", generatedParagraph.asText());
+            }
+            if (!generatedQuestions.isArray() || generatedQuestions.isEmpty()) {
+                String fallbackAnswer = generatedParagraph.isTextual()
+                        ? generatedParagraph.asText()
+                        : cleanGeneratedText(generatedJson);
+                if (!fallbackAnswer.isBlank()) {
+                    generatedParagraph = objectMapper.getNodeFactory().textNode(fallbackAnswer);
+                    generatedQuestions = objectMapper.createArrayNode().addObject()
+                            .put("content", sourcePrompt.content())
+                            .put("topic", source.getTitle())
+                            .put("type", "TEXT")
+                            .put("explanation", fallbackAnswer);
+                }
+            }
+            if (!generatedQuestions.isArray() || generatedQuestions.isEmpty()) {
+                throw new IllegalArgumentException("AI chưa trả về câu trả lời. Vui lòng thử lại.");
+            }
+            Test generated = new Test();
+            generated.setSkill(source.getSkill());
+            generated.setTitle("AI - " + source.getTitle() + " - " + request.level());
+            generated.setDescription("Bài luyện AI từ đề import, Part " + request.part() + ", mục tiêu " + request.level());
+            generated.setDurationMinutes(source.getDurationMinutes());
+            generated.setStatus(TestStatus.PUBLISHED);
+            generated.setMode(TestMode.PRACTICE);
+            generated.setFeatured(false);
+            Test saved = tests.save(generated);
+            int order = 1;
+            for (JsonNode item : generatedQuestions) {
+                Question question = new Question();
+                question.setTest(saved);
+                question.setType("SINGLE_CHOICE".equalsIgnoreCase(item.path("type").asText())
+                        ? QuestionType.SINGLE_CHOICE : QuestionType.TEXT);
+                question.setContent(item.path("content").asText(""));
+                question.setTopic(item.path("topic").asText(source.getTitle()));
+                question.setExplanation(item.path("explanation").asText(""));
+                question.setPoints(1);
+                question.setSortOrder(order++);
+                JsonNode answerNodes = item.path("answers");
+                if (answerNodes.isArray()) {
+                    int answerOrder = 1;
+                    for (JsonNode answerNode : answerNodes) {
+                        Answer answer = new Answer();
+                        answer.setQuestion(question);
+                        answer.setContent(answerNode.path("content").asText(""));
+                        answer.setCorrect(answerNode.path("correct").asBoolean(false));
+                        answer.setSortOrder(answerOrder++);
+                        question.getAnswers().add(answer);
+                    }
+                }
+                questions.save(question);
+            }
+            String generatedAnswer = generatedParagraph.isTextual() ? generatedParagraph.asText() : "";
+            return new AiDtos.PracticeGenerateResponse(saved.getId(), saved.getTitle(), generatedQuestions.size(), generatedAnswer);
+        } catch (Exception ex) {
+            throw new IllegalStateException("Không thể lưu đề AI: " + ex.getMessage(), ex);
+        }
+    }
+
+    private JsonNode parseGeneratedAiOutput(String generatedJson) {
+        String cleaned = cleanGeneratedText(generatedJson);
+        if (cleaned.isBlank()) {
+            return objectMapper.createObjectNode();
+        }
+        for (String candidate : List.of(cleaned, extractJsonCandidate(cleaned))) {
+            if (candidate == null || candidate.isBlank()) {
+                continue;
+            }
+            try {
+                return objectMapper.readTree(candidate);
+            } catch (Exception ignored) {
+                // Try the next candidate before treating the whole response as text.
+            }
+        }
+        return objectMapper.createObjectNode().put("paragraph", cleaned);
+    }
+
+    private JsonNode extractGeneratedQuestions(JsonNode root) {
+        if (root == null || root.isMissingNode() || root.isNull()) {
+            return objectMapper.missingNode();
+        }
+        if (root.isArray()) {
+            return root;
+        }
+        JsonNode questionsNode = root.path("questions");
+        if (questionsNode.isArray()) {
+            return questionsNode;
+        }
+        for (String field : List.of("data", "result", "output")) {
+            JsonNode nested = root.path(field);
+            if (nested.isArray()) {
+                return nested;
+            }
+            if (nested.isObject()) {
+                JsonNode value = extractGeneratedQuestions(nested);
+                if (value.isArray()) {
+                    return value;
+                }
+            }
+            if (nested.isTextual()) {
+                JsonNode parsed = parseGeneratedAiOutput(nested.asText());
+                JsonNode value = extractGeneratedQuestions(parsed);
+                if (value.isArray()) {
+                    return value;
+                }
+            }
+        }
+        return objectMapper.missingNode();
+    }
+
+    private JsonNode extractGeneratedParagraph(JsonNode root) {
+        if (root == null || root.isMissingNode() || root.isNull()) {
+            return objectMapper.missingNode();
+        }
+        for (String field : List.of("paragraph", "answer", "modelAnswer", "model_answer", "response", "text", "content")) {
+            JsonNode value = root.path(field);
+            if (value.isTextual() && !value.asText().isBlank()) {
+                return value;
+            }
+        }
+        for (String field : List.of("data", "result", "output")) {
+            JsonNode nested = root.path(field);
+            if (nested.isObject()) {
+                JsonNode value = extractGeneratedParagraph(nested);
+                if (value.isTextual() && !value.asText().isBlank()) {
+                    return value;
+                }
+            } else if (nested.isTextual()) {
+                JsonNode parsed = parseGeneratedAiOutput(nested.asText());
+                JsonNode value = extractGeneratedParagraph(parsed);
+                if (value.isTextual() && !value.asText().isBlank()) {
+                    return value;
+                }
+            }
+        }
+        return objectMapper.missingNode();
+    }
+
+    private String cleanGeneratedText(String value) {
+        String text = value == null ? "" : value.trim();
+        if (text.startsWith("```") && text.endsWith("```")) {
+            text = text.substring(3, text.length() - 3).trim();
+            if (text.startsWith("json")) {
+                text = text.substring(4).trim();
+            }
+        }
+        return text;
+    }
+
+    private String extractJsonCandidate(String text) {
+        int objectStart = text.indexOf('{');
+        int objectEnd = text.lastIndexOf('}');
+        int arrayStart = text.indexOf('[');
+        int arrayEnd = text.lastIndexOf(']');
+        if (objectStart >= 0 && objectEnd > objectStart
+                && (arrayStart < 0 || objectStart < arrayStart)) {
+            return text.substring(objectStart, objectEnd + 1).trim();
+        }
+        if (arrayStart >= 0 && arrayEnd > arrayStart) {
+            return text.substring(arrayStart, arrayEnd + 1).trim();
+        }
+        return "";
     }
 
     public CoreDtos.TestResponse saveTest(CoreDtos.TestRequest request) {

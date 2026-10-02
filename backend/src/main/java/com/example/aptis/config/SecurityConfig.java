@@ -1,6 +1,8 @@
 package com.example.aptis.config;
 
 import com.example.aptis.security.JwtAuthenticationFilter;
+import com.example.aptis.security.OAuth2LoginFailureHandler;
+import com.example.aptis.security.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,7 +17,6 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -30,6 +31,8 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtFilter;
+    private final OAuth2LoginSuccessHandler oauthSuccessHandler;
+    private final OAuth2LoginFailureHandler oauthFailureHandler;
     private static final String[] PUBLIC_AUTH_ENDPOINTS = {
             "/auth/login",
             "/auth/register",
@@ -40,6 +43,8 @@ public class SecurityConfig {
             "/auth/refresh-token",
             "/auth/logout",
             "/auth/verify-email",
+            "/oauth2/**",
+            "/login/oauth2/**",
             "/api/auth/login",
             "/api/auth/register",
             "/api/auth/verify-registration-otp",
@@ -56,6 +61,20 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
+    SecurityFilterChain oauth2FilterChain(HttpSecurity http) throws Exception {
+        return http.securityMatcher("/oauth2/**", "/login/oauth2/**")
+                .csrf(csrf -> csrf.disable())
+                .cors(corsCustomizer -> corsCustomizer.configurationSource(corsConfigurationSource()))
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oauthSuccessHandler)
+                        .failureHandler(oauthFailureHandler))
+                .build();
+    }
+
+    @Bean
+    @Order(2)
     SecurityFilterChain publicAuthFilterChain(HttpSecurity http) throws Exception {
         return http.securityMatcher(PUBLIC_AUTH_ENDPOINTS)
                 .csrf(csrf -> csrf.disable())
@@ -71,7 +90,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    @Order(2)
+    @Order(3)
     SecurityFilterChain filterChain(HttpSecurity http, AuthenticationProvider provider) throws Exception {
         return http.csrf(csrf -> csrf.disable())
                 .cors(corsCustomizer -> corsCustomizer.configurationSource(corsConfigurationSource()))
@@ -124,11 +143,6 @@ public class SecurityConfig {
     @Bean
     AuthenticationManager authenticationManager(AuthenticationConfiguration configuration) throws Exception {
         return configuration.getAuthenticationManager();
-    }
-
-    @Bean
-    PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
     @Bean

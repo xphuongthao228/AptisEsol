@@ -5,9 +5,9 @@ import type { ApiResponse, AuthResponse } from '../types';
 const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
 const REQUEST_TIMEOUT_MS = 15_000;
 
-export const api = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS });
-export const publicApi = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS });
-const authApi = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS });
+export const api = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS, withCredentials: true });
+export const publicApi = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS, withCredentials: true });
+const authApi = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS, withCredentials: true });
 const REFRESH_SKEW_SECONDS = 90;
 
 type RetryableRequestConfig = InternalAxiosRequestConfig & {

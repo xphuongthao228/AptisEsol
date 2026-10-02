@@ -50,6 +50,7 @@ type LayoutLink = {
 const studentLinks: LayoutLink[] = [
   { to: '/app/tests/parts', label: 'Luyện tập theo part', icon: BookOpen },
   { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
+  { to: '/app/ai-practice', label: 'Tạo đề AI', icon: Bot },
   { to: '/app/history', label: 'Lịch sử', icon: Clock3 },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/lessons/LISTENING', label: 'Mẹo thi', icon: Lightbulb },
@@ -268,7 +269,11 @@ export function AppLayout() {
                     aria-label="Mở menu tài khoản"
                     aria-expanded={accountMenuOpen}
                   >
-                    {user?.fullName?.[0]?.toUpperCase() ?? 'B'}
+                    {user?.avatarUrl ? (
+                      <img src={user.avatarUrl} alt="" className="h-10 w-10 rounded-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      user?.fullName?.[0]?.toUpperCase() ?? 'B'
+                    )}
                   </button>
                   {accountMenuOpen && (
                     <div className="absolute right-0 top-full z-50 mt-3 w-64 overflow-hidden rounded-2xl border border-brand-100 bg-white p-2 text-left shadow-lift">

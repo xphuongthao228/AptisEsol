@@ -630,6 +630,12 @@ export function PracticeRunner() {
                 onChange={(value) => setAnswers({ ...answers, [activeQuestion.id]: value })}
               />
             )}
+            {activeQuestion && test?.title?.startsWith('AI -') && activeQuestion.explanation && (
+              <div className="mt-5 rounded-[18px] border border-emerald-200 bg-emerald-50 p-5">
+                <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-emerald-700">Đoạn văn mẫu AI</p>
+                <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-emerald-950">{activeQuestion.explanation}</p>
+              </div>
+            )}
 
             {activeQuestion && mergedTemplateData && activeChecked !== undefined && !selfCheckingTemplate && (
               <QuestionFeedback isCorrect={activeChecked} textOnly={!activeQuestion.answers.length} />

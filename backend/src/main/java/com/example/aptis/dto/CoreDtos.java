@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class CoreDtos {
+    public record SourcePrompt(String skill, String title, String content) {}
     public record UserUpdateRequest(@NotBlank String fullName, Boolean enabled) {
     }
 
