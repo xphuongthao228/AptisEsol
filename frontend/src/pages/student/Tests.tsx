@@ -711,7 +711,7 @@ function partsForSkill(skill?: SkillType | '') {
 }
 
 function isPartPracticeSource(test: Test) {
-  return test.status === 'PUBLISHED' && hasImportedQuestions(test);
+  return test.status === 'PUBLISHED' && isPracticeTest(test) && hasImportedQuestions(test);
 }
 
 function isQuestionInPart(question: Question, skill: SkillType | '', part: number, test?: Test) {
