@@ -711,7 +711,7 @@ function partsForSkill(skill?: SkillType | '') {
 }
 
 function isPartPracticeSource(test: Test) {
-  return isPracticeTest(test);
+  return test.status === 'PUBLISHED' && hasImportedQuestions(test);
 }
 
 function isQuestionInPart(question: Question, skill: SkillType | '', part: number) {
@@ -727,6 +727,17 @@ function isQuestionInPart(question: Question, skill: SkillType | '', part: numbe
   if (rawPart) {
     const parsed = Number(rawPart.replace(/\D+/g, ''));
     if (Number.isFinite(parsed) && parsed === part) return true;
+  }
+
+  if (skill === 'LISTENING') {
+    const templateName = String(template?.template ?? '').toUpperCase();
+    const variant = String((template as { variant?: unknown } | null)?.variant ?? '').toUpperCase();
+    if (part === 2 && templateName === 'LISTENING_PEOPLE_MATCH') return true;
+    if (part === 3 && templateName === 'LISTENING_OPINION_MATCH') return true;
+    if (templateName === 'LISTENING_AUDIO_MC') {
+      if (part === 1 && variant === 'PART1') return true;
+      if (part === 4 && variant !== 'PART1') return true;
+    }
   }
 
   if (skill === 'READING') {

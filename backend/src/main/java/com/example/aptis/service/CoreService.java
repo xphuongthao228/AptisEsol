@@ -1344,12 +1344,13 @@ public class CoreService {
         Question q = new Question();
         q.setTest(test);
         String rawType = csv(record, "type", "SINGLE_CHOICE").trim().toUpperCase();
+        boolean listeningPart1 = isListeningPart1Type(rawType);
         boolean listeningPart2 = isListeningPart2Type(rawType);
         boolean listeningPart3 = isListeningPart3Type(rawType);
         boolean listeningPart4 = isListeningPart4Type(rawType);
         boolean speakingTemplate = isSpeakingTemplateType(rawType) || hasSpeakingTemplateContent(record);
         boolean grammarTemplate = isGrammarTemplateType(rawType);
-        q.setType((listeningPart2 || listeningPart3 || listeningPart4 || speakingTemplate || grammarTemplate)
+        q.setType((listeningPart1 || listeningPart2 || listeningPart3 || listeningPart4 || speakingTemplate || grammarTemplate)
                 ? QuestionType.TEXT
                 : parseQuestionType(rawType));
         q.setTopic(cleanTopic(csv(record, "topic", "")));
@@ -1359,7 +1360,11 @@ public class CoreService {
         q.setPoints(parseInteger(record, "points", 1));
         q.setSortOrder(parseInteger(record, "sort_order", defaultSortOrder));
         q.setFeatured(parseBoolean(csv(record, "featured", "false")));
-        if (listeningPart2) {
+        if (listeningPart1) {
+            String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
+            q.setScriptText(paragraph);
+            q.setContent(buildListeningPart4Template(record, q));
+        } else if (listeningPart2) {
             String paragraph = firstNonBlank(q.getScriptText(), q.getExplanation());
             q.setScriptText(paragraph);
             q.setContent(buildListeningPart2Template(record, q));
@@ -1395,6 +1400,10 @@ public class CoreService {
         return q;
     }
 
+    private boolean isListeningPart1Type(String rawType) {
+        return rawType.equals("LISTENING_PART1");
+    }
+
     private boolean isListeningPart2Type(String rawType) {
         return rawType.equals("LISTENING_PART2")
                 || rawType.equals("LISTENING_PERSON")
@@ -1417,8 +1426,7 @@ public class CoreService {
     }
 
     private boolean isListeningPart4Type(String rawType) {
-        return rawType.equals("LISTENING_PART1")
-                || rawType.equals("LISTENING_RADIO")
+        return rawType.equals("LISTENING_RADIO")
                 || rawType.equals("LISTENING_SINGLE_CHOICE")
                 || rawType.equals("LISTENING_AUDIO_SINGLE")
                 || rawType.equals("LISTENING_PART4")
@@ -1557,6 +1565,7 @@ public class CoreService {
 
         return "{\n"
                 + "  \"template\": \"LISTENING_PEOPLE_MATCH\",\n"
+                + "  \"part\": 2,\n"
                 + "  \"total\": " + total + ",\n"
                 + "  \"topic\": " + json(topic) + ",\n"
                 + "  \"instructions\": " + json(instructions) + ",\n"
@@ -1631,6 +1640,7 @@ public class CoreService {
 
         return "{\n"
                 + "  \"template\": \"LISTENING_OPINION_MATCH\",\n"
+                + "  \"part\": 3,\n"
                 + "  \"total\": " + total + ",\n"
                 + "  \"topic\": " + json(topic) + ",\n"
                 + "  \"instructions\": " + json(instructions) + ",\n"
@@ -1683,6 +1693,7 @@ public class CoreService {
 
         return "{\n"
                 + "  \"template\": \"LISTENING_AUDIO_MC\",\n"
+                + "  \"part\": " + (part1 ? 1 : 4) + ",\n"
                 + "  \"total\": " + total + ",\n"
                 + "  \"variant\": " + json(part1 ? "PART1" : "") + ",\n"
                 + "  \"topic\": " + json(topic) + ",\n"
