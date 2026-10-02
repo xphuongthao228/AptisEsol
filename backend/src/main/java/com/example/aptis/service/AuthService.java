@@ -57,12 +57,13 @@ public class AuthService {
     public AuthDtos.OtpResponse register(AuthDtos.RegisterRequest request) {
         String email = normalizeEmail(request.email());
         Role role = roleRepository.findByName(RoleName.STUDENT).orElseThrow();
-        User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseGet(User::new);
+        User user = userRepository.findByEmail(email).orElseGet(User::new);
 
         if (user.getId() != null && user.isEmailVerified()) {
             throw new IllegalArgumentException("Email đã tồn tại");
         }
 
+        user.setDeletedAt(null);
         user.setEmail(email);
         user.setFullName(request.fullName().trim());
         user.setPassword(encoder.encode(request.password()));
@@ -95,9 +96,9 @@ public class AuthService {
             throw new IllegalArgumentException("Google chưa xác minh địa chỉ email này");
         }
 
-        User user = userRepository.findByGoogleIdAndDeletedAtIsNull(googleId).orElse(null);
+        User user = userRepository.findByGoogleId(googleId).orElse(null);
         if (user == null) {
-            user = userRepository.findByEmailAndDeletedAtIsNull(email).orElse(null);
+            user = userRepository.findByEmail(email).orElse(null);
             if (user != null) {
                 if (!user.isEnabled()) {
                     throw new IllegalStateException("Account is disabled");
@@ -106,6 +107,7 @@ public class AuthService {
                     throw new IllegalStateException("Email is already linked to another Google account");
                 }
                 // Keep the existing password and add Google as a second sign-in method.
+                user.setDeletedAt(null);
                 user.setGoogleId(googleId);
                 user.setEmailVerified(true);
                 user.setFullName(firstNonBlank(googleUser.getAttribute("name"), user.getFullName()));
@@ -139,6 +141,7 @@ public class AuthService {
             if (!user.getEmail().equalsIgnoreCase(email)) {
                 throw new IllegalStateException("Email Google không khớp với tài khoản đã liên kết");
             }
+            user.setDeletedAt(null);
             user.setEmailVerified(true);
             user.setFullName(firstNonBlank(googleUser.getAttribute("name"), user.getFullName()));
             user.setAvatarUrl(googleUser.getAttribute("picture"));
@@ -218,6 +221,12 @@ public class AuthService {
     public AuthDtos.UserResponse currentUser(String email) {
         User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow();
         return mapper.user(user);
+    }
+
+    @Transactional
+    public AuthDtos.AuthResponse session(String email) {
+        User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow();
+        return tokens(user);
     }
 
     @Transactional

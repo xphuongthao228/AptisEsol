@@ -10,6 +10,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @org.springframework.data.jpa.repository.Query("select u from User u where u.id = :id and u.deletedAt is null")
     Optional<User> findByIdForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
     Optional<User> findByEmailAndDeletedAtIsNull(String email);
+    Optional<User> findByEmail(String email);
     Optional<User> findByGoogleIdAndDeletedAtIsNull(String googleId);
+    Optional<User> findByGoogleId(String googleId);
     boolean existsByEmail(String email);
 }

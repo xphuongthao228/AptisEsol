@@ -77,6 +77,11 @@ public class AuthController {
         return ApiResponse.ok(authService.currentUser(authentication.getName()));
     }
 
+    @GetMapping("/session")
+    public ApiResponse<AuthDtos.AuthResponse> session(Authentication authentication) {
+        return ApiResponse.ok(authService.session(authentication.getName()));
+    }
+
     @PostMapping("/heartbeat")
     public ApiResponse<AuthDtos.HeartbeatResponse> heartbeat(Authentication authentication,
             @RequestBody(required = false) AuthDtos.HeartbeatRequest request) {

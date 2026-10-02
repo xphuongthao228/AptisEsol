@@ -10,6 +10,7 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   loginWithGoogle: () => void;
   register: (fullName: string, email: string, password: string) => Promise<OtpResponse>;
+  setAuth: (data: AuthResponse) => void;
   setUser: (user: User) => void;
   logout: () => Promise<void>;
 }
@@ -31,6 +32,11 @@ export const useAuthStore = create<AuthState>()(
       register: async (fullName, email, password) => {
         return unwrap<OtpResponse>(publicApi.post('/auth/register', { fullName, email, password }));
       },
+      setAuth: (data) => set({
+        user: data.user,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken
+      }),
       setUser: (user) => set({ user }),
       logout: async () => {
         const refreshToken = get().refreshToken;

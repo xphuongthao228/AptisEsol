@@ -6,7 +6,7 @@ import type { RoleName, User } from '../types';
 import { userHasRole } from '../utils/roles';
 
 export function ProtectedRoute({ role }: { role?: RoleName }) {
-  const { user, accessToken, refreshToken, setUser } = useAuthStore();
+  const { user, refreshToken, setUser } = useAuthStore();
   const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
   const [restoring, setRestoring] = useState(false);
   const [restoreFailed, setRestoreFailed] = useState(false);
@@ -56,7 +56,9 @@ export function ProtectedRoute({ role }: { role?: RoleName }) {
     );
   }
 
-  if (!accessToken || !user) return <Navigate to="/login" replace />;
+  // OAuth stores the JWT in an HttpOnly cookie, so the browser can have a
+  // valid authenticated user even when no token is available in localStorage.
+  if (!user) return <Navigate to="/login" replace />;
   if (role && !userHasRole(user, role)) {
     return <Navigate to={userHasRole(user, 'ADMIN') ? '/admin' : '/app'} replace />;
   }
