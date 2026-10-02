@@ -432,7 +432,12 @@ public class MockTestService {
         return switch (skill) {
             case "SPEAKING" -> "SPEAKING_PART" + (normalizedPart.isBlank() ? "1" : normalizedPart);
             case "LISTENING" -> "LISTENING_AUDIO_MC";
-            case "READING" -> normalizedPart.equals("2") || normalizedPart.equals("3") ? "READING_SENTENCE_ORDER" : "READING_GAP_FILL";
+            case "READING" -> switch (normalizedPart.replaceAll("\\D+", "")) {
+                case "2" -> "READING_SENTENCE_ORDER";
+                case "3" -> "READING_FORUM_MATCH";
+                case "4" -> "READING_HEADING_MATCH";
+                default -> "READING_GAP_FILL";
+            };
             case "WRITING" -> "WRITING_PART" + (normalizedPart.isBlank() ? "1" : normalizedPart);
             case "GRAMMAR" -> "GRAMMAR_MC";
             default -> "FULL_ROW";

@@ -382,9 +382,10 @@ function isQuestionInPart(question: Question, skill: SkillType, part: number) {
   if (skill === 'READING') {
     const name = String(template?.template ?? '').toUpperCase();
     if (part === 1 && name === 'READING_GAP_FILL') return true;
-    if ((part === 2 || part === 3) && name === 'READING_SENTENCE_ORDER') return part === 3 ? raw.includes('part 3') : !raw.includes('part 3');
-    if (part === 4 && name === 'READING_FORUM_MATCH') return true;
-    if (part === 5 && name === 'READING_HEADING_MATCH') return true;
+    if (part === 2 && name === 'READING_SENTENCE_ORDER') return true;
+    if (part === 3 && name === 'READING_FORUM_MATCH') return true;
+    if (part === 4 && name === 'READING_HEADING_MATCH') return true;
+    if (['READING_GAP_FILL', 'READING_SENTENCE_ORDER', 'READING_FORUM_MATCH', 'READING_HEADING_MATCH'].includes(name)) return false;
   }
   return new RegExp(`\\b(part|phan|p|set)\\s*${part}\\b|\\b${part}\\s*(/|-)`, 'i').test(raw);
 }

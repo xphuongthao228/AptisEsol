@@ -387,9 +387,19 @@ export function SkillQuestionParts() {
     [selectedSkill, tests.map((test) => test.id).join(',')]
   );
   const writingTopics = useMemo(() => getWritingClubTopics(writingGroups ?? []), [writingGroups]);
+  const { data: partQuestionGroups, loading: partQuestionsLoading, error: partQuestionsError } = useApi<Array<{ test: Test; questions: Question[] }>>(
+    async () => {
+      if (!selectedSkill || selectedSkill === 'WRITING' || !tests.length) return [];
+      return Promise.all(tests.map(async (test) => ({
+        test,
+        questions: await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`))
+      })));
+    },
+    [selectedSkill, tests.map((test) => test.id).join(',')]
+  );
 
-  if (loading || (selectedSkill === 'WRITING' && writingLoading)) return <InfoCard>Đang tải danh sách...</InfoCard>;
-  if (error || (selectedSkill === 'WRITING' && writingError)) return <InfoCard error>{error || writingError}</InfoCard>;
+  if (loading || (selectedSkill === 'WRITING' && writingLoading) || (selectedSkill !== 'WRITING' && partQuestionsLoading)) return <InfoCard>Đang tải danh sách...</InfoCard>;
+  if (error || (selectedSkill === 'WRITING' && writingError) || (selectedSkill !== 'WRITING' && partQuestionsError)) return <InfoCard error>{error || (selectedSkill === 'WRITING' ? writingError : partQuestionsError)}</InfoCard>;
   if (!skill) return <InfoCard>Không tìm thấy kỹ năng.</InfoCard>;
 
   if (selectedSkill === 'WRITING') {
@@ -433,7 +443,9 @@ export function SkillQuestionParts() {
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {partsForSkill(selectedSkill).map((part) => {
-            const displayTests = filterTestsByPart(tests, part);
+            const displayTests = (partQuestionGroups ?? [])
+              .filter(({ test, questions }) => questions.some((question) => isQuestionInPart(question, selectedSkill, part, test)))
+              .map(({ test }) => test);
           const firstTest = displayTests[0];
           return (
             <div className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft" key={part}>
@@ -745,11 +757,13 @@ function isQuestionInPart(question: Question, skill: SkillType | '', part: numbe
   if (skill === 'READING') {
     const templateName = String(template?.template ?? '').toUpperCase();
     if (part === 1 && templateName === 'READING_GAP_FILL') return true;
-    if ((part === 2 || part === 3) && templateName === 'READING_SENTENCE_ORDER') {
-      return part === 3 ? content.includes('part 3') : !content.includes('part 3');
+    if (part === 2 && templateName === 'READING_SENTENCE_ORDER') return true;
+    if (part === 3 && templateName === 'READING_FORUM_MATCH') return true;
+    if (part === 4 && templateName === 'READING_HEADING_MATCH') return true;
+
+    if (['READING_GAP_FILL', 'READING_SENTENCE_ORDER', 'READING_FORUM_MATCH', 'READING_HEADING_MATCH'].includes(templateName)) {
+      return false;
     }
-    if (part === 4 && templateName === 'READING_FORUM_MATCH') return true;
-    if (part === 5 && templateName === 'READING_HEADING_MATCH') return true;
   }
 
   return new RegExp(`\\b(part|phan|p|set)\\s*${part}\\b|\\b${part}\\s*(/|-)`, 'i').test(content);
