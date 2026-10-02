@@ -54,30 +54,34 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            String header = request.getHeader("Authorization");
             String cookieToken = request.getCookies() == null ? null
                     : java.util.Arrays.stream(request.getCookies())
                     .filter(cookie -> "aptis_access_token".equals(cookie.getName()))
                     .map(jakarta.servlet.http.Cookie::getValue)
                     .findFirst().orElse(null);
-            if (cookieToken != null) {
-                header = "Bearer " + cookieToken;
-            }
-        }
-        if (header != null && header.startsWith("Bearer ")
-                && SecurityContextHolder.getContext().getAuthentication() == null) {
-            String token = header.substring(7);
-            try {
-                UserDetails details = userDetailsService.loadUserByUsername(jwtService.subject(token));
-                if (jwtService.valid(token, details)) {
-                    UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(details, null,
-                            details.getAuthorities());
-                    auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                    SecurityContextHolder.getContext().setAuthentication(auth);
+
+            // Prefer the Authorization header, but fall back to the OAuth
+            // HttpOnly cookie when a persisted browser token has expired.
+            String[] candidates = header != null && header.startsWith("Bearer ")
+                    ? new String[] { header.substring(7), cookieToken }
+                    : new String[] { cookieToken };
+
+            for (String token : candidates) {
+                if (token == null || token.isBlank()) continue;
+                try {
+                    UserDetails details = userDetailsService.loadUserByUsername(jwtService.subject(token));
+                    if (jwtService.valid(token, details)) {
+                        UsernamePasswordAuthenticationToken auth =
+                                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+                        auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                        break;
+                    }
+                } catch (RuntimeException ignored) {
+                    // Try the next token, usually the fresh OAuth cookie.
                 }
-            } catch (RuntimeException ignored) {
-                SecurityContextHolder.clearContext();
             }
         }
         chain.doFilter(request, response);

@@ -276,7 +276,7 @@ export function TestPartMenu() {
             const partGroups = (selectedPracticeGroups ?? [])
               .map(({ test, questions }) => ({
                 test,
-                questions: questions.filter((question) => isQuestionInPart(question, selectedSkill.type, part))
+                questions: questions.filter((question) => isQuestionInPart(question, selectedSkill.type, part, test))
               }))
               .filter(({ questions }) => questions.length > 0);
             const firstGroup = partGroups[0];
@@ -309,9 +309,8 @@ export function TestPartMenu() {
             return (
               <Link
                 key={`${selectedSkill.type}-${part}`}
-                to={`/app/tests/questions/${selectedSkill.type}/part/${part}`}
+                to={`/app/tests/${firstGroup.test.id}`}
                 state={{ returnTo: `/app/tests/parts?skill=${selectedSkill.type}` }}
-                onClick={requireLogin}
                 className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
               >
                 {cardContent}
@@ -320,6 +319,45 @@ export function TestPartMenu() {
           })}
         </section>
       )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-7">
+      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
+        <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-bold text-blue-100"><ArrowLeft size={18} />Quay lại luyện tập</Link>
+        <p className="mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-200">Luyện tập theo part</p>
+        <h1 className="mt-3 text-4xl font-extrabold">Chọn kỹ năng và part</h1>
+        <p className="mt-3 max-w-2xl text-slate-300">Học viên chọn trực tiếp Part 1, 2, 3 hoặc 4 của từng kỹ năng.</p>
+      </section>
+
+      <section className="grid gap-5">
+        {skillCards.map((skill) => (
+          <div key={skill.type} className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft">
+            <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
+              <div className="flex gap-4">
+                <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${skill.accent}`}>{skill.icon}</div>
+                <div>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Theo part</p>
+                  <h2 className="mt-1 text-2xl font-extrabold text-navy">{skill.title}</h2>
+                  <p className="mt-2 leading-7 text-slate-600">{skill.subtitle}</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[420px]">
+                {partsForSkill(skill.type).map((part) => (
+                  <Link
+                    key={`${skill.type}-${part}`}
+                    to={`/app/tests/questions/${skill.type}/part/${part}`}
+                    className="flex h-12 items-center justify-center rounded-xl border border-brand-200 bg-white text-sm font-extrabold text-brand-700 transition hover:border-brand-400 hover:bg-brand-50"
+                  >
+                    Part {part}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </section>
     </div>
   );
 }
@@ -447,7 +485,7 @@ export function SkillPartQuestions() {
       const groups = await Promise.all(partTests.map(async (test) => ({
         test,
         questions: (await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`)))
-          .filter((question) => isQuestionInPart(question, selectedSkill, selectedPart))
+          .filter((question) => isQuestionInPart(question, selectedSkill, selectedPart, test))
       })));
       return groups.filter((group) => group.questions.length > 0);
     },
@@ -676,10 +714,12 @@ function isPartPracticeSource(test: Test) {
   return test.status === 'PUBLISHED' && hasImportedQuestions(test);
 }
 
-function isQuestionInPart(question: Question, skill: SkillType | '', part: number) {
+function isQuestionInPart(question: Question, skill: SkillType | '', part: number, test?: Test) {
   const template = parseQuestionTemplate(question.content);
   const rawPart = template && 'part' in template ? String((template as { part?: unknown }).part ?? '') : '';
   const content = normalizePartSearchText([
+    test?.title,
+    test?.description,
     question.topic,
     question.content,
     question.explanation,
