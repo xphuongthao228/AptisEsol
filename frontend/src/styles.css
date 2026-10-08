@@ -7561,3 +7561,53 @@ html.dark[data-student-skin="halloween"] .mock-assessment-mode .mock-mic-check-i
   stroke: #2b075c !important;
 }
 
+.student-shell .account-menu-panel,
+html[data-student-skin="halloween"] .student-shell .account-menu-panel,
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-panel {
+  background: #ffffff !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .account-menu-panel :where(p, span, svg),
+html[data-student-skin="halloween"] .student-shell .account-menu-panel :where(p, span, svg),
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-panel :where(p, span, svg) {
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .account-menu-link,
+.student-shell .account-menu-link :where(svg, span),
+html[data-student-skin="halloween"] .student-shell .account-menu-link,
+html[data-student-skin="halloween"] .student-shell .account-menu-link :where(svg, span),
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-link,
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-link :where(svg, span) {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+.student-shell .account-menu-link:hover,
+html[data-student-skin="halloween"] .student-shell .account-menu-link:hover,
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-link:hover {
+  background: #f1f5f9 !important;
+  color: #2b075c !important;
+  -webkit-text-fill-color: #2b075c !important;
+}
+
+.student-shell .account-menu-logout,
+.student-shell .account-menu-logout :where(svg, span),
+html[data-student-skin="halloween"] .student-shell .account-menu-logout,
+html[data-student-skin="halloween"] .student-shell .account-menu-logout :where(svg, span),
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-logout,
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-logout :where(svg, span) {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+.student-shell .account-menu-logout:hover,
+html[data-student-skin="halloween"] .student-shell .account-menu-logout:hover,
+html.dark[data-student-skin="halloween"] .student-shell .account-menu-logout:hover {
+  background: #fef2f2 !important;
+}
+

@@ -308,14 +308,14 @@ export function AppLayout() {
                     )}
                   </button>
                   {accountMenuOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-3 w-64 overflow-hidden rounded-2xl border border-brand-100 bg-white p-2 text-left shadow-lift">
+                    <div className="account-menu-panel absolute right-0 top-full z-50 mt-3 w-64 overflow-hidden rounded-2xl border border-brand-100 bg-white p-2 text-left shadow-lift">
                       <div className="border-b border-brand-100 px-3 py-3">
                         <p className="truncate text-sm font-extrabold text-navy">{user?.fullName ?? 'Học viên'}</p>
                         <p className="mt-1 truncate text-xs font-semibold text-slate-500">{user?.email}</p>
                       </div>
                       <Link
                         to={isAdmin ? '/admin' : '/app/settings'}
-                        className="mt-2 flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700"
+                        className="account-menu-link mt-2 flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-bold text-slate-700 transition hover:bg-brand-50 hover:text-brand-700"
                       >
                         <UserRound size={17} />
                         Profile
@@ -323,7 +323,7 @@ export function AppLayout() {
                       <button
                         type="button"
                         onClick={signOut}
-                        className="flex h-10 w-full items-center gap-2 rounded-xl px-3 text-sm font-bold text-red-600 transition hover:bg-red-50"
+                        className="account-menu-logout flex h-10 w-full items-center gap-2 rounded-xl px-3 text-sm font-bold text-red-600 transition hover:bg-red-50"
                       >
                         <LogOut size={17} />
                         Đăng xuất
