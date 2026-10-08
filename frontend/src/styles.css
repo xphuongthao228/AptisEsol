@@ -64,6 +64,52 @@ html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-s
   pointer-events: auto !important;
 }
 
+.student-shell .mock-tests-page .mock-halloween-hero {
+  min-height: auto !important;
+  overflow: visible !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  background:
+    radial-gradient(circle at 90% 18%, rgba(59, 130, 246, 0.12), transparent 14rem),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 58%, #fff7ed 100%) !important;
+  color: #111827 !important;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08) !important;
+}
+
+.student-shell .mock-tests-page .mock-halloween-hero::before,
+.student-shell .mock-tests-page .mock-halloween-hero::after,
+.student-shell .mock-tests-page .halloween-scene {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+.student-shell .mock-tests-page .mock-halloween-hero h1,
+.student-shell .mock-tests-page .mock-halloween-hero .text-blue-50\/90,
+.student-shell .mock-tests-page .mock-halloween-hero .text-orange-50\/90 {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .mock-tests-page .mock-skill-tabs,
+.student-shell .mock-tests-page .mock-selection-card {
+  position: relative;
+  z-index: 20;
+}
+
+.student-shell .mock-tests-page .mock-skill-tabs button {
+  pointer-events: auto !important;
+}
+
+.student-shell .mock-tests-page.student-decor-page::before,
+.student-shell .mock-tests-page.student-decor-page::after,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page.student-decor-page::before,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page.student-decor-page::after,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page.student-decor-page::before,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page.student-decor-page::after {
+  content: none !important;
+  display: none !important;
+}
+
 html[data-student-skin="halloween"] .student-shell > header {
   border-color: rgba(251, 146, 60, 0.7) !important;
   background: linear-gradient(90deg, #12051f, #3b104f 52%, #190626) !important;
