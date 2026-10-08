@@ -652,20 +652,50 @@ public class AiScoringService {
             ArrayNode normalized = objectMapper.createArrayNode();
             root.path("corrections").forEach(item -> {
                 if (item.isTextual()) {
-                    normalized.add(item.asText());
+                    String text = item.asText("");
+                    ObjectNode correctionNode = objectMapper.createObjectNode();
+                    correctionNode.put("partTitle", "");
+                    correctionNode.put("original", extractLegacyCorrectionValue(text, "Original:"));
+                    correctionNode.put("correction", extractLegacyCorrectionValue(text, "Correction:"));
+                    correctionNode.put("explanation", extractLegacyCorrectionValue(text, "Explanation:"));
+                    if (correctionNode.path("original").asText().isBlank()
+                            && correctionNode.path("correction").asText().isBlank()
+                            && correctionNode.path("explanation").asText().isBlank()) {
+                        correctionNode.put("explanation", text);
+                    }
+                    normalized.add(correctionNode);
                     return;
                 }
                 String original = item.path("original").asText("");
                 String correction = item.path("correction").asText("");
                 String explanation = item.path("explanation").asText("");
-                String text = List.of(original, correction, explanation).stream()
-                        .filter(value -> value != null && !value.isBlank())
-                        .collect(Collectors.joining(" -> "));
-                normalized.add(text.isBlank() ? item.toString() : text);
+                ObjectNode correctionNode = objectMapper.createObjectNode();
+                correctionNode.put("partTitle", item.path("partTitle").asText(item.path("part").asText("")));
+                correctionNode.put("original", original);
+                correctionNode.put("correction", correction);
+                correctionNode.put("explanation", explanation);
+                normalized.add(correctionNode);
             });
             objectNode.set("corrections", normalized);
         }
         return root;
+    }
+
+    private String extractLegacyCorrectionValue(String text, String label) {
+        String value = blankToEmpty(text);
+        int start = value.indexOf(label);
+        if (start < 0) {
+            return "";
+        }
+        start += label.length();
+        int end = value.length();
+        for (String nextLabel : List.of("Original:", "Correction:", "Explanation:")) {
+            int next = value.indexOf(nextLabel, start);
+            if (next >= 0) {
+                end = Math.min(end, next);
+            }
+        }
+        return value.substring(start, end).replace("|", "").trim();
     }
 
     private JsonNode normalizeSpeakingJson(String content) throws Exception {
@@ -696,7 +726,34 @@ public class AiScoringService {
         normalized.set("pronunciationTips", textArray(root.path("weaknesses"), "Chưa thể đánh giá phát âm thật chi tiết từ dữ liệu hiện tại."));
         normalized.set("fluencyTips", textArray(root.path("improvement_suggestions"), "Develop each answer with reasons, examples, and linking words."));
         normalized.put("improvedAnswer", buildImprovedSpeakingAnswer(root));
+        normalized.set("corrections", normalizeSpeakingCorrections(root.path("corrections")));
+        normalized.put("sampleAnswer", root.path("sample_answer").asText(root.path("sampleAnswer").asText("")));
         return normalized;
+    }
+
+    private ArrayNode normalizeSpeakingCorrections(JsonNode source) {
+        ArrayNode corrections = objectMapper.createArrayNode();
+        if (!source.isArray()) {
+            return corrections;
+        }
+        source.forEach(item -> {
+            if (!item.isObject()) {
+                return;
+            }
+            String original = item.path("original").asText("");
+            String correction = item.path("correction").asText("");
+            String explanation = item.path("explanation").asText("");
+            if (original.isBlank() && correction.isBlank() && explanation.isBlank()) {
+                return;
+            }
+            ObjectNode node = objectMapper.createObjectNode();
+            node.put("partTitle", item.path("partTitle").asText(item.path("part").asText("")));
+            node.put("original", original);
+            node.put("correction", correction);
+            node.put("explanation", learnerSafeSpeakingText(explanation));
+            corrections.add(node);
+        });
+        return corrections;
     }
 
     private AiDtos.SpeakingScoreResponse fallbackSpeakingScore(AiDtos.SpeakingScoreRequest request) {
@@ -729,6 +786,8 @@ public class AiScoringService {
                 List.of("Kiểm tra quyền microphone của trình duyệt.", "Nói rõ hơn, gần microphone hơn và tránh tiếng ồn nền.", "Dùng Chrome/Edge để trình duyệt hỗ trợ nhận diện giọng nói tốt hơn."),
                 List.of("Trả lời trực tiếp câu hỏi, sau đó thêm lý do và ví dụ.", "Nói thành câu hoàn chỉnh thay vì từng từ rời.", "Dùng từ nối như because, for example, in my opinion để bài nói mạch lạc hơn."),
                 "I think it is important to answer the question directly, give one clear reason, and add a short example from personal experience.",
+                List.of(),
+                "Part 1: I answer personal questions directly and add a reason or example. Part 2: I describe the picture clearly and explain my opinion. Part 3: I compare the pictures and give reasons. Part 4: I give my opinion, support it with examples, and finish clearly.",
                 List.of()
         );
         return withAudioDiagnostics(result, request);
@@ -762,6 +821,8 @@ public class AiScoringService {
                 result.pronunciationTips(),
                 result.fluencyTips(),
                 result.improvedAnswer(),
+                result.corrections(),
+                result.sampleAnswer(),
                 diagnostics);
     }
 

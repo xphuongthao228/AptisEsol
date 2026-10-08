@@ -70,8 +70,15 @@ type AiWritingScore = {
   summary: string;
   criteria: { name: string; score: number; feedback: string }[];
   parts: { title: string; score: number; feedback: string }[];
-  corrections: string[];
+  corrections: WritingCorrection[];
   suggestedAnswer: string;
+};
+
+type WritingCorrection = {
+  partTitle?: string;
+  original?: string;
+  correction?: string;
+  explanation?: string;
 };
 
 type AiSpeakingScore = {
@@ -83,6 +90,8 @@ type AiSpeakingScore = {
   pronunciationTips: string[];
   fluencyTips: string[];
   improvedAnswer: string;
+  corrections?: SpeakingCorrection[];
+  sampleAnswer?: string;
   audioDiagnostics?: {
     title: string;
     status: 'RECOGNIZED' | 'NOT_RECOGNIZED' | 'NO_AUDIO';
@@ -90,6 +99,13 @@ type AiSpeakingScore = {
     audioSizeBytes: number;
     transcript: string;
   }[];
+};
+
+type SpeakingCorrection = {
+  partTitle?: string;
+  original?: string;
+  correction?: string;
+  explanation?: string;
 };
 
 type SpeakingScorePartPayload = {
@@ -4144,7 +4160,12 @@ export function MockTests() {
         { name: 'Tone/register', score: 0, feedback: 'Chưa đánh giá được văn phong vì AI chưa trả kết quả.' }
       ],
       parts: partFeedback,
-      corrections: ['Bạn có thể thử chấm lại sau hoặc rút gọn câu trả lời nếu nội dung quá dài.'],
+      corrections: [{
+        partTitle: '',
+        original: '',
+        correction: '',
+        explanation: 'Bạn có thể thử chấm lại sau hoặc rút gọn câu trả lời nếu nội dung quá dài.'
+      }],
       suggestedAnswer: 'Khi AI hoạt động lại, nộp lại bài Writing để nhận nhận xét chi tiết, lỗi cần sửa và bài gợi ý.'
     };
   }
@@ -4262,7 +4283,9 @@ export function MockTests() {
       }),
       pronunciationTips: result.pronunciationTips.map((tip) => learnerSafeSpeakingFeedback(tip)),
       fluencyTips: result.fluencyTips.map((tip) => learnerSafeSpeakingFeedback(tip)),
-      improvedAnswer: learnerSafeSpeakingFeedback(result.improvedAnswer)
+      improvedAnswer: learnerSafeSpeakingFeedback(result.improvedAnswer),
+      corrections: normalizeSpeakingCorrections(result.corrections),
+      sampleAnswer: learnerSafeSpeakingFeedback(result.sampleAnswer ?? '')
     };
   }
 
@@ -4328,7 +4351,9 @@ export function MockTests() {
       parts: partFeedback,
       pronunciationTips: ['Kiểm tra quyền microphone.', 'Nói gần microphone hơn và tránh tiếng ồn.', 'Dùng Chrome hoặc Edge để nhận diện giọng nói tốt hơn.'],
       fluencyTips: ['Trả lời trực tiếp câu hỏi.', 'Thêm một lý do và một ví dụ.', 'Dùng because, for example, in my opinion để nối ý.'],
-      improvedAnswer: ''
+      improvedAnswer: '',
+      corrections: [],
+      sampleAnswer: ''
     };
   }
 
@@ -6640,13 +6665,18 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
   }
 
   if (result) {
+    const writingRadarItems = (result.criteria ?? []).map((item) => ({
+      label: item.name,
+      score: clampScore10(item.score)
+    }));
+    const corrections = normalizeWritingCorrections(result.corrections);
     return (
       <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
-        <section style={{ width: 'min(920px, 100%)', margin: '0 auto' }}>
+        <section style={{ width: 'min(1080px, 100%)', margin: '0 auto' }}>
           <article style={{ borderRadius: 18, border: '1px solid #bbf7d0', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
             <div style={{ textAlign: 'center' }}>
               <CheckCircle2 size={74} color="#16a34a" style={{ margin: '0 auto' }} />
-              <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Ket qua Writing AI</h1>
+              <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Kết quả Writing AI</h1>
               <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '12px auto 0', maxWidth: 650 }}>{result.summary}</p>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14, marginTop: 28 }}>
@@ -6659,6 +6689,30 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
                 <p style={{ color: '#111827', fontSize: 28, fontWeight: 900, margin: '8px 0 0' }}>{result.cefrLevel}</p>
               </div>
             </div>
+            {writingRadarItems.length > 0 && (
+              <div style={{ marginTop: 24, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+                <div style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 18 }}>
+                  <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Bảng điểm tiêu chí</h2>
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    {writingRadarItems.map((item) => (
+                      <div key={item.label}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                          <span style={{ color: '#111827', fontSize: 14, fontWeight: 800 }}>{item.label}</span>
+                          <span style={{ color: '#d81e0c', fontSize: 14, fontWeight: 900 }}>{item.score}/10</span>
+                        </div>
+                        <div style={{ height: 8, borderRadius: 999, backgroundColor: '#e2e8f0', overflow: 'hidden', marginTop: 6 }}>
+                          <div style={{ width: `${item.score * 10}%`, height: '100%', backgroundColor: '#d81e0c' }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div style={{ borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: 18 }}>
+                  <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: '0 0 10px' }}>Radar kỹ năng Writing</h2>
+                  <RadarScoreChart items={writingRadarItems} maxScore={10} />
+                </div>
+              </div>
+            )}
             <div style={{ marginTop: 16, display: 'grid', gap: 12 }}>
               {result.parts?.map((part) => (
                 <div key={part.title} style={{ borderRadius: 14, border: '1px solid #e2e8f0', backgroundColor: '#ffffff', padding: 16 }}>
@@ -6680,14 +6734,28 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
                 </div>
               </div>
             )}
-            {result.corrections?.length > 0 && (
+            {corrections.length > 0 && (
               <div style={{ marginTop: 24 }}>
-                <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Lỗi cần sửa</h2>
+                <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: '0 0 12px' }}>Câu sai được highlight và gợi ý sửa</h2>
                 <div style={{ display: 'grid', gap: 10 }}>
-                  {result.corrections.map((correction, index) => (
-                    <div key={`${correction}-${index}`} style={{ borderRadius: 14, border: '1px solid #fed7aa', backgroundColor: '#fff7ed', padding: 16 }}>
-                      <p style={{ color: '#9a3412', fontSize: 14, fontWeight: 900, margin: 0 }}>Lời {index + 1}</p>
-                      <p style={{ color: '#7c2d12', fontSize: 14, lineHeight: '23px', margin: '6px 0 0', whiteSpace: 'pre-wrap' }}>{correction}</p>
+                  {corrections.map((correction, index) => (
+                    <div key={`${correction.original ?? correction.explanation}-${index}`} style={{ borderRadius: 14, border: '1px solid #fed7aa', backgroundColor: '#fff7ed', padding: 16 }}>
+                      <p style={{ color: '#9a3412', fontSize: 14, fontWeight: 900, margin: 0 }}>
+                        Lỗi {index + 1}{correction.partTitle ? ` - ${correction.partTitle}` : ''}
+                      </p>
+                      {correction.original && (
+                        <p style={{ color: '#7c2d12', fontSize: 15, lineHeight: '24px', margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
+                          {highlightWrongSentence(correction.original)}
+                        </p>
+                      )}
+                      {correction.correction && (
+                        <p style={{ color: '#166534', fontSize: 15, lineHeight: '24px', margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>
+                          Gợi ý: <strong>{correction.correction}</strong>
+                        </p>
+                      )}
+                      {correction.explanation && (
+                        <p style={{ color: '#7c2d12', fontSize: 14, lineHeight: '23px', margin: '8px 0 0', whiteSpace: 'pre-wrap' }}>{correction.explanation}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -6696,7 +6764,13 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
             {result.suggestedAnswer?.trim() && (
               <div style={{ marginTop: 24, borderRadius: 14, border: '1px solid #bfdbfe', backgroundColor: '#eff6ff', padding: 18 }}>
                 <h2 style={{ color: '#111827', fontSize: 20, fontWeight: 900, margin: 0 }}>Bài gợi ý sau khi sửa</h2>
-                <p style={{ color: '#1e3a8a', fontSize: 15, lineHeight: '25px', margin: '10px 0 0', whiteSpace: 'pre-wrap' }}>{result.suggestedAnswer}</p>
+                <div style={{ display: 'grid', gap: 12, marginTop: 12 }}>
+                  {formatSuggestedWritingAnswer(result.suggestedAnswer).map((block, index) => (
+                    <p key={`${block.title}-${index}`} style={{ color: '#1e3a8a', fontSize: 15, lineHeight: '25px', margin: 0, whiteSpace: 'pre-wrap' }}>
+                      {block.title && <strong>{block.title}: </strong>}{block.text}
+                    </p>
+                  ))}
+                </div>
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
@@ -8237,6 +8311,8 @@ function FullResult({
     { label: 'Grammar', score: grammarScore, band: null },
     { label: 'Overall', score: overallScore, band: overallCefr }
   ];
+  const writingCriteriaRows = (writing?.criteria ?? []).map((item) => ({ label: item.name, score: clampScore10(item.score) }));
+  const writingCorrections = normalizeWritingCorrections(writing?.corrections);
   const reportDate = new Intl.DateTimeFormat('vi-VN').format(new Date());
 
   return (
@@ -8276,22 +8352,15 @@ function FullResult({
 
               <div>
                 <h2 className="mb-4 text-lg font-black text-[#25236b]">Hồ sơ CEFR</h2>
-                <div className="overflow-x-auto border border-slate-200 p-4">
-                  <div className="grid min-w-[430px] grid-cols-[30px_repeat(6,minmax(48px,1fr))] gap-x-2">
-                    <div className="relative h-52 text-[10px] font-bold text-slate-500">
-                      <span className="absolute -top-1 right-0">C1</span>
-                      <span className="absolute right-0 top-[20%]">B2</span>
-                      <span className="absolute right-0 top-[40%]">B1</span>
-                      <span className="absolute right-0 top-[60%]">A2</span>
-                      <span className="absolute bottom-0 right-0">A1</span>
-                    </div>
+                <div className="border border-slate-200 bg-slate-50 p-4">
+                  <RadarScoreChart items={chartColumns.map((column) => ({ label: column.label, score: column.score }))} maxScore={50} />
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-600 sm:grid-cols-3">
                     {chartColumns.map((column) => (
-                      <div key={column.label} className="flex h-52 items-end justify-center bg-white px-2">
-                        {column.score !== null && <div className="relative w-full max-w-12 bg-[#e52b50]" style={{ height: `${Math.max(4, (column.score / 50) * 100)}%` }}><span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-black text-[#25236b]">{column.band ?? column.score}</span></div>}
-                      </div>
+                      <span key={column.label} className="flex items-center justify-between gap-2 border border-slate-200 bg-white px-2 py-1">
+                        {column.label}
+                        <b className="text-[#25236b]">{column.score === null ? '--' : column.band ?? column.score}</b>
+                      </span>
                     ))}
-                    <span />
-                    {chartColumns.map((column) => <span key={column.label} className="break-words pt-2 text-center text-[9px] font-bold leading-3 text-slate-600">{column.label}</span>)}
                   </div>
                 </div>
                 <div className="mt-5 grid grid-cols-2 gap-3"><FullResultStat label="Tổng điểm 4 kỹ năng" value={completeScores ? `${totalScore}/200` : '--'} /><FullResultStat label="Overall" value={overallCefr ?? '--'} /></div>
@@ -8299,6 +8368,86 @@ function FullResult({
             </div>
 
             <p className="mt-7 border-t border-slate-200 pt-5 text-xs leading-5 text-slate-500">Kết quả luyện tập do Aptis Lingo phát hành để theo dõi tiến độ học. Đây không phải chứng chỉ Aptis ESOL chính thức. Điểm biên CEFR được xét thêm bằng điểm Grammar & Vocabulary.</p>
+
+            {writing && (
+              <section className="mt-8 border-t border-slate-200 pt-7">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                  <div>
+                    <h2 className="m-0 text-xl font-black text-[#25236b]">Chi tiết Writing AI</h2>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{writing.summary}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-center">
+                    <FullResultStat label="Writing" value={`${clampScore50(writing.overallScore)}/50`} />
+                    <FullResultStat label="CEFR" value={writing.cefrLevel} />
+                  </div>
+                </div>
+
+                {writingCriteriaRows.length > 0 && (
+                  <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_320px]">
+                    <div className="border border-slate-200 bg-white p-4">
+                      <h3 className="m-0 text-base font-black text-slate-900">Bảng điểm tiêu chí</h3>
+                      <div className="mt-4 grid gap-3">
+                        {writingCriteriaRows.map((item) => (
+                          <div key={item.label}>
+                            <div className="flex items-center justify-between gap-3 text-sm font-bold">
+                              <span className="text-slate-900">{item.label}</span>
+                              <span className="text-[#e52b50]">{item.score}/10</span>
+                            </div>
+                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                              <div className="h-full bg-[#e52b50]" style={{ width: `${item.score * 10}%` }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="border border-slate-200 bg-slate-50 p-4">
+                      <h3 className="m-0 text-base font-black text-slate-900">Radar Writing</h3>
+                      <RadarScoreChart items={writingCriteriaRows} maxScore={10} />
+                    </div>
+                  </div>
+                )}
+
+                {writing.parts?.length > 0 && (
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    {writing.parts.map((part) => (
+                      <div key={part.title} className="border border-slate-200 bg-white p-4">
+                        <p className="m-0 text-sm font-black text-slate-900">{part.title} - {part.score}/50</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{part.feedback}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {writingCorrections.length > 0 && (
+                  <div className="mt-5">
+                    <h3 className="m-0 text-base font-black text-slate-900">Câu sai được highlight và gợi ý sửa</h3>
+                    <div className="mt-3 grid gap-3">
+                      {writingCorrections.map((correction, index) => (
+                        <div key={`${correction.original ?? correction.explanation}-${index}`} className="border border-orange-200 bg-orange-50 p-4">
+                          <p className="m-0 text-sm font-black text-orange-800">Lỗi {index + 1}{correction.partTitle ? ` - ${correction.partTitle}` : ''}</p>
+                          {correction.original && <p className="mt-2 text-sm leading-6 text-orange-900">{highlightWrongSentence(correction.original)}</p>}
+                          {correction.correction && <p className="mt-2 text-sm leading-6 text-green-700">Gợi ý: <strong>{correction.correction}</strong></p>}
+                          {correction.explanation && <p className="mt-2 text-sm leading-6 text-orange-900">{correction.explanation}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {writing.suggestedAnswer?.trim() && (
+                  <div className="mt-5 border border-blue-200 bg-blue-50 p-4">
+                    <h3 className="m-0 text-base font-black text-slate-900">Bài gợi ý sau khi sửa</h3>
+                    <div className="mt-3 grid gap-3">
+                      {formatSuggestedWritingAnswer(writing.suggestedAnswer).map((block, index) => (
+                        <p key={`${block.title}-${index}`} className="m-0 text-sm leading-6 text-blue-900 whitespace-pre-wrap">
+                          {block.title && <strong>{block.title}: </strong>}{block.text}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </section>
+            )}
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
@@ -8326,6 +8475,181 @@ function FullResultStat({ label, value }: { label: string; value: string }) {
       <p className="m-0 text-2xl font-black text-[#25236b]">{value}</p>
       <p className="mt-2 text-xs text-slate-500">{label}</p>
     </div>
+  );
+}
+
+function RadarScoreChart({ items, maxScore }: { items: { label: string; score: number | null }[]; maxScore: number }) {
+  const size = 260;
+  const center = size / 2;
+  const radius = 86;
+  const usableItems = items.filter((item) => item.score !== null);
+  if (usableItems.length < 3) {
+    return <p className="text-sm font-semibold text-slate-500">Chưa đủ điểm để vẽ radar.</p>;
+  }
+  const points = usableItems.map((item, index) => radarPoint(index, usableItems.length, radius * ((item.score ?? 0) / maxScore), center));
+  const gridLevels = [0.25, 0.5, 0.75, 1];
+  return (
+    <div className="flex justify-center overflow-x-auto">
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} role="img" aria-label="Radar score chart">
+        {gridLevels.map((level) => (
+          <polygon key={level} points={usableItems.map((_, index) => {
+            const point = radarPoint(index, usableItems.length, radius * level, center);
+            return `${point.x},${point.y}`;
+          }).join(' ')} fill="none" stroke="#cbd5e1" strokeWidth="1" />
+        ))}
+        {usableItems.map((item, index) => {
+          const end = radarPoint(index, usableItems.length, radius, center);
+          const label = radarPoint(index, usableItems.length, radius + 28, center);
+          return (
+            <g key={item.label}>
+              <line x1={center} y1={center} x2={end.x} y2={end.y} stroke="#e2e8f0" strokeWidth="1" />
+              <text x={label.x} y={label.y} textAnchor="middle" dominantBaseline="middle" fill="#334155" fontSize="10" fontWeight="700">
+                {shortRadarLabel(item.label)}
+              </text>
+            </g>
+          );
+        })}
+        <polygon points={points.map((point) => `${point.x},${point.y}`).join(' ')} fill="rgba(216,30,12,0.18)" stroke="#d81e0c" strokeWidth="3" />
+        {points.map((point, index) => (
+          <circle key={usableItems[index].label} cx={point.x} cy={point.y} r="4" fill="#d81e0c" />
+        ))}
+      </svg>
+    </div>
+  );
+}
+
+function radarPoint(index: number, total: number, radius: number, center: number) {
+  const angle = (Math.PI * 2 * index) / total - Math.PI / 2;
+  return {
+    x: center + Math.cos(angle) * radius,
+    y: center + Math.sin(angle) * radius
+  };
+}
+
+function shortRadarLabel(label: string) {
+  return label.replace('Task achievement', 'Task').replace('Tone/register', 'Tone').replace('Vocabulary', 'Vocab');
+}
+
+function clampScore10(value: number) {
+  return Math.max(0, Math.min(10, Math.round(Number(value) || 0)));
+}
+
+function normalizeWritingCorrections(corrections: Array<WritingCorrection | string> | undefined): WritingCorrection[] {
+  return (corrections ?? [])
+    .map((item) => {
+      if (typeof item === 'string') {
+        return parseLegacyWritingCorrection(item);
+      }
+      if (!item.original && !item.correction && item.explanation?.includes('->')) {
+        return { ...parseLegacyWritingCorrection(item.explanation), partTitle: item.partTitle };
+      }
+      return item;
+    })
+    .map((item, index) => ({
+      ...item,
+      partTitle: normalizeWritingPartTitle(item.partTitle, item.original, index)
+    }))
+    .filter((item) => Boolean(item.original?.trim() || item.correction?.trim() || item.explanation?.trim()));
+}
+
+function parseLegacyWritingCorrection(text: string): WritingCorrection {
+  const chunks = text.split(/\s*->\s*/).map((value) => value.trim()).filter(Boolean);
+  if (chunks.length >= 3) {
+    return {
+      original: chunks[0],
+      correction: chunks[1],
+      explanation: chunks.slice(2).join(' -> ')
+    };
+  }
+  const original = extractLabelledCorrectionText(text, 'Original:');
+  const correction = extractLabelledCorrectionText(text, 'Correction:');
+  const explanation = extractLabelledCorrectionText(text, 'Explanation:');
+  if (original || correction || explanation) {
+    return { original, correction, explanation };
+  }
+  return { explanation: text };
+}
+
+function extractLabelledCorrectionText(text: string, label: string) {
+  const start = text.indexOf(label);
+  if (start < 0) return '';
+  const valueStart = start + label.length;
+  const nextIndexes = ['Original:', 'Correction:', 'Explanation:']
+    .map((nextLabel) => text.indexOf(nextLabel, valueStart))
+    .filter((index) => index >= 0);
+  const end = nextIndexes.length ? Math.min(...nextIndexes) : text.length;
+  return text.slice(valueStart, end).replace('|', '').trim();
+}
+
+function normalizeWritingPartTitle(partTitle: string | undefined, original: string | undefined, index: number) {
+  const explicit = partTitle?.trim();
+  if (explicit) {
+    const partMatch = explicit.match(/part\s*([1-4])/i);
+    return partMatch ? `Part ${partMatch[1]}` : explicit;
+  }
+  const source = original?.trim() ?? '';
+  const prefixMatch = source.match(/^part\s*([1-4])\s*[:.-]/i);
+  if (prefixMatch) return `Part ${prefixMatch[1]}`;
+  return `Part ${Math.min(index + 1, 4)}`;
+}
+
+function formatSuggestedWritingAnswer(text: string) {
+  const normalized = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\s+(Part\s*[1-4]\s*:)/gi, '\n\n$1')
+    .replace(/\s+(Email to friend\s*:)/gi, '\n\n$1')
+    .replace(/\s+(Email to president\s*:)/gi, '\n\n$1')
+    .trim();
+  const blocks = normalized.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+  return blocks.map((block) => {
+    const match = block.match(/^(Part\s*[1-4]|Email to friend|Email to president)\s*:\s*(.*)$/i);
+    if (!match) return { title: '', text: block };
+    return { title: match[1].replace(/\s+/g, ' '), text: match[2].trim() };
+  });
+}
+
+function normalizeSpeakingCorrections(corrections: SpeakingCorrection[] | undefined): SpeakingCorrection[] {
+  return (corrections ?? [])
+    .map((item, index) => ({
+      ...item,
+      partTitle: normalizeSpeakingPartTitle(item.partTitle, index),
+      explanation: item.explanation ? learnerSafeSpeakingDisplayText(item.explanation) : ''
+    }))
+    .filter((item) => Boolean(item.original?.trim() || item.correction?.trim() || item.explanation?.trim()));
+}
+
+function normalizeSpeakingPartTitle(partTitle: string | undefined, index: number) {
+  const explicit = partTitle?.trim();
+  if (explicit) {
+    const partMatch = explicit.match(/part\s*([1-4])(?:\D+question\s*([0-9]+))?/i);
+    if (partMatch?.[2]) return `Part ${partMatch[1]} - Question ${partMatch[2]}`;
+    if (partMatch?.[1]) return `Part ${partMatch[1]}`;
+    return explicit;
+  }
+  return `Part ${Math.min(index + 1, 4)}`;
+}
+
+function learnerSafeSpeakingDisplayText(text: string) {
+  return text
+    .replace(/transcript/gi, 'bài nói')
+    .replace(/speech-to-text/gi, 'nhận diện giọng nói')
+    .trim();
+}
+
+function formatSpeakingSampleAnswer(text: string) {
+  const normalized = text
+    .replace(/\r\n/g, '\n')
+    .replace(/\s+(Part\s*[1-4]\s*:)/gi, '\n\n$1')
+    .replace(/\s+(Question\s*[0-9]+\s*:)/gi, '\n$1')
+    .trim();
+  return normalized.split(/\n{2,}/).map((block) => block.trim()).filter(Boolean);
+}
+
+function highlightWrongSentence(text: string) {
+  return (
+    <mark style={{ backgroundColor: '#fde68a', color: '#7c2d12', borderRadius: 6, padding: '2px 5px', boxDecorationBreak: 'clone', WebkitBoxDecorationBreak: 'clone' }}>
+      {text}
+    </mark>
   );
 }
 
@@ -9740,6 +10064,9 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
   onScore: () => void;
   result: AiSpeakingScore | null;
 }) {
+  const speakingRadarItems = (result?.criteria ?? []).map((item) => ({ label: item.name, score: clampScore10(item.score) }));
+  const speakingCorrections = normalizeSpeakingCorrections(result?.corrections);
+  const sampleBlocks = result?.sampleAnswer?.trim() ? formatSpeakingSampleAnswer(result.sampleAnswer) : [];
   return (
     <main className="min-h-[calc(100vh-74px)] bg-[#f1f1f1] px-6 py-20">
       <section className="mx-auto max-w-[840px] rounded-2xl bg-white px-8 py-10 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
@@ -9771,6 +10098,30 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
               </div>
               <p className="mt-4 whitespace-pre-line text-sm leading-7 text-slate-700">{result.summary}</p>
             </div>
+            {speakingRadarItems.length > 0 && (
+              <div className="grid gap-4 rounded-xl border border-brand-100 p-5 lg:grid-cols-[1fr_320px]">
+                <div>
+                  <p className="text-sm font-extrabold uppercase text-slate-600">Bảng điểm tiêu chí</p>
+                  <div className="mt-4 grid gap-3">
+                    {speakingRadarItems.map((item) => (
+                      <div key={item.label}>
+                        <div className="flex items-center justify-between gap-3 text-sm font-bold">
+                          <span className="text-slate-900">{item.label}</span>
+                          <span className="text-[#2b075c]">{item.score}/10</span>
+                        </div>
+                        <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                          <div className="h-full bg-[#2b075c]" style={{ width: `${item.score * 10}%` }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-sky-50 p-4">
+                  <p className="text-sm font-extrabold uppercase text-slate-600">Radar Speaking</p>
+                  <RadarScoreChart items={speakingRadarItems} maxScore={10} />
+                </div>
+              </div>
+            )}
             {result.parts.length > 0 && (
               <div className="rounded-xl border border-brand-100 p-5">
                 <p className="text-sm font-extrabold uppercase text-slate-600">Điểm từng phần</p>
@@ -9781,8 +10132,40 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
                         <h3 className="font-extrabold text-navy">{part.title}</h3>
                         <span className="font-black text-[#2b075c]">{part.score}/50</span>
                       </div>
+                      {part.feedback && <p className="mt-2 text-sm leading-6 text-slate-600">{part.feedback}</p>}
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+            {speakingCorrections.length > 0 && (
+              <div className="rounded-xl border border-orange-200 bg-orange-50 p-5">
+                <p className="text-sm font-extrabold uppercase text-orange-800">Câu cần chỉnh sửa</p>
+                <div className="mt-3 grid gap-3">
+                  {speakingCorrections.map((correction, index) => (
+                    <div key={`${correction.original ?? correction.explanation}-${index}`} className="rounded-lg border border-orange-200 bg-white p-4">
+                      <p className="m-0 text-sm font-black text-orange-800">Lỗi {index + 1}{correction.partTitle ? ` - ${correction.partTitle}` : ''}</p>
+                      {correction.original && <p className="mt-2 text-sm leading-6 text-orange-900">{highlightWrongSentence(correction.original)}</p>}
+                      {correction.correction && <p className="mt-2 text-sm leading-6 text-green-700">Gợi ý: <strong>{correction.correction}</strong></p>}
+                      {correction.explanation && <p className="mt-2 text-sm leading-6 text-orange-900">{correction.explanation}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {(result.pronunciationTips.length > 0 || result.fluencyTips.length > 0) && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-white p-5">
+                  <p className="text-sm font-extrabold uppercase text-slate-600">Gợi ý phát âm</p>
+                  <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                    {result.pronunciationTips.map((tip, index) => <li key={`${tip}-${index}`}>- {tip}</li>)}
+                  </ul>
+                </div>
+                <div className="rounded-xl border border-slate-200 bg-white p-5">
+                  <p className="text-sm font-extrabold uppercase text-slate-600">Gợi ý độ trôi chảy</p>
+                  <ul className="mt-3 space-y-2 text-sm leading-6 text-slate-700">
+                    {result.fluencyTips.map((tip, index) => <li key={`${tip}-${index}`}>- {tip}</li>)}
+                  </ul>
                 </div>
               </div>
             )}
@@ -9791,6 +10174,14 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-emerald-950">
                 {result.improvedAnswer || 'Chưa có bài chỉnh lại cho phần này.'}
               </p>
+            </div>
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-5">
+              <p className="text-sm font-extrabold uppercase text-blue-700">Bài mẫu Speaking</p>
+              <div className="mt-3 grid gap-3">
+                {(sampleBlocks.length ? sampleBlocks : ['Chưa có bài mẫu cho lần chấm này.']).map((block, index) => (
+                  <p key={`${block}-${index}`} className="m-0 whitespace-pre-wrap text-sm leading-7 text-blue-950">{block}</p>
+                ))}
+              </div>
             </div>
           </div>
         )}

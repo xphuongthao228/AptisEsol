@@ -7,6 +7,63 @@
   box-sizing: border-box;
 }
 
+html[data-student-skin="halloween"] .student-shell .mock-tests-page,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page::before,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page::after,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page::before,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page::after {
+  pointer-events: none !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero {
+  min-height: auto !important;
+  overflow: visible !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  background:
+    radial-gradient(circle at 90% 18%, rgba(59, 130, 246, 0.12), transparent 14rem),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 58%, #fff7ed 100%) !important;
+  color: #111827 !important;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::before,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::after,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::before,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::after,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .halloween-scene,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .halloween-scene {
+  display: none !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero h1,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-blue-50\/90,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-orange-50\/90,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero h1,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-blue-50\/90,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-orange-50\/90 {
+  color: #111827 !important;
+  text-shadow: none !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-selection-card,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-selection-card {
+  position: relative;
+  z-index: 20;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs button,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs button {
+  pointer-events: auto !important;
+}
+
 html[data-student-skin="halloween"] .student-shell > header {
   border-color: rgba(251, 146, 60, 0.7) !important;
   background: linear-gradient(90deg, #12051f, #3b104f 52%, #190626) !important;
@@ -7281,4 +7338,56 @@ html.dark[data-student-skin="halloween"] .student-shell .renewal-plan-action.bg-
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
   box-shadow: 0 14px 30px rgba(239, 68, 68, 0.36) !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero {
+  min-height: auto !important;
+  overflow: visible !important;
+  border-color: rgba(226, 232, 240, 0.9) !important;
+  background:
+    radial-gradient(circle at 90% 18%, rgba(59, 130, 246, 0.12), transparent 14rem),
+    linear-gradient(135deg, #ffffff 0%, #f8fafc 58%, #fff7ed 100%) !important;
+  color: #111827 !important;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08) !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::before,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::after,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::before,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero::after,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .halloween-scene,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .halloween-scene {
+  display: none !important;
+  pointer-events: none !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero h1,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-blue-50\/90,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-orange-50\/90,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero h1,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-blue-50\/90,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-halloween-hero .text-orange-50\/90 {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs,
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-selection-card,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-selection-card {
+  position: relative;
+  z-index: 20;
+}
+
+html[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs button,
+html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-skill-tabs button {
+  pointer-events: auto !important;
 }

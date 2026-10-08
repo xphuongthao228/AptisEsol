@@ -42,7 +42,22 @@ Output JSON:
   },
   "strengths": [""],
   "weaknesses": [""],
-  "improvement_suggestions": [""]
+  "improvement_suggestions": [""],
+  "corrections": [
+    {
+      "partTitle": "Part 1 - Question 1",
+      "original": "exact wrong sentence or phrase from the transcript",
+      "correction": "natural corrected spoken sentence",
+      "explanation": "short Vietnamese explanation"
+    }
+  ],
+  "sample_answer": "A natural model Speaking answer covering the submitted questions."
 }
 
-Constraints: overall/part score 0-50; criterion scores 0-10; all feedback in concise Vietnamese.
+Constraints:
+- overall/part score 0-50; criterion scores 0-10; all feedback in concise Vietnamese.
+- corrections must focus on grammar, vocabulary, word choice, sentence structure, relevance, or fluency/coherence errors.
+- Do not invent pronunciation errors. Only include pronunciation advice in general tips if evidence supports it.
+- corrections original must copy the transcript text exactly so the UI can highlight it.
+- Include the most important 3-8 corrections. If the transcript is unusable, return an empty corrections array.
+- sample_answer should be a polished sample answer, organized by Part/Question where useful, and suitable for the learner's likely level + one step higher.

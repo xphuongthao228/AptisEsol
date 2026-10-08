@@ -25,7 +25,7 @@ public class AiScoringUsageService {
     private final AiScoringDailyUsageRepository usageRepository;
     private final UserRepository userRepository;
 
-    @Value("${app.ai.daily-scoring-limit:10}")
+    @Value("${app.ai.daily-scoring-limit:30}")
     private int dailyScoringLimit;
 
     @Transactional

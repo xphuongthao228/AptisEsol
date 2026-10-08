@@ -45,6 +45,13 @@ public class AiDtos {
     public record PartFeedback(String title, int score, String feedback) {
     }
 
+    public record WritingCorrection(
+            String partTitle,
+            String original,
+            String correction,
+            String explanation) {
+    }
+
     public record SpeakingAudioDiagnostic(
             String title,
             String status,
@@ -53,13 +60,20 @@ public class AiDtos {
             String transcript) {
     }
 
+    public record SpeakingCorrection(
+            String partTitle,
+            String original,
+            String correction,
+            String explanation) {
+    }
+
     public record WritingScoreResponse(
             int overallScore,
             String cefrLevel,
             String summary,
             List<CriteriaScore> criteria,
             List<PartFeedback> parts,
-            List<String> corrections,
+            List<WritingCorrection> corrections,
             String suggestedAnswer) {
     }
 
@@ -72,6 +86,8 @@ public class AiDtos {
             List<String> pronunciationTips,
             List<String> fluencyTips,
             String improvedAnswer,
+            List<SpeakingCorrection> corrections,
+            String sampleAnswer,
             List<SpeakingAudioDiagnostic> audioDiagnostics) {
     }
 

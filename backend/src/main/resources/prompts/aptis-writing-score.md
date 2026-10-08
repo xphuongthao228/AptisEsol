@@ -32,11 +32,24 @@ JSON schema:
     {"name":"Tone/register","score":0,"feedback":""}
   ],
   "parts": [{"title":"","score":0,"feedback":""}],
-  "corrections": ["Original: ... | Correction: ... | Explanation: ..."],
+  "corrections": [
+    {
+      "partTitle": "Writing Part 2",
+      "original": "exact wrong sentence copied from the learner answer",
+      "correction": "natural corrected sentence",
+      "explanation": "short Vietnamese explanation"
+    }
+  ],
   "suggestedAnswer": ""
 }
 
-Constraints: criteria scores 0-10, part scores 0-50, corrections is an array of strings.
+Constraints:
+- criteria scores 0-10, part scores 0-50.
+- corrections must be an array of objects.
+- Each correction must focus on one complete sentence or short phrase that is actually wrong.
+- The original field must copy the learner's wrong text exactly so the UI can highlight it.
+- Include the most important 3-10 corrections only.
+- If there are no clear sentence-level errors, return an empty corrections array.
 
 CANDIDATE WRITING:
 {{ANSWERS}}
