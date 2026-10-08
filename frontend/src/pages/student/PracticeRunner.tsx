@@ -681,15 +681,11 @@ export function PracticeRunner() {
           </div>
 
           <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap items-center gap-2">
-                <button type="button" onClick={goBack} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold text-slate-700 disabled:opacity-50 sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:flex">
-                <button type="button" className="btn-secondary hidden h-9 px-3 text-xs outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={resetCurrentQuestion}><RotateCcw size={16} />Làm lại</button>
-                <button type="button" onClick={checkCurrentQuestion} disabled={!canCheckCurrent} className="inline-flex h-9 items-center gap-2 rounded-lg bg-green-700 px-4 text-xs font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"><CheckSquare size={16} />Kiểm tra</button>
-                <button type="button" className="btn-primary h-9 px-4 text-xs outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50" onClick={goNext} disabled={!canGoNext}>Kế tiếp <ArrowRight size={16} /></button>
-              </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
+              <button type="button" onClick={goBack} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 sm:h-9 sm:w-auto sm:border-transparent sm:bg-transparent sm:text-sm sm:font-semibold sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
+              <button type="button" className="btn-secondary h-11 w-full px-3 text-xs outline-none focus:ring-2 focus:ring-brand-200 sm:h-9 sm:w-auto" onClick={resetCurrentQuestion}><RotateCcw size={16} />Làm lại</button>
+              <button type="button" onClick={checkCurrentQuestion} disabled={!canCheckCurrent} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-3 text-xs font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600 sm:h-9 sm:w-auto sm:px-4"><CheckSquare size={16} />Kiểm tra</button>
+              <button type="button" className="btn-primary h-11 w-full px-3 text-xs outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50 sm:h-9 sm:w-auto sm:px-4" onClick={goNext} disabled={!canGoNext}>Kế tiếp <ArrowRight size={16} /></button>
             </div>
           </div>
         </form>
@@ -754,23 +750,19 @@ function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onChec
 }) {
   return (
     <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex flex-wrap items-center gap-2">
-          <button type="button" onClick={onBack} className="inline-flex h-9 items-center justify-center gap-2 rounded-lg text-sm font-semibold text-slate-700 disabled:opacity-50 sm:justify-start" disabled={currentIndex === 0}>
-            <ArrowLeft />Quay lại
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex">
-          <button type="button" className="btn-secondary hidden h-9 px-3 text-xs outline-none focus:ring-2 focus:ring-brand-200 sm:inline-flex" onClick={onReset}>
-            <RotateCcw size={16} />Làm lại</button>
-          {showCheck && (
-            <button type="button" onClick={onCheck} className="inline-flex h-9 items-center gap-2 rounded-lg bg-green-700 px-4 text-xs font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200">
-              <CheckSquare size={16} />Kiểm tra</button>
-          )}
-          <button type="button" className="btn-primary h-9 px-4 text-xs outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50" onClick={onNext} disabled={currentIndex >= totalQuestions - 1}>
-            Kế tiếp <ArrowRight size={16} />
-          </button>
-        </div>
+      <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
+        <button type="button" onClick={onBack} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 sm:h-9 sm:w-auto sm:border-transparent sm:bg-transparent sm:text-sm sm:font-semibold sm:justify-start" disabled={currentIndex === 0}>
+          <ArrowLeft />Quay lại
+        </button>
+        <button type="button" className="btn-secondary h-11 w-full px-3 text-xs outline-none focus:ring-2 focus:ring-brand-200 sm:h-9 sm:w-auto" onClick={onReset}>
+          <RotateCcw size={16} />Làm lại</button>
+        {showCheck && (
+          <button type="button" onClick={onCheck} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-3 text-xs font-extrabold text-white outline-none focus:ring-2 focus:ring-green-200 sm:h-9 sm:w-auto sm:px-4">
+            <CheckSquare size={16} />Kiểm tra</button>
+        )}
+        <button type="button" className="btn-primary h-11 w-full px-3 text-xs outline-none focus:ring-2 focus:ring-brand-200 disabled:opacity-50 sm:h-9 sm:w-auto sm:px-4" onClick={onNext} disabled={currentIndex >= totalQuestions - 1}>
+          Kế tiếp <ArrowRight size={16} />
+        </button>
       </div>
     </div>
   );

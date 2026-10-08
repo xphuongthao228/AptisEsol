@@ -5502,22 +5502,20 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
 
   return (
     <section>
-      <div className="mock-selection-hero mock-halloween-hero halloween-parts-hero rounded-2xl border border-brand-100 p-7 text-white shadow-soft md:p-8">
-        <div className="halloween-scene" aria-hidden="true">
+      <div className="mock-selection-hero mock-halloween-hero rounded-2xl border border-brand-100 p-7 text-white shadow-soft md:p-8">
+        <div className="halloween-scene mock-halloween-scene" aria-hidden="true">
           <div className="halloween-moon" />
           <div className="halloween-cloud halloween-cloud-one" />
           <div className="halloween-cloud halloween-cloud-two" />
           <div className="halloween-web halloween-web-right" />
           <div className="halloween-bat halloween-bat-one" />
           <div className="halloween-bat halloween-bat-two" />
-          <div className="halloween-bat halloween-bat-three" />
           <div className="halloween-pumpkin halloween-pumpkin-main" />
-          <div className="halloween-pumpkin halloween-pumpkin-left" />
           <div className="halloween-pumpkin halloween-pumpkin-small" />
           <div className="halloween-ground" />
           <div className="halloween-sparkles" />
         </div>
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="mock-selection-hero-content flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">
               <FileCheck size={18} />
@@ -5529,7 +5527,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
             </p>
             {!proActive && <p className="mt-3 max-w-2xl text-sm leading-6 text-orange-50/90">Miễn phí 2 đề đầu mỗi kỹ năng và Full Test. Chấm AI cần tài khoản còn hạn.</p>}
           </div>
-          <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5 md:w-[300px]">
+          <div className="mock-selection-summary rounded-2xl border border-brand-100 bg-sky-50 p-5 md:w-[300px]">
             <p className="text-sm font-bold text-slate-600">Kỹ năng đang chọn</p>
             <p className="mt-3 text-3xl font-extrabold">{skillFilters.find((item) => item.key === selectedSkill)?.label}</p>
             <button type="button" onClick={createRandomMockTest} disabled={creatingRandom} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-extrabold text-white shadow-soft transition hover:bg-emerald-700 disabled:opacity-70">
@@ -8374,7 +8372,7 @@ function FullResult({
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <h2 className="m-0 text-xl font-black text-[#25236b]">Chi tiết Writing AI</h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{writing.summary}</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-amber-50">{writing.summary}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2 text-center">
                     <FullResultStat label="Writing" value={`${clampScore50(writing.overallScore)}/50`} />

@@ -38,7 +38,7 @@ import { SEO, getSeoByPath } from '../components/SEO';
 import { communityInviteDismissedKey } from '../utils/community';
 import { useAuthStore } from '../store/authStore';
 import type { AppNotification, SubscriptionResponse, UiSettings, User } from '../types';
-import { ThemePreference, applyStudentSkin, hasStoredThemePreference, useThemePreference } from '../utils/theme';
+import { ThemePreference, applyStudentSkin, hasStoredThemePreference, type StudentSkin, useThemePreference } from '../utils/theme';
 import { userHasRole } from '../utils/roles';
 
 type LayoutLink = {
@@ -95,6 +95,7 @@ export function AppLayout() {
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [navHidden, setNavHidden] = useState(false);
+  const [studentSkin, setStudentSkin] = useState<StudentSkin>('halloween');
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const lastScrollYRef = useRef(0);
   const { preference, resolvedTheme, setPreference } = useThemePreference();
@@ -132,18 +133,25 @@ export function AppLayout() {
   useEffect(() => {
     if (isAdmin) {
       applyStudentSkin('default');
+      setStudentSkin('default');
       return;
     }
 
     let mounted = true;
     applyStudentSkin('halloween');
+    setStudentSkin('halloween');
     unwrap<UiSettings>(publicApi.get('/ui-settings'))
       .then((settings) => {
         if (!mounted) return;
-        applyStudentSkin(settings.studentSkin ?? 'halloween');
+        const nextSkin = settings.studentSkin ?? 'halloween';
+        applyStudentSkin(nextSkin);
+        setStudentSkin(nextSkin);
         if (!hasStoredThemePreference()) setPreference(settings.studentTheme);
       })
-      .catch(() => applyStudentSkin('halloween'));
+      .catch(() => {
+        applyStudentSkin('halloween');
+        if (mounted) setStudentSkin('halloween');
+      });
 
     return () => {
       mounted = false;
@@ -212,7 +220,7 @@ export function AppLayout() {
   return (
     <div className={`${isAdmin ? '' : 'student-shell'} min-h-screen bg-sky-50 text-navy`}>
       <SEO {...seo} />
-      {!isAdmin && <HalloweenDecor />}
+      {!isAdmin && studentSkin === 'halloween' && <HalloweenDecor />}
 
       <header className={`fixed inset-x-0 top-0 z-40 border-b border-brand-100 bg-white/92 shadow-[0_8px_28px_rgba(165,15,21,0.09)] backdrop-blur-xl transition-transform duration-300 ease-out ${navHidden ? '-translate-y-full' : 'translate-y-0'}`}>
         <div className="mx-auto flex h-16 w-full items-center gap-4 px-4 sm:px-6 lg:px-8 2xl:gap-6">
