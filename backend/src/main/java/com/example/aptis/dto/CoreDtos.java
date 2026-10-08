@@ -108,6 +108,12 @@ public class CoreDtos {
     public record LeaderboardSettingsResponse(LocalDate examDate, LocalDateTime examAt) {
     }
 
+    public record UiSettingsRequest(String studentTheme, String studentSkin) {
+    }
+
+    public record UiSettingsResponse(String studentTheme, String studentSkin) {
+    }
+
     public record ProgressResponse(Long skillId, String skillName, Integer completedTests, Integer bestScore) {
     }
 

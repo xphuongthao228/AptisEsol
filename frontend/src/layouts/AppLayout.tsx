@@ -18,6 +18,7 @@
   Menu,
   Monitor,
   Moon,
+  Palette,
   Settings,
   Shield,
   Sun,
@@ -31,13 +32,13 @@
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { api, unwrap } from '../api/client';
+import { api, publicApi, unwrap } from '../api/client';
 import { NotificationDialog } from '../components/NotificationDialog';
 import { SEO, getSeoByPath } from '../components/SEO';
 import { communityInviteDismissedKey } from '../utils/community';
 import { useAuthStore } from '../store/authStore';
-import type { AppNotification, SubscriptionResponse, User } from '../types';
-import { ThemePreference, useThemePreference } from '../utils/theme';
+import type { AppNotification, SubscriptionResponse, UiSettings, User } from '../types';
+import { ThemePreference, applyStudentSkin, hasStoredThemePreference, useThemePreference } from '../utils/theme';
 import { userHasRole } from '../utils/roles';
 
 type LayoutLink = {
@@ -77,6 +78,7 @@ const adminLinks: LayoutLink[] = [
   { to: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
   { to: '/admin/ai-usage', label: 'Chấm AI', icon: Bot },
   { to: '/admin/notifications', label: 'Thông báo', icon: Bell },
+  { to: '/admin/appearance', label: 'Giao diện', icon: Palette },
   { to: '/admin/media', label: 'Media', icon: Upload }
 ];
 
@@ -126,6 +128,27 @@ export function AppLayout() {
       mounted = false;
     };
   }, [isAuthenticated, isAdmin, user?.accessExpiresAt, user?.proExpiresAt]);
+
+  useEffect(() => {
+    if (isAdmin) {
+      applyStudentSkin('default');
+      return;
+    }
+
+    let mounted = true;
+    applyStudentSkin('halloween');
+    unwrap<UiSettings>(publicApi.get('/ui-settings'))
+      .then((settings) => {
+        if (!mounted) return;
+        applyStudentSkin(settings.studentSkin ?? 'halloween');
+        if (!hasStoredThemePreference()) setPreference(settings.studentTheme);
+      })
+      .catch(() => applyStudentSkin('halloween'));
+
+    return () => {
+      mounted = false;
+    };
+  }, [isAdmin, setPreference]);
 
   useEffect(() => {
     setAccountMenuOpen(false);
@@ -189,6 +212,7 @@ export function AppLayout() {
   return (
     <div className={`${isAdmin ? '' : 'student-shell'} min-h-screen bg-sky-50 text-navy`}>
       <SEO {...seo} />
+      {!isAdmin && <HalloweenDecor />}
 
       <header className={`fixed inset-x-0 top-0 z-40 border-b border-brand-100 bg-white/92 shadow-[0_8px_28px_rgba(165,15,21,0.09)] backdrop-blur-xl transition-transform duration-300 ease-out ${navHidden ? '-translate-y-full' : 'translate-y-0'}`}>
         <div className="mx-auto flex h-16 w-full items-center gap-4 px-4 sm:px-6 lg:px-8 2xl:gap-6">
@@ -210,7 +234,7 @@ export function AppLayout() {
             <div className="relative hidden md:block">
               <button
                 type="button"
-                className="grid h-9 w-9 place-items-center rounded-full text-navy transition hover:bg-brand-50 hover:text-brand-700"
+                className="header-icon-button grid h-9 w-9 place-items-center rounded-full text-navy transition hover:bg-brand-50 hover:text-brand-700"
                 aria-label="Chọn giao diện sáng, tối hoặc auto"
                 aria-expanded={themeMenuOpen}
                 onClick={() => setThemeMenuOpen((open) => !open)}
@@ -218,7 +242,7 @@ export function AppLayout() {
                 {resolvedTheme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
               </button>
               {themeMenuOpen && (
-                <div className="absolute right-0 top-full z-50 mt-3 w-56 rounded-xl border border-brand-100 bg-white p-2 shadow-lift">
+                <div className="theme-menu-panel absolute right-0 top-full z-50 mt-3 w-56 rounded-xl border border-brand-100 bg-white p-2 shadow-lift">
                   {themeOptions.map((option) => {
                     const Icon = option.icon;
                     const active = preference === option.value;
@@ -230,7 +254,7 @@ export function AppLayout() {
                           setPreference(option.value);
                           setThemeMenuOpen(false);
                         }}
-                        className={`flex h-10 w-full items-center justify-between rounded-lg px-3 text-sm font-bold transition ${
+                        className={`theme-menu-option flex h-10 w-full items-center justify-between rounded-lg px-3 text-sm font-bold transition ${
                           active ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-sky-100 hover:text-brand-700'
                         }`}
                       >
@@ -402,6 +426,20 @@ export function AppLayout() {
   );
 }
 
+function HalloweenDecor() {
+  return (
+    <div className="halloween-global-decor" aria-hidden="true">
+      <span className="halloween-global-moon" />
+      <span className="halloween-global-web halloween-global-web-left" />
+      <span className="halloween-global-web halloween-global-web-right" />
+      <span className="halloween-global-bat halloween-global-bat-one" />
+      <span className="halloween-global-bat halloween-global-bat-two" />
+      <span className="halloween-global-pumpkin halloween-global-pumpkin-one" />
+      <span className="halloween-global-pumpkin halloween-global-pumpkin-two" />
+    </div>
+  );
+}
+
 const notificationLevelStyles = {
   INFO: 'bg-blue-50 text-blue-700',
   SUCCESS: 'bg-emerald-50 text-emerald-700',
@@ -418,7 +456,7 @@ function SubscriptionBadge({ subscription }: { subscription: SubscriptionRespons
   return (
     <Link
       to="/app/renewal"
-      className="hidden h-10 items-center gap-1.5 whitespace-nowrap rounded-full border border-emerald-200 bg-emerald-50 px-3.5 text-xs font-extrabold text-emerald-700 shadow-soft transition hover:-translate-y-0.5 hover:border-emerald-300 hover:bg-emerald-100 lg:inline-flex"
+      className="subscription-days-badge hidden h-10 items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 text-xs font-extrabold shadow-soft transition hover:-translate-y-0.5 lg:inline-flex"
       title={expiresLabel ? `Hạn dùng đến ${expiresLabel}` : undefined}
     >
       <Clock3 size={15} />
@@ -498,7 +536,7 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="relative grid h-10 w-10 place-items-center rounded-full text-navy transition hover:bg-brand-50 hover:text-brand-700"
+        className="header-icon-button relative grid h-10 w-10 place-items-center rounded-full text-navy transition hover:bg-brand-50 hover:text-brand-700"
         aria-label="Thông báo"
         aria-expanded={open}
       >

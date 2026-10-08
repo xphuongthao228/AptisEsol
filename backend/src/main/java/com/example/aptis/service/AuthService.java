@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.security.SecureRandom;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -34,6 +35,7 @@ public class AuthService {
     private static final SecureRandom OTP_RANDOM = new SecureRandom();
     private static final String PURPOSE_REGISTRATION = "REGISTRATION";
     private static final String PURPOSE_PASSWORD_RESET = "PASSWORD_RESET";
+    private static final int MAX_ACTIVE_REFRESH_TOKENS_PER_USER = 5;
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -331,6 +333,20 @@ public class AuthService {
         refresh.setUser(user);
         refresh.setExpiresAt(Instant.now().plusSeconds(refreshDays * 24 * 3600));
         refreshTokenRepository.save(refresh);
+        cleanupRefreshTokens(user);
         return new AuthDtos.AuthResponse(access, refresh.getToken(), mapper.user(user));
+    }
+
+    private void cleanupRefreshTokens(User user) {
+        Instant now = Instant.now();
+        refreshTokenRepository.deleteByRevokedTrueOrExpiresAtBefore(now);
+
+        List<RefreshToken> activeTokens = refreshTokenRepository
+                .findByUserAndRevokedFalseAndExpiresAtAfterOrderByCreatedAtDesc(user, now);
+        if (activeTokens.size() <= MAX_ACTIVE_REFRESH_TOKENS_PER_USER) {
+            return;
+        }
+
+        refreshTokenRepository.deleteAll(activeTokens.subList(MAX_ACTIVE_REFRESH_TOKENS_PER_USER, activeTokens.size()));
     }
 }

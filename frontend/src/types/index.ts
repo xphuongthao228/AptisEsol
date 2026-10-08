@@ -162,6 +162,14 @@ export interface LeaderboardSettings {
   examAt: string | null;
 }
 
+export type StudentTheme = 'light' | 'dark' | 'auto';
+export type StudentSkin = 'default' | 'halloween' | 'mid_autumn' | 'tet';
+
+export interface UiSettings {
+  studentTheme: StudentTheme;
+  studentSkin: StudentSkin;
+}
+
 export interface Progress {
   skillId: number;
   skillName: string;

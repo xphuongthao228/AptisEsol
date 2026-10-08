@@ -115,6 +115,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/mock-tests").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/ui-settings").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/ui-settings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard/settings").permitAll()
                         .requestMatchers(HttpMethod.GET,

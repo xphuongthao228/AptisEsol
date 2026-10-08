@@ -7,6 +7,7 @@ const Register = lazy(() => import('../pages/auth/Register').then((module) => ({
 const VerifyEmail = lazy(() => import('../pages/auth/VerifyEmail').then((module) => ({ default: module.VerifyEmail })));
 const OAuth2Callback = lazy(() => import('../pages/auth/OAuth2Callback').then((module) => ({ default: module.OAuth2Callback })));
 const CombineSpeaking = lazy(() => import('../pages/student/CombineSpeaking').then((module) => ({ default: module.CombineSpeaking })));
+const AdminAppearance = lazy(() => import('../pages/admin/AdminAppearance').then((module) => ({ default: module.AdminAppearance })));
 const AdminAiUsage = lazy(() => import('../pages/admin/AdminAiUsage').then((module) => ({ default: module.AdminAiUsage })));
 const AdminContent = lazy(() => import('../pages/admin/AdminContent').then((module) => ({ default: module.AdminContent })));
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
@@ -135,6 +136,7 @@ export const router = createBrowserRouter([
       { path: 'revenue', element: <AdminRevenue /> },
       { path: 'ai-usage', element: <AdminAiUsage /> },
       { path: 'notifications', element: <AdminNotifications /> },
+      { path: 'appearance', element: <AdminAppearance /> },
       { path: 'media', element: <AdminMedia /> }
     ] }]
   }

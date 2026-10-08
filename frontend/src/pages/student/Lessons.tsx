@@ -1,4 +1,4 @@
-﻿import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, Search, ShieldCheck, X } from 'lucide-react';
+﻿import { ArrowLeft, ArrowRight, BookOpen, Candy, CheckCircle2, ClipboardCheck, FileText, Headphones, Lightbulb, Lock, Mail, Mic, PenLine, PlayCircle, Puzzle, Search, ShieldCheck, Sparkles, X } from 'lucide-react';
 import { useMemo, useState, type MouseEvent } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useParams } from 'react-router-dom';
@@ -403,26 +403,44 @@ export function Lessons() {
   }
 
   return (
-    <div className="mobile-lessons-page space-y-6">
+    <div className="mobile-lessons-page student-decor-page space-y-6">
       <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại luyện tập
       </Link>
 
-      <section className="mobile-page-heading rounded-[28px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-6 text-white shadow-soft sm:p-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.35em] text-blue-200">Thư viện mẹo Aptis</p>
-        <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
+      <section className="lessons-halloween-hero mobile-page-heading relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#2c0b55_0%,#72204b_54%,#f97316_130%)] p-6 text-white shadow-soft sm:p-8">
+        <div className="halloween-web halloween-web-left" aria-hidden="true" />
+        <div className="halloween-web halloween-web-right" aria-hidden="true" />
+        <span className="lessons-halloween-bat lessons-halloween-bat-one" aria-hidden="true" />
+        <span className="lessons-halloween-bat lessons-halloween-bat-two" aria-hidden="true" />
+        <div className="lessons-halloween-pumpkin" aria-hidden="true">
+          <Headphones size={30} />
+        </div>
+        <div className="lessons-halloween-ghost" aria-hidden="true">
+          <BookOpen size={24} />
+        </div>
+        <div className="lessons-halloween-candy lessons-halloween-candy-one" aria-hidden="true">
+          <Candy size={21} />
+        </div>
+        <div className="lessons-halloween-candy lessons-halloween-candy-two" aria-hidden="true">
+          <Candy size={18} />
+        </div>
+        <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-one" size={18} aria-hidden="true" />
+        <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-two" size={15} aria-hidden="true" />
+        <p className="lessons-halloween-kicker relative z-10 text-xs font-extrabold uppercase tracking-[0.35em]">Thư viện mẹo Aptis</p>
+        <div className="relative z-10 mt-4 grid gap-6 lg:grid-cols-[1fr_320px] lg:items-end">
           <div>
-            <h1 className="text-3xl font-extrabold sm:text-5xl">Học mẹo theo từng kỹ năng</h1>
-            <p className="mt-4 max-w-3xl text-lg leading-8 text-slate-300">
+            <h1 className="lessons-halloween-title text-3xl font-extrabold sm:text-5xl">Học mẹo theo từng kỹ năng</h1>
+            <p className="lessons-halloween-subtitle mt-4 max-w-3xl text-lg font-extrabold leading-8 text-white">
               Chọn Listening, Reading, Speaking hoặc Writing để xem các mẹo ôn thi ngắn gọn, đúng trọng tâm.
             </p>
           </div>
-          <div className="rounded-3xl border border-white/10 bg-white/10 p-5">
+          <div className="rounded-3xl border border-white/35 bg-white/95 p-5 text-slate-800 shadow-[0_20px_45px_rgba(32,8,48,0.24)]">
             <div className="flex items-center gap-3">
-              <ShieldCheck className="text-emerald-300" />
+              <ShieldCheck className="text-emerald-500" />
               <div>
                 <p className="font-extrabold">Aptis Pro Access</p>
-                <p className="text-sm text-slate-300">{hasAccess ? `Còn hạn đến ${formatSubscriptionDate(expireDate)}` : 'Cần gia hạn để học đầy đủ'}</p>
+                <p className="text-sm font-extrabold text-orange-600 drop-shadow-[0_1px_6px_rgba(251,146,60,0.28)]">{hasAccess ? `Còn hạn đến ${formatSubscriptionDate(expireDate)}` : 'Cần gia hạn để học đầy đủ'}</p>
               </div>
             </div>
           </div>
@@ -444,7 +462,7 @@ export function Lessons() {
 
       <label className="lesson-search flex min-h-14 items-center gap-3 rounded-2xl border border-brand-100 bg-white px-4 text-slate-500">
         <Search size={21} aria-hidden="true" /><span className="sr-only">Tìm tài liệu và video trong kỹ năng đang chọn</span>
-        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tài liệu, video bài học..." className="min-w-0 flex-1 bg-transparent py-4 text-base text-navy outline-none" />
+        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm tài liệu, video bài học..." className="lesson-search-input min-w-0 flex-1 bg-transparent py-4 text-base text-navy outline-none" />
       </label>
       <section className="lesson-skill-selector grid gap-3 md:grid-cols-4">
         {skillTips.map((skill) => (
@@ -453,7 +471,7 @@ export function Lessons() {
             type="button"
             onClick={() => { setActiveSkill(skill.key); setSearch(''); }}
             aria-pressed={activeSkill === skill.key}
-            className={`rounded-2xl border p-4 text-left shadow-soft transition ${
+            className={`lesson-skill-card rounded-2xl border p-4 text-left shadow-soft transition ${
               activeSkill === skill.key ? 'border-brand-600 bg-brand-600 text-white' : 'border-brand-100 bg-white text-slate-700 hover:border-brand-200'
             }`}
           >
@@ -464,7 +482,7 @@ export function Lessons() {
         ))}
       </section>
 
-      <section className="rounded-[24px] border border-brand-100 bg-white p-4 shadow-soft sm:p-6">
+      <section className="lessons-resource-panel rounded-[24px] border border-brand-100 bg-white p-4 shadow-soft sm:p-6">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-center">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-brand-600">Kho học liệu {current.label}</p>
@@ -473,7 +491,7 @@ export function Lessons() {
               Chọn loại học liệu để xem nhanh video hướng dẫn hoặc tài liệu tóm tắt theo kỹ năng đang chọn.
             </p>
           </div>
-          <div className="grid grid-cols-2 rounded-2xl border border-brand-100 bg-sky-50 p-1">
+          <div className="lessons-resource-toggle grid grid-cols-2 rounded-2xl border border-brand-100 bg-sky-50 p-1">
             {([
               { key: 'VIDEO', label: 'Video', icon: <PlayCircle size={17} /> },
               { key: 'DOCUMENT', label: 'Tài liệu', icon: <FileText size={17} /> }
@@ -509,9 +527,9 @@ export function Lessons() {
             ))}
           </div>
         ) : (
-          <div className="mt-5 rounded-2xl border border-dashed border-brand-100 bg-sky-50 p-8 text-center">
-            <p className="font-extrabold text-slate-700">{search ? 'Không tìm thấy bài học phù hợp' : `Chưa có ${resourceKind === 'VIDEO' ? 'video' : 'tài liệu'} cho ${current.label}`}</p>
-            <p className="mt-2 text-sm text-slate-600">{search ? 'Thử từ khóa khác hoặc chọn kỹ năng khác.' : 'Nội dung sẽ được cập nhật tại đây.'}</p>
+          <div className="lessons-empty-state mt-5 rounded-2xl border border-dashed border-brand-100 bg-sky-50 p-8 text-center">
+            <p className="font-extrabold text-white drop-shadow">{search ? 'Không tìm thấy bài học phù hợp' : `Chưa có ${resourceKind === 'VIDEO' ? 'video' : 'tài liệu'} cho ${current.label}`}</p>
+            <p className="mt-2 text-sm text-white/75">{search ? 'Thử từ khóa khác hoặc chọn kỹ năng khác.' : 'Nội dung sẽ được cập nhật tại đây.'}</p>
           </div>
         )}
       </section>
@@ -539,7 +557,7 @@ export function Lessons() {
               </div>
               <div className="space-y-3 p-5">
                 {section.points.map((point) => (
-                  <div key={point} className="flex gap-3 rounded-2xl bg-white p-3 text-sm font-semibold leading-6 text-slate-700">
+                  <div key={point} className="lesson-tip-point flex gap-3 rounded-2xl bg-white p-3 text-sm font-semibold leading-6 text-slate-700">
                     <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={18} />
                     <span>{point}</span>
                   </div>
@@ -577,22 +595,40 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
   const isWriting = skill === 'WRITING';
 
   return (
-    <div className="mobile-tips-page mx-auto max-w-[1120px] bg-sky-50 pb-8 text-navy">
+    <div className="mobile-tips-page student-decor-page mx-auto max-w-[1120px] bg-sky-50 pb-8 text-navy">
       <Link to="/app/lessons" className="mb-6 inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại thư viện mẹo
       </Link>
 
-      <section className="mobile-page-heading rounded-[28px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-6 text-white shadow-soft sm:p-8">
-        <p className="text-xs font-extrabold uppercase tracking-[0.28em] text-blue-200">Mẹo thi Aptis</p>
-        <h1 className="mt-3 text-3xl font-extrabold sm:text-4xl">{data.title}</h1>
-        <p className="mt-3 max-w-3xl text-sm font-medium leading-6 text-blue-100 sm:text-base">
+      <section className="tips-landing-hero lessons-halloween-hero mobile-page-heading relative overflow-hidden rounded-[28px] bg-transparent p-6 text-slate-950 sm:p-8">
+        <div className="halloween-web halloween-web-left" aria-hidden="true" />
+        <div className="halloween-web halloween-web-right" aria-hidden="true" />
+        <span className="lessons-halloween-bat lessons-halloween-bat-one" aria-hidden="true" />
+        <span className="lessons-halloween-bat lessons-halloween-bat-two" aria-hidden="true" />
+        <div className="lessons-halloween-pumpkin" aria-hidden="true">
+          <Headphones size={30} />
+        </div>
+        <div className="lessons-halloween-ghost" aria-hidden="true">
+          <BookOpen size={24} />
+        </div>
+        <div className="lessons-halloween-candy lessons-halloween-candy-one" aria-hidden="true">
+          <Candy size={21} />
+        </div>
+        <div className="lessons-halloween-candy lessons-halloween-candy-two" aria-hidden="true">
+          <Candy size={18} />
+        </div>
+        <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-one" size={18} aria-hidden="true" />
+        <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-two" size={15} aria-hidden="true" />
+        <p className="tips-landing-copy-black relative z-10 text-xs font-extrabold uppercase tracking-[0.28em] text-black" style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>Mẹo thi Aptis</p>
+        <h1 className="tips-landing-copy-black relative z-10 mt-3 max-w-3xl text-3xl font-extrabold text-black sm:text-4xl" style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>{data.title}</h1>
+        <p className="tips-landing-copy-black relative z-10 mt-3 max-w-3xl text-sm font-extrabold leading-6 text-black sm:text-base" style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>
           Chọn một kỹ năng, sau đó học theo từng part/cụm câu để ôn đúng trọng tâm hơn.
         </p>
       </section>
 
       <label className="lesson-search mt-6 flex min-h-14 items-center gap-3 rounded-2xl border border-brand-100 bg-white px-4 text-slate-500">
         <Search size={21} aria-hidden="true" /><span className="sr-only">Tìm mẹo học</span>
-        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm kiếm mẹo học..." className="min-w-0 flex-1 bg-transparent py-4 text-base text-navy outline-none" />
+        <input type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Tìm kiếm mẹo học..." className="lesson-search-input min-w-0 flex-1 py-4 text-base text-navy outline-none" />
       </label>
       <section className="lesson-skill-selector mt-6 grid gap-3 md:grid-cols-4">
         {skillTips.map((item) => {
@@ -602,9 +638,10 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
             <Link
               key={item.key}
               to={`/app/lessons/${item.key}`}
-              className={`group rounded-2xl border p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${
+              className={`lesson-skill-card group rounded-2xl border p-4 shadow-soft transition hover:-translate-y-0.5 hover:shadow-lift ${
                 active ? 'border-brand-600 bg-brand-600 text-white' : 'border-brand-100 bg-white text-slate-700 hover:border-brand-200'
               }`}
+              aria-pressed={active}
             >
               <span className={`mb-3 grid h-11 w-11 place-items-center rounded-xl ${
                 active ? 'bg-white/15 text-white' : 'bg-brand-50 text-brand-700 group-hover:bg-brand-100'
@@ -623,9 +660,9 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
       <div className="mt-8 grid gap-5 md:grid-cols-2">
         {search && !data.sections.some((section) => `${section.title} ${section.description}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))) && <p role="status" className="py-6 text-slate-600">Không tìm thấy mẹo phù hợp. Hãy thử từ khóa khác.</p>}
         {data.sections.filter((section) => `${section.title} ${section.description}`.toLocaleLowerCase('vi').includes(search.trim().toLocaleLowerCase('vi'))).map((section) => (
-          <section key={section.title} className="flex h-full flex-col rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft">
-            <h2 className="text-2xl font-extrabold tracking-normal">{section.title}</h2>
-            <p className="mt-4 flex-1 leading-7 text-slate-700">{section.description}</p>
+          <section key={section.title} className="lesson-tip-card flex h-full flex-col rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft">
+            <h2 className="lesson-tip-title text-2xl font-extrabold tracking-normal">{section.title}</h2>
+            <p className="lesson-tip-description mt-4 flex-1 leading-7 text-slate-700">{section.description}</p>
             <div className={`mt-5 grid gap-3 ${section.actions.length > 1 ? 'xl:grid-cols-2' : ''}`}>
               {section.actions.map((action) => (
                 <Link
@@ -1067,7 +1104,7 @@ function MaterialCard({ icon, title, items }: { icon: JSX.Element; title: string
       </div>
       <div className="space-y-3">
         {items.map((item) => (
-          <div className="flex items-start gap-3 rounded-2xl bg-sky-50 p-4 text-sm font-semibold leading-6 text-slate-700" key={item}>
+          <div className="lesson-material-item flex items-start gap-3 rounded-2xl bg-sky-50 p-4 text-sm font-semibold leading-6 text-slate-700" key={item}>
             <FileText className="mt-0.5 shrink-0 text-brand-600" size={18} />
             {item}
           </div>

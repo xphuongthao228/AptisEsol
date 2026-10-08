@@ -318,6 +318,9 @@ const skillFilters: { key: MockSkill; label: string }[] = [
   { key: 'WRITING', label: 'Writing' }
 ];
 
+const mockSkillTabActiveClass = 'border-orange-400 bg-[linear-gradient(135deg,#ff6b00,#ef4444_48%,#7c3aed)] text-white shadow-lift shadow-orange-500/20';
+const mockSkillTabInactiveClass = 'border-purple-900/20 bg-[#2b0d42] text-white shadow-soft hover:-translate-y-0.5 hover:border-orange-300 hover:bg-[#381353]';
+
 function canOpenMockCard(card: MockCard, proActive: boolean) {
   return card.accessible === true || (card.accessible !== false && proActive);
 }
@@ -878,6 +881,121 @@ function questionToMockData(question: Question, skill: MockSkill) {
       prompt: question.content
     };
   }
+}
+
+const randomMockPartQuota: Partial<Record<Exclude<MockSkill, 'FULL'>, Record<number, number>>> = {
+  SPEAKING: { 1: 1, 2: 1, 3: 1, 4: 1 },
+  LISTENING: { 1: 13, 2: 1, 3: 1, 4: 2 },
+  READING: { 1: 5, 2: 2, 3: 1, 4: 1 },
+  WRITING: { 1: 1 },
+  GRAMMAR: { 1: 30 }
+};
+
+function isPracticeSourceTest(test: Test) {
+  return test.status === 'PUBLISHED' && (test.mode ?? 'PRACTICE') !== 'EXAM' && (test.questionCount ?? 0) > 0;
+}
+
+function shuffleItems<T>(items: T[]) {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
+function mockPartSearchText(value: string) {
+  return removeVietnameseMarks(value)
+    .replace(/[_/.-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+function parseMockPartNumber(value: string) {
+  const match = mockPartSearchText(value).match(/\b(?:part|phan|p|set)\s*([1-5])\b/);
+  return match ? Number(match[1]) : null;
+}
+
+function questionBelongsToRandomPart(question: Question, skill: Exclude<MockSkill, 'FULL'>, part: number, test?: Test) {
+  const data = questionToMockData(question, skill);
+  const template = String((data as Record<string, unknown>).template ?? '').toUpperCase();
+  const rawPart = String((data as Record<string, unknown>).part ?? '').trim();
+  const parsedPart = rawPart ? Number(rawPart.replace(/\D+/g, '')) : NaN;
+  if (Number.isFinite(parsedPart) && parsedPart === part) return true;
+
+  if (skill === 'LISTENING') {
+    const variant = String((data as Record<string, unknown>).variant ?? '').toUpperCase();
+    const type = String((data as Record<string, unknown>).type ?? '').toUpperCase();
+    if (part === 2 && (template === 'LISTENING_PEOPLE_MATCH' || type === 'LISTENING_PART2')) return true;
+    if (part === 3 && (template === 'LISTENING_OPINION_MATCH' || type === 'LISTENING_PART3')) return true;
+    if (part === 4 && (type === 'LISTENING_PART4' || (template === 'LISTENING_AUDIO_MC' && variant !== 'PART1'))) return true;
+    if (part === 1 && template === 'LISTENING_AUDIO_MC' && variant === 'PART1') return true;
+  }
+
+  if (skill === 'READING') {
+    const testPart = parseMockPartNumber(`${test?.title ?? ''} ${test?.description ?? ''}`);
+    if (testPart !== null) return testPart === part;
+    if (part === 1 && template === 'READING_GAP_FILL') return true;
+    if (part === 2 && template === 'READING_SENTENCE_ORDER') return true;
+    if (part === 3 && template === 'READING_FORUM_MATCH') return true;
+    if (part === 4 && template === 'READING_HEADING_MATCH') return true;
+    return false;
+  }
+
+  if (skill === 'GRAMMAR') return true;
+
+  return new RegExp(`\\b(part|phan|p|set)\\s*${part}\\b|\\b${part}\\s*(/|-)`, 'i')
+    .test(mockPartSearchText([test?.title, test?.description, question.topic, question.content, question.explanation].join(' ')));
+}
+
+async function buildRandomMockCardFromPractice(skill: Exclude<MockSkill, 'FULL'>, tests: Test[]) {
+  const quota = randomMockPartQuota[skill];
+  if (!quota) return null;
+
+  const practiceTests = tests.filter((test) => isPracticeSourceTest(test) && normalizeExamSkill(test.skillName) === skill);
+  if (!practiceTests.length) return null;
+
+  const groups = await Promise.all(practiceTests.map(async (test) => ({
+    test,
+    questions: await unwrap<Question[]>(api.get(`/questions?testId=${test.id}`)).catch(() => [])
+  })));
+
+  const rows: Record<string, unknown>[] = [];
+  for (const [partText, count] of Object.entries(quota)) {
+    const part = Number(partText);
+    const candidates = groups.flatMap(({ test, questions }) =>
+      questions
+        .filter((question) => questionBelongsToRandomPart(question, skill, part, test))
+        .map((question) => ({
+          question,
+          row: { ...questionToMockData(question, skill), skill, part }
+        }))
+    );
+    const picked = shuffleItems(candidates).slice(0, count);
+    if (picked.length < count) return null;
+    rows.push(...picked.map((item) => item.row));
+  }
+
+  const meta = mockCardMeta[skill];
+  const totalQuestions = skill === 'SPEAKING' ? '4 phần' : String(rows.length);
+  return {
+    id: `random-practice-${skill.toLowerCase()}-${Date.now()}`,
+    accessible: true,
+    skill,
+    label: meta.label,
+    title: `Bộ đề random ${meta.label}`,
+    description: 'Đề random được ghép từ ngân hàng luyện theo part.',
+    questions: totalQuestions,
+    questionData: JSON.stringify(rows),
+    minutes: `${randomMockDuration(skill)} phút`,
+    icon: meta.icon,
+    ready: true,
+    color: meta.color
+  } satisfies MockCard;
+}
+
+function randomMockDuration(skill: Exclude<MockSkill, 'FULL'>) {
+  if (skill === 'SPEAKING') return 12;
+  if (skill === 'LISTENING') return 40;
+  if (skill === 'READING') return 35;
+  if (skill === 'WRITING') return 50;
+  return 25;
 }
 
 function normalizeQuestionDataObject(data: Record<string, unknown>) {
@@ -2094,6 +2212,9 @@ function listeningAudioByPartFromCard(card?: MockCard | null) {
     if (key === '4') {
       const recordingIndex = Object.keys(result).filter((itemKey) => /^4-\d+$/.test(itemKey)).length;
       result[`4-${recordingIndex}`] = audioUrls[0];
+      if (!result['4']) result['4'] = audioUrls[0];
+    } else if (/^4-\d+$/.test(key)) {
+      result[key] = audioUrls[0];
       if (!result['4']) result['4'] = audioUrls[0];
     } else if (key) {
       result[key] = audioUrls[0];
@@ -5193,7 +5314,7 @@ export function MockTests() {
 
 function MockSelectLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mobile-mock-page min-h-[calc(100vh-8rem)]">
+    <div className="mobile-mock-page mock-tests-page student-decor-page min-h-[calc(100vh-8rem)]">
       <div className="mx-auto max-w-[1180px]">
         {children}
       </div>
@@ -5240,6 +5361,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
   const [cardsError, setCardsError] = useState(false);
   const [reloadIndex, setReloadIndex] = useState(0);
   const [creatingRandom, setCreatingRandom] = useState(false);
+  const [practiceTests, setPracticeTests] = useState<Test[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -5260,12 +5382,14 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
           if (!cancelled && version === requestVersion) {
             setAdminCards(cards);
+            setPracticeTests(tests.filter(isPracticeSourceTest));
             setCardsError(false);
           }
         })
         .catch(() => {
           if (!cancelled && version === requestVersion) {
             setAdminCards([]);
+            setPracticeTests([]);
             setCardsError(true);
             toast.error('Không tải được danh sách đề. Vui lòng tải lại trang.');
           }
@@ -5290,21 +5414,40 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
     .filter((card) => card.skill === selectedSkill)
     .sort(compareMockCards);
 
-  function createRandomMockTest() {
+  async function createRandomMockTest() {
     if (!authenticated) {
       toast.error('Bạn cần đăng nhập để chọn đề thi thử random.', { id: 'login-required' });
       navigate('/login');
       return;
     }
 
+    setCreatingRandom(true);
+    if (selectedSkill !== 'FULL') {
+      try {
+        const practiceRandomCard = await buildRandomMockCardFromPractice(selectedSkill, practiceTests);
+        if (practiceRandomCard) {
+          toast.success('Đã tạo đề random từ kho luyện theo part.');
+          if (selectedSkill === 'SPEAKING') onOpenSpeaking(practiceRandomCard);
+          if (selectedSkill === 'READING') onOpenReading(practiceRandomCard);
+          if (selectedSkill === 'LISTENING') onOpenListening(practiceRandomCard);
+          if (selectedSkill === 'WRITING') onOpenWriting(practiceRandomCard);
+          if (selectedSkill === 'GRAMMAR') onOpenGrammar(practiceRandomCard);
+          setCreatingRandom(false);
+          return;
+        }
+      } catch {
+        toast.error('Chưa tạo được đề random từ kho luyện theo part, hệ thống sẽ chọn đề thi thử có sẵn.');
+      }
+    }
+
     const allowedCards = visibleCards.filter((card) => card.ready && canOpenMockCard(card, proActive));
     const randomCard = allowedCards.length ? allowedCards[Math.floor(Math.random() * allowedCards.length)] : undefined;
     if (!randomCard) {
       toast.error('Chưa có đề thi thử phù hợp để random.');
+      setCreatingRandom(false);
       return;
     }
 
-    setCreatingRandom(true);
     window.setTimeout(() => {
       toast.success('Đã chọn đề thi thử random.');
       if (selectedSkill === 'FULL') onOpenFull(randomCard);
@@ -5334,7 +5477,21 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
 
   return (
     <section>
-      <div className="mock-selection-hero rounded-2xl border border-brand-100 bg-white p-7 text-navy shadow-soft md:p-8">
+      <div className="mock-selection-hero mock-halloween-hero halloween-parts-hero rounded-2xl border border-brand-100 p-7 text-white shadow-soft md:p-8">
+        <div className="halloween-scene" aria-hidden="true">
+          <div className="halloween-moon" />
+          <div className="halloween-cloud halloween-cloud-one" />
+          <div className="halloween-cloud halloween-cloud-two" />
+          <div className="halloween-web halloween-web-right" />
+          <div className="halloween-bat halloween-bat-one" />
+          <div className="halloween-bat halloween-bat-two" />
+          <div className="halloween-bat halloween-bat-three" />
+          <div className="halloween-pumpkin halloween-pumpkin-main" />
+          <div className="halloween-pumpkin halloween-pumpkin-left" />
+          <div className="halloween-pumpkin halloween-pumpkin-small" />
+          <div className="halloween-ground" />
+          <div className="halloween-sparkles" />
+        </div>
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">
@@ -5342,10 +5499,10 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
               Thi thử Aptis
             </p>
             <h1 className="mt-6 text-4xl font-extrabold leading-tight">Chọn kỹ năng thi thử</h1>
-            <p className="mt-3 max-w-2xl text-lg font-medium leading-8 text-slate-700">
+            <p className="mt-3 max-w-2xl text-lg font-medium leading-8 text-blue-50/90">
               Thi thử mô phỏng giao diện assessment. Chọn Full hoặc từng kỹ năng để vào đúng kiểu bài.
             </p>
-            {!proActive && <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">Miễn phí 2 đề đầu mỗi kỹ năng và Full Test. Chấm AI cần tài khoản còn hạn.</p>}
+            {!proActive && <p className="mt-3 max-w-2xl text-sm leading-6 text-orange-50/90">Miễn phí 2 đề đầu mỗi kỹ năng và Full Test. Chấm AI cần tài khoản còn hạn.</p>}
           </div>
           <div className="rounded-2xl border border-brand-100 bg-sky-50 p-5 md:w-[300px]">
             <p className="text-sm font-bold text-slate-600">Kỹ năng đang chọn</p>
@@ -5370,8 +5527,8 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
             aria-pressed={selectedSkill === filter.key}
             className={`h-12 rounded-xl border px-6 text-sm font-extrabold transition ${
               selectedSkill === filter.key
-                ? 'border-brand-600 bg-brand-600 text-white shadow-lift shadow-brand-600/20'
-                : 'border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:bg-brand-50 hover:text-brand-700'
+                ? mockSkillTabActiveClass
+                : mockSkillTabInactiveClass
             }`}
           >
             {filter.label}
@@ -5444,7 +5601,7 @@ function MockSkillCard({
         <div className="flex flex-wrap justify-end gap-2">
           {card.featured && (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
-              <Star size={13} className="fill-amber-400 text-amber-500" /> Quan trảng
+              <Star size={13} className="fill-amber-400 text-amber-500" /> Quan trọng
             </span>
           )}
           {proLocked && (
@@ -5481,12 +5638,12 @@ function MockSkillCard({
 
 function InfoBox({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-sky-50 p-4">
-      <div className="flex items-center gap-2 text-sm font-bold text-slate-600">
+    <div className="mock-info-box rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="mock-info-label flex items-center gap-2 text-sm font-extrabold text-slate-700">
         {icon}
         {label}
       </div>
-      <p className="mt-2 text-lg font-extrabold text-navy">{value}</p>
+      <p className="mock-info-value mt-2 text-lg font-extrabold text-slate-950">{value}</p>
     </div>
   );
 }
@@ -5511,7 +5668,7 @@ function BookmarkButton({
       type="button"
       onClick={onToggle}
       aria-pressed={active}
-      title={active ? 'B? bookmark câu này' : 'Bookmark câu này'}
+      title={active ? 'Bỏ bookmark câu này' : 'Bookmark câu này'}
       style={{
         height,
         display: 'inline-flex',
@@ -5718,8 +5875,8 @@ function WritingTopbar({ title, onExit }: { title: string; onExit: () => void })
     <header className="mock-test-topbar h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
         <div className="mock-test-topbar-title">
-          <p className="text-base font-medium text-[#d9c7f3]">Writing</p>
-          <h1 className="text-[17px] font-extrabold leading-6 text-white">{title}</h1>
+          <p className="text-base font-extrabold text-orange-200">Writing</p>
+          <h1 className="text-[18px] font-black leading-6 text-orange-100">{title}</h1>
         </div>
         <button type="button" onClick={onExit} className="mock-test-exit-button inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
           <LogOut size={21} />
@@ -7663,7 +7820,7 @@ function CohesionSlot({ number, filled, onDropChoice }: { number: number; filled
     >
       <span style={{ color: '#334155', fontSize: 14, fontWeight: 700 }}>{number}</span>
       <span style={{ color: filled ? '#020817' : '#94a3b8', fontSize: 16, lineHeight: '22px' }}>
-        {filled ?? 'Kéo câu vào dây'}
+        {filled ?? 'Kéo câu vào đây'}
       </span>
     </div>
   );

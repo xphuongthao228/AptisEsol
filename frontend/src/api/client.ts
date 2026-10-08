@@ -15,6 +15,7 @@ type RetryableRequestConfig = InternalAxiosRequestConfig & {
 };
 
 let refreshPromise: Promise<AuthResponse> | null = null;
+let sessionPromise: Promise<AuthResponse> | null = null;
 
 publicApi.interceptors.request.use((config) => {
   delete config.headers.Authorization;
@@ -45,12 +46,13 @@ function isPublicRequest(config: InternalAxiosRequestConfig) {
     url.startsWith('/submissions/leaderboard?') ||
     url === '/notifications/public' ||
     url.startsWith('/notifications/public?') ||
-    url === '/media/banners'
+    url === '/media/banners' ||
+    url === '/ui-settings'
   );
 }
 
 function isPublicAuthRequest(method: string, url: string) {
-  if (url === '/auth/heartbeat' || url === '/auth/me' || url === '/auth/change-password') {
+  if (url === '/auth/heartbeat' || url === '/auth/me' || url === '/auth/session' || url === '/auth/change-password') {
     return false;
   }
 
@@ -72,6 +74,15 @@ api.interceptors.request.use(async (config) => {
   const { accessToken, refreshToken } = useAuthStore.getState();
   let token = accessToken;
 
+  if (isPublicRequest(config)) {
+    if (token && !shouldRefreshAccessToken(token)) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      delete config.headers.Authorization;
+    }
+    return config;
+  }
+
   if (refreshToken && (!token || shouldRefreshAccessToken(token))) {
     try {
       refreshPromise ??= refreshAccessToken(refreshToken);
@@ -82,18 +93,28 @@ api.interceptors.request.use(async (config) => {
         refreshToken: data.refreshToken
       });
       token = data.accessToken;
+    } catch {
+      token = null;
     } finally {
       refreshPromise = null;
     }
   }
 
-  if (isPublicRequest(config)) {
-    if (token && !shouldRefreshAccessToken(token)) {
-      config.headers.Authorization = `Bearer ${token}`;
-    } else {
-      delete config.headers.Authorization;
+  if (!token) {
+    try {
+      sessionPromise ??= restoreCookieSession();
+      const data = await sessionPromise;
+      useAuthStore.setState({
+        user: data.user,
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken
+      });
+      token = data.accessToken;
+    } catch {
+      // Let the protected request continue and surface the original 401.
+    } finally {
+      sessionPromise = null;
     }
-    return config;
   }
 
   if (token) {
@@ -111,21 +132,20 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const { refreshToken } = useAuthStore.getState();
     const url = originalRequest?.url ?? '';
+    const canRetry =
+      status === 401 &&
+      Boolean(originalRequest) &&
+      !originalRequest?._retry &&
+      !url.includes('/auth/login') &&
+      !url.includes('/auth/register') &&
+      !url.includes('/auth/logout') &&
+      !url.includes('/auth/refresh-token') &&
+      !url.includes('/auth/session');
 
     // 403 = không có quyền / hết hạn gói học. Không refresh và tuyệt đối không logout.
     // Chỉ thử refresh khi access token thực sự bị 401. Nếu refresh thất bại,
     // giữ nguyên phiên hiện tại để admin không bị đá khỏi màn đang cập nhật.
-    const canRefresh =
-      status === 401 &&
-      Boolean(originalRequest) &&
-      !originalRequest?._retry &&
-      Boolean(refreshToken) &&
-      !url.includes('/auth/login') &&
-      !url.includes('/auth/register') &&
-      !url.includes('/auth/logout') &&
-      !url.includes('/auth/refresh-token');
-
-    if (!canRefresh || !originalRequest || !refreshToken) {
+    if (!canRetry || !originalRequest) {
       return Promise.reject(error);
     }
 
@@ -133,8 +153,17 @@ api.interceptors.response.use(
 
     try {
       // Gom các request 401 chạy đồng thời vào cùng một lần refresh.
-      refreshPromise ??= refreshAccessToken(refreshToken);
-      const data = await refreshPromise;
+      let data: AuthResponse | null = null;
+
+      if (refreshToken) {
+        try {
+          data = await (refreshPromise ??= refreshAccessToken(refreshToken));
+        } catch {
+          refreshPromise = null;
+        }
+      }
+
+      data ??= await (sessionPromise ??= restoreCookieSession());
 
       // Chỉ cập nhật phiên khi refresh thành công.
       useAuthStore.setState({
@@ -149,12 +178,20 @@ api.interceptors.response.use(
       return Promise.reject(refreshError);
     } finally {
       refreshPromise = null;
+      sessionPromise = null;
     }
   }
 );
 
 async function refreshAccessToken(refreshToken: string) {
   const response = await authApi.post<ApiResponse<AuthResponse>>('/auth/refresh-token', { refreshToken });
+  return response.data.data;
+}
+
+async function restoreCookieSession() {
+  const response = await authApi.get<ApiResponse<AuthResponse>>('/auth/session', {
+    params: { t: Date.now() }
+  });
   return response.data.data;
 }
 

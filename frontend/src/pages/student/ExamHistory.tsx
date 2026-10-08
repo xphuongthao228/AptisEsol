@@ -55,7 +55,7 @@ export function ExamHistory() {
   }
 
   return (
-    <div className="space-y-7">
+    <div className="history-page student-decor-page space-y-7">
       <section className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <p className="inline-flex rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">Lịch sử</p>
@@ -65,10 +65,10 @@ export function ExamHistory() {
           </p>
         </div>
 
-        <label className="flex h-12 w-full items-center gap-3 rounded-xl border border-brand-100 bg-white px-4 text-slate-500 shadow-soft md:max-w-[420px]">
+        <label className="history-search-field flex h-12 w-full items-center gap-3 rounded-xl border border-brand-100 bg-white px-4 text-slate-500 shadow-soft md:max-w-[420px]">
           <Search size={20} />
           <input
-            className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-500"
+            className="history-search-input w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-500"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Tìm tên bài thi hoặc kỹ năng..."
@@ -89,7 +89,7 @@ export function ExamHistory() {
                 key={historyKey(item)}
                 type="button"
                 onClick={() => setSelectedKey(historyKey(item))}
-                className={`w-full rounded-[8px] border bg-white p-4 text-left shadow-soft transition hover:border-brand-300 ${
+                className={`history-result-card w-full rounded-[8px] border bg-white p-4 text-left shadow-soft transition hover:border-brand-300 ${
                   selected && historyKey(selected) === historyKey(item) ? 'border-brand-500 ring-4 ring-brand-100' : 'border-brand-100'
                 }`}
               >
@@ -144,8 +144,8 @@ function SubmissionDetail({ submission }: { submission: Submission }) {
             {formatDateTime(submission.createdAt)}
           </p>
         </div>
-        <div className="rounded-[8px] bg-sky-50 p-4 text-right">
-          <p className="text-sm font-bold text-slate-600">Điểm số</p>
+        <div className="history-score-panel rounded-[8px] bg-sky-50 p-4 text-right">
+          <p className="history-score-label text-sm font-bold text-slate-600">Điểm số</p>
           <p className="mt-1 text-3xl font-extrabold text-brand-700">
             {submission.totalScore}/{submission.maxScore || 0}
           </p>
@@ -216,8 +216,8 @@ function MockResultDetail({ result }: { result: MockTestResult }) {
           <h2 className="mt-2 text-2xl font-extrabold text-navy">{repairMojibake(result.title)}</h2>
           <p className="mt-2 flex items-center gap-2 text-sm font-bold text-slate-500"><Clock3 size={16} />{formatDateTime(result.createdAt)}</p>
         </div>
-        <div className="rounded-[8px] bg-sky-50 p-4 text-right">
-          <p className="text-sm font-bold text-slate-600">Điểm số</p>
+        <div className="history-score-panel rounded-[8px] bg-sky-50 p-4 text-right">
+          <p className="history-score-label text-sm font-bold text-slate-600">Điểm số</p>
           <p className="mt-1 text-3xl font-extrabold text-brand-700">{result.score}/{result.maxScore}</p>
           {result.cefrLevel && <p className="text-sm font-extrabold text-emerald-700">CEFR {result.cefrLevel}</p>}
         </div>
@@ -278,7 +278,7 @@ function SavedAnswerReview({ groups, onBack }: { groups: SavedReviewGroup[]; onB
 }
 
 function ResultMetric({ label, value }: { label: string; value: string }) {
-  return <div className="rounded-[8px] bg-sky-50 p-4"><p className="text-xs font-extrabold uppercase text-slate-500">{label}</p><p className="mt-1 text-xl font-extrabold text-navy">{value}</p></div>;
+  return <div className="history-score-panel rounded-[8px] bg-sky-50 p-4"><p className="history-score-label text-xs font-extrabold uppercase text-slate-500">{label}</p><p className="mt-1 text-xl font-extrabold text-navy">{value}</p></div>;
 }
 
 function AnswerBox({ label, value }: { label: string; value: string }) {

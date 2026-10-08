@@ -73,6 +73,7 @@
   .student-shell .mobile-page-heading > a, .student-shell .mobile-page-heading > p:first-of-type { display: none; }
   .student-shell .mobile-page-heading h1 { margin-top: 0; font-size: 24px; line-height: 1.24; font-weight: 750; }
   .student-shell .mobile-page-heading p { color: var(--mobile-muted); font-size: 14px; line-height: 1.6; }
+  .student-shell .tips-landing-hero .tips-landing-copy-black { color: #000000 !important; -webkit-text-fill-color: #000000 !important; opacity: 1 !important; text-shadow: none !important; }
   .student-shell .mobile-page-heading .text-slate-300 { color: var(--mobile-muted); }
   .student-shell .mobile-page-heading .grid { margin-top: 0; }
   .student-shell .mobile-page-heading .grid > div:last-child:not(:first-child) { border: 1px solid var(--mobile-border); border-radius: 16px; background: var(--mobile-surface); color: var(--mobile-text); padding: 16px; }
@@ -100,6 +101,9 @@
   .mock-selection-card > p { margin-top: 8px; min-height: 0; font-size: 13px; line-height: 1.7; }
   .mock-selection-card > .grid { margin-top: 18px; }
   .mock-selection-card > .grid > div { padding: 12px; background: #fff8f2; border-radius: 10px; border: 1px solid #f1e8e5; }
+  .mock-selection-card > .grid > .mock-info-box { background: #fff; border-color: #d8d3cf; box-shadow: 0 2px 8px rgb(17 24 39 / 6%); }
+  .mock-selection-card .mock-info-label { color: #475569; }
+  .mock-selection-card .mock-info-value { color: #111827; }
   .mock-selection-card > .grid p { font-size: 15px; }
   .mock-selection-card > .grid .text-sm { font-size: 12px; }
   .mock-selection-card > button { margin-top: 18px; background: var(--mobile-red); border-radius: 10px; }
@@ -114,6 +118,22 @@
   .parts-skill-chevron { flex-shrink: 0; color: var(--mobile-muted); }
   .parts-skill-selector > button[aria-pressed=true] .parts-skill-chevron { color: var(--mobile-red); }
   .mobile-parts-page > section.bg-white, .mobile-parts-page > section.grid > a, .mobile-parts-page > section.grid > div { padding: 18px; border-color: var(--mobile-border); border-radius: 16px; box-shadow: none; }
+
+  .student-shell .parts-skill-selector > button:not([aria-pressed=true]),
+  .student-shell .parts-skill-selector > button:not([aria-pressed=true]) .parts-skill-icon,
+  .student-shell .parts-skill-selector > button:not([aria-pressed=true]) .parts-skill-label,
+  .student-shell .parts-skill-selector > button:not([aria-pressed=true]) .parts-skill-label small,
+  .student-shell .parts-skill-selector > button:not([aria-pressed=true]) .parts-skill-chevron {
+    color: #7f1d1d !important;
+  }
+
+  .student-shell .parts-skill-selector > button[aria-pressed=true],
+  .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-icon,
+  .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-label,
+  .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-label small,
+  .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-chevron {
+    color: #7f1d1d !important;
+  }
 
   /* Lesson/tip screens retain actual resources instead of example progress. */
   .mobile-lessons-page > a, .mobile-tips-page > a { font-size: 12px; margin-bottom: 10px; }
@@ -174,10 +194,10 @@
 }
 
 @media (max-width: 639px) {
-  html.dark .student-shell { --mobile-surface: #0f1b2d; --mobile-background: #111827; --mobile-text: #edf2ff; --mobile-muted: #b8c2d7; --mobile-border: #2a3951; --mobile-red: #ff8b94; }
+  html.dark .student-shell { --mobile-surface: #ffffff; --mobile-background: #fff8f2; --mobile-text: #3b0a0a; --mobile-muted: #64748b; --mobile-border: #fee2e2; --mobile-red: #d71920; }
   html.dark .student-shell .mobile-page-heading, html.dark .student-shell > header, html.dark .mobile-mock-page { background: var(--mobile-background); }
   html.dark .student-shell .mock-selection-hero, html.dark .student-shell .parts-skill-selector > button, html.dark .student-shell .mock-selection-card > .grid > div { background: var(--mobile-surface); border-color: var(--mobile-border); }
-  html.dark .student-shell .parts-skill-selector > button[aria-pressed=true] { border-color: #ff8b94; }
+  html.dark .student-shell .parts-skill-selector > button[aria-pressed=true] { border-color: #d71920; }
   html.dark .student-shell .dashboard-hero, html.dark .student-shell .dashboard-why-section, html.dark .student-shell .dashboard-testimonials-section { background: var(--mobile-background); }
-  html.dark .student-shell .btn-primary, html.dark .mock-selection-card > button, html.dark .mobile-mock-page .mock-skill-tabs button[aria-pressed=true] { background: #b90018; color: white; }
+  html.dark .student-shell .btn-primary, html.dark .mock-selection-card > button, html.dark .mobile-mock-page .mock-skill-tabs button[aria-pressed=true] { background: #d71920; color: white; }
 }

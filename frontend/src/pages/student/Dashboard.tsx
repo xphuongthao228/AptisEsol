@@ -305,13 +305,35 @@ function StudentLearningDashboard() {
   }
 
   return (
-    <div className="student-dashboard space-y-6 pb-10">
-      <div className="overflow-hidden rounded-lg border border-brand-100 shadow-soft">
+    <div className="student-dashboard relative space-y-6 overflow-hidden pb-10">
+      <div className="student-dashboard-bg-decor pointer-events-none absolute inset-0" aria-hidden="true">
+        <span className="dashboard-bg-web dashboard-bg-web-left" />
+        <span className="dashboard-bg-web dashboard-bg-web-right" />
+        <span className="dashboard-bg-moon" />
+        <span className="dashboard-bg-bat dashboard-bg-bat-one" />
+        <span className="dashboard-bg-bat dashboard-bg-bat-two" />
+        <span className="dashboard-bg-bat dashboard-bg-bat-three" />
+        <span className="dashboard-bg-pumpkin dashboard-bg-pumpkin-one" />
+        <span className="dashboard-bg-pumpkin dashboard-bg-pumpkin-two" />
+      </div>
+
+      <div className="relative z-10 overflow-hidden rounded-lg border border-brand-100 shadow-soft">
         <HeroSection showNotifications={false} />
       </div>
 
-      <section className="relative overflow-hidden rounded-lg border border-red-100 bg-[linear-gradient(110deg,#fff1eb_0%,#fff_48%,#fff3ed_100%)] p-5 shadow-soft sm:p-7">
+      <section className="student-dashboard-summary relative overflow-hidden rounded-lg border border-red-100 bg-[linear-gradient(110deg,#fff1eb_0%,#fff_48%,#fff3ed_100%)] p-5 shadow-soft sm:p-7">
         <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(#e2e8f0_1px,transparent_1px),linear-gradient(90deg,#e2e8f0_1px,transparent_1px)] [background-size:48px_48px]" />
+        <div className="dashboard-summary-decor pointer-events-none absolute inset-0" aria-hidden="true">
+          <span className="summary-glow summary-glow-one" />
+          <span className="summary-glow summary-glow-two" />
+          <span className="summary-moon" />
+          <span className="summary-web" />
+          <span className="summary-bat summary-bat-one" />
+          <span className="summary-bat summary-bat-two" />
+          <span className="summary-pumpkin summary-pumpkin-one" />
+          <span className="summary-pumpkin summary-pumpkin-two" />
+          <span className="summary-witch-hat" />
+        </div>
         <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
           <div>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white/80 px-3 py-1 text-xs font-extrabold text-brand-700">
@@ -350,13 +372,13 @@ function StudentLearningDashboard() {
       </section>
 
       <section className="space-y-4">
-        <div className="flex flex-col gap-4 rounded-lg border border-red-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
+        <div className="dashboard-action-row flex flex-col gap-4 rounded-lg border border-red-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-red-50 text-brand-600">
             <GraduationCap size={20} />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-black text-slate-950 sm:text-lg">Hướng dẫn người mới học Aptis trên Aptis Lingo</h2>
-            <p className="mt-1 text-sm text-slate-500">Xem lộ trình và các bước bắt đầu luyện Aptis hiệu quả trên Aptis Lingo.</p>
+            <p className="mt-1 text-sm font-semibold text-slate-700">Xem lộ trình và các bước bắt đầu luyện Aptis hiệu quả trên Aptis Lingo.</p>
           </div>
           <a
             href="https://docs.google.com/document/d/1watnMSe6cibOX1qRb31z4DKerySzN56g/edit"
@@ -368,13 +390,13 @@ function StudentLearningDashboard() {
           </a>
         </div>
 
-        <div className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
+        <div className="dashboard-action-row flex flex-col gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-amber-50 text-brand-600">
             <Target size={20} />
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-base font-black text-slate-950 sm:text-lg">Set up mục tiêu của bạn</h2>
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 text-sm font-semibold text-slate-700">
               {learningGoal
                 ? `Mục tiêu ${learningGoal.level} · Ngày thi ${formatGoalDate(learningGoal.examDate)}`
                 : 'Chọn ngày thi và trình độ mục tiêu B1, B2 hoặc C1.'}
@@ -386,18 +408,29 @@ function StudentLearningDashboard() {
         </div>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
-        <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+      <section className="dashboard-progress-card relative overflow-hidden rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+        <div className="halloween-progress-decor" aria-hidden="true">
+          <span className="halloween-web halloween-web-left" />
+          <span className="halloween-web halloween-web-right" />
+          <span className="halloween-spider">
+            <span className="halloween-spider-body" />
+          </span>
+          <span className="halloween-pumpkin halloween-pumpkin-one" />
+          <span className="halloween-pumpkin halloween-pumpkin-two" />
+        </div>
+        <div className="relative z-10 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
           <div>
             <h2 className="text-xl font-black text-slate-950">Thống kê tiến độ luyện tập</h2>
             <p className="mt-3 text-sm text-slate-600 sm:text-base">Theo dõi sự tiến bộ điểm số của bạn qua các lần luyện tập và thi thử.</p>
           </div>
           <Link to="/app/history" className="text-sm font-extrabold text-brand-600 hover:text-brand-700">Xem lịch sử</Link>
         </div>
-        {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : <ProgressLineChart submissions={submissions} mockResults={mockResults} />}
+        <div className="relative z-10">
+          {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : <ProgressLineChart submissions={submissions} mockResults={mockResults} />}
+        </div>
       </section>
 
-      <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+      <section className="recent-results-card rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
             <p className="text-xs font-extrabold uppercase text-brand-600">Học tiếp</p>
@@ -406,13 +439,13 @@ function StudentLearningDashboard() {
           <Link to="/app/tests/parts" className="btn-primary h-10 px-4 text-sm">Luyện ngay <ArrowRight size={16} /></Link>
         </div>
         {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : recentResults.length ? (
-          <div className="mt-5 divide-y divide-slate-100">
+          <div className="recent-results-list mt-5 divide-y divide-slate-100">
             {recentResults.map((item) => {
               const title = item.kind === 'submission' ? item.value.testTitle : item.value.title;
               const skill = item.kind === 'submission' ? item.value.skillName : item.value.skill;
               const percent = item.value.maxScore ? Math.round(((item.kind === 'submission' ? item.value.totalScore : item.value.score) * 100) / item.value.maxScore) : 0;
               return (
-              <Link to={`/app/history?result=${item.kind}:${item.value.id}`} className="flex items-center gap-4 py-4 transition hover:bg-slate-50" key={`${item.kind}:${item.value.id}`}>
+              <Link to={`/app/history?result=${item.kind}:${item.value.id}`} className="recent-result-row flex items-center gap-4 py-4 transition hover:bg-slate-50" key={`${item.kind}:${item.value.id}`}>
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-md bg-brand-50 text-brand-700"><FileText size={18} /></span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-extrabold text-navy">{repairMojibake(title)}</p>
@@ -480,7 +513,7 @@ function StudentLearningDashboard() {
 
 function DashboardMetric({ icon: Icon, label, value, tone }: { icon: LucideIcon; label: string; value: string; tone: string }) {
   return (
-    <div className="flex min-h-[112px] items-center gap-3 rounded-lg border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
+    <div className="dashboard-metric-card flex min-h-[112px] items-center gap-3 rounded-lg border border-white/80 bg-white/75 p-4 shadow-sm backdrop-blur">
       <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${tone}`}><Icon size={22} /></span>
       <div className="min-w-0"><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 truncate text-xl font-black text-slate-950">{value}</p></div>
     </div>
@@ -525,7 +558,7 @@ function ProgressLineChart({ submissions, mockResults }: { submissions: Submissi
   const y = (value: number) => top + ((100 - value) / 100) * plotHeight;
 
   return (
-    <div className="mt-6">
+    <div className="progress-chart mt-6">
       <div className="mb-4 flex flex-wrap justify-center gap-x-5 gap-y-2">
         {progressChartSeries.map((series) => (
           <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-600" key={series.key}>
@@ -538,14 +571,14 @@ function ProgressLineChart({ submissions, mockResults }: { submissions: Submissi
         <svg viewBox={`0 0 ${width} ${height}`} className="h-[330px] min-w-[920px] w-full" role="img" aria-label="Biểu đồ tiến độ điểm số theo ngày">
           {Array.from({ length: 11 }, (_, index) => index * 10).map((value) => (
             <g key={value}>
-              <line x1={left} x2={width - right} y1={y(value)} y2={y(value)} stroke="#e2e8f0" strokeWidth="1" />
-              <text x={left - 8} y={y(value) + 4} textAnchor="end" fontSize="11" fill="#64748b">{value}%</text>
+              <line className="progress-chart-grid" x1={left} x2={width - right} y1={y(value)} y2={y(value)} stroke="currentColor" strokeWidth="1" />
+              <text className="progress-chart-axis" x={left - 8} y={y(value) + 4} textAnchor="end" fontSize="11" fill="currentColor">{value}%</text>
             </g>
           ))}
           {chart.dates.map((date, index) => (
             <g key={date}>
-              <line x1={x(index)} x2={x(index)} y1={top} y2={height - bottom} stroke="#e2e8f0" strokeWidth="1" />
-              <text x={x(index)} y={height - 17} textAnchor="middle" fontSize="11" fill="#64748b">{formatChartDate(date)}</text>
+              <line className="progress-chart-grid" x1={x(index)} x2={x(index)} y1={top} y2={height - bottom} stroke="currentColor" strokeWidth="1" />
+              <text className="progress-chart-axis" x={x(index)} y={height - 17} textAnchor="middle" fontSize="11" fill="currentColor">{formatChartDate(date)}</text>
             </g>
           ))}
           {progressChartSeries.map((series) => {
@@ -555,7 +588,7 @@ function ProgressLineChart({ submissions, mockResults }: { submissions: Submissi
               <g key={series.key}>
                 {points.length > 1 && <path d={path} fill="none" stroke={series.color} strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" strokeDasharray={'dashed' in series && series.dashed ? '7 6' : undefined} />}
                 {points.map((point) => (
-                  <circle key={`${point.dateIndex}-${point.value}`} cx={x(point.dateIndex)} cy={y(point.value)} r="3.5" fill="white" stroke={series.color} strokeWidth="2.5">
+                  <circle className="progress-chart-point" key={`${point.dateIndex}-${point.value}`} cx={x(point.dateIndex)} cy={y(point.value)} r="3.5" fill="currentColor" stroke={series.color} strokeWidth="2.5">
                     <title>{`${series.label} · ${formatChartDate(chart.dates[point.dateIndex])}: ${point.value}%`}</title>
                   </circle>
                 ))}
@@ -705,12 +738,12 @@ function FlagFall() {
 function HeroSection({ showNotifications = true }: { showNotifications?: boolean } = {}) {
   const defaultSlides: HeroSlide[] = [
     {
-      eyebrow: 'Aptis Lingo học theo lộ trình',
-      title: 'Học Aptis đúng hướng, tiến bộ mỗi ngày',
-      description: 'Biết nên luyện phần nào trước và tập trung sửa đúng lỗi để về đích nhanh hơn.',
+      eyebrow: 'Sự kiện độc quyền tháng 10',
+      title: 'Học Aptis đúng hướng, tiến bộ thần tốc mỗi ngày',
+      description: 'Biết nên luyện phần nào trước và tập trung sửa đúng lỗi để về đích thành công rực rỡ trước đêm tiệc Halloween.',
       action: 'Vào luyện ngay',
       href: '/app/tests/parts',
-      tone: 'from-[#fff8f2] via-[#fff1c7] to-[#fffdf7]',
+      tone: 'from-[#210832] via-[#2d0d43] to-[#411022]',
       visual: 'study'
     },
     {
@@ -785,6 +818,28 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
       onMouseEnter={() => setSliderPaused(true)}
       onMouseLeave={() => setSliderPaused(false)}
     >
+      {!bannerMedia.length && (
+        <div className="dashboard-halloween-decor" aria-hidden="true">
+          <span className="decor-web" />
+          <span className="decor-bat decor-bat-one">⌁</span>
+          <span className="decor-bat decor-bat-two">⌁</span>
+        </div>
+      )}
+      {Boolean(bannerMedia.length) && (
+        <div className="dashboard-banner-decor" aria-hidden="true">
+          <span className="banner-decor-web banner-decor-web-left">🕸️</span>
+          <span className="banner-decor-web banner-decor-web-right">🕸️</span>
+          <span className="banner-decor-character banner-decor-pumpkin">🎧🎃</span>
+          <span className="banner-decor-character banner-decor-ghost">👻📚</span>
+          <span className="banner-decor-bat banner-decor-bat-one">🦇</span>
+          <span className="banner-decor-bat banner-decor-bat-two">🦇</span>
+          <span className="banner-decor-candy banner-decor-candy-one">🍬</span>
+          <span className="banner-decor-candy banner-decor-candy-two">🍭</span>
+          <span className="banner-decor-spark banner-decor-spark-one">✨</span>
+          <span className="banner-decor-spark banner-decor-spark-two">✨</span>
+          <span className="banner-decor-spark banner-decor-spark-three">✨</span>
+        </div>
+      )}
       {showNotifications && <DashboardNotificationPanel />}
       <div className="relative mx-auto min-h-[430px] max-w-[1560px]">
         {bannerMedia.length ? (
@@ -802,9 +857,18 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
             <p className="mt-4 max-w-[650px] text-base font-medium leading-7 text-slate-700 sm:text-lg">
               {slide.description}
             </p>
-            <Link to={slide.href} className="btn-primary mt-6 h-12 px-6 text-sm sm:text-base">
-              {slide.action} <ArrowRight size={18} />
-            </Link>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Link to={slide.href} className="btn-primary h-12 px-6 text-sm sm:text-base">
+                {slide.action} <ArrowRight size={18} />
+              </Link>
+              <Link to="/app/ai-practice" className="btn-secondary h-12 px-6 text-sm sm:text-base">
+                Xem lộ trình ma quái
+              </Link>
+            </div>
+            <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-extrabold text-slate-600">
+              <span>✓ Chấm điểm AI chuẩn British Council</span>
+              <span>✓ Bộ đề dự đoán trúng format 2026</span>
+            </div>
           </div>
 
           <div className="relative hidden h-[350px] items-center justify-center lg:flex" aria-hidden="true">

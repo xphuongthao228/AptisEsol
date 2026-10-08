@@ -11,6 +11,13 @@ import { repairMojibake } from '../../utils/textRepair';
 
 const POINTS_PER_QUESTION = 2;
 const PART_MENU_SKILL_KEY = 'aptis-part-menu-skill';
+const partsPageHeroClass = 'mobile-page-heading halloween-parts-hero relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#2b0d42,#4c1233_58%,#6b1e34)] p-8 text-white shadow-soft';
+const partsPageBackClass = 'inline-flex items-center gap-2 text-sm font-bold text-orange-50 transition hover:text-white';
+const partsPageEyebrowClass = 'mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-100';
+const partsPageLeadClass = 'mt-3 max-w-2xl text-blue-50/90';
+const partsCardClass = 'rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft';
+const partsCardLinkClass = `${partsCardClass} group transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift`;
+const partsPrimaryActionClass = 'mt-6 flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white transition group-hover:bg-brand-700';
 
 const skillCards: Array<{
   type: SkillType;
@@ -193,13 +200,27 @@ export function TestPartMenu() {
 
   return (
     <div className="mobile-parts-page space-y-7">
-      <section className="mobile-page-heading rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
-        <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-bold text-blue-100"><ArrowLeft size={18} />Quay lại luyện tập</Link>
-        <p className="mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-200">
+      <section className={partsPageHeroClass}>
+        <div className="halloween-scene" aria-hidden="true">
+          <div className="halloween-moon" />
+          <div className="halloween-cloud halloween-cloud-one" />
+          <div className="halloween-cloud halloween-cloud-two" />
+          <div className="halloween-web halloween-web-right" />
+          <div className="halloween-bat halloween-bat-one" />
+          <div className="halloween-bat halloween-bat-two" />
+          <div className="halloween-bat halloween-bat-three" />
+          <div className="halloween-pumpkin halloween-pumpkin-main" />
+          <div className="halloween-pumpkin halloween-pumpkin-left" />
+          <div className="halloween-pumpkin halloween-pumpkin-small" />
+          <div className="halloween-ground" />
+          <div className="halloween-sparkles" />
+        </div>
+        <Link to="/app/tests" className={partsPageBackClass}><ArrowLeft size={18} />Quay lại luyện tập</Link>
+        <p className={partsPageEyebrowClass}>
           {isWritingSelected ? 'Luyện tập theo chủ đề' : 'Luyện tập theo part'}
         </p>
         <h1 className="mt-3 text-4xl font-extrabold">Chọn kỹ năng cần luyện tập</h1>
-        <p className="mt-3 max-w-2xl text-slate-300">
+        <p className={partsPageLeadClass}>
           {isWritingSelected
             ? 'Chọn Writing, sau đó chọn chủ đề câu hỏi bạn muốn luyện.'
             : 'Chọn Nghe, Nói hoặc Đọc, sau đó chọn Part 1, 2, 3 hoặc 4 để luyện.'}
@@ -208,21 +229,28 @@ export function TestPartMenu() {
 
       <section className="parts-skill-selector flex flex-wrap gap-3" aria-label="Chọn kỹ năng luyện tập">
         {partSkills.map((skill) => (
-          <button
-            key={skill.type}
-            type="button"
-            onClick={() => selectSkill(skill.type)}
-            aria-pressed={selectedSkill.type === skill.type}
-            className={`inline-flex h-12 items-center gap-2 rounded-xl px-5 text-sm font-extrabold transition ${
-              selectedSkill.type === skill.type
-                ? 'bg-brand-600 text-white shadow-soft'
-                : 'border border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'
-            }`}
-          >
-            <span className="parts-skill-icon">{skill.icon}</span>
-            <span className="parts-skill-label">{skill.title}<small className="sm:hidden">{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
-            <ChevronDown className="parts-skill-chevron sm:hidden" size={20} />
-          </button>
+          (() => {
+            const active = selectedSkill.type === skill.type;
+            const textColor = active ? '#ffffff' : '#7f1d1d';
+            return (
+              <button
+                key={skill.type}
+                type="button"
+                onClick={() => selectSkill(skill.type)}
+                aria-pressed={active}
+                className={`inline-flex h-12 items-center gap-2 rounded-xl px-5 text-sm font-extrabold transition ${
+                  active
+                    ? 'bg-brand-600 text-white shadow-soft'
+                    : 'border border-brand-100 bg-white text-red-900 hover:border-brand-200 hover:text-brand-700'
+                }`}
+                style={{ color: textColor }}
+              >
+                <span className="parts-skill-icon" style={{ color: textColor }}>{skill.icon}</span>
+                <span className="parts-skill-label" style={{ color: textColor }}>{skill.title}<small className="sm:hidden" style={{ color: textColor }}>{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
+                <ChevronDown className="parts-skill-chevron sm:hidden" size={20} style={{ color: textColor }} />
+              </button>
+            );
+          })()
         ))}
       </section>
 
@@ -254,14 +282,14 @@ export function TestPartMenu() {
                 to={`/app/tests/${topic.testId}?questionId=${topic.questionId}&clubIndex=${topic.clubIndex}`}
                 state={{ returnTo: '/app/tests/parts?skill=WRITING' }}
                 onClick={requireLogin}
-                className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
+                className={partsCardLinkClass}
               >
                 <div className={`mb-5 grid h-14 w-14 place-items-center rounded-2xl ${selectedSkill.accent}`}>
                   <FileText />
                 </div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Chủ đề Writing</p>
                 <h2 className="mt-1 text-2xl font-extrabold text-navy">{topic.displayName}</h2>
-                <span className="mt-6 flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white transition group-hover:bg-brand-700">
+                <span className={partsPrimaryActionClass}>
                   Bắt đầu <ArrowRight size={17} />
                 </span>
               </Link>
@@ -300,7 +328,7 @@ export function TestPartMenu() {
 
             if (!firstGroup) {
               return (
-                <div key={`${selectedSkill.type}-${part}`} className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft">
+                <div key={`${selectedSkill.type}-${part}`} className={partsCardClass}>
                   {cardContent}
                 </div>
               );
@@ -311,7 +339,7 @@ export function TestPartMenu() {
                 key={`${selectedSkill.type}-${part}`}
                 to={`/app/tests/${firstGroup.test.id}`}
                 state={{ returnTo: `/app/tests/parts?skill=${selectedSkill.type}` }}
-                className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
+                className={partsCardLinkClass}
               >
                 {cardContent}
               </Link>
@@ -322,44 +350,6 @@ export function TestPartMenu() {
     </div>
   );
 
-  return (
-    <div className="space-y-7">
-      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
-        <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-bold text-blue-100"><ArrowLeft size={18} />Quay lại luyện tập</Link>
-        <p className="mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-200">Luyện tập theo part</p>
-        <h1 className="mt-3 text-4xl font-extrabold">Chọn kỹ năng và part</h1>
-        <p className="mt-3 max-w-2xl text-slate-300">Học viên chọn trực tiếp Part 1, 2, 3 hoặc 4 của từng kỹ năng.</p>
-      </section>
-
-      <section className="grid gap-5">
-        {skillCards.map((skill) => (
-          <div key={skill.type} className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft">
-            <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-              <div className="flex gap-4">
-                <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${skill.accent}`}>{skill.icon}</div>
-                <div>
-                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Theo part</p>
-                  <h2 className="mt-1 text-2xl font-extrabold text-navy">{skill.title}</h2>
-                  <p className="mt-2 leading-7 text-slate-600">{skill.subtitle}</p>
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:min-w-[420px]">
-                {partsForSkill(skill.type).map((part) => (
-                  <Link
-                    key={`${skill.type}-${part}`}
-                    to={`/app/tests/questions/${skill.type}/part/${part}`}
-                    className="flex h-12 items-center justify-center rounded-xl border border-brand-200 bg-white text-sm font-extrabold text-brand-700 transition hover:border-brand-400 hover:bg-brand-50"
-                  >
-                    Part {part}
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
-        ))}
-      </section>
-    </div>
-  );
 }
 
 export function SkillQuestionParts() {
@@ -405,11 +395,11 @@ export function SkillQuestionParts() {
   if (selectedSkill === 'WRITING') {
     return (
       <div className="space-y-7">
-        <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
-          <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-bold text-blue-100"><ArrowLeft size={18} />Quay lại luyện tập</Link>
-          <p className="mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-200">Luyện theo chủ đề</p>
+        <section className={partsPageHeroClass}>
+          <Link to="/app/tests/parts?skill=WRITING" className={partsPageBackClass}><ArrowLeft size={18} />Quay lại luyện tập</Link>
+          <p className={partsPageEyebrowClass}>Luyện theo chủ đề</p>
           <h1 className="mt-3 text-4xl font-extrabold">Writing</h1>
-          <p className="mt-3 max-w-2xl text-slate-300">Chọn chủ đề Writing bạn muốn luyện.</p>
+          <p className={partsPageLeadClass}>Chọn chủ đề Writing bạn muốn luyện.</p>
         </section>
 
         {writingTopics.length ? (
@@ -418,7 +408,7 @@ export function SkillQuestionParts() {
               <Link
                 to={`/app/tests/${topic.testId}?questionId=${topic.questionId}&clubIndex=${topic.clubIndex}`}
                 onClick={requireLogin}
-                className={`flex h-14 items-center justify-center rounded-lg px-5 text-lg font-semibold shadow-soft transition hover:-translate-y-0.5 hover:shadow-md ${getWritingTopicColor(topic.clubIndex)}`}
+                className={`${partsCardLinkClass} flex min-h-24 items-center justify-center border-orange-200 bg-orange-50 text-center text-lg font-black text-orange-950 hover:border-orange-300`}
                 key={`${topic.testId}-${topic.questionId}-${topic.clubIndex}`}
               >
                 {topic.displayName}
@@ -434,11 +424,11 @@ export function SkillQuestionParts() {
 
   return (
     <div className="space-y-7">
-      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
-        <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-bold text-blue-100"><ArrowLeft size={18} />Quay lại luyện tập</Link>
-        <p className="mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-200">Luyện theo part</p>
+      <section className={partsPageHeroClass}>
+        <Link to="/app/tests/parts" className={partsPageBackClass}><ArrowLeft size={18} />Quay lại luyện tập</Link>
+        <p className={partsPageEyebrowClass}>Luyện theo part</p>
         <h1 className="mt-3 text-4xl font-extrabold">{skill.title}</h1>
-        <p className="mt-3 max-w-2xl text-slate-300">Chọn part bạn muốn luyện.</p>
+        <p className={partsPageLeadClass}>Chọn part bạn muốn luyện.</p>
       </section>
 
       <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
@@ -448,7 +438,7 @@ export function SkillQuestionParts() {
               .map(({ test }) => test);
           const firstTest = displayTests[0];
           return (
-            <div className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft" key={part}>
+            <div className={partsCardClass} key={part}>
               <div className={`mb-5 grid h-14 w-14 place-items-center rounded-2xl ${skill.accent}`}>
                 <FileText />
               </div>
@@ -456,7 +446,7 @@ export function SkillQuestionParts() {
               <h2 className="mt-1 text-2xl font-extrabold text-navy">Part {part}</h2>
               <p className="mt-2 text-sm leading-6 text-slate-600">{displayTests.length} bài luyện</p>
               {firstTest ? (
-                <Link to={`/app/tests/questions/${skill.type}/part/${part}`} onClick={requireLogin} className="mt-6 flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white">
+                <Link to={`/app/tests/questions/${skill.type}/part/${part}`} onClick={requireLogin} className={partsPrimaryActionClass}>
                   Bắt đầu <ArrowRight size={17} />
                 </Link>
               ) : (
@@ -512,11 +502,11 @@ export function SkillPartQuestions() {
 
   return (
     <div className="space-y-7">
-      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
-        <Link to={`/app/tests/questions/${skill.type}`} className="inline-flex items-center gap-2 text-sm font-bold text-blue-100"><ArrowLeft size={18} />Quay lại chọn part</Link>
-        <p className="mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-200">Luyện theo part</p>
+      <section className={partsPageHeroClass}>
+        <Link to={`/app/tests/questions/${skill.type}`} className={partsPageBackClass}><ArrowLeft size={18} />Quay lại chọn part</Link>
+        <p className={partsPageEyebrowClass}>Luyện theo part</p>
         <h1 className="mt-3 text-4xl font-extrabold">{skill.title} - Part {selectedPart}</h1>
-        <p className="mt-3 max-w-2xl text-slate-300">Có {totalQuestions} câu hỏi. Chọn câu để luyện.</p>
+        <p className={partsPageLeadClass}>Có {totalQuestions} câu hỏi. Chọn câu để luyện.</p>
       </section>
 
       {questionGroups?.length ? (
@@ -527,7 +517,7 @@ export function SkillPartQuestions() {
               to={`/app/tests/${test.id}`}
               state={{ returnTo: `/app/tests/questions/${skill.type}/part/${selectedPart}` }}
               onClick={requireLogin}
-              className="group rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
+              className={partsCardLinkClass}
             >
               <div className={`mb-5 grid h-14 w-14 place-items-center rounded-2xl ${skill.accent}`}>
                 <FileText />
@@ -540,7 +530,7 @@ export function SkillPartQuestions() {
                 </div>
                 <ArrowRight className="mt-2 shrink-0 text-slate-500 transition group-hover:translate-x-1 group-hover:text-brand-600" size={18} />
               </div>
-              <span className="mt-6 flex h-12 items-center justify-center gap-2 rounded-xl bg-brand-600 text-sm font-extrabold text-white transition group-hover:bg-brand-700">
+              <span className={partsPrimaryActionClass}>
                 Bắt đầu <ArrowRight size={17} />
               </span>
             </Link>
@@ -641,13 +631,13 @@ function InfoCard({ children, error }: { children: ReactNode; error?: boolean })
 function QuestionLoadingState({ skillTitle, part }: { skillTitle: string; part: number }) {
   return (
     <div className="space-y-6">
-      <section className="rounded-[24px] bg-[linear-gradient(135deg,#06204a,#0057d9)] p-8 text-white">
+      <section className={partsPageHeroClass}>
         <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold text-blue-100">
           <Loader2 className="animate-spin" size={18} />
           Đang lấy đề
         </div>
         <h1 className="mt-5 text-4xl font-extrabold">{skillTitle} - Part {Number.isFinite(part) ? part : ''}</h1>
-        <p className="mt-3 max-w-2xl text-slate-300">Hệ thống đang tải danh sách câu hỏi cho phần luyện này.</p>
+        <p className={partsPageLeadClass}>Hệ thống đang tải danh sách câu hỏi cho phần luyện này.</p>
       </section>
 
       <section className="space-y-4 rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft" aria-busy="true" aria-live="polite">
@@ -756,14 +746,15 @@ function isQuestionInPart(question: Question, skill: SkillType | '', part: numbe
 
   if (skill === 'READING') {
     const templateName = String(template?.template ?? '').toUpperCase();
+    const explicitTestPart = parsePartNumber(`${test?.title ?? ''} ${test?.description ?? ''}`);
+    if (explicitTestPart !== null) return explicitTestPart === part;
+
     if (part === 1 && templateName === 'READING_GAP_FILL') return true;
     if (part === 2 && templateName === 'READING_SENTENCE_ORDER') return true;
     if (part === 3 && templateName === 'READING_FORUM_MATCH') return true;
     if (part === 4 && templateName === 'READING_HEADING_MATCH') return true;
 
-    if (['READING_GAP_FILL', 'READING_SENTENCE_ORDER', 'READING_FORUM_MATCH', 'READING_HEADING_MATCH'].includes(templateName)) {
-      return false;
-    }
+    return false;
   }
 
   return new RegExp(`\\b(part|phan|p|set)\\s*${part}\\b|\\b${part}\\s*(/|-)`, 'i').test(content);
@@ -774,6 +765,12 @@ function normalizePartSearchText(value: string) {
     .replace(/[_/.-]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function parsePartNumber(value: string) {
+  const normalized = normalizePartSearchText(value).toLowerCase();
+  const match = normalized.match(/\b(?:part|phan|p|set)\s*([1-5])\b/);
+  return match ? Number(match[1]) : null;
 }
 
 function isExamTest(test: Test) {

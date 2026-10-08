@@ -1,0 +1,17 @@
+Use these screenshots as visual references for the Aptis Lingo web app.
+
+Recreate the same product UI system: white and warm off-white surfaces, deep navy text, red primary actions, yellow/gold accents, compact rounded cards, top navigation, student dashboard, practice-by-part flow, mock test cards, AI practice page, lessons page, and admin content management.
+
+Keep the layout dense but friendly. Preserve the navigation hierarchy, card spacing, button styling, typography scale, and responsive mobile bottom navigation shown in the mobile screenshots.
+
+Screens included:
+- 01-login-desktop.png: Login, 1440x900, /login
+- 02-dashboard-desktop.png: Dashboard, 1440x900, /app
+- 03-practice-parts-reading-desktop.png: Practice Parts Reading, 1440x900, /app/tests/parts?skill=READING
+- 04-mock-tests-desktop.png: Mock Tests, 1440x900, /app/mock-tests
+- 05-ai-practice-desktop.png: AI Practice, 1440x900, /app/ai-practice
+- 06-lessons-desktop.png: Lessons, 1440x900, /app/lessons
+- 07-admin-content-desktop.png: Admin Content, 1440x900, /admin/content
+- 08-practice-parts-mobile.png: Practice Parts Mobile, 390x844, /app/tests/parts?skill=READING
+- 09-mock-tests-mobile.png: Mock Tests Mobile, 390x844, /app/mock-tests
+- 10-dashboard-mobile.png: Dashboard Mobile, 390x844, /app

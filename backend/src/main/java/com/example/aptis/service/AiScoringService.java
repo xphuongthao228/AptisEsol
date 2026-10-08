@@ -513,11 +513,12 @@ public class AiScoringService {
                 - Mention or answer the key issue from every selected topic.
                 - Include a clear overall opinion, reasons, consequences or comparison where relevant, and one personal example.
                 - Use natural spoken English appropriate for %s, with clear linking phrases and no invented specific facts.
+                - For B1 and B2, prioritize common, easy-to-remember vocabulary and familiar phrases over advanced or academic words.
                 - Return only the answer. Do not use headings, bullets, topic labels, translation, or analysis.
                 """.formatted(level, selectedTopics, level);
 
         List<Map<String, String>> messages = List.of(
-                Map.of("role", "system", "content", "You write natural Aptis Speaking Part 4 model answers for learners."),
+                Map.of("role", "system", "content", "You write natural Aptis Speaking Part 4 model answers for learners. Prefer common, memorable vocabulary for B1-B2 learners."),
                 Map.of("role", "user", "content", prompt));
         String sampleAnswer = chatText(messages, 260).trim();
         return new AiDtos.SpeakingPart4SampleResponse(prompt, sampleAnswer);

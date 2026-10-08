@@ -1,0 +1,62 @@
+[
+  {
+    "title": "Login",
+    "file": "01-login-desktop.png",
+    "route": "/login",
+    "viewport": "1440x900"
+  },
+  {
+    "title": "Dashboard",
+    "file": "02-dashboard-desktop.png",
+    "route": "/app",
+    "viewport": "1440x900"
+  },
+  {
+    "title": "Practice Parts Reading",
+    "file": "03-practice-parts-reading-desktop.png",
+    "route": "/app/tests/parts?skill=READING",
+    "viewport": "1440x900"
+  },
+  {
+    "title": "Mock Tests",
+    "file": "04-mock-tests-desktop.png",
+    "route": "/app/mock-tests",
+    "viewport": "1440x900"
+  },
+  {
+    "title": "AI Practice",
+    "file": "05-ai-practice-desktop.png",
+    "route": "/app/ai-practice",
+    "viewport": "1440x900"
+  },
+  {
+    "title": "Lessons",
+    "file": "06-lessons-desktop.png",
+    "route": "/app/lessons",
+    "viewport": "1440x900"
+  },
+  {
+    "title": "Admin Content",
+    "file": "07-admin-content-desktop.png",
+    "route": "/admin/content",
+    "viewport": "1440x900"
+  },
+  {
+    "title": "Practice Parts Mobile",
+    "file": "08-practice-parts-mobile.png",
+    "route": "/app/tests/parts?skill=READING",
+    "viewport": "390x844"
+  },
+  {
+    "title": "Mock Tests Mobile",
+    "file": "09-mock-tests-mobile.png",
+    "route": "/app/mock-tests",
+    "viewport": "390x844"
+  },
+  {
+    "title": "Dashboard Mobile",
+    "file": "10-dashboard-mobile.png",
+    "route": "/app",
+    "viewport": "390x844"
+  }
+]

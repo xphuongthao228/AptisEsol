@@ -70,6 +70,7 @@ public class CoreService {
     private final ProgressRepository progress;
     private final MediaFileRepository mediaFiles;
     private final LeaderboardSettingsRepository leaderboardSettings;
+    private final UiSettingsRepository uiSettings;
     private final DtoMapper mapper;
     private final ObjectMapper objectMapper;
 
@@ -618,7 +619,7 @@ public class CoreService {
             test.setDescription(description);
             test.setDurationMinutes(defaultExamDuration(skillType));
             test.setStatus(status);
-            test.setMode(TestMode.EXAM);
+            test.setMode(TestMode.PRACTICE);
             test.setFeatured(featured);
             Test savedTest = tests.save(test);
 
@@ -893,9 +894,9 @@ public class CoreService {
         test.setSkill(skill);
         test.setTitle(title);
         test.setDescription(firstNonBlank(csv(first, "description", ""), title));
-        test.setDurationMinutes(parseInteger(first, "duration_minutes", defaultExamDuration(skillType)));
+        test.setDurationMinutes(parseInteger(first, "duration_minutes", 30));
         test.setStatus(parseTestStatus(csv(first, "status", "PUBLISHED")));
-        test.setMode(TestMode.EXAM);
+        test.setMode(TestMode.PRACTICE);
         test.setFeatured(parseBoolean(csv(first, "featured", "false")));
         Test savedTest = tests.save(test);
 
@@ -1293,7 +1294,7 @@ public class CoreService {
                 test.setDescription(title);
                 test.setDurationMinutes(30);
                 test.setStatus(TestStatus.PUBLISHED);
-                test.setMode(TestMode.EXAM);
+                test.setMode(TestMode.PRACTICE);
                 test.setFeatured(parseBoolean(csv(record, "featured", "false")));
                 Test savedTest = tests.save(test);
 
@@ -2111,6 +2112,40 @@ public class CoreService {
         settings.setExamDate(request.examAt() != null ? request.examAt().toLocalDate() : request.examDate());
         LeaderboardSettings saved = leaderboardSettings.save(settings);
         return new CoreDtos.LeaderboardSettingsResponse(saved.getExamDate(), saved.getExamAt());
+    }
+
+    @Transactional(readOnly = true)
+    public CoreDtos.UiSettingsResponse uiSettings() {
+        return uiSettings.findTopByOrderByIdAsc()
+                .map(settings -> new CoreDtos.UiSettingsResponse(
+                        normalizeStudentTheme(settings.getStudentTheme()),
+                        normalizeStudentSkin(settings.getStudentSkin())))
+                .orElseGet(() -> new CoreDtos.UiSettingsResponse("dark", "default"));
+    }
+
+    @Transactional
+    public CoreDtos.UiSettingsResponse updateUiSettings(CoreDtos.UiSettingsRequest request) {
+        UiSettings settings = uiSettings.findTopByOrderByIdAsc().orElseGet(UiSettings::new);
+        settings.setStudentTheme(normalizeStudentTheme(request.studentTheme()));
+        settings.setStudentSkin(normalizeStudentSkin(request.studentSkin()));
+        UiSettings saved = uiSettings.save(settings);
+        return new CoreDtos.UiSettingsResponse(saved.getStudentTheme(), saved.getStudentSkin());
+    }
+
+    private String normalizeStudentTheme(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase();
+        return switch (normalized) {
+            case "light", "dark", "auto" -> normalized;
+            default -> "dark";
+        };
+    }
+
+    private String normalizeStudentSkin(String value) {
+        String normalized = value == null ? "" : value.trim().toLowerCase();
+        return switch (normalized) {
+            case "default", "halloween", "mid_autumn", "tet" -> normalized;
+            default -> "default";
+        };
     }
 
     private static final class LeaderboardAccumulator {

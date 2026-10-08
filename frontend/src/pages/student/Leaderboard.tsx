@@ -53,7 +53,7 @@ export function Leaderboard() {
   if (error) return <InfoCard error>{error}</InfoCard>;
 
   return (
-    <div className="space-y-7">
+    <div className="leaderboard-page student-decor-page space-y-7">
       <section className="flex flex-col justify-between gap-5 md:flex-row md:items-end">
         <div>
           <p className="inline-flex rounded-full bg-brand-50 px-4 py-2 text-sm font-extrabold text-brand-700">
@@ -65,19 +65,19 @@ export function Leaderboard() {
           </p>
         </div>
 
-        <label className="flex h-12 w-full items-center gap-3 rounded-xl border border-brand-100 bg-white px-4 text-slate-500 shadow-soft md:max-w-[420px]">
+        <label className="leaderboard-search-field flex h-12 w-full items-center gap-3 rounded-xl border border-brand-100 bg-white px-4 text-slate-500 shadow-soft md:max-w-[420px]">
           <Search size={18} />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Tìm học viên..."
-            className="h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-navy outline-none placeholder:text-slate-400"
+            className="leaderboard-search-input h-full min-w-0 flex-1 bg-transparent text-sm font-semibold text-navy outline-none placeholder:text-slate-400"
           />
         </label>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <div className="flex items-start gap-4 rounded-[8px] border border-brand-100 bg-white p-5 shadow-soft">
+        <div className="leaderboard-info-card flex items-start gap-4 rounded-[8px] border border-brand-100 bg-white p-5 shadow-soft">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 shadow-soft">
             <CalendarDays size={22} />
           </span>
@@ -118,8 +118,8 @@ export function Leaderboard() {
           </div>
         </div>
 
-        <div className="flex items-start gap-4 rounded-[8px] border border-amber-200 bg-amber-50 p-5 shadow-soft">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-amber-600 shadow-soft">
+        <div className="leaderboard-info-card flex items-start gap-4 rounded-[8px] border border-brand-100 bg-white p-5 shadow-soft">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 shadow-soft">
             <Gift size={22} />
           </span>
           <div>
@@ -130,8 +130,8 @@ export function Leaderboard() {
           </div>
         </div>
 
-        <div className="flex items-start gap-4 rounded-[8px] border border-emerald-200 bg-emerald-50 p-5 shadow-soft">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-emerald-600 shadow-soft">
+        <div className="leaderboard-info-card flex items-start gap-4 rounded-[8px] border border-brand-100 bg-white p-5 shadow-soft">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 shadow-soft">
             <Users size={22} />
           </span>
           <div>
@@ -153,8 +153,8 @@ export function Leaderboard() {
           </div>
         </div>
 
-        <div className="flex items-start gap-4 rounded-[8px] border border-brand-100 bg-sky-50 p-5 shadow-soft">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white text-brand-600 shadow-soft">
+        <div className="leaderboard-info-card leaderboard-reset-card flex items-start gap-4 rounded-[8px] border border-brand-100 bg-white p-5 shadow-soft">
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-50 text-brand-700 shadow-soft">
             <RotateCcw size={22} />
           </span>
           <div>
@@ -175,7 +175,7 @@ export function Leaderboard() {
       )}
 
       <section className="overflow-hidden rounded-[8px] border border-brand-100 bg-white shadow-soft">
-        <div className="grid grid-cols-[72px_minmax(180px,1fr)_110px_110px_170px] gap-4 border-b border-brand-100 bg-sky-50 px-5 py-4 text-sm font-extrabold text-slate-600 max-lg:hidden">
+        <div className="leaderboard-table-head grid grid-cols-[72px_minmax(180px,1fr)_110px_110px_170px] gap-4 border-b border-brand-100 bg-sky-50 px-5 py-4 text-sm font-extrabold text-slate-600 max-lg:hidden">
           <span>Hạng</span>
           <span>Học viên</span>
           <span className="text-right">Điểm</span>
@@ -217,13 +217,13 @@ export function Leaderboard() {
 
 function TopStudent({ row }: { row: LeaderboardRow }) {
   const styles = row.rank === 1
-    ? 'border-amber-200 bg-amber-50 text-amber-700'
+    ? 'border-brand-100 bg-white text-brand-700'
     : row.rank === 2
-      ? 'border-slate-200 bg-slate-50 text-slate-700'
-      : 'border-orange-200 bg-orange-50 text-orange-700';
+      ? 'border-brand-100 bg-white text-brand-700'
+      : 'border-brand-100 bg-white text-brand-700';
 
   return (
-    <article className={`rounded-[8px] border p-5 shadow-soft ${styles}`}>
+    <article className={`leaderboard-top-card rounded-[8px] border p-5 shadow-soft ${styles}`}>
       <div className="flex items-center justify-between gap-3">
         <span className="grid h-12 w-12 place-items-center rounded-full bg-white/80 shadow-soft">
           {row.rank === 1 ? <Trophy size={24} /> : row.rank === 2 ? <Medal size={24} /> : <Award size={24} />}

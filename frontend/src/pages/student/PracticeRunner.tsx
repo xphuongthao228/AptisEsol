@@ -3760,7 +3760,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
     const selectedClubIndex = Number(saved.selectedClubIndex ?? initialClubIndex ?? -1);
     const partIndex = Number(saved.writingPartIndex ?? 0);
     const club = clubs[selectedClubIndex];
-    const palette = ['bg-amber-400 text-navy', 'bg-emerald-700 text-white', 'bg-red-500 text-white', 'bg-sky-500 text-navy', 'bg-brand-600 text-white'];
+    const palette = ['border border-orange-300 bg-orange-100 text-orange-950', 'border border-rose-300 bg-rose-100 text-rose-950', 'border border-amber-300 bg-amber-100 text-amber-950', 'border border-lime-300 bg-lime-100 text-lime-950', 'border border-cyan-300 bg-cyan-100 text-cyan-950'];
     const iconNames = ['??', '??', '??', '¦', '??', '??', '??', '??', '??', '??', '??', '??', '?', '??', '??', '??', '??', '??', '?', '?', '?', '??'];
     const sampleHtml = (html?: string) => ({ __html: sanitizeAnswerHtml((html ?? '').replace(/\n/g, '<br />')) });
     const wordCount = (text: string) => text.trim() ? text.trim().split(/\s+/).length : 0;
@@ -3781,7 +3781,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
             {clubs.map((item: any, index: number) => (
               <button
                 type="button"
-                className={`h-12 rounded-md px-5 text-lg font-medium shadow-soft transition hover:-translate-y-0.5 hover:shadow-md ${palette[index % palette.length]}`}
+                className={`h-12 rounded-md px-5 text-lg font-extrabold shadow-soft transition hover:-translate-y-0.5 hover:shadow-md ${palette[index % palette.length]}`}
                 key={`${item.clubName}-${index}`}
                 onClick={() => patchAnswers({ selectedClubIndex: String(index), writingPartIndex: '0' })}
               >
@@ -4910,7 +4910,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
   const selectedClubIndex = Number(saved.selectedClubIndex ?? initialClubIndex ?? -1);
   const partIndex = Number(saved.writingPartIndex ?? 0);
   const club = clubs[selectedClubIndex];
-  const palette = ['bg-amber-400 text-navy', 'bg-emerald-700 text-white', 'bg-red-500 text-white', 'bg-cyan-500 text-navy', 'bg-brand-600 text-white'];
+  const palette = ['border border-orange-300 bg-orange-100 text-orange-950', 'border border-rose-300 bg-rose-100 text-rose-950', 'border border-amber-300 bg-amber-100 text-amber-950', 'border border-lime-300 bg-lime-100 text-lime-950', 'border border-cyan-300 bg-cyan-100 text-cyan-950'];
   const sampleHtml = (html?: string) => ({ __html: sanitizeAnswerHtml((html ?? '').replace(/\n/g, '<br />')) });
   const wordCount = (text: string) => text.trim() ? text.trim().split(/\s+/).length : 0;
   const writingInstruction = (text: string | undefined, currentPart: number) => {

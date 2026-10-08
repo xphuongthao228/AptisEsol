@@ -1,10 +1,12 @@
 import {
   ArrowRight,
+  BookOpen,
   Bot,
+  Candy,
   Check,
   ChevronRight,
   Clock3,
-  FileText,
+  Headphones,
   Lightbulb,
   Mic,
   PenLine,
@@ -18,6 +20,12 @@ import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { Question, SkillType, Test } from '../../types';
 type SkillKey = 'SPEAKING' | 'WRITING' | 'GRAMMAR';
+
+const skillTabActiveClass = 'border-orange-300 bg-[linear-gradient(135deg,#ff7a18,#ef4444_48%,#8b5cf6)] text-white shadow-lift shadow-orange-500/20';
+const skillTabInactiveClass = 'border-orange-100 bg-white text-navy shadow-soft hover:-translate-y-0.5 hover:border-orange-300 hover:bg-orange-50/60';
+const aiPageHeroClass = 'ai-practice-hero mobile-page-heading halloween-parts-hero relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#2b0d42,#4c1233_58%,#6b1e34)] p-8 text-white shadow-soft';
+const aiPageEyebrowClass = 'mt-7 flex items-center gap-2 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-100';
+const aiPageLeadClass = 'mt-3 max-w-2xl text-blue-50/90';
 
 const skills: Array<{ key: SkillKey; label: string; caption: string; icon: typeof Mic; tone: string }> = [
   { key: 'SPEAKING', label: 'Kỹ năng Speaking', caption: 'Nói tự tin hơn', icon: Mic, tone: 'text-rose-600 bg-rose-50' },
@@ -115,53 +123,85 @@ export function AiPracticeDashboard() {
   );
 
   return (
-    <div className="ai-practice-page mx-auto max-w-[1480px] space-y-5 pb-10">
-      <section className="ai-practice-hero relative overflow-hidden rounded-[18px] border border-red-100 bg-white p-5 shadow-soft sm:p-7">
-        <div className="pointer-events-none absolute -right-12 -top-20 h-56 w-56 rounded-full bg-amber-100/60 blur-3xl" />
-        <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-center">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-[0.16em] text-brand-600">
+    <div className="ai-practice-page student-decor-page mx-auto max-w-[1480px] space-y-5 pb-10">
+      <section className={aiPageHeroClass}>
+        <div className="halloween-scene" aria-hidden="true">
+          <div className="halloween-moon" />
+          <div className="halloween-cloud halloween-cloud-one" />
+          <div className="halloween-cloud halloween-cloud-two" />
+          <div className="halloween-web halloween-web-right" />
+          <div className="halloween-bat halloween-bat-one" />
+          <div className="halloween-bat halloween-bat-two" />
+          <div className="halloween-bat halloween-bat-three" />
+          <div className="halloween-pumpkin halloween-pumpkin-main" />
+          <div className="halloween-pumpkin halloween-pumpkin-left" />
+          <div className="halloween-pumpkin halloween-pumpkin-small" />
+          <div className="halloween-ground" />
+          <div className="halloween-sparkles" />
+        </div>
+        <div className="pointer-events-none absolute -right-12 -top-20 hidden h-56 w-56 rounded-full bg-purple-200/50 blur-3xl" />
+        <div className="pointer-events-none absolute -left-12 bottom-0 hidden h-44 w-44 rounded-full bg-orange-200/45 blur-3xl" />
+        <div className="pointer-events-none absolute right-6 top-5 hidden h-16 w-16 place-items-center rounded-full bg-white/85 text-3xl shadow-[0_18px_45px_rgba(124,58,237,0.16)]">
+          <span className="relative">{'\u{1F383}'}</span>
+          <Headphones size={19} className="absolute right-3 top-4 text-violet-700" />
+        </div>
+        <div className="pointer-events-none absolute right-5 bottom-5 hidden items-center gap-3 text-2xl">
+          <span className="drop-shadow-sm">{'\u{1F47B}'}</span>
+          <span className="drop-shadow-sm">{'\u{1F4DA}'}</span>
+          <span className="drop-shadow-sm">{'\u{1F36C}'}</span>
+        </div>
+        <div className="pointer-events-none absolute left-4 top-4 hidden text-2xl text-violet-300/80">{'\u{1F578}\uFE0F'}</div>
+        <div className="pointer-events-none absolute right-24 top-24 hidden text-xl text-violet-500/70">{'\u{1F987}'}</div>
+        <div className="relative z-[8] grid min-h-[220px] items-end gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="max-w-3xl">
+            <div className={aiPageEyebrowClass}>
               <Sparkles size={15} /> Aptis Lingo AI
             </div>
-            <h1 className="mt-2 text-2xl font-black tracking-tight text-navy sm:text-3xl">
-              Tạo đề luyện tập Aptis bằng <span className="text-brand-600">AI</span>
+            <h1 className="mt-3 text-4xl font-extrabold tracking-tight">
+              Tạo đề luyện tập Aptis bằng <span className="text-orange-400">AI</span>
             </h1>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+            <p className={aiPageLeadClass}>
               Chọn kỹ năng và part bạn muốn luyện. AI sẽ gợi ý bài tập vừa sức, bám sát mục tiêu B1, B2 hoặc C1.
             </p>
           </div>
-          <div className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <div className="hidden justify-self-end rounded-xl border border-violet-100 bg-violet-900/80 px-4 py-3 text-white shadow-lg shadow-violet-900/10 sm:flex sm:items-center sm:gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-white text-brand-600 shadow-sm"><Bot size={20} /></span>
             <div>
-              <p className="text-xs font-bold text-slate-500">Xin chào</p>
-              <p className="max-w-[180px] truncate text-sm font-black text-navy">{user?.fullName ?? 'bạn học'}</p>
+              <p className="text-xs font-bold text-white/70">Xin chào</p>
+              <p className="max-w-[180px] truncate text-sm font-black text-white">{user?.fullName ?? 'bạn học'}</p>
             </div>
           </div>
         </div>
       </section>
 
       <section className="grid gap-3 md:grid-cols-3">
-        {skills.map(({ key, label, caption, icon: Icon, tone }) => {
+        {skills.map(({ key, label, caption, icon: Icon }) => {
           const active = selectedSkill === key;
           return (
             <button
               key={key}
               type="button"
               onClick={() => key === 'GRAMMAR' ? navigate('/app/combine-speaking') : setSelectedSkill(key)}
-              className={`group flex min-h-[92px] items-center gap-3 rounded-xl border p-4 text-left transition ${active ? 'border-brand-500 bg-white shadow-lift ring-2 ring-brand-100' : 'border-slate-200 bg-white hover:-translate-y-0.5 hover:border-brand-200 hover:shadow-soft'}`}
+              className={`ai-skill-tab group flex min-h-[92px] items-center gap-3 rounded-xl border p-4 text-left transition ${
+                active ? skillTabActiveClass : skillTabInactiveClass
+              }`}
             >
-              <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${tone}`}><Icon size={21} /></span>
+              <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${active ? 'bg-white/15 text-white' : 'bg-brand-50 text-brand-700'}`}><Icon size={21} /></span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-black text-navy">{label}</span>
-                <span className="mt-1 block text-xs font-medium text-slate-500">{caption}</span>
+                <span className="ai-skill-title block truncate text-sm font-black">{label}</span>
+                <span className={`ai-skill-caption mt-1 block text-xs font-bold ${active ? 'text-white/90' : 'text-slate-700'}`}>{caption}</span>
               </span>
-              {active && <Check size={17} className="shrink-0 text-brand-600" />}
+              {active && <Check size={17} className="shrink-0 text-white" />}
             </button>
           );
         })}
       </section>
 
-      <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+      <section className="relative overflow-hidden rounded-[18px] border border-orange-100 bg-white p-5 shadow-soft sm:p-6">
+        <div className="pointer-events-none absolute right-5 top-4 hidden items-center gap-2 text-xl sm:flex">
+          <span>{'\u{1F987}'}</span>
+          <span>{'\u2728'}</span>
+        </div>
         <div className="flex flex-col justify-between gap-3 md:flex-row md:items-end">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-600">Chọn part để bắt đầu</p>
@@ -169,13 +209,17 @@ export function AiPracticeDashboard() {
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <span className="text-xs font-extrabold text-slate-500">Mục tiêu</span>
-            <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+            <div className="flex rounded-lg border border-violet-200 bg-violet-950/80 p-1 shadow-[0_12px_26px_rgba(76,29,149,0.22)]">
               {(['B1', 'B2', 'C1'] as const).map((level) => (
                 <button
                   key={level}
                   type="button"
                   onClick={() => setTargetLevel(level)}
-                  className={`h-8 min-w-12 rounded-md px-3 text-xs font-black transition ${targetLevel === level ? 'bg-brand-600 text-white shadow-sm' : 'text-slate-600 hover:bg-white hover:text-brand-700'}`}
+                  className={`h-8 min-w-12 rounded-md px-3 text-xs font-black transition ${
+                    targetLevel === level
+                      ? 'bg-[linear-gradient(135deg,#ff7a18,#ef4444_48%,#8b5cf6)] text-white shadow-[0_8px_18px_rgba(239,68,68,0.34)] ring-2 ring-orange-200'
+                      : 'text-violet-100/75 hover:bg-white/10 hover:text-white'
+                  }`}
                 >
                   {level}
                 </button>
@@ -191,15 +235,15 @@ export function AiPracticeDashboard() {
                 key={part.number}
                 type="button"
                 onClick={() => setSelectedPart(part.number)}
-                className={`relative flex min-h-[112px] flex-col justify-between rounded-xl border p-4 text-left transition ${active ? 'border-brand-600 bg-brand-600 text-white shadow-lift' : `${part.tone} text-navy hover:border-brand-300`}`}
+                className={`ai-part-card relative flex min-h-[112px] flex-col justify-between rounded-xl border p-4 text-left transition ${active ? 'border-brand-600 bg-brand-600 text-white shadow-lift' : `${part.tone} text-navy hover:border-brand-300`}`}
               >
                 <span className="flex items-center justify-between">
                   <span className={`grid h-8 w-8 place-items-center rounded-lg text-xs font-black ${active ? 'bg-white/15' : 'bg-white text-brand-700'}`}>0{part.number}</span>
                   {active && <Check size={17} />}
                 </span>
                 <span>
-                  <span className="block text-sm font-black">{part.title}</span>
-                  <span className={`mt-1 block text-xs font-medium ${active ? 'text-white/75' : 'text-slate-500'}`}>
+                  <span className="ai-part-title block text-sm font-black">{part.title}</span>
+                  <span className={`ai-part-caption mt-1 block text-xs font-bold ${active ? 'text-white/90' : 'text-slate-700'}`}>
                     {selectedSkill === 'WRITING' ? writingPartCaptions[part.number] : part.caption}
                   </span>
                 </span>
@@ -209,7 +253,9 @@ export function AiPracticeDashboard() {
         </div>
       </section>
 
-      <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+      <section className="relative overflow-hidden rounded-[18px] border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+        <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-orange-100/70 blur-2xl" />
+        <div className="pointer-events-none absolute right-5 top-5 hidden text-xl sm:block">{'\u{1F36C}'}</div>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-brand-600">Đề đã import</p>
@@ -227,21 +273,21 @@ export function AiPracticeDashboard() {
                 key={item.id}
                 type="button"
                 onClick={() => setSelectedSource({ testId: item.testId, questionId: item.questionId, prompt: item.sourcePrompt, imageUrls: item.imageUrls })}
-                className={`group w-full rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:border-brand-300 ${selectedSource?.prompt === item.sourcePrompt ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-100' : 'border-brand-100 bg-sky-50'}`}
+                className={`ai-source-card group w-full rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:border-brand-300 ${selectedSource?.prompt === item.sourcePrompt ? 'border-brand-600 bg-brand-50 ring-2 ring-brand-100' : 'border-brand-100 bg-sky-50'}`}
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="grid h-10 w-10 place-items-center rounded-lg bg-white text-brand-600"><FileText size={19} /></span>
-                  <ArrowRight size={18} className="mt-1 text-slate-400 transition group-hover:translate-x-1 group-hover:text-brand-600" />
+                  <span className="ai-source-icon grid h-10 w-10 place-items-center rounded-lg bg-white text-brand-600"><BookOpen size={19} /></span>
+                  <ArrowRight size={18} className="ai-source-arrow mt-1 text-slate-400 transition group-hover:translate-x-1 group-hover:text-brand-600" />
                 </div>
-                <p className="mt-4 text-xs font-extrabold uppercase tracking-[0.12em] text-slate-500">{item.topic}</p>
-                <div className="mt-2 text-base font-normal leading-6 text-navy" style={{ fontWeight: 400 }}>
+                <p className="ai-source-topic mt-4 text-xs font-black uppercase tracking-[0.12em] text-slate-900">{item.topic}</p>
+                <div className="ai-source-prompt mt-2 text-base font-normal leading-6 text-navy" style={{ fontWeight: 400 }}>
                   {formatPromptLines(item.prompt).map((line, lineIndex) => (
                     <span key={`${item.id}-${lineIndex}`} className="block">
                       {line}
                     </span>
                   ))}
                 </div>
-                <span className="mt-4 block text-sm font-extrabold text-brand-700">Bắt đầu luyện</span>
+                <span className="ai-source-action mt-4 block text-sm font-extrabold text-brand-700">Bắt đầu luyện</span>
               </button>
             ))}
             </div>
@@ -253,7 +299,7 @@ export function AiPracticeDashboard() {
         )}
       </section>
 
-      <section className="rounded-[18px] border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
+      <section className="rounded-[18px] border border-orange-100 bg-[linear-gradient(135deg,#fff,#fff7ed)] p-5 shadow-soft sm:p-6">
         <div className="mt-5 flex flex-col gap-3 border-t border-slate-100 pt-5 sm:flex-row">
           <button
             type="button"
@@ -289,12 +335,12 @@ export function AiPracticeDashboard() {
         </div>
       </section>
 
-      <section className="rounded-[18px] border border-violet-200 bg-violet-50/40 p-5 shadow-soft sm:p-6">
+      <section className="ai-practice-history-panel rounded-[18px] border border-violet-200 bg-[linear-gradient(135deg,#faf5ff,#fff7ed)] p-5 shadow-soft sm:p-6">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-violet-100 text-violet-700"><Clock3 size={20} /></span>
             <div>
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-violet-700">Lingo AI</p>
+              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-black" style={{ color: '#000000' }}>Lingo AI</p>
               <h2 className="mt-1 text-xl font-black text-navy">Các câu hỏi đã hỏi</h2>
               <p className="mt-1 text-sm font-semibold text-slate-600">{questionHistory.length} lượt hỏi đã lưu</p>
             </div>
@@ -350,15 +396,16 @@ export function AiPracticeDashboard() {
         </section>
       )}
 
-      <aside className="rounded-[18px] border border-red-100 bg-[linear-gradient(145deg,#fff7e8,#fff)] p-5 shadow-soft sm:p-6">
+      <aside className="ai-practice-tip-panel relative overflow-hidden rounded-[18px] border border-orange-100 bg-[linear-gradient(145deg,#fff7e8,#fff,#faf5ff)] p-5 shadow-soft sm:p-6">
+          <div className="pointer-events-none absolute right-5 top-5 flex gap-2 text-xl"><span>{'\u{1F47B}'}</span><span>{'\u{1F578}\uFE0F'}</span></div>
           <div className="flex items-center gap-2 text-sm font-black text-navy"><Lightbulb size={18} className="text-amber-500" /> Gợi ý cho bạn</div>
-          <p className="mt-4 text-sm font-bold leading-6 text-slate-700">Bạn đang luyện {selectedSkillLabel.toLowerCase()} Part {selectedPart}. Hãy dành 15 phút để hoàn thành một lượt tập trung.</p>
+          <p className="mt-4 text-sm font-bold leading-6 text-black" style={{ color: '#000000' }}>Bạn đang luyện {selectedSkillLabel.toLowerCase()} Part {selectedPart}. Hãy dành 15 phút để hoàn thành một lượt tập trung.</p>
           <div className="mt-5 space-y-3">
             {['Đọc kỹ yêu cầu trước khi trả lời', 'Ghi lại từ vựng mới sau mỗi bài', 'Xem nhận xét AI sau khi nộp bài'].map((tip) => (
               <div key={tip} className="flex items-start gap-2 text-xs font-semibold text-slate-600"><Check size={15} className="mt-0.5 shrink-0 text-emerald-600" />{tip}</div>
             ))}
           </div>
-          <Link to="/app/lessons" className="mt-6 inline-flex items-center gap-1.5 text-sm font-extrabold text-brand-700">Xem mẹo học <ChevronRight size={16} /></Link>
+          <Link to="/app/lessons" className="mt-6 inline-flex items-center gap-1.5 text-sm font-extrabold text-brand-700"><Candy size={16} /> Xem mẹo học <ChevronRight size={16} /></Link>
       </aside>
     </div>
   );

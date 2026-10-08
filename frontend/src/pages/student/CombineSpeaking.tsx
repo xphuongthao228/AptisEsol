@@ -306,5 +306,5 @@ function formatCompactTopicPrompt(topic: SpeakingPart4Topic) {
 }
 
 function buildLocalPrompt(topics: SpeakingPart4Topic[]) {
-  return `Write one Aptis Speaking Part 4 answer, about 150 words, B1-B2 spoken English.\nTopics:\n${topics.slice(0, MAX_SELECTED_TOPICS).map((topic) => `- ${formatCompactTopicPrompt(topic)}`).join('\n')}\nRules: one coherent answer, clear opinion, reasons, one personal example, no headings.`;
+  return `Write one Aptis Speaking Part 4 answer, about 150 words, B1-B2 spoken English.\nTopics:\n${topics.slice(0, MAX_SELECTED_TOPICS).map((topic) => `- ${formatCompactTopicPrompt(topic)}`).join('\n')}\nRules: one coherent answer, clear opinion, reasons, one personal example, prioritize common easy-to-remember vocabulary, no headings.`;
 }

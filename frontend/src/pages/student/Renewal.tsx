@@ -196,7 +196,7 @@ export function Renewal() {
   }
 
   return (
-    <div className="mx-auto max-w-[1260px] space-y-8">
+    <div className="renewal-page student-decor-page mx-auto max-w-[1260px] space-y-8">
       <section className="relative overflow-hidden rounded-[24px] border border-amber-200 bg-white px-3 py-3 shadow-soft sm:px-5 lg:px-6">
         <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,#eef6ff,transparent)]" />
         <div className="relative text-center">
@@ -385,20 +385,20 @@ function PlanCard({ item, selected, onSelect }: {
           )}
         </div>
 
-        <p className={`mt-2 inline-flex min-h-[30px] items-center justify-center rounded-full bg-slate-50 px-3 text-[11px] font-extrabold leading-4 ${
-          highlighted ? 'text-red-600' : 'text-navy'
-        }`}>
+        <p className={`renewal-plan-note mt-2 inline-flex min-h-[30px] items-center justify-center rounded-full border px-3 text-[11px] font-extrabold leading-4 text-white shadow-sm ${
+          highlighted ? 'border-red-400 bg-red-600' : 'border-brand-400 bg-brand-700'
+        }`} style={{ color: '#ffffff' }}>
           {item.note}
         </p>
       </div>
 
       <div className="mt-2.5">
-        <span className={`flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition ${
+        <span className={`renewal-plan-action flex h-10 items-center justify-center gap-2 rounded-xl text-sm font-extrabold transition ${
           selected
             ? highlighted
               ? 'bg-red-600 text-white'
               : 'bg-brand-600 text-white'
-            : 'border border-slate-200 bg-white text-navy group-hover:border-brand-300 group-hover:bg-brand-50'
+            : 'renewal-plan-action--idle border border-white/20 text-white shadow-sm'
         }`}>
           {selected ? 'Đang chọn' : isFree ? 'Dùng miễn phí' : featured ? 'Bắt đầu ngay' : 'Chọn gói'}
           <ArrowRight size={16} />

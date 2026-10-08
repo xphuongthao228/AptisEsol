@@ -76,10 +76,21 @@ export function Predictions() {
   }, [activeSkill, items]);
 
   return (
-    <div className="space-y-6">
+    <div className="predictions-page student-decor-page space-y-6">
       <section className="card overflow-hidden">
-        <div className="grid gap-6 bg-[linear-gradient(135deg,#06204a,#0057d9)] p-7 text-white lg:grid-cols-[1fr_300px] lg:items-center">
-          <div>
+        <div className="prediction-halloween-hero grid gap-6 bg-[linear-gradient(135deg,#06204a,#0057d9)] p-7 text-white lg:grid-cols-[1fr_300px] lg:items-center">
+          <div className="prediction-halloween-scene" aria-hidden="true">
+            <span className="prediction-halloween-web prediction-halloween-web-left" />
+            <span className="prediction-halloween-web prediction-halloween-web-right" />
+            <span className="prediction-halloween-sparkles" />
+            <span className="prediction-halloween-bat prediction-halloween-bat-one" />
+            <span className="prediction-halloween-bat prediction-halloween-bat-two" />
+            <span className="prediction-halloween-candy prediction-halloween-candy-one" />
+            <span className="prediction-halloween-candy prediction-halloween-candy-two" />
+            <span className="prediction-halloween-ghost"><i /></span>
+            <span className="prediction-halloween-pumpkin"><i /></span>
+          </div>
+          <div className="relative z-[1]">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-sm font-extrabold text-brand-100">
               <FileSearch size={18} />
               Dự đoán đề
@@ -89,14 +100,14 @@ export function Predictions() {
               Xem các chủ đề, dạng bài và gợi ý ôn tập mới nhất do admin cập nhật.
             </p>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-white/10 p-5">
+          <div className="relative z-[1] rounded-2xl border border-white/10 bg-white/10 p-5">
             <p className="text-sm text-slate-300">Tổng số mục đang hiện</p>
             <p className="mt-2 text-4xl font-extrabold">{items.length}</p>
           </div>
         </div>
       </section>
 
-      <section className="flex gap-2 overflow-x-auto pb-1">
+      <section className="prediction-filter-tabs flex gap-2 overflow-x-auto pb-1">
         {filters.map((filter) => (
           <button
             key={filter}
@@ -105,6 +116,7 @@ export function Predictions() {
               activeSkill === filter ? 'bg-brand-600 text-white shadow-soft' : 'border border-brand-100 bg-white text-slate-700 hover:border-brand-200 hover:text-brand-700'
             }`}
             onClick={() => setActiveSkill(filter)}
+            aria-pressed={activeSkill === filter}
           >
             {filter === 'ALL' ? 'Tất cả' : skillLabels[filter]}
           </button>
@@ -146,7 +158,7 @@ function PredictionCard({ item }: { item: Prediction }) {
       <h2 className="mt-5 text-2xl font-extrabold text-navy">{item.title}</h2>
       {item.summary ? <p className="mt-2 text-slate-600">{item.summary}</p> : null}
       {parsed.text ? (
-        <div className="mt-5 rounded-2xl bg-sky-50 p-4 text-sm leading-7 text-slate-700">
+        <div className="prediction-content-box mt-5 rounded-2xl bg-sky-50 p-4 text-sm leading-7 text-slate-700">
           <p className="whitespace-pre-line">{parsed.text}</p>
         </div>
       ) : null}
