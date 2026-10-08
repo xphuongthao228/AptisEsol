@@ -223,7 +223,14 @@ function MockResultDetail({ result }: { result: MockTestResult }) {
         </div>
       </div>
 
-      {summaryText && <p className="mt-5 rounded-[8px] bg-slate-50 p-4 text-sm leading-7 text-slate-700">{repairMojibake(summaryText)}</p>}
+      {summaryText && (
+        <p
+          className="history-summary-box mt-5 rounded-[8px] bg-slate-50 p-4 text-sm font-extrabold leading-7"
+          style={{ color: '#1f1308', WebkitTextFillColor: '#1f1308' }}
+        >
+          {repairMojibake(summaryText)}
+        </p>
+      )}
       {objectiveSummary && (
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           <ResultMetric label="Số câu đúng" value={`${numberValue(objectiveSummary.correct)}/${numberValue(objectiveSummary.total)}`} />

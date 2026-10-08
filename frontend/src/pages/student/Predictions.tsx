@@ -163,7 +163,7 @@ function PredictionCard({ item }: { item: Prediction }) {
         </div>
       ) : null}
       {parsed.links.length > 0 ? (
-        <div className="mt-5 rounded-2xl border border-brand-100 bg-brand-50/50 p-4">
+        <div className="prediction-links-box mt-5 rounded-2xl border border-brand-100 bg-brand-50/50 p-4">
           <div className="mb-3 flex items-center gap-2 text-sm font-extrabold text-brand-800">
             <Link2 size={17} />
             Câu hỏi được dự đoán
@@ -176,7 +176,7 @@ function PredictionCard({ item }: { item: Prediction }) {
                   {predictionParts.map((part) => {
                     const partLinks = groupedLinks[section].filter((link) => link.part === part);
                     return partLinks.length > 0 ? (
-                      <div key={`${section}-${part}`} className="rounded-xl border border-white bg-white/70 p-3">
+                      <div key={`${section}-${part}`} className="prediction-link-part rounded-xl border border-white bg-white/70 p-3">
                         <p className="mb-2 text-xs font-extrabold text-brand-700">Part {part}</p>
                         <div className="space-y-2">
                           {partLinks.map((link) => <QuestionLink key={`${section}-${part}-${link.testId}-${link.questionId}`} link={link} />)}

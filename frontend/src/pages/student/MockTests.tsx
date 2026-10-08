@@ -4810,7 +4810,7 @@ export function MockTests() {
           />
         </MockSelectLayout>
       ) : (
-        <div className="min-h-screen bg-white">
+        <div className="mock-assessment-mode min-h-screen bg-white">
           {(screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong') && (
             <ReadingTopbar
               title={screen === 'readingLong' ? 'Part 4 - Long Reading' : screen === 'readingOpinion' ? 'Part 3 - Opinion Matching' : screen === 'readingCohesion' ? `Part ${readingCohesionIndex + 2} - Text Cohesion` : 'Part 1 - Gap Fill'}
@@ -5929,13 +5929,13 @@ function GrammarTopbar({ onExit }: { onExit: () => void }) {
 
 function FullTopbar({ onExit }: { onExit: () => void }) {
   return (
-    <header className="h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
+    <header className="mock-test-topbar h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
-        <div>
-          <p className="text-base font-medium text-[#d9c7f3]">Full Mock Test</p>
+        <div className="mock-test-topbar-title">
+          <p className="text-base font-medium text-white">Full Mock Test</p>
           <h1 className="text-[17px] font-extrabold leading-6 text-white">Aptis Full Practice</h1>
         </div>
-        <button type="button" onClick={onExit} className="inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
+        <button type="button" onClick={onExit} className="mock-test-exit-button inline-flex h-10 items-center gap-2 rounded-full bg-white/15 px-5 text-lg font-extrabold text-white hover:bg-white/25">
           <ArrowLeft size={21} />
           Quay lại danh sách
         </button>
@@ -10033,7 +10033,7 @@ function MicTestPanel({ compact = false }: { compact?: boolean }) {
           <p className={`${compact ? 'text-sm' : 'text-xl'} font-extrabold text-navy`}>Kiểm tra Microphone</p>
           <p className={`${compact ? 'mt-1 text-xs' : 'mt-2 text-sm'} font-semibold leading-5 text-slate-600`}>{status}</p>
         </div>
-        <span className={`grid ${compact ? 'h-9 w-9' : 'h-11 w-11'} shrink-0 place-items-center rounded-xl bg-[#f0eef7] text-[#2b075c]`}>
+        <span className={`mock-mic-check-icon grid ${compact ? 'h-9 w-9' : 'h-11 w-11'} shrink-0 place-items-center rounded-xl bg-[#f0eef7] text-[#2b075c]`}>
           <Mic size={compact ? 18 : 22} />
         </span>
       </div>

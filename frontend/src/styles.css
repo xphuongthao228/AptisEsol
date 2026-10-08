@@ -7284,3 +7284,280 @@ html.dark[data-student-skin="halloween"] .student-shell .mock-tests-page .mock-s
   color: #1f2937 !important;
 }
 
+html.dark .mock-assessment-mode,
+html[data-student-skin="halloween"] .mock-assessment-mode,
+html.dark[data-student-skin="halloween"] .mock-assessment-mode {
+  color-scheme: light;
+  background: #ffffff !important;
+  color: #020817 !important;
+}
+
+html.dark .mock-assessment-mode :where(main, .bg-white),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(main, .bg-white),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(main, .bg-white) {
+  background: #ffffff !important;
+}
+
+html.dark .mock-assessment-mode :where(.bg-sky-50, .bg-slate-50, [class*="bg-[#f1f1f1]"], [class*="bg-[#f7f7fc]"], [class*="bg-[#f7f4fb]"]),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(.bg-sky-50, .bg-slate-50, [class*="bg-[#f1f1f1]"], [class*="bg-[#f7f7fc]"], [class*="bg-[#f7f4fb]"]),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(.bg-sky-50, .bg-slate-50, [class*="bg-[#f1f1f1]"], [class*="bg-[#f7f7fc]"], [class*="bg-[#f7f4fb]"]) {
+  background: #f8fafc !important;
+}
+
+html.dark .mock-assessment-mode :where(main, section, article),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(main, section, article),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(main, section, article) {
+  color: #020817 !important;
+}
+
+html.dark .mock-assessment-mode :where(p, h1, h2, h3, h4, span, label, li, div):not(.mock-test-topbar):not(.mock-test-topbar *):not(.mock-test-exit-button):not(.mock-test-exit-button *),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(p, h1, h2, h3, h4, span, label, li, div):not(.mock-test-topbar):not(.mock-test-topbar *):not(.mock-test-exit-button):not(.mock-test-exit-button *),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(p, h1, h2, h3, h4, span, label, li, div):not(.mock-test-topbar):not(.mock-test-topbar *):not(.mock-test-exit-button):not(.mock-test-exit-button *) {
+  color: #020817 !important;
+  text-shadow: none !important;
+}
+
+html.dark .mock-assessment-mode :where(.text-navy, .text-black, .text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(.text-navy, .text-black, .text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(.text-navy, .text-black, .text-slate-950, .text-slate-900, .text-slate-800, .text-slate-700) {
+  color: #020817 !important;
+}
+
+html.dark .mock-assessment-mode :where(.text-slate-600, .text-slate-500, .text-slate-400),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(.text-slate-600, .text-slate-500, .text-slate-400),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(.text-slate-600, .text-slate-500, .text-slate-400) {
+  color: #64748b !important;
+}
+
+html.dark .mock-assessment-mode :where([class*="text-[#2b075c]"], .text-brand-700, .text-brand-600),
+html[data-student-skin="halloween"] .mock-assessment-mode :where([class*="text-[#2b075c]"], .text-brand-700, .text-brand-600),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where([class*="text-[#2b075c]"], .text-brand-700, .text-brand-600) {
+  color: #2b075c !important;
+}
+
+html.dark .mock-assessment-mode :where(.border-brand-100, .border-slate-100, .border-slate-200, .border-slate-300),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(.border-brand-100, .border-slate-100, .border-slate-200, .border-slate-300),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(.border-brand-100, .border-slate-100, .border-slate-200, .border-slate-300) {
+  border-color: #dce3ee !important;
+}
+
+html.dark .mock-assessment-mode :where(input, textarea, select),
+html[data-student-skin="halloween"] .mock-assessment-mode :where(input, textarea, select),
+html.dark[data-student-skin="halloween"] .mock-assessment-mode :where(input, textarea, select) {
+  border-color: #dfe3ea !important;
+  background: #ffffff !important;
+  color: #020817 !important;
+}
+
+html.dark .mock-assessment-mode .mock-test-topbar,
+html[data-student-skin="halloween"] .mock-assessment-mode .mock-test-topbar,
+html.dark[data-student-skin="halloween"] .mock-assessment-mode .mock-test-topbar {
+  background: #2b075c !important;
+  color: #ffffff !important;
+}
+
+html.dark .mock-assessment-mode .mock-test-topbar *,
+html[data-student-skin="halloween"] .mock-assessment-mode .mock-test-topbar *,
+html.dark[data-student-skin="halloween"] .mock-assessment-mode .mock-test-topbar * {
+  color: inherit !important;
+}
+
+html.dark .mock-assessment-mode .mock-test-exit-button,
+html[data-student-skin="halloween"] .mock-assessment-mode .mock-test-exit-button,
+html.dark[data-student-skin="halloween"] .mock-assessment-mode .mock-test-exit-button {
+  color: #ffffff !important;
+}
+
+html[data-student-skin="halloween"] .student-shell :where(
+  .halloween-cloud,
+  .halloween-bat,
+  .halloween-ghost,
+  .halloween-pumpkin,
+  .halloween-sparkles,
+  .lessons-halloween-pumpkin,
+  .lessons-halloween-ghost,
+  .lessons-halloween-candy,
+  .lessons-halloween-sparkle,
+  .lessons-halloween-bat,
+  .prediction-halloween-bat,
+  .prediction-halloween-pumpkin,
+  .prediction-halloween-ghost,
+  .prediction-halloween-sparkles,
+  .dashboard-banner-decor *,
+  .dashboard-halloween-decor *,
+  .halloween-progress-decor *,
+  .halloween-global-decor *
+) {
+  animation: none !important;
+}
+
+html[data-student-skin="halloween"] .student-shell::before,
+html[data-student-skin="halloween"] .student-shell::after {
+  transform: translateZ(0);
+  will-change: auto;
+}
+
+html[data-student-skin="halloween"] .student-shell .dashboard-progress-card .halloween-progress-decor,
+html.dark[data-student-skin="halloween"] .student-shell .dashboard-progress-card .halloween-progress-decor,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-progress-card .halloween-progress-decor {
+  display: none !important;
+}
+
+.student-shell .history-summary-box,
+html[data-student-skin="halloween"] .student-shell .history-summary-box,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .history-summary-box,
+html.dark[data-student-skin="halloween"] .student-shell .history-summary-box {
+  border: 1px solid rgba(251, 146, 60, 0.35) !important;
+  background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%) !important;
+  color: #3b1f12 !important;
+  font-weight: 800;
+  text-shadow: none !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75), 0 14px 30px rgba(15, 23, 42, 0.08) !important;
+}
+
+.student-shell .history-summary-box *,
+html[data-student-skin="halloween"] .student-shell .history-summary-box * {
+  color: #3b1f12 !important;
+  text-shadow: none !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mobile-lessons-page .lesson-material-item,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .mobile-lessons-page .lesson-material-item,
+html.dark[data-student-skin="halloween"] .student-shell .mobile-lessons-page .lesson-material-item {
+  background: #5f4874 !important;
+  color: #fff7ed !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .mobile-lessons-page .lesson-material-item *,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .mobile-lessons-page .lesson-material-item *,
+html.dark[data-student-skin="halloween"] .student-shell .mobile-lessons-page .lesson-material-item * {
+  color: #fff7ed !important;
+  text-shadow: none !important;
+}
+
+.student-shell .tips-landing-hero h1.tips-landing-copy-black,
+html[data-student-skin="halloween"] .student-shell .tips-landing-hero h1.tips-landing-copy-black,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .tips-landing-hero h1.tips-landing-copy-black,
+html.dark[data-student-skin="halloween"] .student-shell .tips-landing-hero h1.tips-landing-copy-black {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .tips-landing-hero p.tips-landing-copy-black:first-of-type,
+html[data-student-skin="halloween"] .student-shell .tips-landing-hero p.tips-landing-copy-black:first-of-type,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .tips-landing-hero p.tips-landing-copy-black:first-of-type,
+html.dark[data-student-skin="halloween"] .student-shell .tips-landing-hero p.tips-landing-copy-black:first-of-type {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .tips-landing-hero p.tips-landing-copy-black:not(:first-of-type),
+html[data-student-skin="halloween"] .student-shell .tips-landing-hero p.tips-landing-copy-black:not(:first-of-type),
+html:not(.dark)[data-student-skin="halloween"] .student-shell .tips-landing-hero p.tips-landing-copy-black:not(:first-of-type),
+html.dark[data-student-skin="halloween"] .student-shell .tips-landing-hero p.tips-landing-copy-black:not(:first-of-type) {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .tips-landing-hero .tips-landing-copy-black,
+.student-shell .tips-landing-hero .tips-landing-copy-black *,
+html[data-student-skin="halloween"] .student-shell .tips-landing-hero .tips-landing-copy-black,
+html[data-student-skin="halloween"] .student-shell .tips-landing-hero .tips-landing-copy-black *,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .tips-landing-hero .tips-landing-copy-black,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .tips-landing-hero .tips-landing-copy-black *,
+html.dark[data-student-skin="halloween"] .student-shell .tips-landing-hero .tips-landing-copy-black,
+html.dark[data-student-skin="halloween"] .student-shell .tips-landing-hero .tips-landing-copy-black * {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .student-shell .lessons-halloween-hero :where(
+  .tips-landing-copy-black,
+  .tips-landing-copy-black *,
+  .lessons-halloween-kicker,
+  .lessons-halloween-title,
+  .lessons-halloween-subtitle,
+  h1,
+  p
+) {
+  background: none !important;
+  background-image: none !important;
+  background-clip: border-box !important;
+  -webkit-background-clip: border-box !important;
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+  text-shadow: none !important;
+  -webkit-text-stroke: 0 !important;
+}
+
+.student-shell .predictions-page .prediction-content-box,
+html[data-student-skin="halloween"] .student-shell .predictions-page .prediction-content-box,
+html.dark[data-student-skin="halloween"] .student-shell .predictions-page .prediction-content-box {
+  background: #f8fafc !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .predictions-page .prediction-content-box :where(p, span, strong, em, li, h1, h2, h3, h4),
+html[data-student-skin="halloween"] .student-shell .predictions-page .prediction-content-box :where(p, span, strong, em, li, h1, h2, h3, h4),
+html.dark[data-student-skin="halloween"] .student-shell .predictions-page .prediction-content-box :where(p, span, strong, em, li, h1, h2, h3, h4) {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .predictions-page .prediction-links-box,
+html[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box,
+html.dark[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box {
+  background: rgba(255, 247, 237, 0.92) !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .predictions-page .prediction-links-box :where(div, p, span, svg),
+html[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box :where(div, p, span, svg),
+html.dark[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box :where(div, p, span, svg) {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+.student-shell .predictions-page .prediction-links-box a,
+html[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box a,
+html.dark[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box a {
+  background: #ffffff !important;
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+.student-shell .predictions-page .prediction-links-box a span:last-child,
+html[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box a span:last-child,
+html.dark[data-student-skin="halloween"] .student-shell .predictions-page .prediction-links-box a span:last-child {
+  color: #dc2626 !important;
+  -webkit-text-fill-color: #dc2626 !important;
+}
+
+.mock-assessment-mode .mock-mic-check-icon,
+html[data-student-skin="halloween"] .mock-assessment-mode .mock-mic-check-icon,
+html.dark[data-student-skin="halloween"] .mock-assessment-mode .mock-mic-check-icon {
+  background: #f0eef7 !important;
+  color: #2b075c !important;
+  -webkit-text-fill-color: #2b075c !important;
+  border: 1px solid rgba(43, 7, 92, 0.12) !important;
+}
+
+.mock-assessment-mode .mock-mic-check-icon svg,
+html[data-student-skin="halloween"] .mock-assessment-mode .mock-mic-check-icon svg,
+html.dark[data-student-skin="halloween"] .mock-assessment-mode .mock-mic-check-icon svg {
+  color: #2b075c !important;
+  stroke: #2b075c !important;
+}
+
