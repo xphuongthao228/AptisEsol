@@ -41,7 +41,38 @@
     background: var(--mobile-background);
     border: 0;
     box-shadow: none;
-    transform: none;
+    transform: none !important;
+    transition: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html[data-student-skin="halloween"] .student-shell > header,
+  html:not(.dark)[data-student-skin="halloween"] .student-shell > header,
+  html.dark[data-student-skin="halloween"] .student-shell > header {
+    background: var(--mobile-background) !important;
+    transform: none !important;
+    transition: none !important;
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  html[data-student-skin="halloween"] .student-shell .halloween-global-decor,
+  html[data-student-skin="halloween"] .student-shell .dashboard-banner-decor,
+  html[data-student-skin="halloween"] .student-shell .dashboard-halloween-decor,
+  html[data-student-skin="halloween"] .student-shell .halloween-progress-decor,
+  html[data-student-skin="halloween"] .student-shell .student-dashboard-bg-decor,
+  html[data-student-skin="halloween"] .student-shell .dashboard-summary-decor {
+    display: none !important;
+  }
+
+  html[data-student-skin="halloween"] .student-shell *,
+  html[data-student-skin="halloween"] .student-shell *::before,
+  html[data-student-skin="halloween"] .student-shell *::after {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
   }
   .student-shell > header > div:first-child { height: 62px; padding: 0 14px; gap: 6px; }
   .student-shell .mobile-wordmark { display: inline; max-width: min(38vw, 132px); font-size: 20px; color: var(--mobile-red); letter-spacing: 0; }

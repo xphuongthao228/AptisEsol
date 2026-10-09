@@ -179,6 +179,12 @@ export function AppLayout() {
 
   useEffect(() => {
     const handleScroll = () => {
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        setNavHidden(false);
+        lastScrollYRef.current = window.scrollY;
+        return;
+      }
+
       const currentScrollY = window.scrollY;
       const lastScrollY = lastScrollYRef.current;
       const movedEnough = Math.abs(currentScrollY - lastScrollY) > 8;
