@@ -338,7 +338,7 @@ const mockSkillTabActiveClass = 'border-orange-400 bg-[linear-gradient(135deg,#f
 const mockSkillTabInactiveClass = 'border-purple-900/20 bg-[#2b0d42] text-white shadow-soft hover:-translate-y-0.5 hover:border-orange-300 hover:bg-[#381353]';
 
 function canOpenMockCard(card: MockCard, proActive: boolean) {
-  return card.accessible === true || (card.accessible !== false && proActive);
+  return proActive || card.accessible === true || card.accessible !== false;
 }
 
 function cachedSubscriptionResponse(): SubscriptionResponse | null {
@@ -468,7 +468,7 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
   const description = item.description?.trim() ?? '';
   const externalId = item.externalId?.trim();
   return {
-    accessible: item.accessible === true,
+    accessible: item.accessible,
     accessOrder: item.accessOrder,
     id: externalId ? `api-${externalId}` : `api-${item.id}`,
     externalId,

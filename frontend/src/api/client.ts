@@ -75,7 +75,41 @@ api.interceptors.request.use(async (config) => {
   let token = accessToken;
 
   if (isPublicRequest(config)) {
-    if (token && !shouldRefreshAccessToken(token)) {
+    if (refreshToken && (!token || shouldRefreshAccessToken(token))) {
+      try {
+        refreshPromise ??= refreshAccessToken(refreshToken);
+        const data = await refreshPromise;
+        useAuthStore.setState({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken
+        });
+        token = data.accessToken;
+      } catch {
+        token = null;
+      } finally {
+        refreshPromise = null;
+      }
+    }
+
+    if (!token && (accessToken || refreshToken)) {
+      try {
+        sessionPromise ??= restoreCookieSession();
+        const data = await sessionPromise;
+        useAuthStore.setState({
+          user: data.user,
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken
+        });
+        token = data.accessToken;
+      } catch {
+        // Public requests may continue anonymously when no session can be restored.
+      } finally {
+        sessionPromise = null;
+      }
+    }
+
+    if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     } else {
       delete config.headers.Authorization;
