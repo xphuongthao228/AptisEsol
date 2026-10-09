@@ -88,6 +88,7 @@ public class CoreService {
         return mapper.user(users.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found")));
     }
 
+    @Transactional
     public AuthDtos.UserResponse updateUser(Long id, CoreDtos.UserUpdateRequest request) {
         User user = users.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         user.setFullName(request.fullName());
@@ -96,6 +97,7 @@ public class CoreService {
         return mapper.user(users.save(user));
     }
 
+    @Transactional
     public AuthDtos.UserResponse extendUserAccess(Long id, CoreDtos.ExtendUserAccessRequest request) {
         User user = users.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         LocalDateTime now = LocalDateTime.now();
@@ -121,6 +123,7 @@ public class CoreService {
         return proExpiresAt.isAfter(trialExpiresAt) ? proExpiresAt : trialExpiresAt;
     }
 
+    @Transactional
     public void deleteUser(Long id) {
         User user = users.findById(id).orElseThrow(() -> new ResourceNotFoundException("User not found"));
         user.setDeletedAt(LocalDateTime.now());
@@ -131,6 +134,7 @@ public class CoreService {
         return skills.findAll().stream().map(mapper::skill).toList();
     }
 
+    @Transactional
     public CoreDtos.SkillResponse saveSkill(CoreDtos.SkillRequest request) {
         Skill skill = skills.findByType(request.type()).orElseGet(Skill::new);
         skill.setType(request.type());
@@ -139,6 +143,7 @@ public class CoreService {
         return mapper.skill(skills.save(skill));
     }
 
+    @Transactional
     public CoreDtos.SkillResponse updateSkill(Long id, CoreDtos.SkillRequest request) {
         Skill skill = skills.findById(id).orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
         skill.setType(request.type());
@@ -147,6 +152,7 @@ public class CoreService {
         return mapper.skill(skills.save(skill));
     }
 
+    @Transactional
     public void deleteSkill(Long id) {
         Skill skill = skills.findById(id).orElseThrow(() -> new ResourceNotFoundException("Skill not found"));
         skill.setDeletedAt(LocalDateTime.now());
@@ -370,6 +376,7 @@ public class CoreService {
         return "";
     }
 
+    @Transactional
     public CoreDtos.TestResponse saveTest(CoreDtos.TestRequest request) {
         Test test = new Test();
         applyTest(test, request);
@@ -377,6 +384,7 @@ public class CoreService {
         return mapper.test(saved, questions.countByTestIdAndDeletedAtIsNull(saved.getId()));
     }
 
+    @Transactional
     public CoreDtos.TestResponse updateTest(Long id, CoreDtos.TestRequest request) {
         Test test = tests.findById(id).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
         applyTest(test, request);
@@ -384,6 +392,7 @@ public class CoreService {
         return mapper.test(saved, questions.countByTestIdAndDeletedAtIsNull(saved.getId()));
     }
 
+    @Transactional
     public void deleteTest(Long id) {
         Test test = tests.findById(id).orElseThrow(() -> new ResourceNotFoundException("Test not found"));
         test.setDeletedAt(LocalDateTime.now());
@@ -1025,12 +1034,14 @@ public class CoreService {
         return mapper.lesson(lesson);
     }
 
+    @Transactional
     public CoreDtos.LessonResponse saveLesson(CoreDtos.LessonRequest request) {
         Lesson lesson = new Lesson();
         applyLesson(lesson, request);
         return mapper.lesson(lessons.save(lesson));
     }
 
+    @Transactional
     public CoreDtos.LessonResponse updateLesson(Long id, CoreDtos.LessonRequest request) {
         Lesson lesson = lessons.findById(id).orElseThrow(() -> new ResourceNotFoundException("Lesson not found"));
         if (lesson.getDeletedAt() != null)
@@ -1039,6 +1050,7 @@ public class CoreService {
         return mapper.lesson(lessons.save(lesson));
     }
 
+    @Transactional
     public void deleteLesson(Long id) {
         Lesson lesson = lessons.findById(id).orElseThrow(() -> new ResourceNotFoundException("Lesson not found"));
         lesson.setDeletedAt(LocalDateTime.now());
@@ -1122,12 +1134,14 @@ public class CoreService {
         return mapper.prediction(prediction);
     }
 
+    @Transactional
     public CoreDtos.PredictionResponse savePrediction(CoreDtos.PredictionRequest request) {
         Prediction prediction = new Prediction();
         applyPrediction(prediction, request);
         return mapper.prediction(predictions.save(prediction));
     }
 
+    @Transactional
     public CoreDtos.PredictionResponse updatePrediction(Long id, CoreDtos.PredictionRequest request) {
         Prediction prediction = predictions.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
@@ -1137,6 +1151,7 @@ public class CoreService {
         return mapper.prediction(predictions.save(prediction));
     }
 
+    @Transactional
     public void deletePrediction(Long id) {
         Prediction prediction = predictions.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Prediction not found"));
@@ -2231,6 +2246,7 @@ public class CoreService {
         return new CoreDtos.StatisticsResponse(users.count(), tests.count(), submissions.count(), avg);
     }
 
+    @Transactional
     public CoreDtos.MediaResponse upload(String email, MultipartFile file) throws Exception {
         User uploader = users.findByEmailAndDeletedAtIsNull(email).orElseThrow();
         Files.createDirectories(Path.of(uploadDir));
@@ -2267,6 +2283,7 @@ public class CoreService {
                 .stream().map(this::media).toList();
     }
 
+    @Transactional
     public CoreDtos.MediaResponse updateBannerMedia(Long id, CoreDtos.MediaBannerRequest request) {
         MediaFile media = mediaEntity(id);
         if (request.banner() && media.getType() != MediaType.IMAGE) {
@@ -2278,6 +2295,7 @@ public class CoreService {
         return media(mediaFiles.save(media));
     }
 
+    @Transactional
     public CoreDtos.MediaResponse addBannerUrl(String email, CoreDtos.MediaUrlRequest request) {
         URI uri;
         try {
@@ -2309,6 +2327,7 @@ public class CoreService {
         return mediaFiles.findById(id).orElseThrow(() -> new ResourceNotFoundException("Media not found"));
     }
 
+    @Transactional
     public void deleteMedia(Long id) {
         MediaFile media = mediaEntity(id);
         if (media.getSourceUrl() == null) {

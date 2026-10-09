@@ -78,6 +78,7 @@ public class AuthService {
         return sendRegistrationOtp(saved);
     }
 
+    @Transactional
     public AuthDtos.AuthResponse login(AuthDtos.LoginRequest request) {
         String email = normalizeEmail(request.email());
         authenticationManagerProvider.getObject()

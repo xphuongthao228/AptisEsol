@@ -1,6 +1,7 @@
 ﻿import { Crown } from 'lucide-react';
 import { ReactNode, useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, unwrap } from '../api/client';
 import type { SubscriptionResponse } from '../types';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../utils/subscription';
@@ -23,9 +24,11 @@ export function SubscriptionGate({
   proTitle = DEFAULT_PRO_TITLE,
   proDescription = DEFAULT_PRO_DESCRIPTION
 }: SubscriptionGateProps) {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [allowed, setAllowed] = useState(false);
   const [checkFailed, setCheckFailed] = useState(false);
+  const [expired, setExpired] = useState(false);
 
   useEffect(() => {
     let mounted = true;
@@ -37,13 +40,16 @@ export function SubscriptionGate({
       .then(([subscription]) => {
         if (!mounted) return;
         setCheckFailed(false);
-        setAllowed(resolveAccess(subscription, requirePro, testAccess));
+        const accessAllowed = resolveAccess(subscription, requirePro, testAccess);
+        setAllowed(accessAllowed);
+        setExpired(!accessAllowed);
         if (subscription.active) saveSubscriptionUntil(subscription.expiresAt);
       })
       .catch(() => {
         if (!mounted) return;
         setCheckFailed(true);
-        setAllowed(!requirePro && !testAccess && getSubscriptionStatus().active);
+        setAllowed(!requirePro && !testAccess);
+        setExpired(false);
       })
       .finally(() => {
         if (mounted) setLoading(false);
@@ -53,6 +59,17 @@ export function SubscriptionGate({
       mounted = false;
     };
   }, [requirePro, testAccess]);
+
+  useEffect(() => {
+    if (!expired || checkFailed) return;
+
+    toast.error('Tài khoản Pro đã hết hạn. Vui lòng gia hạn để tiếp tục sử dụng.', { id: 'pro-expired' });
+    const timer = window.setTimeout(() => {
+      navigate('/app/renewal', { replace: true, state: { reason: 'expired' } });
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [checkFailed, expired, navigate]);
 
   if (loading) {
     return (
@@ -68,14 +85,32 @@ export function SubscriptionGate({
 
   if (checkFailed) {
     return (
-      <div className="rounded-[18px] border border-amber-200 bg-amber-50 p-6 text-sm font-semibold text-amber-800 shadow-soft">
-        Không kiểm tra được quyền truy cập. Vui lòng tải lại trang hoặc thử lại sau.
-      </div>
+      <section className="mx-auto max-w-2xl rounded-[18px] border border-amber-200 bg-white p-6 text-left shadow-soft">
+        <p className="text-base font-extrabold text-slate-900">Không kiểm tra được quyền truy cập</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
+          Kết nối kiểm tra gói học đang lỗi tạm thời. Vui lòng tải lại trang hoặc thử lại sau.
+        </p>
+        <div className="mt-5 flex flex-wrap gap-3">
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-red-600 px-5 text-sm font-extrabold text-white transition hover:bg-red-700"
+          >
+            Tải lại trang
+          </button>
+          <Link
+            to="/app/renewal"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-5 text-sm font-extrabold text-slate-700 transition hover:bg-slate-50"
+          >
+            Xem gói học
+          </Link>
+        </div>
+      </section>
     );
   }
 
-  if (requirePro) {
-    return <ProAccessNotice title={proTitle} description={proDescription} />;
+  if (expired) {
+    return <ProAccessNotice title="Tài khoản Pro đã hết hạn" description="Bạn cần gia hạn tài khoản để tiếp tục dùng tính năng này. Hệ thống sẽ chuyển sang trang thanh toán." />;
   }
 
   return <Navigate to="/app/renewal" replace state={{ reason: requirePro ? 'pro-required' : 'expired' }} />;

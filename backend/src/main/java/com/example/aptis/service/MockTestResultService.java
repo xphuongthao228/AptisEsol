@@ -6,6 +6,7 @@ import com.example.aptis.repository.MockTestResultRepository;
 import com.example.aptis.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,6 +16,7 @@ public class MockTestResultService {
     private final MockTestResultRepository results;
     private final UserRepository users;
 
+    @Transactional
     public MockTestDtos.ResultResponse save(String email, MockTestDtos.ResultRequest request) {
         var user = users.findByEmailAndDeletedAtIsNull(email).orElseThrow();
         MockTestResult result = new MockTestResult();

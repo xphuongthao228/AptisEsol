@@ -66,18 +66,21 @@ public class MockTestService {
         }
     }
 
+    @Transactional
     public MockTestDtos.MockTestResponse save(MockTestDtos.MockTestRequest request) {
         MockTest mockTest = new MockTest();
         apply(mockTest, request);
         return response(mockTests.save(mockTest));
     }
 
+    @Transactional
     public MockTestDtos.MockTestResponse update(String id, MockTestDtos.MockTestRequest request) {
         MockTest mockTest = findActive(id);
         apply(mockTest, request);
         return response(mockTests.save(mockTest));
     }
 
+    @Transactional
     public void delete(String id) {
         MockTest mockTest = findActive(id);
         mockTest.setDeletedAt(LocalDateTime.now());

@@ -220,12 +220,22 @@ export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Pro
     return response.data.data;
   } catch (error) {
     if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
-      const message = error.response?.data?.message;
+      const payload = error.response?.data;
+      const payloadRecord = typeof payload === 'object' && payload !== null
+        ? payload as unknown as Record<string, unknown>
+        : null;
+      const message = payloadRecord?.message
+        ? String(payloadRecord.message)
+        : payloadRecord?.error
+          ? String(payloadRecord.error)
+          : typeof payload === 'string'
+            ? payload
+            : '';
 
       if (message) {
         error.message = message;
       } else if (error.response?.status === 401 && isAuthEndpoint(error.config?.url ?? '')) {
-        error.message = 'Không thể xử lý yêu cầu lúc này. Vui lòng thử lại sau.';
+        error.message = 'Email hoặc mật khẩu không đúng.';
       } else if (error.response?.status === 401) {
         error.message = 'Không xác thực được yêu cầu. Phiên hiện tại vẫn được giữ; vui lòng thử tải lại trang.';
       } else if (error.response?.status === 403) {

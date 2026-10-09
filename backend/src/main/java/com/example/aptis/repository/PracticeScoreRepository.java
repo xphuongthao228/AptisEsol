@@ -5,6 +5,7 @@ import com.example.aptis.enums.RoleName;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Optional;
 public interface PracticeScoreRepository extends JpaRepository<PracticeScore, Long> {
     Optional<PracticeScore> findByUserIdAndQuestionId(Long userId, Long questionId);
 
+    @Transactional
     void deleteByQuestionId(Long questionId);
 
     @Query("""
