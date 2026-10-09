@@ -92,8 +92,15 @@ export function Login() {
             Quên mật khẩu?
           </Link>
         </div>
-        <button className="btn-primary h-14 w-full rounded-2xl text-base" disabled={loading}>
-          {loading ? 'Đang xử lý...' : 'Đăng nhập'} {!loading && <ArrowRight size={19} />}
+        <button
+          className="btn-primary h-14 w-full rounded-2xl text-base !text-white"
+          style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}
+          disabled={loading}
+        >
+          <span className="!text-white" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>
+            {loading ? 'Đang xử lý...' : 'Đăng nhập'}
+          </span>
+          {!loading && <ArrowRight className="!text-white" color="#ffffff" size={19} />}
         </button>
         <button
           type="button"

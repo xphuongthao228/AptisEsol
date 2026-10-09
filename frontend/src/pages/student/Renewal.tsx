@@ -295,10 +295,10 @@ export function Renewal() {
               <p className="mt-2 text-sm font-bold text-slate-600">{payment.bankId} - {payment.accountNo}</p>
               <p className="text-sm font-bold text-slate-600">{payment.accountName}</p>
             </div>
-            <div className="rounded-2xl bg-sky-50 p-4">
-              <p className="text-xs font-extrabold uppercase tracking-[0.14em] text-slate-600">Nội dung chuyển khoản</p>
+            <div className="payment-code-box rounded-2xl bg-sky-50 p-4">
+              <p className="payment-code-label text-xs font-extrabold uppercase tracking-[0.14em] text-slate-600">Nội dung chuyển khoản</p>
               <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="break-all text-base font-extrabold text-navy">{payment.paymentCode}</p>
+                <p className="payment-code-value break-all text-base font-extrabold text-navy">{payment.paymentCode}</p>
                 <button type="button" onClick={copyPaymentCode} className="btn-secondary h-10 px-3">
                   <Copy size={16} />
                 </button>

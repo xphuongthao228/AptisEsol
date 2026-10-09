@@ -19,7 +19,7 @@ const skillItems = [
 
 export function AuthShell({ children, title, subtitle }: { children: ReactNode; title: string; subtitle: string }) {
   return (
-    <div className="min-h-screen bg-[linear-gradient(135deg,#f6faff,#eef6ff_48%,#ffffff)] text-navy">
+    <div className="auth-shell min-h-screen bg-[linear-gradient(135deg,#f6faff,#eef6ff_48%,#ffffff)] text-navy">
       <SEO title={title} description={subtitle} robots="noindex, nofollow" />
       <main className="lg:grid lg:min-h-screen lg:grid-cols-[0.95fr_1.05fr]">
         <section className="relative hidden min-h-screen overflow-hidden bg-[linear-gradient(135deg,#06204a,#0057d9)] px-10 py-8 text-white lg:flex lg:flex-col lg:justify-center">

@@ -154,6 +154,7 @@ select:focus-visible {
 
 .btn-primary {
   @apply inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-extrabold text-white shadow-soft transition hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-lift;
+  color: #ffffff !important;
 }
 
 .btn-secondary {
@@ -1160,6 +1161,18 @@ html[data-student-skin="halloween"] .student-shell a[aria-current="page"]:not(he
   box-shadow: 0 12px 30px rgba(249, 115, 22, 0.3) !important;
 }
 
+html[data-student-skin="halloween"] .auth-shell .btn-primary {
+  border: 1px solid rgba(253, 186, 116, 0.55) !important;
+  background: linear-gradient(135deg, #ff6b00, #ef4444 48%, #7c3aed) !important;
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+html[data-student-skin="halloween"] .auth-shell .btn-primary * {
+  color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
 html[data-student-skin="halloween"] .student-shell .btn-secondary {
   border-color: rgba(168, 85, 247, 0.55) !important;
   background: rgba(55, 23, 82, 0.78) !important;
@@ -1490,11 +1503,87 @@ html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .d
   background: rgba(20, 8, 35, 0.94) !important;
 }
 
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section {
+  background:
+    radial-gradient(circle at 10% 4%, rgba(255, 222, 0, 0.2), transparent 16rem),
+    radial-gradient(circle at 92% 18%, rgba(249, 115, 22, 0.18), transparent 18rem),
+    linear-gradient(180deg, #fff8f2 0%, #fffaf4 52%, #ffffff 100%) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-navy,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-slate-950,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-slate-900,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-slate-800,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-slate-700 {
+  color: #101827 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-slate-600,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-slate-500,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .text-slate-400 {
+  color: #475569 !important;
+}
+
 html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section,
 html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section {
   background:
     radial-gradient(circle at 12% 12%, rgba(249, 115, 22, 0.18), transparent 18rem),
     linear-gradient(180deg, #1b0b2d 0%, #12051f 100%) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255, 222, 0, 0.18), transparent 17rem),
+    radial-gradient(circle at 90% 22%, rgba(249, 115, 22, 0.16), transparent 19rem),
+    linear-gradient(180deg, #fffaf4 0%, #fff8f2 54%, #ffffff 100%) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-navy,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-slate-950,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-slate-900,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-slate-800,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-slate-700 {
+  color: #101827 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-slate-600,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-slate-500,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .text-slate-400 {
+  color: #475569 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .bg-white {
+  background-color: #ffffff !important;
+  color: #101827 !important;
+  box-shadow: 0 18px 42px rgba(124, 45, 18, 0.1) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section {
+  background:
+    radial-gradient(circle at 10% 4%, rgba(255, 222, 0, 0.16), transparent 17rem),
+    radial-gradient(circle at 88% 14%, rgba(249, 115, 22, 0.16), transparent 18rem),
+    linear-gradient(180deg, #ffffff 0%, #fff8f2 50%, #fffaf4 100%) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-navy,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-slate-950,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-slate-900,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-slate-800,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-slate-700 {
+  color: #101827 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-slate-600,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-slate-500,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .text-slate-400 {
+  color: #475569 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .dashboard-testimonial-marquee article,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .dashboard-cta-card {
+  border-color: rgba(249, 115, 22, 0.24) !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 42px rgba(124, 45, 18, 0.1) !important;
 }
 
 html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-hero {
@@ -1523,11 +1612,86 @@ html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page [c
     linear-gradient(135deg, #1f0c30 0%, #351128 100%) !important;
 }
 
-html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-cta-card,
-html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonial-marquee article {
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .dashboard-visual-shell {
+  border-color: rgba(249, 115, 22, 0.22) !important;
+  background:
+    radial-gradient(circle at 86% 16%, rgba(249, 115, 22, 0.18), transparent 12rem),
+    linear-gradient(135deg, #fff0c2 0%, #fff8f2 48%, #ffffff 100%) !important;
+  box-shadow: 0 18px 44px rgba(124, 45, 18, 0.12) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-feature-section .bg-white {
+  background-color: #ffffff !important;
+  color: #101827 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section.dashboard-why-section {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(255, 222, 0, 0.18), transparent 17rem),
+    radial-gradient(circle at 90% 22%, rgba(249, 115, 22, 0.16), transparent 19rem),
+    linear-gradient(180deg, #fffaf4 0%, #fff8f2 54%, #ffffff 100%) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-why-section .bg-white {
+  background-color: #ffffff !important;
+  color: #101827 !important;
+  box-shadow: 0 18px 42px rgba(124, 45, 18, 0.1) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section.dashboard-testimonials-section {
+  background:
+    radial-gradient(circle at 10% 4%, rgba(255, 222, 0, 0.16), transparent 17rem),
+    radial-gradient(circle at 88% 14%, rgba(249, 115, 22, 0.16), transparent 18rem),
+    linear-gradient(180deg, #ffffff 0%, #fff8f2 50%, #fffaf4 100%) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .dashboard-testimonial-marquee article,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-testimonials-section .dashboard-cta-card {
+  border-color: rgba(249, 115, 22, 0.24) !important;
+  background: #ffffff !important;
+  box-shadow: 0 18px 42px rgba(124, 45, 18, 0.1) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-hero .dashboard-cta-card,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .dashboard-cta-card {
   border-color: rgba(249, 115, 22, 0.34) !important;
   background: rgba(31, 12, 48, 0.9) !important;
   box-shadow: 0 20px 42px rgba(0, 0, 0, 0.26) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section.dashboard-contact-section {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(255, 222, 0, 0.18), transparent 18rem),
+    radial-gradient(circle at 88% 20%, rgba(249, 115, 22, 0.16), transparent 18rem),
+    linear-gradient(180deg, #fffaf4 0%, #fff8f2 54%, #ffffff 100%) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section > div {
+  border-color: rgba(249, 115, 22, 0.24) !important;
+  background:
+    radial-gradient(circle at 8% 16%, rgba(255, 222, 0, 0.18), transparent 16rem),
+    linear-gradient(135deg, #ffffff 0%, #fff7db 58%, #fff8f2 100%) !important;
+  box-shadow: 0 20px 46px rgba(124, 45, 18, 0.12) !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-navy,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-slate-950,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-slate-900,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-slate-800,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-slate-700 {
+  color: #101827 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-slate-600,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-slate-500,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .text-slate-400 {
+  color: #475569 !important;
+}
+
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section article,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page .dashboard-contact-section .bg-white {
+  background-color: #ffffff !important;
+  color: #101827 !important;
 }
 
 html:not(.dark)[data-student-skin="halloween"] .student-shell .dashboard-page [class*="border-brand-100"],
@@ -7609,5 +7773,48 @@ html.dark[data-student-skin="halloween"] .student-shell .account-menu-logout :wh
 html[data-student-skin="halloween"] .student-shell .account-menu-logout:hover,
 html.dark[data-student-skin="halloween"] .student-shell .account-menu-logout:hover {
   background: #fef2f2 !important;
+}
+
+.student-shell .renewal-page .payment-code-box,
+html[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-box,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-box,
+html.dark[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-box {
+  border: 1px solid rgba(249, 115, 22, 0.22) !important;
+  background: #fff7db !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72) !important;
+}
+
+.student-shell .renewal-page .payment-code-label,
+html[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-label,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-label,
+html.dark[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-label {
+  color: #7c2d12 !important;
+  -webkit-text-fill-color: #7c2d12 !important;
+}
+
+.student-shell .renewal-page .payment-code-value,
+html[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-value,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-value,
+html.dark[data-student-skin="halloween"] .student-shell .renewal-page .payment-code-value {
+  color: #101827 !important;
+  -webkit-text-fill-color: #101827 !important;
+}
+
+html[data-student-skin="halloween"] .student-shell > header .header-login-link,
+html:not(.dark)[data-student-skin="halloween"] .student-shell > header .header-login-link,
+html.dark[data-student-skin="halloween"] .student-shell > header .header-login-link {
+  border: 1px solid rgba(253, 186, 116, 0.24) !important;
+  background: rgba(255, 255, 255, 0.09) !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+html[data-student-skin="halloween"] .student-shell > header .header-login-link :where(svg, span),
+html:not(.dark)[data-student-skin="halloween"] .student-shell > header .header-login-link :where(svg, span),
+html.dark[data-student-skin="halloween"] .student-shell > header .header-login-link :where(svg, span) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
 }
 

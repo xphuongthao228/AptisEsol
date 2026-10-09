@@ -334,7 +334,7 @@ export function AppLayout() {
               </>
             ) : (
               <div className="hidden items-center gap-2 sm:flex">
-                <Link to="/login" className="inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-xs font-extrabold text-navy transition hover:bg-brand-50 hover:text-brand-700">
+                <Link to="/login" className="header-login-link inline-flex h-10 items-center gap-1.5 rounded-lg px-3 text-xs font-extrabold text-navy transition hover:bg-brand-50 hover:text-brand-700">
                   <LogIn size={15} /> Đăng nhập
                 </Link>
                 <Link to="/register" className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-brand-600 px-3.5 text-xs font-extrabold text-white shadow-soft transition hover:bg-brand-700">
@@ -401,7 +401,7 @@ export function AppLayout() {
                   </>
                 ) : (
                   <>
-                    <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-brand-200 text-sm font-extrabold text-navy">
+                    <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="header-login-link inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-brand-200 text-sm font-extrabold text-navy">
                       <LogIn size={17} /> Đăng nhập
                     </Link>
                     <Link to="/register" onClick={() => setMobileMenuOpen(false)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-brand-600 text-sm font-extrabold text-white">
