@@ -59,6 +59,18 @@ type TipLanding = {
   sections: TipLandingSection[];
 };
 
+type SelfStudyGuideSection = {
+  title: string;
+  points: string[];
+};
+
+type SelfStudyGuide = {
+  title: string;
+  subtitle: string;
+  note: string;
+  sections: SelfStudyGuideSection[];
+};
+
 type LearningResource = {
   lessonId?: number;
   title: string;
@@ -332,6 +344,256 @@ const tipLanding: Record<SkillKey, TipLanding> = {
 };
 
 const writingLetterPdfUrl = '/docs/aptis-keys-meo-viet-thu.pdf';
+
+const guideIconAccent: Record<SkillKey, string> = {
+  LISTENING: 'bg-blue-50 text-brand-600',
+  READING: 'bg-emerald-50 text-emerald-600',
+  SPEAKING: 'bg-rose-50 text-rose-600',
+  WRITING: 'bg-amber-50 text-amber-600'
+};
+
+const selfStudyGuides: Record<SkillKey, SelfStudyGuide> = {
+  LISTENING: {
+    title: 'Hướng dẫn tự học Listening Aptis',
+    subtitle: '40 phút, 4 phần',
+    note: 'Luyện nghe hiểu trước, chép chính tả sau. Tách đoạn ngắn để xử lý âm và từ khó.',
+    sections: [
+      {
+        title: '1. Nguyên tắc cốt lõi',
+        points: [
+          'Không bắt đầu bằng việc chép toàn bộ audio dài.',
+          'Nghe để hiểu ý chính trước, sau đó mới mở script và xử lý chỗ bỏ lỡ.',
+          'Chú ý học thuộc cả câu hỏi lẫn đáp án đúng để nhận ra dạng quen thuộc nhanh hơn.'
+        ]
+      },
+      {
+        title: '2. Hiểu 4 phần thi',
+        points: [
+          'Part 1: nhận biết thông tin cụ thể như giờ, số, địa điểm.',
+          'Part 2: ghép người nói với thông tin.',
+          'Part 3: nghe hội thoại, phân biệt ý kiến của nam, nữ hoặc cả hai.',
+          'Part 4: nghe độc thoại dài, xác định quan điểm hoặc thái độ.'
+        ]
+      },
+      {
+        title: '3. Quy trình nghe 3 lượt khi luyện ở nhà',
+        points: [
+          'Lượt 1: nghe toàn đoạn để hiểu chủ đề.',
+          'Lượt 2: làm câu hỏi và ghi từ khóa.',
+          'Lượt 3: chỉ ở chế độ luyện tập, mở script, kiểm tra chỗ bỏ lỡ và nghe lại từng câu 5-15 giây.',
+          'Khi mô phỏng thi, tuân thủ giới hạn nghe của bài thi.'
+        ]
+      },
+      {
+        title: '4. Bẫy nghe cần nhớ',
+        points: [
+          'Ví dụ: The meeting was originally at nine, but it has been moved to ten thirty.',
+          'Câu hỏi: What time is the meeting now?',
+          'Đáp án: 10:30. Không chọn thời gian nghe thấy đầu tiên nếu thông tin đã bị sửa đổi.'
+        ]
+      },
+      {
+        title: '5. Cách luyện từng phần',
+        points: [
+          'Part 1: tập số, giờ, tên riêng và địa điểm.',
+          'Part 2: ghi 1-2 từ khóa cho từng người nói.',
+          'Part 3: lập bảng Man / Woman / Both, nghe thái độ thay vì chỉ dò từ giống hệt.',
+          'Part 4: ghi ý chính và các từ chỉ lập trường như however, although, surprisingly.'
+        ]
+      },
+      {
+        title: '6. Kế hoạch 20 phút/ngày',
+        points: [
+          '5 phút nghe thông tin cụ thể.',
+          '8 phút làm một bài Part 2, 3 hoặc 4.',
+          '5 phút phân tích lỗi với script.',
+          '2 phút ghi lại ba cụm từ nghe chưa ra.'
+        ]
+      }
+    ]
+  },
+  READING: {
+    title: 'Hướng dẫn tự học Reading Aptis',
+    subtitle: '35 phút, 4 phần chính thức',
+    note: 'Aptis ESOL General chính thức có bốn phần Reading. Một số ngân hàng luyện tập có thể đánh số thành năm mục, nên hãy phân biệt số bài trên web với cấu trúc chính thức.',
+    sections: [
+      {
+        title: '1. Hiểu các phần thi',
+        points: [
+          'Part 1: điền từ vào văn bản ngắn.',
+          'Part 2: sắp xếp câu thành hai đoạn văn mạch lạc.',
+          'Part 3: ghép phát biểu với ý kiến của bốn người.',
+          'Part 4: ghép tiêu đề với các đoạn của bài đọc dài, có một tiêu đề dư.'
+        ]
+      },
+      {
+        title: '2. Ba kỹ thuật đọc',
+        points: [
+          'Skimming: đọc nhanh để nắm ý chính.',
+          'Scanning: tìm tên, số, từ khóa hoặc thông tin cụ thể.',
+          'Paraphrase recognition: nhận ra cùng một ý được diễn đạt bằng từ khác.'
+        ]
+      },
+      {
+        title: '3. Chiến thuật Part 1-2',
+        points: [
+          'Part 1: đọc cả câu và kiểm tra ngữ pháp, nghĩa.',
+          'Part 2: tìm đại từ thay thế, liên từ, trình tự thời gian, nguyên nhân - kết quả.',
+          'Câu mở đầu đã cố định, hãy xác định câu theo sau bằng mối liên hệ rõ ràng.'
+        ]
+      },
+      {
+        title: '4. Chiến thuật Part 3-4',
+        points: [
+          'Part 3: đọc phát biểu trước, gạch từ khóa, đối chiếu quan điểm chứ không ghép từ giống nhau.',
+          'Part 4: đọc ý chính mỗi đoạn, đặt nhãn 3-5 từ rồi mới so với tiêu đề.',
+          'Tránh chọn tiêu đề chỉ vì một chi tiết nhỏ.'
+        ]
+      },
+      {
+        title: '5. Ví dụ sắp xếp câu',
+        points: [
+          'A. Finally, she submitted her application.',
+          'B. First, Mai searched for suitable courses.',
+          'C. After that, she prepared the required documents.',
+          'Thứ tự hợp lý: B -> C -> A, nhờ các dấu hiệu First, After that, Finally.'
+        ]
+      },
+      {
+        title: '6. Phân bổ thời gian và sửa lỗi',
+        points: [
+          'Đặt đồng hồ 35 phút cho bài đầy đủ.',
+          'Có thể thử Part 1: 5 phút, Part 2: 9 phút, Part 3: 9 phút, Part 4: 12 phút.',
+          'Ghi câu sai, đáp án đã chọn, bằng chứng trong đoạn và loại lỗi.',
+          'Làm lại sau 2-3 lần mà không xem đáp án.'
+        ]
+      }
+    ]
+  },
+  SPEAKING: {
+    title: 'Hướng dẫn tự học Speaking Aptis',
+    subtitle: '12 phút, 4 phần',
+    note: 'Mục tiêu là nói rõ ràng, trả lời đúng trọng tâm, có ví dụ cụ thể và hạn chế ngập ngừng. Không học thuộc nguyên bài vì dễ lạc đề.',
+    sections: [
+      {
+        title: '1. Hiểu 4 phần thi',
+        points: [
+          'Part 1: ba câu hỏi về bản thân, khoảng 30 giây/câu.',
+          'Part 2: mô tả một ảnh và trả lời hai câu liên quan, khoảng 45 giây/câu.',
+          'Part 3: so sánh hai ảnh và trả lời câu hỏi mở rộng, khoảng 45 giây/câu.',
+          'Part 4: trải nghiệm cá nhân và chủ đề trừu tượng; có thời gian chuẩn bị, trả lời dài hơn.'
+        ]
+      },
+      {
+        title: '2. Công thức triển khai ý',
+        points: [
+          'Part 1: Answer -> Reason -> Example.',
+          'Part 2: Overview -> People/Place -> Actions -> Impression.',
+          'Part 3: Similarity -> Difference -> Explanation.',
+          'Part 4: Opinion -> 2 reasons -> example -> conclusion.',
+          'Đây là khung luyện tập, không phải mẫu bắt buộc.'
+        ]
+      },
+      {
+        title: '3. Ví dụ thực hành',
+        points: [
+          'Question: What do you usually do at weekends?',
+          'Sample: I usually spend time with my family at weekends. We often cook dinner together because it helps us relax after a busy week. Sometimes we go for a walk in the park.',
+          'Dịch: Tôi thường dành thời gian bên gia đình vào cuối tuần. Chúng tôi thường nấu bữa tối cùng nhau vì điều đó giúp thư giãn sau một tuần bận rộn. Thỉnh thoảng, chúng tôi đi dạo trong công viên.'
+        ]
+      },
+      {
+        title: '4. Luyện tập 20 phút/ngày',
+        points: [
+          '5 phút nghe và nhại câu mẫu.',
+          '5 phút trả lời Part 1.',
+          '5 phút mô tả hoặc so sánh ảnh.',
+          '5 phút nghe lại bản ghi và ghi ba lỗi quan trọng.',
+          'Mỗi tuần làm một lượt đủ bốn phần.'
+        ]
+      },
+      {
+        title: '5. Cách tự sửa lỗi',
+        points: [
+          'Nghe bản ghi và kiểm tra: có trả lời đúng câu hỏi không, đủ ý không, có nối ý không.',
+          'Ghi lại từ phát âm chưa rõ và lỗi ngữ pháp lặp lại.',
+          'Sửa một lần rồi ghi âm lại.',
+          'AI chỉ hỗ trợ tham khảo, không thay thế đánh giá chính thức.'
+        ]
+      },
+      {
+        title: '6. Bài tập và checklist',
+        points: [
+          'Describe your favourite place.',
+          'Compare studying at home and studying in a library.',
+          'Do you think technology improves education? Explain.',
+          'Trước khi thi: tập nói đúng thời lượng, có ý chính và ví dụ, không dừng quá lâu.',
+          'Luyện tập các câu ở mục luyện theo part.'
+        ]
+      }
+    ]
+  },
+  WRITING: {
+    title: 'Hướng dẫn tự học Writing Aptis',
+    subtitle: 'Aptis ESOL General, 50 phút, 4 phần',
+    note: 'Các công thức chỉ để gợi ý cách viết, không bắt buộc áp dụng máy móc.',
+    sections: [
+      {
+        title: '1. Cấu trúc bài thi',
+        points: [
+          'Part 1: 5 câu trả lời ngắn.',
+          'Part 2: khoảng 20-30 từ.',
+          'Part 3: 3 câu, khoảng 30-40 từ/câu.',
+          'Part 4: email thân mật 40-50 từ và email trang trọng 120-150 từ.'
+        ]
+      },
+      {
+        title: '2. Tìm ý bằng 5W1H',
+        points: [
+          'What, Who, When, Where, Why, How.',
+          'Chỉ chọn 2-3 ý cần thiết, không cần dùng đủ sáu yếu tố.',
+          'Ví dụ: What do you usually do at weekends?',
+          'I usually cook with my family because it helps us relax. Sometimes, we go for a walk.'
+        ]
+      },
+      {
+        title: '3. Part 1 và Part 2',
+        points: [
+          'Part 1: Question -> Short answer. Xác định thông tin được hỏi, trả lời trực tiếp và kiểm tra chính tả.',
+          'Ví dụ: Where do you live? - In Hanoi.',
+          'Part 2: Answer -> Reason -> Detail. Có thể dùng because để nối ý.',
+          'Ví dụ: I want to join the photography club because I enjoy taking pictures of nature. I hope to learn new skills and make friends with similar interests.'
+        ]
+      },
+      {
+        title: '4. Part 3',
+        points: [
+          'Công thức: Answer -> Reason -> Example -> Feeling.',
+          'Ưu tiên trả lời đúng trọng tâm, sau đó thêm một lý do hoặc ví dụ.',
+          'Ví dụ: I like my neighbourhood because it is peaceful and convenient. There is a park near my home, so I often go jogging there. The people are friendly, and I feel comfortable living here.'
+        ]
+      },
+      {
+        title: '5. Part 4',
+        points: [
+          'Email thân mật: Greeting -> Feeling -> Reason -> Suggestion -> Closing.',
+          'Email trang trọng: Greeting -> Purpose -> Details -> Request -> Closing.',
+          'Giữ giọng điệu lịch sự và phát triển đủ ý để đạt độ dài yêu cầu.',
+          'Email trang trọng mẫu chỉ minh họa cách diễn đạt; khi luyện đề cần phát triển thêm chi tiết để đạt 120-150 từ.'
+        ]
+      },
+      {
+        title: '6. PEEL và cách tự kiểm tra',
+        points: [
+          'PEEL: Point -> Explain -> Example -> Link.',
+          'Dùng khi cần giải thích quan điểm, không cần ép vào mọi câu trả lời.',
+          'Quy trình: đọc đề -> tìm 2-3 ý bằng 5W1H -> viết theo công thức phù hợp -> kiểm tra số từ, thì, chia động từ, chính tả và giọng điệu.',
+          'Luyện 25 phút/ngày: 5 phút ngữ pháp, 10 phút viết, 5 phút xem lỗi, 5 phút tự viết lại. Mỗi tuần luyện Part 4 có bấm giờ.'
+        ]
+      }
+    ]
+  }
+};
 
 export function Lessons() {
   const user = useAuthStore((state) => state.user);
@@ -679,6 +941,66 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
           </section>
         ))}
       </div>
+    </div>
+  );
+}
+
+function SelfStudyGuidePage({ skill }: { skill: SkillKey }) {
+  const guide = selfStudyGuides[skill];
+  const skillInfo = skillTips.find((item) => item.key === skill) ?? skillTips[0];
+
+  return (
+    <div className="mobile-tips-page student-decor-page mx-auto max-w-[1120px] space-y-6 bg-sky-50 pb-8 text-navy">
+      <Link to={`/app/tests/parts?skill=${skill}`} className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
+        <ArrowLeft size={18} /> Quay lại luyện theo part
+      </Link>
+
+      <section className="lessons-halloween-hero mobile-page-heading relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#2c0b55_0%,#72204b_54%,#f97316_130%)] p-6 text-white shadow-soft sm:p-8">
+        <div className="halloween-web halloween-web-left" aria-hidden="true" />
+        <div className="halloween-web halloween-web-right" aria-hidden="true" />
+        <span className="lessons-halloween-bat lessons-halloween-bat-one" aria-hidden="true" />
+        <span className="lessons-halloween-bat lessons-halloween-bat-two" aria-hidden="true" />
+        <div className="lessons-halloween-pumpkin" aria-hidden="true">
+          {skillInfo.icon}
+        </div>
+        <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-one" size={18} aria-hidden="true" />
+        <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-two" size={15} aria-hidden="true" />
+        <p className="relative z-10 text-xs font-extrabold uppercase tracking-[0.32em] text-orange-100">Hướng dẫn cách học</p>
+        <h1 className="relative z-10 mt-3 max-w-3xl text-3xl font-extrabold sm:text-5xl">{guide.title}</h1>
+        <p className="relative z-10 mt-3 max-w-2xl text-base font-bold leading-7 text-white/90">{guide.subtitle}</p>
+      </section>
+
+      <section className="rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft sm:p-7">
+        <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-start">
+          <div className="flex gap-4">
+            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${guideIconAccent[skill]}`}>{skillInfo.icon}</div>
+            <div>
+              <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-600">{skillInfo.label}</p>
+              <h2 className="mt-1 text-2xl font-extrabold text-navy">Cách tự học hiệu quả</h2>
+              <p className="mt-2 max-w-3xl leading-7 text-slate-600">{guide.note}</p>
+            </div>
+          </div>
+          <Link to={`/app/tests/parts?skill=${skill}`} className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 text-sm font-extrabold text-white transition hover:bg-brand-700">
+            Vào luyện tập <ArrowRight size={18} />
+          </Link>
+        </div>
+      </section>
+
+      <section className="grid gap-5 lg:grid-cols-2">
+        {guide.sections.map((section) => (
+          <article key={section.title} className="rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft">
+            <h2 className="text-xl font-extrabold text-navy">{section.title}</h2>
+            <div className="mt-4 space-y-3">
+              {section.points.map((point) => (
+                <div key={point} className="flex gap-3 rounded-2xl bg-sky-50 p-3 text-sm font-semibold leading-6 text-slate-700">
+                  <CheckCircle2 className="mt-0.5 shrink-0 text-emerald-600" size={18} />
+                  <span>{point}</span>
+                </div>
+              ))}
+            </div>
+          </article>
+        ))}
+      </section>
     </div>
   );
 }

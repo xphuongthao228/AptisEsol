@@ -180,7 +180,7 @@ export function AppLayout() {
   useEffect(() => {
     const handleScroll = () => {
       if (window.matchMedia('(max-width: 767px)').matches) {
-        setNavHidden(false);
+        if (navHidden) setNavHidden(false);
         lastScrollYRef.current = window.scrollY;
         return;
       }
@@ -198,7 +198,7 @@ export function AppLayout() {
     lastScrollYRef.current = window.scrollY;
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [navHidden]);
 
   useEffect(() => {
     if (mobileMenuOpen || accountMenuOpen || themeMenuOpen) {
