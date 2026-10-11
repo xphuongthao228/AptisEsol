@@ -30,6 +30,7 @@ const PracticeRunner = lazy(() => import('../pages/student/PracticeRunner').then
 const Predictions = lazy(() => import('../pages/student/Predictions').then((module) => ({ default: module.Predictions })));
 const Renewal = lazy(() => import('../pages/student/Renewal').then((module) => ({ default: module.Renewal })));
 const Settings = lazy(() => import('../pages/student/Settings').then((module) => ({ default: module.Settings })));
+const WritingBank = lazy(() => import('../pages/student/WritingBank').then((module) => ({ default: module.WritingBank })));
 const SkillPartQuestions = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.SkillPartQuestions })));
 const SkillQuestionParts = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.SkillQuestionParts })));
 const TestPartMenu = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.TestPartMenu })));
@@ -56,6 +57,7 @@ export const router = createBrowserRouter([
     { path: 'lessons/:skillType/:tipSlug', element: <Lessons /> },
     { path: 'tests', element: <Navigate to="/app/tests/parts" replace /> },
     { path: 'mock-tests', element: <MockTests /> },
+    { path: 'writing-bank', element: <WritingBank /> },
     { path: 'combine-speaking', element: <CombineSpeaking /> },
     { path: 'history', element: <ProtectedRoute role="STUDENT" />, children: [
       { index: true, element: <ExamHistory /> }

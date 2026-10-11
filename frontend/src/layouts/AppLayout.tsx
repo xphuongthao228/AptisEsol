@@ -3,6 +3,7 @@
   BookOpen,
   Bot,
   CalendarPlus,
+  ChevronDown,
   Clock3,
   Crown,
   DollarSign,
@@ -19,6 +20,7 @@
   Monitor,
   Moon,
   Palette,
+  PenLine,
   Settings,
   Shield,
   Sun,
@@ -61,6 +63,7 @@ const studentLinks: LayoutLink[] = [
 ];
 
 const studentMoreLinks: LayoutLink[] = [
+  { to: '/app/writing-bank', label: 'Kho đề Writing', icon: PenLine },
   { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
   { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },
   { to: '/app/contact', label: 'Liên hệ', icon: Mail },
@@ -93,10 +96,12 @@ export function AppLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [navHidden, setNavHidden] = useState(false);
   const [studentSkin, setStudentSkin] = useState<StudentSkin>('halloween');
   const accountMenuRef = useRef<HTMLDivElement>(null);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
   const lastScrollYRef = useRef(0);
   const { preference, resolvedTheme, setPreference } = useThemePreference();
   const navigate = useNavigate();
@@ -161,21 +166,25 @@ export function AppLayout() {
   useEffect(() => {
     setAccountMenuOpen(false);
     setThemeMenuOpen(false);
+    setMoreMenuOpen(false);
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!accountMenuOpen) return;
+    if (!accountMenuOpen && !moreMenuOpen) return;
 
     const handleClickOutside = (event: MouseEvent) => {
       if (!accountMenuRef.current?.contains(event.target as Node)) {
         setAccountMenuOpen(false);
       }
+      if (!moreMenuRef.current?.contains(event.target as Node)) {
+        setMoreMenuOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [accountMenuOpen]);
+  }, [accountMenuOpen, moreMenuOpen]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -201,10 +210,10 @@ export function AppLayout() {
   }, [navHidden]);
 
   useEffect(() => {
-    if (mobileMenuOpen || accountMenuOpen || themeMenuOpen) {
+    if (mobileMenuOpen || accountMenuOpen || themeMenuOpen || moreMenuOpen) {
       setNavHidden(false);
     }
-  }, [accountMenuOpen, mobileMenuOpen, themeMenuOpen]);
+  }, [accountMenuOpen, mobileMenuOpen, moreMenuOpen, themeMenuOpen]);
 
   const signOut = async () => {
     setMobileMenuOpen(false);
@@ -241,6 +250,36 @@ export function AppLayout() {
             {mainLinks.map((link) => (
               <TopNavLink key={link.to} link={link} />
             ))}
+            {!isAdmin && (
+              <div className="relative" ref={moreMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMoreMenuOpen((open) => !open);
+                    setThemeMenuOpen(false);
+                    setAccountMenuOpen(false);
+                  }}
+                  className={`inline-flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-2 text-[12px] font-extrabold transition 2xl:px-3 2xl:text-sm ${
+                    moreMenuOpen
+                      ? 'bg-white/12 text-white shadow-soft'
+                      : 'text-white/90 hover:bg-white/10 hover:text-white'
+                  }`}
+                  aria-label="Mở thêm chức năng"
+                  aria-expanded={moreMenuOpen}
+                  aria-haspopup="menu"
+                >
+                  More
+                  <ChevronDown size={15} className={`transition-transform ${moreMenuOpen ? 'rotate-180' : ''}`} />
+                </button>
+                {moreMenuOpen && (
+                  <div className="more-menu-panel absolute right-0 top-full z-50 mt-3 grid w-56 gap-1 rounded-xl border border-brand-100 bg-white p-2 shadow-lift">
+                    {studentMoreLinks.map((link) => (
+                      <TopMoreNavLink key={link.to} link={link} onClick={() => setMoreMenuOpen(false)} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </nav>
 
           <div className="ml-auto flex shrink-0 items-center gap-2">
@@ -681,6 +720,24 @@ function TopNavLink({ link }: { link: LayoutLink }) {
       }}
     >
       {link.label}
+    </NavLink>
+  );
+}
+
+function TopMoreNavLink({ link, onClick }: { link: LayoutLink; onClick: () => void }) {
+  const Icon = link.icon;
+
+  return (
+    <NavLink
+      to={link.to}
+      end={link.end}
+      onClick={onClick}
+      className={({ isActive }) => `more-menu-link flex h-10 items-center gap-2 rounded-lg px-3 text-sm font-bold transition ${
+        isActive ? 'bg-orange-50 text-orange-700' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
+      }`}
+    >
+      <Icon size={17} />
+      <span>{link.label}</span>
     </NavLink>
   );
 }
