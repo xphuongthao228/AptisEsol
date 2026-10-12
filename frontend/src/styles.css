@@ -9092,3 +9092,551 @@ html.dark[data-student-skin="halloween"] .student-shell .writing-bank-page input
   -webkit-text-fill-color: #94a3b8 !important;
 }
 
+html.dark[data-student-skin="halloween"] .mock-assessment-native .mock-answer-list,
+html.dark[data-student-skin="halloween"] .mock-assessment-native .mock-answer-list :where(p, b, span) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .mock-assessment-native .mock-answer-list b {
+  color: #a7f3d0 !important;
+  -webkit-text-fill-color: #a7f3d0 !important;
+}
+
+html.dark[data-student-skin="halloween"] .student-shell .writing-club-practice,
+html.dark[data-student-skin="halloween"] .writing-club-practice {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #101a3d !important;
+  -webkit-text-fill-color: #101a3d !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .student-shell .writing-club-practice :where(h1, h2, h3, p, span, label, div):not(.writing-club-sample-answer):not(.writing-club-sample-answer *),
+html.dark[data-student-skin="halloween"] .writing-club-practice :where(h1, h2, h3, p, span, label, div):not(.writing-club-sample-answer):not(.writing-club-sample-answer *) {
+  color: #101a3d !important;
+  -webkit-text-fill-color: #101a3d !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .student-shell .writing-club-practice :where(input, textarea),
+html.dark[data-student-skin="halloween"] .writing-club-practice :where(input, textarea) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #101a3d !important;
+  -webkit-text-fill-color: #101a3d !important;
+  caret-color: #101a3d !important;
+}
+
+html.dark[data-student-skin="halloween"] .student-shell .writing-club-practice :where(input, textarea)::placeholder,
+html.dark[data-student-skin="halloween"] .writing-club-practice :where(input, textarea)::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+}
+
+html.dark[data-student-skin="halloween"] .student-shell .writing-club-sample-answer,
+html.dark[data-student-skin="halloween"] .writing-club-sample-answer {
+  background: #ecfdf5 !important;
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+  color: #064e3b !important;
+  -webkit-text-fill-color: #064e3b !important;
+}
+
+html.dark[data-student-skin="halloween"] .student-shell .writing-club-sample-answer :where(p, b, div, span, li),
+html.dark[data-student-skin="halloween"] .writing-club-sample-answer :where(p, b, div, span, li) {
+  color: #064e3b !important;
+  -webkit-text-fill-color: #064e3b !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .writing-club-practice .writing-club-sample-answer,
+html.dark[data-student-skin="halloween"] .writing-club-practice .writing-club-sample-answer * {
+  color: #064e3b !important;
+  -webkit-text-fill-color: #064e3b !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light {
+  background: #f4f7fb !important;
+  background-color: #f4f7fb !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light main,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light form,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light > main > form > div {
+  background: #f4f7fb !important;
+  background-color: #f4f7fb !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light header,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light footer,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .runner-bottom-bar,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light [class*="bottom-0"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #fde68a !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light header :where(span, div, button) {
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light header a {
+  color: #dc1717 !important;
+  -webkit-text-fill-color: #dc1717 !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light header button {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light header button :where(span, svg) {
+  color: #0f172a !important;
+  stroke: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light header div[class*="bg-[#f0f3fd]"] {
+  background: #f0f3fd !important;
+  background-color: #f0f3fd !important;
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light header div[class*="bg-[#f0f3fd]"] :where(span, svg) {
+  color: #64748b !important;
+  stroke: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light :where(h1, h2, h3, p, span, label, div):not(.writing-club-sample-answer):not(.writing-club-sample-answer *) {
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light a,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .text-brand-600,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light [class*="text-brand-600"] {
+  color: #dc1717 !important;
+  -webkit-text-fill-color: #dc1717 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-white,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light [class*="bg-white"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-blue-100 {
+  background: #dbeafe !important;
+  background-color: #dbeafe !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-sky-100 {
+  background: #ffedd5 !important;
+  background-color: #ffedd5 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-brand-600 {
+  background: #dc1717 !important;
+  background-color: #dc1717 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-slate-700 {
+  background: #334155 !important;
+  background-color: #334155 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-cyan-500 {
+  background: #06b6d4 !important;
+  background-color: #06b6d4 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-green-700 {
+  background: #15803d !important;
+  background-color: #15803d !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light .bg-blue-100 {
+  background: #dbeafe !important;
+  background-color: #dbeafe !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light input,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light textarea {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+  caret-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light button {
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light button.text-white,
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light button.text-white :where(span, svg),
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light button[class*="text-white"],
+html.dark[data-student-skin="halloween"] .practice-runner-writing-light button[class*="text-white"] :where(span, svg) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  stroke: currentColor !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(section, article, .bg-white),
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode div[class*="bg-white"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.bg-slate-50, .bg-sky-50),
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode [class*="bg-[#f4f7fb]"] {
+  background: #f4f7fb !important;
+  background-color: #f4f7fb !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.bg-cyan-50, .bg-blue-50) {
+  background: #ecfeff !important;
+  background-color: #ecfeff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.border-slate-200, .border-slate-300, .border-brand-100) {
+  border-color: #cbd5e1 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800, .text-slate-900) {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.text-cyan-700, .text-blue-700, .text-blue-900) {
+  color: #0e7490 !important;
+  -webkit-text-fill-color: #0e7490 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.bg-red-600, .bg-brand-600) {
+  background: #dc1717 !important;
+  background-color: #dc1717 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.bg-red-600, .bg-brand-600) :where(span, svg) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode table,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode tbody,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode tr,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode td,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode th {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.dark[data-student-skin="halloween"] body:has(.practice-runner-light-mode),
+html.dark[data-student-skin="halloween"] #root:has(.practice-runner-light-mode) {
+  background: #f4f7fb !important;
+  background-color: #f4f7fb !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode > main {
+  background: #f4f7fb !important;
+  background-color: #f4f7fb !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .aptis-classic-topbar,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode header.sticky {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #fde68a !important;
+  box-shadow: 0 1px 0 rgba(250, 204, 21, 0.28) !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .aptis-classic-topbar :where(a, p, span, button, div, svg),
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode header.sticky :where(a, p, span, button, div, svg) {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .aptis-classic-topbar a,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode header.sticky a,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .aptis-classic-topbar [class*="text-brand-600"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode header.sticky [class*="text-brand-600"] {
+  color: #dc1717 !important;
+  -webkit-text-fill-color: #dc1717 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode form,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode form > div,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .classic-question-shell,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .classic-question-shell > div {
+  background: #f4f7fb !important;
+  background-color: #f4f7fb !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .question-navigator,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode [class*="question-navigator"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode [class*="QuestionNavigator"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #fde68a !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode footer,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .fixed.bottom-0,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode [class*="fixed"][class*="bottom-0"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode *,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode *::before,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode *::after {
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(h1, h2, h3, h4, p, span, label, div, li, td, th, button):not(.text-white):not([class*="text-white"]) {
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(svg):not(button[class*="text-white"] svg):not(.text-white) {
+  color: currentColor !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode :where(.text-slate-500, .text-slate-600, .text-slate-700, .text-slate-800) {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode h1,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode h2,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode h3 {
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode [class*="text-brand-600"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode [class*="text-red-"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode a {
+  color: #dc1717 !important;
+  -webkit-text-fill-color: #dc1717 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-brand-600"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-red-"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-green-"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-cyan-"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-slate-700"] {
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-brand-600"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-red-"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-green-"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-cyan-"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-slate-700"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-brand-600"] *,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-red-"] *,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-green-"] *,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-cyan-"] *,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode button[class*="bg-slate-700"] * {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode input,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode textarea {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode header div[class*="rounded-full"],
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .aptis-classic-topbar div[class*="rounded-full"] {
+  background: #f0f3fd !important;
+  background-color: #f0f3fd !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  box-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode header div[class*="rounded-full"] :where(span, svg),
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .aptis-classic-topbar div[class*="rounded-full"] :where(span, svg) {
+  color: #64748b !important;
+  stroke: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-listening-card {
+  background: #eeeeee !important;
+  background-color: #eeeeee !important;
+  border-color: #d9e2ef !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+  box-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-listening-card :where(h1, h2, h3, h4, p, span, label, div):not(.text-white):not([class*="text-white"]) {
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-listening-row {
+  background: transparent !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-template-select,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-template-select option,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-template-select-button {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #c8c78d !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+  box-shadow: none !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-template-select-wrap > div,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-template-select-wrap [class*="absolute"] {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #94a3b8 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-template-select-wrap [class*="absolute"] button:not(:first-child) {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-template-select-wrap [class*="absolute"] button:first-child {
+  background: #2569d2 !important;
+  background-color: #2569d2 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-audio-bar,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-audio-bar :where(span, button, svg) {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-listening-radio-option {
+  background: transparent !important;
+  color: #2b0505 !important;
+  -webkit-text-fill-color: #2b0505 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-listening-radio {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 1rem !important;
+  height: 1rem !important;
+  border: 2px solid #475569 !important;
+  border-radius: 9999px !important;
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  box-shadow: inset 0 0 0 3px #ffffff !important;
+  accent-color: #dc1717 !important;
+  opacity: 1 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-listening-radio:checked {
+  border-color: #dc1717 !important;
+  background: #dc1717 !important;
+  background-color: #dc1717 !important;
+  box-shadow: inset 0 0 0 3px #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-exit {
+  background: #ffffff !important;
+  background-color: #ffffff !important;
+  border-color: #facc15 !important;
+  color: #7f1d1d !important;
+  -webkit-text-fill-color: #7f1d1d !important;
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06) !important;
+  opacity: 1 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-exit :where(svg, span),
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-exit svg {
+  color: #7f1d1d !important;
+  stroke: #7f1d1d !important;
+  -webkit-text-fill-color: #7f1d1d !important;
+  opacity: 1 !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-exit .practice-topbar-exit-label {
+  display: inline !important;
+  color: #7f1d1d !important;
+  -webkit-text-fill-color: #7f1d1d !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-exit:hover,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-exit:hover :where(svg, span),
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-exit:hover .practice-topbar-exit-label {
+  background: #dc1717 !important;
+  background-color: #dc1717 !important;
+  border-color: #dc1717 !important;
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-search,
+html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-topbar-search :where(span, svg) {
+  background: #f0f3fd !important;
+  background-color: #f0f3fd !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+  stroke: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1 !important;
+}
+

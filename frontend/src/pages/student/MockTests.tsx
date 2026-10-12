@@ -8911,7 +8911,7 @@ function ReadingGapSelect({ options, value, onChange }: { options: string[]; val
 
 function AnswerList({ items }: { items: Array<string | number> }) {
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
+    <div className="mock-answer-list" style={{ display: 'grid', gap: 8 }}>
       {items.map((item, index) => (
         <p key={`${item}-${index}`} style={{ margin: 0 }}>
           <b>{index + 1}.</b> {item || 'Chưa có đáp án mẫu'}
@@ -8923,7 +8923,7 @@ function AnswerList({ items }: { items: Array<string | number> }) {
 
 function AnswerPairs({ items }: { items: Array<{ label: string; answer: string }> }) {
   return (
-    <div style={{ display: 'grid', gap: 8 }}>
+    <div className="mock-answer-list" style={{ display: 'grid', gap: 8 }}>
       {items.map((item) => (
         <p key={item.label} style={{ margin: 0 }}>
           <b>{item.label}:</b> {item.answer || 'Chưa có đáp án mẫu'}

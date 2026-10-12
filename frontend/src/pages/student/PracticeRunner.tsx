@@ -462,8 +462,8 @@ export function PracticeRunner() {
           <header className="sticky top-0 z-20 border-b border-brand-100 bg-white">
             <div className="flex h-10 items-center justify-between px-4 sm:px-5">
               <Link to="/" className="text-base font-extrabold text-brand-600 transition hover:text-brand-700">LingoMaster</Link>
-              <button type="button" onClick={exitRunner} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-3 text-xs font-extrabold text-slate-700 shadow-soft hover:border-brand-200 hover:text-brand-700">
-                <LogOut size={15} />Thoát
+              <button type="button" onClick={exitRunner} className="practice-topbar-exit inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-3 text-xs font-extrabold text-slate-700 shadow-soft hover:border-brand-200 hover:text-brand-700">
+                <LogOut size={15} /><span className="practice-topbar-exit-label">Thoát</span>
               </button>
             </div>
           </header>
@@ -491,7 +491,7 @@ export function PracticeRunner() {
 
   if (classicTemplate) {
     return (
-      <div className="min-h-screen bg-white text-navy">
+      <div className="min-h-screen bg-white text-navy practice-runner-light-mode">
         <main className="min-h-screen">
           <AppTopbar exitLabel={exitLabel} onExit={exitRunner} />
         <form onSubmit={submit} className="pb-24">
@@ -540,7 +540,7 @@ export function PracticeRunner() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f7fb] text-navy">
+    <div className={`min-h-screen bg-[#f4f7fb] text-navy practice-runner-light-mode ${isWritingClubQuestion ? 'practice-runner-writing-light' : ''}`}>
 
       <main className="min-h-screen">
         <header className="sticky top-0 z-20 border-b border-brand-100 bg-white">
@@ -551,10 +551,10 @@ export function PracticeRunner() {
               <div className="hidden items-center gap-1.5 text-sm font-bold text-brand-600 sm:flex"><Clock size={18} />Còn 12:45</div>
             </div>
             <div className="flex items-center gap-2">
-              <button type="button" onClick={exitRunner} className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-3 text-xs font-extrabold text-slate-700 shadow-soft hover:border-brand-200 hover:text-brand-700">
-                <LogOut size={15} />Thoát
+              <button type="button" onClick={exitRunner} className="practice-topbar-exit inline-flex h-8 items-center gap-1.5 rounded-lg border border-brand-100 bg-white px-3 text-xs font-extrabold text-slate-700 shadow-soft hover:border-brand-200 hover:text-brand-700">
+                <LogOut size={15} /><span className="practice-topbar-exit-label">Thoát</span>
               </button>
-              <div className="hidden h-8 w-full max-w-[240px] items-center gap-2 rounded-full bg-[#f0f3fd] px-3 text-xs text-slate-600 sm:flex">
+              <div className="practice-topbar-search hidden h-8 w-full max-w-[240px] items-center gap-2 rounded-full bg-[#f0f3fd] px-3 text-xs text-slate-600 sm:flex">
                 <Search size={16} />
                 <span className="hidden sm:inline">Tìm tài liệu...</span>
               </div>
@@ -726,10 +726,10 @@ function AppTopbar({ exitLabel, onExit }: { exitLabel: string; onExit: () => voi
           <div className="hidden items-center gap-2 font-bold text-brand-600 sm:flex"><Clock size={22} />Còn 12:45</div>
         </div>
         <div className="flex items-center gap-2">
-          <button type="button" onClick={onExit} title={exitLabel} className="inline-flex h-9 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-extrabold text-red-700 shadow-soft shadow-red-100 transition hover:border-red-300 hover:bg-red-600 hover:text-white focus:outline-none focus:ring-4 focus:ring-red-100">
-            <LogOut size={17} />Thoát
+          <button type="button" onClick={onExit} title={exitLabel} className="practice-topbar-exit inline-flex h-9 items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 text-sm font-extrabold text-red-700 shadow-soft shadow-red-100 transition hover:border-red-300 hover:bg-red-600 hover:text-white focus:outline-none focus:ring-4 focus:ring-red-100">
+            <LogOut size={17} /><span className="practice-topbar-exit-label">Thoát</span>
           </button>
-          <div className="hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-600 sm:flex">
+          <div className="practice-topbar-search hidden h-9 w-full max-w-[280px] items-center gap-3 rounded-full bg-[#f0f3fd] px-4 text-sm text-slate-600 sm:flex">
             <Search size={19} />
             <span className="hidden sm:inline">Tìm tài liệu...</span>
           </div>
@@ -3052,7 +3052,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} featured={featured} total={displayTotal} />
         <AudioBar text={data.playsRemaining} audioUrl={data.audioUrl} />
-        <div className="rounded-2xl bg-[#eeeeee] px-4 py-5 sm:rounded-lg sm:px-5 sm:py-4">
+        <div className="practice-listening-card rounded-2xl bg-[#eeeeee] px-4 py-5 sm:rounded-lg sm:px-5 sm:py-4">
           {topic && <h2 className="mb-4 text-base font-extrabold">Topic: {topic}</h2>}
           <div className="space-y-4">
             {(data.groups ?? []).map((group: any, groupIndex: number) => (
@@ -3075,8 +3075,8 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
                           : 'border-transparent'
                       : 'border-transparent';
                     return (
-                    <label className={`flex min-h-10 w-full items-center gap-3 rounded-lg border px-3 py-1.5 text-[15px] sm:min-h-0 sm:w-fit sm:gap-2.5 sm:rounded-md sm:px-2 sm:py-0.5 sm:text-[14px] ${statusClass}`} key={option}>
-                      <input className="h-4 w-4 shrink-0" type="radio" name={`${questionId}-${groupIndex}`} checked={saved[`g${groupIndex}`] === option} onChange={() => setAnswer(`g${groupIndex}`, option)} />
+                    <label className={`practice-listening-radio-option flex min-h-10 w-full items-center gap-3 rounded-lg border px-3 py-1.5 text-[15px] sm:min-h-0 sm:w-fit sm:gap-2.5 sm:rounded-md sm:px-2 sm:py-0.5 sm:text-[14px] ${statusClass}`} key={option}>
+                      <input className="practice-listening-radio h-4 w-4 shrink-0" type="radio" name={`${questionId}-${groupIndex}`} checked={saved[`g${groupIndex}`] === option} onChange={() => setAnswer(`g${groupIndex}`, option)} />
                       <span>{option}</span>
                       {showAnswers && isCorrect && <span className="text-xs font-bold text-green-700">Đáp án</span>}
                     </label>
@@ -3120,7 +3120,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} featured={featured} total={displayTotal} />
         <AudioBar text={data.playsRemaining ?? '2 of 2 plays remaining'} audioUrl={data.audioUrl} />
-        <div className="rounded-lg bg-[#eeeeee] px-8 py-8">
+        <div className="practice-listening-card rounded-lg bg-[#eeeeee] px-8 py-8">
           {topic && <h2 className="mb-6 text-xl font-extrabold">Topic: {topic}</h2>}
           {data.instructions && <p className="mb-7 max-w-6xl text-[15px] leading-7">{data.instructions}</p>}
           <div className="space-y-3">
@@ -3131,7 +3131,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
                 ? selected === correct ? 'correct' : selected ? 'wrong' : 'answer'
                 : undefined;
               return (
-                <div className={`grid items-center gap-3 rounded-md px-3 py-2 transition ${revealAnswers && correct ? 'bg-white/60' : ''} ${data.template === 'LISTENING_PEOPLE_MATCH' ? 'grid-cols-[96px_1fr]' : 'md:grid-cols-[minmax(360px,1fr)_280px_210px]'}`} key={row}>
+                <div className={`practice-listening-row grid items-center gap-3 rounded-md px-3 py-2 transition ${revealAnswers && correct ? 'bg-white/60' : ''} ${data.template === 'LISTENING_PEOPLE_MATCH' ? 'grid-cols-[96px_1fr]' : 'md:grid-cols-[minmax(360px,1fr)_280px_210px]'}`} key={row}>
                   <span className="text-[15px] leading-6">{data.template === 'LISTENING_PEOPLE_MATCH' ? row : `${index + 1}. ${stripLeadingIndex(row)}`}</span>
                   <TemplateSelect value={selected} options={data.options ?? []} onChange={(next) => setAnswer(`r${index}`, next)} wide={data.template === 'LISTENING_PEOPLE_MATCH'} status={status} />
                   {revealAnswers && correct && (
@@ -4928,6 +4928,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
   if (!club) {
     return (
       <AptisPaper narrow compact>
+        <div className="writing-club-practice">
         <h1 className="mb-5 text-center text-3xl font-normal">Writing Practice</h1>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {clubs.map((item: any, index: number) => (
@@ -4941,6 +4942,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
             </button>
           ))}
         </div>
+        </div>
       </AptisPaper>
     );
   }
@@ -4953,6 +4955,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
 
   return (
     <AptisPaper narrow compact>
+      <div className="writing-club-practice">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <button type="button" className="rounded bg-slate-700 px-3 py-1.5 text-sm font-semibold text-white" onClick={() => patchAnswers({ selectedClubIndex: '-1', writingPartIndex: '0' })}>Quay lại danh sách</button>
         <div className="flex gap-2">
@@ -5038,13 +5041,14 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
       </div>
 
       {showAnswers && (
-        <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
+        <div className="writing-club-sample-answer mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-950">
           {partIndex === 0 && (part1.sampleAnswers ?? []).map((answer: string, index: number) => <p key={`${answer}-${index}`}><b>{index + 1}.</b> {answer}</p>)}
           {partIndex === 1 && <p>{part2.sampleAnswers?.[0]}</p>}
           {partIndex === 2 && (part3.sampleAnswers ?? []).map((answer: string, index: number) => <p className="mb-3" key={`${answer}-${index}`}><b>{index + 1}.</b> {answer}</p>)}
           {partIndex === 3 && (part4.sampleAnswers ?? []).map((answer: string, index: number) => <div className="mb-4" key={index} dangerouslySetInnerHTML={sampleHtml(answer)} />)}
         </div>
       )}
+      </div>
     </AptisPaper>
   );
 }
@@ -5114,7 +5118,7 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
   }
 
   return (
-    <div className="mb-5 rounded-xl bg-[#ef2620] px-4 py-4 text-white shadow-soft sm:flex sm:min-h-12 sm:items-center sm:justify-between sm:gap-4 sm:rounded sm:px-5 sm:py-2">
+      <div className="practice-audio-bar mb-5 rounded-xl bg-[#ef2620] px-4 py-4 text-white shadow-soft sm:flex sm:min-h-12 sm:items-center sm:justify-between sm:gap-4 sm:rounded sm:px-5 sm:py-2">
       <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
         {normalizedAudioUrl && (
           <audio
@@ -5169,7 +5173,7 @@ function TemplateSelect({ value, options, onChange, wide, compact, status }: {
         : '';
   if (!wide) {
     return (
-      <select className={`rounded-md border border-[#c8c78d] bg-white px-2 text-[13px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-200 ${statusClass} ${compact ? 'mx-1 h-8 min-w-20' : 'h-11 w-full max-w-[280px]'}`} value={value} onChange={(event) => onChange(event.target.value)}>
+      <select className={`practice-template-select rounded-md border border-[#c8c78d] bg-white px-2 text-[13px] outline-none transition focus:border-blue-400 focus:ring-4 focus:ring-blue-200 ${statusClass} ${compact ? 'mx-1 h-8 min-w-20' : 'h-11 w-full max-w-[280px]'}`} value={value} onChange={(event) => onChange(event.target.value)}>
         <option value="">-- Select an answer --</option>
         {options.map((option) => <option key={option} value={option}>{option}</option>)}
       </select>
@@ -5177,10 +5181,10 @@ function TemplateSelect({ value, options, onChange, wide, compact, status }: {
   }
 
   return (
-    <div className="relative w-full">
+    <div className="practice-template-select-wrap relative w-full">
       <button
         type="button"
-        className={`flex h-11 w-full items-center justify-between rounded-md border bg-white px-4 text-left text-[15px] outline-none transition ${statusClass} ${open ? 'border-blue-400 ring-4 ring-blue-200' : 'border-[#c8c78d]'}`}
+        className={`practice-template-select-button flex h-11 w-full items-center justify-between rounded-md border bg-white px-4 text-left text-[15px] outline-none transition ${statusClass} ${open ? 'border-blue-400 ring-4 ring-blue-200' : 'border-[#c8c78d]'}`}
         onClick={() => setOpen((next) => !next)}
       >
         <span className={value ? 'text-navy' : 'text-navy'}>{label}</span>
