@@ -796,7 +796,7 @@ export function Lessons() {
         )}
       </section>
 
-      <section className="rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft sm:p-7">
+      <section className="lessons-study-tips-section rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft sm:p-7">
         <div className="flex flex-col justify-between gap-4 lg:flex-row lg:items-end">
           <div>
             <p className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-xs font-extrabold text-brand-700">
@@ -812,7 +812,7 @@ export function Lessons() {
 
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
           {current.sections.map((section) => (
-            <article key={section.title} className="overflow-hidden rounded-[20px] border border-brand-100 bg-sky-50">
+            <article key={section.title} className="lesson-study-tip-card overflow-hidden rounded-[20px] border border-brand-100 bg-sky-50">
               <div className={`${section.color} px-5 py-4`}>
                 <h3 className="text-lg font-extrabold">{section.title}</h3>
                 <p className="mt-2 text-sm leading-6 opacity-90">{section.description}</p>
@@ -881,9 +881,9 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
         </div>
         <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-one" size={18} aria-hidden="true" />
         <Sparkles className="lessons-halloween-sparkle lessons-halloween-sparkle-two" size={15} aria-hidden="true" />
-        <p className="tips-landing-copy-black relative z-10 text-xs font-extrabold uppercase tracking-[0.28em] text-black" style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>Mẹo thi Aptis</p>
-        <h1 className="tips-landing-copy-black relative z-10 mt-3 max-w-3xl text-3xl font-extrabold text-black sm:text-4xl" style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>{data.title}</h1>
-        <p className="tips-landing-copy-black relative z-10 mt-3 max-w-3xl text-sm font-extrabold leading-6 text-black sm:text-base" style={{ color: '#000000', WebkitTextFillColor: '#000000' }}>
+        <p className="tips-landing-copy-black relative z-10 text-xs font-extrabold uppercase tracking-[0.28em] text-white" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>Mẹo thi Aptis</p>
+        <h1 className="tips-landing-copy-black relative z-10 mt-3 max-w-3xl text-3xl font-extrabold text-white sm:text-4xl" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>{data.title}</h1>
+        <p className="tips-landing-copy-black relative z-10 mt-3 max-w-3xl text-sm font-extrabold leading-6 text-white sm:text-base" style={{ color: '#ffffff', WebkitTextFillColor: '#ffffff' }}>
           Chọn một kỹ năng, sau đó học theo từng part/cụm câu để ôn đúng trọng tâm hơn.
         </p>
       </section>
@@ -1419,7 +1419,7 @@ function tipActionIcon(icon: TipAction['icon']) {
 
 function MaterialCard({ icon, title, items }: { icon: JSX.Element; title: string; items: string[] }) {
   return (
-    <div className="rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft">
+    <div className="lesson-material-card rounded-[24px] border border-brand-100 bg-white p-5 shadow-soft">
       <div className="mb-4 flex items-center gap-3">
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">{icon}</div>
         <h2 className="text-xl font-extrabold text-navy">{title}</h2>

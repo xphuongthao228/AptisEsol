@@ -17,7 +17,18 @@ import { useMemo, useState } from 'react';
 import writingBankCsv from '../../data/writing-bank.csv?raw';
 
 type SentenceType = 'opening' | 'body' | 'ending';
+type WritingBankView = 'home' | 'bank' | 'sentences' | 'favorites' | 'history';
+type SelectedSentences = Record<SentenceType, number | null>;
 type Sentence = { text: string; vi: string; level: string; tag: string };
+type WritingHistoryItem = {
+  id: string;
+  part: string;
+  topic: string;
+  text: string;
+  vi: string;
+  words: number;
+  createdAt: string;
+};
 type WritingPrompt = {
   id: string;
   part: string;
@@ -227,19 +238,25 @@ function isSentenceType(value: string): value is SentenceType {
 
 export function WritingBank() {
   const [activeTab, setActiveTab] = useState<SentenceType>('opening');
-  const [activeSideNav, setActiveSideNav] = useState('Kho mẫu câu');
+  const [activeView, setActiveView] = useState<WritingBankView>('bank');
   const [promptIndex, setPromptIndex] = useState(0);
   const [query, setQuery] = useState('');
   const [favoriteOnly, setFavoriteOnly] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
   const [copiedLabel, setCopiedLabel] = useState('');
   const [favoriteSentences, setFavoriteSentences] = useState<Set<string>>(() => new Set());
-  const [selected, setSelected] = useState<Record<SentenceType, number>>({ opening: 0, body: 0, ending: 0 });
+  const [writingHistory, setWritingHistory] = useState<WritingHistoryItem[]>([]);
+  const [selected, setSelected] = useState<SelectedSentences>({ opening: 0, body: 0, ending: 0 });
 
   const currentPrompt = writingPrompts[promptIndex];
   const allSentences = currentPrompt.sentences;
-  const finalText = useMemo(() => sentenceOrder.map((type) => allSentences[type][selected[type]]?.text).filter(Boolean).join(' '), [allSentences, selected]);
-  const finalVi = useMemo(() => sentenceOrder.map((type) => allSentences[type][selected[type]]?.vi).filter(Boolean).join(' '), [allSentences, selected]);
+  const finalText = useMemo(() => sentenceOrder.map((type) => {
+    const selectedIndex = selected[type];
+    return selectedIndex === null ? '' : allSentences[type][selectedIndex]?.text;
+  }).filter(Boolean).join(' '), [allSentences, selected]);
+  const finalVi = useMemo(() => sentenceOrder.map((type) => {
+    const selectedIndex = selected[type];
+    return selectedIndex === null ? '' : allSentences[type][selectedIndex]?.vi;
+  }).filter(Boolean).join(' '), [allSentences, selected]);
   const finalWordCount = useMemo(() => wordCount(finalText), [finalText]);
   const filteredPrompts = useMemo(() => {
     const keyword = query.trim().toLowerCase();
@@ -271,6 +288,24 @@ export function WritingBank() {
     window.setTimeout(() => setCopiedLabel(''), 1400);
   }
 
+  function createDraft() {
+    if (!finalText.trim()) return;
+    const now = new Date();
+    setWritingHistory((current) => [
+      {
+        id: `${now.getTime()}-${current.length}`,
+        part: currentPrompt.part,
+        topic: currentPrompt.topic,
+        text: finalText,
+        vi: finalVi,
+        words: finalWordCount,
+        createdAt: now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      },
+      ...current
+    ]);
+    setActiveView('history');
+  }
+
   function toggleFavorite(value: string) {
     setFavoriteSentences((current) => {
       const next = new Set(current);
@@ -281,26 +316,26 @@ export function WritingBank() {
   }
 
   return (
-    <div className="-mx-4 -my-6 min-h-[calc(100vh-4rem)] bg-[#f6f8fc] text-[#101a3d] sm:-mx-6 sm:-my-8 lg:-mx-10">
-      <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-[300px_minmax(0,1fr)]">
-        <aside className="border-r border-slate-200 bg-white px-5 py-5">
+    <div className="writing-bank-page -mx-4 -my-6 min-h-[calc(100vh-4rem)] bg-[#f6f8fc] text-[#101a3d] sm:-mx-6 sm:-my-8 lg:-mx-10">
+      <div className="grid min-h-[calc(100vh-4rem)] w-full lg:grid-cols-[280px_minmax(0,1fr)] 2xl:grid-cols-[300px_minmax(0,1fr)]">
+        <aside className="border-r border-slate-200 bg-white px-6 py-6">
           <div className="flex items-center gap-3">
             <span className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-pink-500 to-rose-400 text-white shadow-soft">
               <PenLine size={27} />
             </span>
             <div>
-              <h1 className="text-2xl font-black leading-7">APTIS</h1>
-              <p className="text-xl font-bold">Writing Bank</p>
+              <h1 className="text-2xl font-black leading-7">Aptis</h1>
+              <p className="text-xl font-bold">Lingo</p>
             </div>
           </div>
 
           <nav className="mt-8 space-y-2 text-sm font-extrabold">
             {[
-              { icon: Home, label: 'Trang chủ' },
-              { icon: Library, label: 'Kho mẫu câu' },
-              { icon: BookOpen, label: 'Mẫu câu' },
-              { icon: Star, label: 'Yêu thích' },
-              { icon: Clock3, label: 'Lịch sử học' }
+              { icon: Home, label: 'Trang chủ', view: 'home' as const },
+              { icon: Library, label: 'Kho mẫu câu', view: 'bank' as const },
+              { icon: BookOpen, label: 'Mẫu câu', view: 'sentences' as const },
+              { icon: Star, label: 'Yêu thích', view: 'favorites' as const },
+              { icon: Clock3, label: 'Lịch sử học', view: 'history' as const }
             ].map((item) => {
               const Icon = item.icon;
               return (
@@ -308,12 +343,11 @@ export function WritingBank() {
                   key={item.label}
                   type="button"
                   onClick={() => {
-                    setActiveSideNav(item.label);
-                    if (item.label === 'Yêu thích') setFavoriteOnly((value) => !value);
-                    if (item.label === 'Lịch sử học') setShowHistory((value) => !value);
+                    setActiveView(item.view);
+                    setFavoriteOnly(item.view === 'favorites');
                   }}
                   className={`flex h-12 w-full items-center gap-3 rounded-xl px-4 text-left transition ${
-                    activeSideNav === item.label ? 'bg-pink-50 text-rose-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
+                    activeView === item.view ? 'bg-pink-50 text-rose-600' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
                   }`}
                 >
                   <Icon size={19} />
@@ -350,21 +384,57 @@ export function WritingBank() {
           </div>
         </aside>
 
-        <main className="min-w-0 p-5">
+        <main className="min-w-0 p-5 2xl:p-6">
           <div className="mb-5 flex flex-col gap-3 xl:flex-row">
-            <label className="flex h-12 flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm">
+            <label className="writing-bank-search flex h-12 flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 shadow-sm">
               <Search size={21} className="text-slate-500" />
-              <input className="w-full bg-transparent text-sm font-semibold outline-none placeholder:text-slate-400" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đề, chủ đề, mẫu câu..." />
+              <input className="writing-bank-search-input w-full text-sm font-semibold outline-none placeholder:text-slate-400" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Tìm đề, chủ đề, mẫu câu..." />
             </label>
-            <button type="button" onClick={() => setFavoriteOnly((value) => !value)} className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-extrabold shadow-sm ${favoriteOnly ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white'}`}>
+            <button type="button" onClick={() => { setActiveView('favorites'); setFavoriteOnly(true); }} className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-extrabold shadow-sm ${activeView === 'favorites' ? 'border-amber-200 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white'}`}>
               <Star size={18} className={favoriteOnly ? 'fill-amber-400 text-amber-400' : 'text-amber-400'} /> Yêu thích
             </button>
-            <button type="button" onClick={() => setShowHistory((value) => !value)} className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-extrabold shadow-sm ${showHistory ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white'}`}>
+            <button type="button" onClick={() => { setActiveView('history'); setFavoriteOnly(false); }} className={`inline-flex h-12 items-center justify-center gap-2 rounded-xl border px-5 text-sm font-extrabold shadow-sm ${activeView === 'history' ? 'border-blue-200 bg-blue-50 text-blue-700' : 'border-slate-200 bg-white'}`}>
               <Clock3 size={18} /> Lịch sử
             </button>
           </div>
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+          {activeView === 'history' ? (
+            <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-black text-blue-600">Lịch sử học</p>
+                  <h2 className="mt-1 text-2xl font-black">Bài đã tạo</h2>
+                </div>
+                <span className="rounded-xl bg-blue-50 px-3 py-2 text-xs font-black text-blue-700">{writingHistory.length} bài</span>
+              </div>
+              {writingHistory.length ? (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {writingHistory.map((item) => (
+                    <article key={item.id} className="rounded-xl border border-blue-100 bg-blue-50/70 p-4">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                        <span className="rounded-lg bg-white px-2 py-1 text-xs font-black text-blue-700">{item.part} · {item.topic} · {item.words} từ</span>
+                        <span className="text-xs font-bold text-slate-500">{item.createdAt}</span>
+                      </div>
+                      <p className="text-sm font-semibold leading-6 text-[#101a3d]">{item.text}</p>
+                      <p className="mt-3 text-sm italic leading-6 text-slate-500">{item.vi}</p>
+                      <button type="button" onClick={() => copyText(item.text, item.id)} className="mt-4 inline-flex h-9 items-center gap-2 rounded-lg bg-white px-3 text-xs font-black text-blue-700 shadow-sm">
+                        <Copy size={15} /> {copiedLabel === item.id ? 'Đã chép' : 'Chép bài'}
+                      </button>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <div className="writing-bank-history-empty rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-12 text-center">
+                  <p className="text-lg font-black text-slate-900">Chưa có bài nào trong lịch sử</p>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">Bấm “Tạo” ở khung bài mẫu đang ghép để lưu bài vào đây.</p>
+                  <button type="button" onClick={() => setActiveView('bank')} className="mt-5 inline-flex h-10 items-center rounded-xl bg-blue-600 px-4 text-sm font-black text-white">
+                    Quay lại tạo bài
+                  </button>
+                </div>
+              )}
+            </section>
+          ) : (
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px] 2xl:grid-cols-[minmax(0,1fr)_440px]">
             <section className="min-w-0 space-y-5">
               <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                 <div className="mb-4 flex items-center justify-between gap-3">
@@ -406,7 +476,6 @@ export function WritingBank() {
                     ))}
                   </div>
                 </div>
-                {showHistory && <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-700">Lịch sử: bạn đang ghép {finalWordCount} từ cho {currentPrompt.part}.</div>}
                 <div className="mt-5 grid gap-3 md:grid-cols-3">
                   {sentenceTabs.map((tab) => (
                     <button key={tab.type} type="button" onClick={() => setActiveTab(tab.type)} className={`flex min-h-20 items-center justify-between gap-3 rounded-xl border p-4 text-left transition ${activeTab === tab.type ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
@@ -429,6 +498,18 @@ export function WritingBank() {
                   </div>
                 </div>
                 <div className="mt-5 space-y-3">
+                  <button type="button" onClick={() => setSelected((current) => ({ ...current, [activeTab]: null }))} className={`flex w-full items-start gap-3 rounded-xl border p-4 text-left transition ${selected[activeTab] === null ? 'border-rose-200 bg-rose-50' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+                    <span className={`mt-1 h-5 w-5 shrink-0 rounded-full border ${selected[activeTab] === null ? 'border-rose-500 bg-rose-500' : 'border-slate-300'}`} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-sm font-black leading-6">Để trống</span>
+                      <span className="mt-1 block text-xs font-semibold italic leading-5 text-slate-500">Không thêm câu cho phần {sentenceTabs.find((tab) => tab.type === activeTab)?.label.toLowerCase()}.</span>
+                      <span className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-black text-slate-700">{currentPrompt.part}</span>
+                        <span className="rounded-lg bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">{sentenceTabs.find((tab) => tab.type === activeTab)?.label}</span>
+                        <span className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-bold text-slate-600">Tùy chọn</span>
+                      </span>
+                    </span>
+                  </button>
                   {filteredSentences.map(({ sentence, index }) => {
                     const active = selected[activeTab] === index;
                     const favorite = favoriteSentences.has(sentence.text);
@@ -466,13 +547,19 @@ export function WritingBank() {
                     <p className="text-xs font-semibold text-slate-500">{finalWordCount} từ</p>
                   </div>
                 </div>
-                <button type="button" onClick={() => copyText(finalText, 'final')} className="inline-flex h-10 items-center gap-2 rounded-xl bg-rose-500 px-4 text-sm font-black text-white">
-                  <Copy size={16} /> {copiedLabel === 'final' ? 'Đã chép' : 'Chép'}
-                </button>
+                <div className="flex shrink-0 gap-2">
+                  <button type="button" onClick={createDraft} className="inline-flex h-10 items-center gap-2 rounded-xl bg-blue-600 px-4 text-sm font-black text-white">
+                    <Sparkles size={16} /> Tạo
+                  </button>
+                  <button type="button" onClick={() => copyText(finalText, 'final')} className="inline-flex h-10 items-center gap-2 rounded-xl bg-rose-500 px-4 text-sm font-black text-white">
+                    <Copy size={16} /> {copiedLabel === 'final' ? 'Đã chép' : 'Chép'}
+                  </button>
+                </div>
               </div>
               <div className="space-y-3">
                 {sentenceOrder.map((type, index) => {
-                  const sentence = allSentences[type][selected[type]];
+                  const selectedIndex = selected[type];
+                  const sentence = selectedIndex === null ? null : allSentences[type][selectedIndex];
                   const tab = sentenceTabs.find((item) => item.type === type);
                   const colors = ['bg-pink-100 text-rose-600', 'bg-blue-100 text-blue-600', 'bg-emerald-100 text-emerald-700'];
                   return (
@@ -482,8 +569,8 @@ export function WritingBank() {
                         <div>
                           <p className="font-black text-slate-900">{tab?.label}</p>
                           <p className="mt-1 text-xs font-black text-rose-500">{currentPrompt.part}</p>
-                          <p className="mt-2 text-sm font-semibold leading-6">{sentence?.text}</p>
-                          <p className="mt-1 text-xs font-semibold italic leading-5 text-slate-500">{sentence?.vi}</p>
+                          <p className="mt-2 text-sm font-semibold leading-6">{sentence?.text ?? 'Để trống'}</p>
+                          {sentence?.vi && <p className="mt-1 text-xs font-semibold italic leading-5 text-slate-500">{sentence.vi}</p>}
                         </div>
                       </div>
                     </div>
@@ -500,6 +587,7 @@ export function WritingBank() {
               </div>
             </aside>
           </div>
+          )}
         </main>
       </div>
     </div>

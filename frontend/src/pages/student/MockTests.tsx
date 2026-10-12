@@ -4810,7 +4810,7 @@ export function MockTests() {
           />
         </MockSelectLayout>
       ) : (
-        <div className="mock-assessment-mode min-h-screen bg-white">
+        <div className="mock-assessment-mode mock-assessment-native min-h-screen bg-white">
           {(screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong') && (
             <ReadingTopbar
               title={screen === 'readingLong' ? 'Part 4 - Long Reading' : screen === 'readingOpinion' ? 'Part 3 - Opinion Matching' : screen === 'readingCohesion' ? `Part ${readingCohesionIndex + 2} - Text Cohesion` : 'Part 1 - Gap Fill'}
@@ -5688,6 +5688,7 @@ function BookmarkButton({
 }) {
   return (
     <button
+      className="mock-bookmark-button"
       type="button"
       onClick={onToggle}
       aria-pressed={active}
@@ -5954,7 +5955,7 @@ function FullStart({ mockCard, onStart }: { mockCard?: MockCard | null; onStart:
   ];
 
   return (
-    <main className="min-h-[calc(100vh-68px)] bg-white px-6 py-12 sm:px-[68px]">
+    <main className="mock-full-start-screen min-h-[calc(100vh-68px)] bg-white px-6 py-12 sm:px-[68px]">
       <section className="max-w-[760px]">
         <p className="text-lg font-medium text-slate-600">Aptis General Practice Test</p>
         <h2 className="mt-3 text-[28px] font-extrabold leading-9 text-navy">{mockCard?.title ?? 'Full Aptis Mock Test'}</h2>
@@ -5973,10 +5974,10 @@ function FullStart({ mockCard, onStart }: { mockCard?: MockCard | null; onStart:
           </div>
         </div>
 
-        <div className="mt-8 max-w-[640px] rounded-2xl border border-brand-100 bg-sky-50 p-4">
+        <div className="mock-full-section-list mt-8 max-w-[640px] rounded-2xl border border-brand-100 bg-sky-50 p-4">
           {sections.map((section, index) => (
             <div key={section.name} className={`flex items-center gap-4 py-3 ${index === sections.length - 1 ? '' : 'border-b border-brand-100'}`}>
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-[#2b075c] text-sm font-extrabold text-white">{index + 1}</span>
+              <span className="mock-full-section-number grid h-9 w-9 place-items-center rounded-full bg-[#2b075c] text-sm font-extrabold text-white">{index + 1}</span>
               <div>
                 <p className="font-extrabold text-navy">{section.name}</p>
                 <p className="mt-1 text-sm font-medium text-slate-600">{section.detail}</p>
@@ -6118,9 +6119,9 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
 
               <div style={{ display: 'grid', gridTemplateColumns: '104px 145px 28px 180px', alignItems: 'center', gap: 10, color: '#a1a8b3', fontSize: 15, marginBottom: 18 }}>
                 <span>Example</span>
-                <span style={grammarExampleBoxStyle}>big</span>
+                <span className="mock-grammar-example-box" style={grammarExampleBoxStyle}>big</span>
                 <span style={{ textAlign: 'center' }}>+</span>
-                <span style={grammarExampleBoxStyle}>house</span>
+                <span className="mock-grammar-example-box" style={grammarExampleBoxStyle}>house</span>
               </div>
 
               <div style={{ height: 1, backgroundColor: '#e2e8f0', margin: '0 0 20px' }} />
@@ -6128,7 +6129,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
               <div style={{ display: 'grid', gap: 16 }}>
                 {question.collocationRows.map((row) => (
                   <div key={row.word} style={{ display: 'grid', gridTemplateColumns: '180px 28px 252px', alignItems: 'center', gap: 10 }}>
-                    <div style={grammarWordBoxStyle}>{row.word}</div>
+                    <div className="mock-grammar-word-box" style={grammarWordBoxStyle}>{row.word}</div>
                     <span style={{ color: '#64748b', textAlign: 'center', fontSize: 18 }}>+</span>
                     <select
                       value={matchingSelections[row.word] ?? ''}
@@ -6197,7 +6198,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
               <div style={{ display: 'grid', gap: 14 }}>
                 {question.definitionRows.map((row) => (
                   <div key={row.definition} style={{ display: 'grid', gridTemplateColumns: question.definitionMode === 'matching' ? '1fr 252px' : '1fr 48px 252px', alignItems: 'center', gap: 14 }}>
-                    <div style={grammarDefinitionBoxStyle}>{row.definition}</div>
+                    <div className="mock-grammar-word-box" style={grammarDefinitionBoxStyle}>{row.definition}</div>
                     {question.definitionMode !== 'matching' && (
                       <span style={{ color: '#64748b', fontSize: 18, textAlign: 'center' }}>is to</span>
                     )}
@@ -6226,9 +6227,9 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
 
               <div style={{ display: 'grid', gridTemplateColumns: '104px 145px 28px 180px', alignItems: 'center', gap: 10, color: '#a1a8b3', fontSize: 15, marginBottom: 18 }}>
                 <span>Example</span>
-                <span style={grammarExampleBoxStyle}>big</span>
+                <span className="mock-grammar-example-box" style={grammarExampleBoxStyle}>big</span>
                 <span style={{ textAlign: 'center' }}>=</span>
-                <span style={grammarExampleBoxStyle}>large</span>
+                <span className="mock-grammar-example-box" style={grammarExampleBoxStyle}>large</span>
               </div>
 
               <div style={{ height: 1, backgroundColor: '#e2e8f0', margin: '0 0 20px' }} />
@@ -6236,7 +6237,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
               <div style={{ display: 'grid', gap: 16 }}>
                 {question.matchRows.map((row) => (
                   <div key={row.word} style={{ display: 'grid', gridTemplateColumns: '180px 28px 252px', alignItems: 'center', gap: 10 }}>
-                    <div style={grammarWordBoxStyle}>{row.word}</div>
+                    <div className="mock-grammar-word-box" style={grammarWordBoxStyle}>{row.word}</div>
                     <span style={{ color: '#64748b', textAlign: 'center', fontSize: 18 }}>=</span>
                     <select
                       value={matchingSelections[row.word] ?? ''}
@@ -6254,10 +6255,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
             </>
           ) : (
             <>
-              <span style={{ display: 'inline-flex', alignItems: 'center', height: 24, borderRadius: 999, backgroundColor: '#f1eaff', color: '#2b075c', padding: '0 10px', fontSize: 15 }}>
-                Multiple Choice
-              </span>
-              <h3 style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '12px 0 28px' }}>{question.prompt}</h3>
+              <h3 style={{ color: '#020817', fontSize: 17, lineHeight: '26px', fontWeight: 900, margin: '0 0 28px' }}>{question.prompt}</h3>
 
               <div style={{ overflow: 'hidden', border: '1px solid #dfe3ea', borderRadius: 12 }}>
                 {question.options.map((option, optionIndex) => {
@@ -6595,7 +6593,7 @@ function WritingPart({
                 backgroundColor: '#ffffff'
               }}
             />
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e5e7eb', backgroundColor: '#f8fafc', padding: '12px 16px' }}>
+            <div className="mock-writing-word-footer" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid #e5e7eb', backgroundColor: '#f8fafc', padding: '12px 16px' }}>
               <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>{part.helper}</p>
               <p style={{ color: '#020817', fontSize: 14, fontWeight: 800, margin: 0 }}>{wordCount}{partIndex === 1 ? ' / 30' : ''} words</p>
             </div>
@@ -6614,15 +6612,15 @@ function WritingPart({
 
 function WritingResult({ onExit, onRetry }: { onExit: () => void; onRetry: () => void }) {
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+    <main className="mock-writing-result-screen" style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
       <section style={{ width: 'min(760px, 100%)', margin: '0 auto', textAlign: 'center' }}>
-        <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '44px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+        <article className="mock-writing-result-card" style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '44px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
           <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: 0 }}>Đang chấm bài Writing</h1>
           <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '14px auto 0', maxWidth: 520 }}>
             Bài viết của bạn đã được lưu. Hệ thống sẽ hiển thị kết quả Writing sau khi hoàn tất chấm bài.
           </p>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32 }}>
-            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+            <button className="mock-writing-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
               Thoát
             </button>
@@ -6640,14 +6638,14 @@ function WritingResult({ onExit, onRetry }: { onExit: () => void; onRetry: () =>
 function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, result }: { error: string; loading: boolean; onExit: () => void; onRetry: () => void; result: AiWritingScore | null }) {
   if (error) {
     return (
-      <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+      <main className="mock-writing-result-screen" style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
         <section style={{ width: 'min(760px, 100%)', margin: '0 auto' }}>
-          <article style={{ borderRadius: 18, border: '1px solid #fecaca', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)', textAlign: 'center' }}>
+          <article className="mock-writing-result-card" style={{ borderRadius: 18, border: '1px solid #fecaca', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)', textAlign: 'center' }}>
             <AlertCircle size={74} color="#dc2626" style={{ margin: '0 auto' }} />
             <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Chưa chấm được Writing</h1>
             <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '12px auto 0', maxWidth: 600 }}>{error}</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
-              <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+              <button className="mock-writing-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
                 <ArrowLeft size={18} />
                 Thoát
               </button>
@@ -6669,9 +6667,9 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
     }));
     const corrections = normalizeWritingCorrections(result.corrections);
     return (
-      <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+      <main className="mock-writing-result-screen" style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
         <section style={{ width: 'min(1080px, 100%)', margin: '0 auto' }}>
-          <article style={{ borderRadius: 18, border: '1px solid #bbf7d0', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+          <article className="mock-writing-result-card" style={{ borderRadius: 18, border: '1px solid #bbf7d0', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
             <div style={{ textAlign: 'center' }}>
               <CheckCircle2 size={74} color="#16a34a" style={{ margin: '0 auto' }} />
               <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Kết quả Writing AI</h1>
@@ -6772,7 +6770,7 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
-              <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+              <button className="mock-writing-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
                 <ArrowLeft size={18} />
                 Thoát
               </button>
@@ -6794,9 +6792,9 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
   ];
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
+    <main className="mock-writing-result-screen" style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>
       <section style={{ width: 'min(860px, 100%)', margin: '0 auto' }}>
-        <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)', textAlign: 'center' }}>
+        <article className="mock-writing-result-card" style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '42px 36px', boxShadow: '0 10px 28px rgba(15,23,42,0.06)', textAlign: 'center' }}>
           <div style={{ width: 82, height: 82, borderRadius: '50%', border: '7px solid #ede9fe', borderTopColor: '#2b075c', margin: '0 auto', animation: 'spin 1s linear infinite' }} />
           <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: '24px 0 0' }}>Đang chấm bài Writing</h1>
           <p style={{ color: '#64748b', fontSize: 17, lineHeight: '28px', margin: '12px auto 0', maxWidth: 560 }}>
@@ -6808,7 +6806,7 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 30 }}>
             {steps.map((item, index) => (
-              <div key={item.title} style={{ borderRadius: 14, backgroundColor: index === 1 ? '#f3efff' : '#f8fafc', border: '1px solid #e2e8f0', padding: '18px 14px' }}>
+              <div className="mock-writing-result-step" key={item.title} style={{ borderRadius: 14, backgroundColor: index === 1 ? '#f3efff' : '#f8fafc', border: '1px solid #e2e8f0', padding: '18px 14px' }}>
                 <p style={{ color: index === 1 ? '#2b075c' : '#111827', fontSize: 16, fontWeight: 900, margin: 0 }}>{item.title}</p>
                 <p style={{ color: '#64748b', fontSize: 14, margin: '8px 0 0' }}>{item.detail}</p>
               </div>
@@ -6816,7 +6814,7 @@ function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, resu
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 34 }}>
-            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+            <button className="mock-writing-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
               Thoát
             </button>
@@ -7529,9 +7527,9 @@ function ReadingStart({ data, mockCard, loading, onStart }: { data: ReadingTestD
   const questionCount = Number(hasGaps) + data.cohesion.length + Number(hasOpinion || hasLong);
   const canStart = !loading && questionCount > 0;
   return (
-    <main className="min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
+    <main className="mock-reading-start-screen min-h-[calc(100vh-74px)] bg-white px-6 py-14 sm:px-[74px]">
       <section className="max-w-[620px]">
-        <div className="inline-flex items-center gap-2 rounded-full bg-[#f0eef7] px-4 py-2 text-sm font-extrabold text-[#2b075c]">
+        <div className="mock-reading-start-badge inline-flex items-center gap-2 rounded-full bg-[#f0eef7] px-4 py-2 text-sm font-extrabold text-[#2b075c]">
           <BookOpen size={18} />
           Reading - Gap Fill
         </div>
@@ -8017,9 +8015,9 @@ function ReadingResult({ summary, onExit, onReview, onRetry }: { summary: SkillS
   const aptisCorrect = correctToAptis25(summary.correct, summary.total);
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
+    <main className="mock-reading-result-screen" style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
       <section style={{ width: 'min(864px, 100%)', margin: '0 auto' }}>
-        <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '42px 36px 36px', textAlign: 'center', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
+        <article className="mock-reading-result-card" style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '42px 36px 36px', textAlign: 'center', boxShadow: '0 10px 28px rgba(15,23,42,0.06)' }}>
           <h1 style={{ color: '#111827', fontSize: 30, fontWeight: 900, margin: 0 }}>Kết quả Reading</h1>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 26, maxWidth: 430, margin: '34px auto 0' }}>
@@ -8032,7 +8030,7 @@ function ReadingResult({ summary, onExit, onReview, onRetry }: { summary: SkillS
           </p>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 36 }}>
-            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+            <button className="mock-result-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
               Thoát
             </button>
@@ -8047,7 +8045,7 @@ function ReadingResult({ summary, onExit, onReview, onRetry }: { summary: SkillS
           </div>
         </article>
 
-        <article style={{ marginTop: 28, borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '28px', boxShadow: '0 10px 28px rgba(15,23,42,0.04)' }}>
+        <article className="mock-reading-result-card" style={{ marginTop: 28, borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '28px', boxShadow: '0 10px 28px rgba(15,23,42,0.04)' }}>
           <h2 style={{ color: '#111827', fontSize: 23, fontWeight: 900, margin: '0 0 18px' }}>Chi tiết bài làm</h2>
           <div>
             {summary.rows.map((row, index) => (
@@ -8082,7 +8080,7 @@ function ListeningResult({ summary, onExit, onReview, onRetry }: { summary: Skil
           </div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 12, marginTop: 36 }}>
-            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+            <button className="mock-result-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
               Thoát
             </button>
@@ -8186,7 +8184,7 @@ function ListeningReview({
   ];
 
   return (
-    <main style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
+    <main className="mock-reading-review-screen" style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '32px 24px 72px' }}>
       <section style={{ width: 'min(980px, 100%)', margin: '0 auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 22 }}>
           <div>
@@ -8251,7 +8249,7 @@ function GrammarResult({ summary, onExit, onRetry }: { summary: SkillScoreSummar
             ))}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 32 }}>
-            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
+            <button className="mock-result-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #e12816', backgroundColor: '#ffffff', padding: '0 18px', color: '#e12816', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
               Thoát
             </button>
@@ -8448,7 +8446,7 @@ function FullResult({
             )}
 
           <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <button type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
+            <button className="mock-result-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
               Thoát
             </button>
@@ -8774,7 +8772,7 @@ function formatGapPrompt(question: ReadingGapQuestion) {
 
 function ReadingAnswerSection({ children, title }: { children: ReactNode; title: string }) {
   return (
-    <article style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 24, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
+    <article className="mock-reading-answer-section" style={{ borderRadius: 18, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: 24, boxShadow: '0 8px 24px rgba(15,23,42,0.04)' }}>
       <h2 style={{ color: '#111827', fontSize: 21, fontWeight: 900, margin: '0 0 16px' }}>{title}</h2>
       <div style={{ display: 'grid', gap: 10 }}>{children}</div>
     </article>
@@ -8797,7 +8795,7 @@ function ReadingAnswerRow({
   wide?: boolean;
 }) {
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: wide ? '110px minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(220px, 1fr) minmax(180px, 0.75fr) minmax(180px, 0.75fr)', gap: 14, alignItems: 'start', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
+    <div className="mock-reading-answer-row" style={{ display: 'grid', gridTemplateColumns: wide ? '110px minmax(0, 1fr) minmax(0, 1fr)' : 'minmax(220px, 1fr) minmax(180px, 0.75fr) minmax(180px, 0.75fr)', gap: 14, alignItems: 'start', borderRadius: 12, backgroundColor: '#f8fafc', padding: '14px 16px' }}>
       <p style={{ color: '#111827', fontSize: 15, lineHeight: '22px', fontWeight: 800, margin: 0 }}>{index + 1}. {question}</p>
       <p style={{ color: '#64748b', fontSize: 14, lineHeight: '22px', margin: 0 }}>
         Bạn chọn: <span style={{ color: correct ? '#047857' : '#d81e0c', fontWeight: 900 }}>{user}</span>
@@ -9137,6 +9135,7 @@ function SpeakingPrompt({ part }: { part: 1 | 2 | 3 | 4 }) {
 
   return (
     <main
+      className="mock-speaking-main"
       style={{
         minHeight: 'calc(100vh - 74px)',
         backgroundColor: '#f1f1f1',
@@ -9144,7 +9143,7 @@ function SpeakingPrompt({ part }: { part: 1 | 2 | 3 | 4 }) {
       }}
     >
       <section
-        className="mock-speaking-grid"
+        className="mock-speaking-grid mock-speaking-card"
         style={{
           width: 'min(960px, 100%)',
           margin: '0 auto',
@@ -9577,6 +9576,7 @@ function Part4Question({ topic, phase, seconds, showAnswer, isReading, microphon
           <h2 style={{ color: '#020817', fontSize: 18, fontWeight: 800, margin: '10px 0 0' }}>Part 4 of 4</h2>
 
           <div
+            className="mock-speaking-topic-box"
             style={{
               marginTop: 32,
               width: 'min(1016px, 100%)',
@@ -9886,7 +9886,7 @@ const speakingSideActionsStyle = {
 
 function AutoScoredRecordingNote() {
   return (
-    <div style={{ marginTop: 24, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: '14px 16px', color: '#64748b', fontSize: 15, lineHeight: '22px', fontWeight: 700 }}>
+    <div className="mock-speaking-note" style={{ marginTop: 24, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#f8fafc', padding: '14px 16px', color: '#64748b', fontSize: 15, lineHeight: '22px', fontWeight: 700 }}>
       Bài nói sẽ được ghi âm và tự chấm sau khi bạn hoàn thành phần Speaking. Hệ thống sẽ đọc câu hỏi trước tiếng tít; sau tiếng tít, hãy trả lời đầy đủ bằng câu hoàn chỉnh, lý do và ví dụ.
     </div>
   );
@@ -10066,9 +10066,9 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
   const speakingCorrections = normalizeSpeakingCorrections(result?.corrections);
   const sampleBlocks = result?.sampleAnswer?.trim() ? formatSpeakingSampleAnswer(result.sampleAnswer) : [];
   return (
-    <main className="min-h-[calc(100vh-74px)] bg-[#f1f1f1] px-6 py-20">
-      <section className="mx-auto max-w-[840px] rounded-2xl bg-white px-8 py-10 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
-        <div className="mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#f0eef5] text-[#2b075c]">
+    <main className="mock-speaking-result-screen min-h-[calc(100vh-74px)] bg-[#f1f1f1] px-6 py-20">
+      <section className="mock-speaking-result-card mx-auto max-w-[840px] rounded-2xl bg-white px-8 py-10 shadow-[0_12px_28px_rgba(15,23,42,0.08)]">
+        <div className="mock-speaking-result-icon mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#f0eef5] text-[#2b075c]">
           <Mic size={30} />
         </div>
         <div className="text-center">
