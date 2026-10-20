@@ -18,6 +18,7 @@ const AdminNotifications = lazy(() => import('../pages/admin/AdminNotifications'
 const AdminPredictions = lazy(() => import('../pages/admin/AdminPredictions').then((module) => ({ default: module.AdminPredictions })));
 const AdminRevenue = lazy(() => import('../pages/admin/AdminRevenue').then((module) => ({ default: module.AdminRevenue })));
 const AdminUsers = lazy(() => import('../pages/admin/AdminUsers').then((module) => ({ default: module.AdminUsers })));
+const AdminWritingBank = lazy(() => import('../pages/admin/AdminWritingBank').then((module) => ({ default: module.AdminWritingBank })));
 const Dashboard = lazy(() => import('../pages/student/Dashboard').then((module) => ({ default: module.Dashboard })));
 const AiPracticeDashboard = lazy(() => import('../pages/student/AiPracticeDashboard').then((module) => ({ default: module.AiPracticeDashboard })));
 const Contact = lazy(() => import('../pages/student/Contact').then((module) => ({ default: module.Contact })));
@@ -31,6 +32,7 @@ const Predictions = lazy(() => import('../pages/student/Predictions').then((modu
 const Renewal = lazy(() => import('../pages/student/Renewal').then((module) => ({ default: module.Renewal })));
 const Settings = lazy(() => import('../pages/student/Settings').then((module) => ({ default: module.Settings })));
 const WritingBank = lazy(() => import('../pages/student/WritingBank').then((module) => ({ default: module.WritingBank })));
+const SpeakingBank = lazy(() => import('../pages/student/SpeakingBank').then((module) => ({ default: module.SpeakingBank })));
 const SkillPartQuestions = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.SkillPartQuestions })));
 const SkillQuestionParts = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.SkillQuestionParts })));
 const TestPartMenu = lazy(() => import('../pages/student/Tests').then((module) => ({ default: module.TestPartMenu })));
@@ -57,7 +59,8 @@ export const router = createBrowserRouter([
     { path: 'lessons/:skillType/:tipSlug', element: <Lessons /> },
     { path: 'tests', element: <Navigate to="/app/tests/parts" replace /> },
     { path: 'mock-tests', element: <MockTests /> },
-    { path: 'writing-bank', element: <WritingBank /> },
+    { path: 'writing-bank', element: <SubscriptionGate requirePro><WritingBank /></SubscriptionGate> },
+    { path: 'speaking-bank', element: <SubscriptionGate requirePro><SpeakingBank /></SubscriptionGate> },
     { path: 'combine-speaking', element: <CombineSpeaking /> },
     { path: 'history', element: <ProtectedRoute role="STUDENT" />, children: [
       { index: true, element: <ExamHistory /> }
@@ -137,6 +140,8 @@ export const router = createBrowserRouter([
       { path: 'predictions', element: <AdminPredictions /> },
       { path: 'revenue', element: <AdminRevenue /> },
       { path: 'ai-usage', element: <AdminAiUsage /> },
+      { path: 'writing-bank', element: <AdminWritingBank /> },
+      { path: 'speaking-bank', element: <AdminWritingBank key="speaking" skill="speaking" /> },
       { path: 'notifications', element: <AdminNotifications /> },
       { path: 'appearance', element: <AdminAppearance /> },
       { path: 'media', element: <AdminMedia /> }

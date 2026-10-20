@@ -2,7 +2,7 @@
 import { Fragment } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, Languages, LayoutDashboard, ListChecks, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, Languages, LayoutDashboard, ListChecks, Loader2, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
@@ -18,6 +18,19 @@ const examLinks = [
   { to: '/app/renewal', label: 'Gia h\u1ea1n', icon: CalendarPlus, active: false },
   { to: '/app/settings', label: 'C\u00e0i \u0111\u1eb7t', icon: Settings, active: false }
 ];
+
+type SpeakingAiScoreResult = {
+  overallScore: number;
+  cefrLevel: string;
+  summary?: string;
+  criteria?: Array<{ name: string; score: number; feedback: string }>;
+  parts?: Array<{ title: string; score: number; feedback: string }>;
+  pronunciationTips?: string[];
+  fluencyTips?: string[];
+  improvedAnswer?: string;
+  sampleAnswer?: string;
+  audioDiagnostics?: Array<{ title: string; status: string; audioReceived: boolean; audioSizeBytes: number; transcript?: string }>;
+};
 
 function localSpeakingImage(part: 'part2' | 'part3', fileName: string) {
   return `/images/speaking/${part}/${fileName}`;
@@ -60,6 +73,149 @@ function pickTextValue(source: Record<string, unknown>, keys: string[], fallback
   }
 
   return fallback;
+}
+
+function SpeakingAiScorePanel({ answer, audioBlob, partTitle, prompt }: { answer: string; audioBlob?: Blob | null; partTitle: string; prompt: string }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<SpeakingAiScoreResult | null>(null);
+  const hasAudio = Boolean(audioBlob && audioBlob.size > 0);
+
+  useEffect(() => {
+    setResult(null);
+  }, [partTitle, prompt, audioBlob]);
+
+  async function scoreAnswer() {
+    const transcript = answer.trim();
+    if (!transcript && !hasAudio) {
+      toast.error('Bấm Record để ghi âm trước khi chấm AI.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = hasAudio && audioBlob
+        ? await scoreSpeakingAudio({ audioBlob, partTitle, prompt, transcript })
+        : await unwrap<SpeakingAiScoreResult>(api.post('/ai/speaking/score', {
+          parts: [{
+            title: partTitle,
+            prompt,
+            transcript
+          }]
+        }));
+      setResult(response);
+      toast.success('AI đã chấm bài Speaking.');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message || error?.message || 'Không chấm được Speaking lúc này.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50/70 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <p className="text-xs font-extrabold uppercase tracking-widest text-emerald-700">AI Speaking score</p>
+          <p className="mt-1 text-sm font-semibold text-slate-600">
+            {hasAudio ? 'Chấm file ghi âm vừa record.' : 'Bấm Record để ghi âm, hoặc nhập câu trả lời trong ô Your answer.'}
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={loading}
+          onClick={scoreAnswer}
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-extrabold text-white shadow-soft transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckSquare size={16} />}
+          {loading ? 'Đang chấm...' : 'Chấm AI'}
+        </button>
+      </div>
+
+      {result && (
+        <div className="mt-4 space-y-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-lg bg-white p-3 text-center shadow-soft">
+              <p className="text-xs font-bold uppercase text-slate-500">Điểm</p>
+              <p className="mt-1 text-2xl font-black text-emerald-700">{result.overallScore}/50</p>
+            </div>
+            <div className="rounded-lg bg-white p-3 text-center shadow-soft">
+              <p className="text-xs font-bold uppercase text-slate-500">CEFR</p>
+              <p className="mt-1 text-2xl font-black text-brand-600">{result.cefrLevel || 'N/A'}</p>
+            </div>
+            <div className="rounded-lg bg-white p-3 text-center shadow-soft">
+              <p className="text-xs font-bold uppercase text-slate-500">Part</p>
+              <p className="mt-1 text-sm font-black text-slate-700">{partTitle}</p>
+            </div>
+          </div>
+
+          {result.summary && <p className="rounded-lg bg-white p-3 text-sm leading-6 text-slate-700 shadow-soft">{result.summary}</p>}
+
+          {Boolean(result.criteria?.length) && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {result.criteria?.map((item) => (
+                <div key={item.name} className="rounded-lg border border-emerald-100 bg-white p-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <b className="text-slate-800">{item.name}</b>
+                    <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-black text-emerald-700">{item.score}/10</span>
+                  </div>
+                  <p className="mt-1 text-slate-600">{item.feedback}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {Boolean(result.pronunciationTips?.length || result.fluencyTips?.length) && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <AiTipList title="Pronunciation" tips={result.pronunciationTips ?? []} />
+              <AiTipList title="Fluency" tips={result.fluencyTips ?? []} />
+            </div>
+          )}
+
+          {result.improvedAnswer && (
+            <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-sm leading-6 text-navy">
+              <p className="mb-1 font-extrabold text-brand-700">Gợi ý cải thiện</p>
+              {result.improvedAnswer}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+async function scoreSpeakingAudio({ audioBlob, partTitle, prompt, transcript }: { audioBlob: Blob; partTitle: string; prompt: string; transcript: string }) {
+  const audioFileName = `${partTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'speaking'}.webm`;
+  const payload = {
+    parts: [{
+      title: partTitle,
+      prompt,
+      transcript,
+      audioFileName,
+      audioContentType: audioBlob.type || 'audio/webm',
+      audioSizeBytes: audioBlob.size
+    }]
+  };
+  const formData = new FormData();
+  formData.append('payload', JSON.stringify(payload));
+  formData.append('files', new File([audioBlob], audioFileName, { type: audioBlob.type || 'audio/webm' }));
+  return unwrap<SpeakingAiScoreResult>(api.post('/ai/speaking/score-audio', formData, {
+    timeout: 180_000
+  }));
+}
+
+function AiTipList({ title, tips }: { title: string; tips: string[] }) {
+  return (
+    <div className="rounded-lg bg-white p-3 text-sm shadow-soft">
+      <p className="font-extrabold text-slate-800">{title}</p>
+      {tips.length ? (
+        <ul className="mt-2 space-y-1 text-slate-600">
+          {tips.map((tip, index) => <li key={`${title}-${index}`}>- {tip}</li>)}
+        </ul>
+      ) : (
+        <p className="mt-2 text-slate-500">Chưa có góp ý riêng.</p>
+      )}
+    </div>
+  );
 }
 
 function getReturnTarget(state: unknown) {
@@ -3924,6 +4080,7 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
   setAnswer: (key: string, next: string) => void;
   patchAnswers: (next: Record<string, string>) => void;
 }) {
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
   const mode = saved.speakingPart1Mode ?? 'intro';
   const index = Math.min(Math.max(Number(saved.speakingPart1Index ?? 0), 0), Math.max(questions.length - 1, 0));
@@ -3931,6 +4088,10 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
   const currentFeatured = isFeaturedTemplateItem(current);
   const openAnswer = saved.speakingPart1OpenAnswer ?? '';
   const progress = questions.length ? Math.max(4, Math.round(((index + 1) / questions.length) * 100)) : 0;
+
+  useEffect(() => {
+    setRecordedAudio(null);
+  }, [index]);
 
   function openPractice(nextIndex = 0) {
     patchAnswers({
@@ -4059,7 +4220,7 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
             {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
             <h2 className="text-xl font-extrabold text-navy">{current.question}</h2>
           </div>
-          <SpeakingRecordButton compact />
+          <SpeakingRecordButton compact onRecordingComplete={setRecordedAudio} />
         </div>
         <p className="mt-8 text-xs font-extrabold uppercase tracking-widest text-slate-600">Your answer</p>
         <textarea
@@ -4067,6 +4228,12 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
           placeholder="Your speech will appear here..."
           value={saved[`speakingPart1Answer-${index}`] ?? ''}
           onChange={(event) => setAnswer(`speakingPart1Answer-${index}`, event.target.value)}
+        />
+        <SpeakingAiScorePanel
+          partTitle="Speaking Part 1"
+          prompt={String(current.question ?? '')}
+          answer={saved[`speakingPart1Answer-${index}`] ?? ''}
+          audioBlob={recordedAudio}
         />
         <div className="mt-7 border-t border-dashed border-brand-100 pt-6">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -4094,6 +4261,7 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
   setAnswer: (key: string, next: string) => void;
   patchAnswers: (next: Record<string, string>) => void;
 }) {
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
   const mode = saved.speakingPart2Mode ?? 'intro';
   const index = Math.min(Math.max(Number(saved.speakingPart2Index ?? 0), 0), Math.max(questions.length - 1, 0));
@@ -4115,7 +4283,8 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
 
   useEffect(() => {
     setImageFailed(false);
-  }, [index, imageUrl]);
+    setRecordedAudio(null);
+  }, [index, tab, imageUrl]);
 
   function openPractice(nextIndex = 0) {
     patchAnswers({
@@ -4278,7 +4447,7 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
               {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
               <h2 className="text-xl font-bold">{prompt}</h2>
             </div>
-            <SpeakingRecordButton compact />
+            <SpeakingRecordButton compact onRecordingComplete={setRecordedAudio} />
           </div>
           <p className="mt-6 text-xs font-bold uppercase tracking-widest text-slate-600">Your answer</p>
           <textarea
@@ -4286,6 +4455,12 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
             placeholder="Your speech will appear here..."
             value={saved[`speakingPart2Answer-${index}-${tab}`] ?? ''}
             onChange={(event) => setAnswer(`speakingPart2Answer-${index}-${tab}`, event.target.value)}
+          />
+          <SpeakingAiScorePanel
+            partTitle="Speaking Part 2"
+            prompt={String(prompt ?? '')}
+            answer={saved[`speakingPart2Answer-${index}-${tab}`] ?? ''}
+            audioBlob={recordedAudio}
           />
           <div className="mt-7 border-t border-dashed border-brand-100 pt-5">
             <button
@@ -4313,6 +4488,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
   setAnswer: (key: string, next: string) => void;
   patchAnswers: (next: Record<string, string>) => void;
 }) {
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
   const mode = saved.speakingPart3Mode ?? 'intro';
   const index = Math.min(Math.max(Number(saved.speakingPart3Index ?? 0), 0), Math.max(questions.length - 1, 0));
@@ -4354,7 +4530,8 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
 
   useEffect(() => {
     setFailedImages({});
-  }, [index, image1Url, image2Url]);
+    setRecordedAudio(null);
+  }, [index, tab, image1Url, image2Url]);
 
   function getSpeakingImageUrl(question: Record<string, unknown>, side: 1 | 2, questionIndex: number) {
     const keys = side === 1
@@ -4546,7 +4723,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
               {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
               <h2 className="text-xl font-bold">{prompt}</h2>
             </div>
-            <SpeakingRecordButton compact />
+            <SpeakingRecordButton compact onRecordingComplete={setRecordedAudio} />
           </div>
           <p className="mt-6 text-xs font-bold uppercase tracking-widest text-slate-600">Your answer</p>
           <textarea
@@ -4554,6 +4731,12 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
             placeholder="Your speech will appear here..."
             value={saved[`speakingPart3Answer-${index}-${tab}`] ?? ''}
             onChange={(event) => setAnswer(`speakingPart3Answer-${index}-${tab}`, event.target.value)}
+          />
+          <SpeakingAiScorePanel
+            partTitle="Speaking Part 3"
+            prompt={String(prompt ?? '')}
+            answer={saved[`speakingPart3Answer-${index}-${tab}`] ?? ''}
+            audioBlob={recordedAudio}
           />
           <div className="mt-7 border-t border-dashed border-brand-100 pt-5">
             <button
@@ -4581,6 +4764,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
   setAnswer: (key: string, next: string) => void;
   patchAnswers: (next: Record<string, string>) => void;
 }) {
+  const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
   const mode = saved.speakingPart4Mode ?? 'intro';
   const openAnswer = saved.speakingPart4OpenAnswer ?? '';
@@ -4589,6 +4773,10 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
   const currentFeatured = isFeaturedTemplateItem(current);
   const showSample = saved.speakingPart4ShowSample === 'true';
   const progress = questions.length ? Math.max(2, Math.round(((index + 1) / questions.length) * 100)) : 0;
+
+  useEffect(() => {
+    setRecordedAudio(null);
+  }, [index]);
 
   function openPractice(nextIndex = 0) {
     patchAnswers({
@@ -4686,7 +4874,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
                 {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
                 <h2 className="text-xl font-bold">{current.question ?? 'Speaking Part 4 question'}</h2>
               </div>
-              <SpeakingRecordButton compact durationSeconds={120} />
+              <SpeakingRecordButton compact durationSeconds={120} onRecordingComplete={setRecordedAudio} />
             </div>
             <p className="mt-8 text-xs font-bold uppercase tracking-widest text-slate-600">Your answer</p>
             <textarea
@@ -4694,6 +4882,12 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
               placeholder="Your speech will appear here..."
               value={saved[`speakingPart4Answer-${index}`] ?? ''}
               onChange={(event) => setAnswer(`speakingPart4Answer-${index}`, event.target.value)}
+            />
+            <SpeakingAiScorePanel
+              partTitle="Speaking Part 4"
+              prompt={String(current.question ?? 'Speaking Part 4 question')}
+              answer={saved[`speakingPart4Answer-${index}`] ?? ''}
+              audioBlob={recordedAudio}
             />
             <div className="mt-7 border-t border-dashed border-brand-100 pt-5">
               <button
@@ -4776,7 +4970,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
   );
 }
 
-function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boolean; durationSeconds?: number }) {
+function SpeakingRecordButton({ compact, durationSeconds = 45, onRecordingComplete }: { compact?: boolean; durationSeconds?: number; onRecordingComplete?: (blob: Blob | null) => void }) {
   const duration = durationSeconds;
   const [recording, setRecording] = useState(false);
   const [remaining, setRemaining] = useState(duration);
@@ -4810,6 +5004,7 @@ function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boo
     try {
       if (audioUrl) URL.revokeObjectURL(audioUrl);
       setAudioUrl('');
+      onRecordingComplete?.(null);
       chunksRef.current = [];
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -4823,6 +5018,10 @@ function SpeakingRecordButton({ compact, durationSeconds = 45 }: { compact?: boo
       recorder.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         setAudioUrl(URL.createObjectURL(blob));
+        if (blob.size > 0) {
+          onRecordingComplete?.(blob);
+          toast.success('Đã ghi âm xong. Bạn có thể bấm Chấm AI.');
+        }
         stream.getTracks().forEach((track) => track.stop());
         streamRef.current = null;
       };

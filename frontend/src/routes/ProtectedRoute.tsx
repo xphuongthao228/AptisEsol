@@ -5,8 +5,10 @@ import { useAuthStore } from '../store/authStore';
 import type { RoleName, User } from '../types';
 import { userHasRole } from '../utils/roles';
 
+const SESSION_VERIFY_TIMEOUT_MS = 8000;
+
 export function ProtectedRoute({ role }: { role?: RoleName }) {
-  const { user, refreshToken, setUser } = useAuthStore();
+  const { user, accessToken, refreshToken, setUser, clearAuth } = useAuthStore();
   const [hydrated, setHydrated] = useState(() => useAuthStore.persist.hasHydrated());
   const [restoring, setRestoring] = useState(false);
   const [restoreFailed, setRestoreFailed] = useState(false);
@@ -20,16 +22,27 @@ export function ProtectedRoute({ role }: { role?: RoleName }) {
   }, []);
 
   useEffect(() => {
-    if (!hydrated || user || !refreshToken || restoreFailed) return;
+    if (!hydrated || restoreFailed) return;
+    if (user || (!accessToken && !refreshToken)) return;
 
     let mounted = true;
     setRestoring(true);
-    unwrap<User>(api.get('/auth/me'))
+    Promise.race([
+      unwrap<User>(api.get('/auth/me')),
+      new Promise<never>((_, reject) => {
+        window.setTimeout(() => reject(new Error('session-verify-timeout')), SESSION_VERIFY_TIMEOUT_MS);
+      })
+    ])
       .then((currentUser) => {
-        if (mounted) setUser(currentUser);
+        if (mounted) {
+          setUser(currentUser);
+        }
       })
       .catch(() => {
-        if (mounted) setRestoreFailed(true);
+        if (mounted) {
+          clearAuth();
+          setRestoreFailed(true);
+        }
       })
       .finally(() => {
         if (mounted) setRestoring(false);
@@ -38,7 +51,7 @@ export function ProtectedRoute({ role }: { role?: RoleName }) {
     return () => {
       mounted = false;
     };
-  }, [hydrated, refreshToken, restoreFailed, setUser, user]);
+  }, [accessToken, clearAuth, hydrated, refreshToken, restoreFailed, setUser, user]);
 
   if (!hydrated) {
     return (
@@ -48,7 +61,7 @@ export function ProtectedRoute({ role }: { role?: RoleName }) {
     );
   }
 
-  if (restoring || (!user && Boolean(refreshToken) && !restoreFailed)) {
+  if (restoring || (!user && Boolean(accessToken || refreshToken) && !restoreFailed)) {
     return (
       <div className="min-h-screen bg-sky-50 p-6 text-sm font-semibold text-slate-600">
         Đang làm mới phiên đăng nhập...

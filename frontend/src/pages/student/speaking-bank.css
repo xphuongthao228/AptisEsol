@@ -1,0 +1,35 @@
+/* Keep the bank content readable when the app applies its header and form theme. */
+html body .student-shell #speaking-bank-page main > header {
+  background: linear-gradient(110deg, #fff0f5, #fff8f3 55%, #f7edff) !important;
+  border: 1px solid #f5e4ee !important;
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: none !important;
+}
+html body .student-shell #speaking-bank-page main > header::before,
+html body .student-shell #speaking-bank-page main > header::after {
+  content: none !important;
+}
+html body .student-shell #speaking-bank-page main > header h1 {
+  color: #142044 !important;
+  -webkit-text-fill-color: #142044 !important;
+}
+html body .student-shell #speaking-bank-page input,
+html body .student-shell #speaking-bank-page select {
+  background: #fff !important;
+  color: #142044 !important;
+  -webkit-text-fill-color: #142044 !important;
+  color-scheme: light;
+}
+html body .student-shell #speaking-bank-page input::placeholder {
+  color: #94a3b8 !important;
+  -webkit-text-fill-color: #94a3b8 !important;
+}
+.speaking-bank-page main { padding-bottom: 100px; }
+.speaking-bank-page button:focus-visible,
+.speaking-bank-page select:focus-visible,
+.speaking-bank-page input:focus-visible { outline: 2px solid #fb7185; outline-offset: 3px; }
+@media (min-width: 1024px) {
+  .speaking-bank-page > .writing-bank-layout { grid-template-columns: 220px minmax(0, 1fr); }
+  .speaking-bank-page > .writing-bank-layout.writing-bank-sidebar-hidden { grid-template-columns: minmax(0, 1fr); }
+}

@@ -4,6 +4,7 @@ import com.example.aptis.security.JwtAuthenticationFilter;
 import com.example.aptis.security.OAuth2LoginFailureHandler;
 import com.example.aptis.security.OAuth2LoginSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.DispatcherType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -100,6 +101,7 @@ public class SecurityConfig {
                                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED)))
                 .authenticationProvider(provider)
                 .authorizeHttpRequests(auth -> auth
+                        .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(PUBLIC_AUTH_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
@@ -115,6 +117,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/mock-tests").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/writing-bank/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/writing-bank/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/speaking-bank/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/speaking-bank/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/ui-settings").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/ui-settings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()

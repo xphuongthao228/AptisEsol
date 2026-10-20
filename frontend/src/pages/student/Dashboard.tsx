@@ -133,6 +133,7 @@ type HeroSlide = {
   visual: string;
   imageUrl?: string;
   imageAlt?: string;
+  mediaId?: number;
 };
 
 type BeforeInstallPromptEvent = Event & {
@@ -766,14 +767,18 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
     }
   ];
   const [bannerMedia, setBannerMedia] = useState<BannerMedia[]>([]);
+  const [failedBannerIds, setFailedBannerIds] = useState<Set<number>>(() => new Set());
   const [activeSlide, setActiveSlide] = useState(0);
   const [slideDirection, setSlideDirection] = useState<'next' | 'previous'>('next');
   const [sliderPaused, setSliderPaused] = useState(false);
-  const slides = bannerMedia.length
-    ? bannerMedia.map((media, index) => ({
+  const visibleBannerMedia = bannerMedia.filter((media) => !failedBannerIds.has(media.id));
+  const hasBannerSlides = visibleBannerMedia.length > 0;
+  const slides = hasBannerSlides
+    ? visibleBannerMedia.map((media, index) => ({
         ...defaultSlides[index % defaultSlides.length],
         imageUrl: media.sourceUrl || `${mediaBaseUrl}/api/media/${media.id}`,
-        imageAlt: media.originalName
+        imageAlt: media.originalName,
+        mediaId: media.id
       }))
     : defaultSlides;
 
@@ -800,7 +805,20 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
     return () => window.clearInterval(timer);
   }, [sliderPaused, slides.length]);
 
+  useEffect(() => {
+    setActiveSlide((current) => Math.min(current, slides.length - 1));
+  }, [slides.length]);
+
   const slide = slides[activeSlide];
+  const handleBannerError = () => {
+    if (!('mediaId' in slide) || typeof slide.mediaId !== 'number') return;
+    const mediaId = slide.mediaId;
+    setFailedBannerIds((current) => {
+      const next = new Set(current);
+      next.add(mediaId);
+      return next;
+    });
+  };
   const moveSlide = (direction: number) => {
     setSlideDirection(direction > 0 ? 'next' : 'previous');
     setActiveSlide((current) => (current + direction + slides.length) % slides.length);
@@ -814,18 +832,18 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
 
   return (
     <section
-      className={`dashboard-hero relative overflow-hidden ${bannerMedia.length ? 'min-h-[430px] bg-slate-100' : `bg-gradient-to-r ${slide.tone} px-4 py-6 sm:px-6 lg:px-10 lg:py-8`} transition-colors duration-700`}
+      className={`dashboard-hero relative overflow-hidden ${hasBannerSlides ? 'min-h-[430px] bg-slate-100' : `bg-gradient-to-r ${slide.tone} px-4 py-6 sm:px-6 lg:px-10 lg:py-8`} transition-colors duration-700`}
       onMouseEnter={() => setSliderPaused(true)}
       onMouseLeave={() => setSliderPaused(false)}
     >
-      {!bannerMedia.length && (
+      {!hasBannerSlides && (
         <div className="dashboard-halloween-decor" aria-hidden="true">
           <span className="decor-web" />
           <span className="decor-bat decor-bat-one">⌁</span>
           <span className="decor-bat decor-bat-two">⌁</span>
         </div>
       )}
-      {Boolean(bannerMedia.length) && (
+      {hasBannerSlides && (
         <div className="dashboard-banner-decor" aria-hidden="true">
           <span className="banner-decor-web banner-decor-web-left">🕸️</span>
           <span className="banner-decor-web banner-decor-web-right">🕸️</span>
@@ -842,8 +860,8 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
       )}
       {showNotifications && <DashboardNotificationPanel />}
       <div className="relative mx-auto min-h-[430px] max-w-[1560px]">
-        {bannerMedia.length ? (
-          <img key={activeSlide} src={slide.imageUrl} alt={slide.imageAlt ?? ''} className={`dashboard-slide dashboard-slide-${slideDirection} absolute inset-0 h-full min-h-[430px] w-full object-cover`} />
+        {hasBannerSlides ? (
+          <img key={activeSlide} src={slide.imageUrl} alt="" onError={handleBannerError} className={`dashboard-slide dashboard-slide-${slideDirection} absolute inset-0 h-full min-h-[430px] w-full object-cover`} />
         ) : (
         <div key={activeSlide} className={`dashboard-slide dashboard-slide-${slideDirection} grid min-h-[430px] items-center gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10`}>
           <div className="relative z-10 px-1 py-8 sm:px-5 lg:py-6">

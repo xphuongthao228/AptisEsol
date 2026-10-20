@@ -12,6 +12,7 @@ interface AuthState {
   register: (fullName: string, email: string, password: string) => Promise<OtpResponse>;
   setAuth: (data: AuthResponse) => void;
   setUser: (user: User) => void;
+  clearAuth: () => void;
   logout: () => Promise<void>;
 }
 
@@ -38,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
         refreshToken: data.refreshToken
       }),
       setUser: (user) => set({ user }),
+      clearAuth: () => set({ user: null, accessToken: null, refreshToken: null }),
       logout: async () => {
         const refreshToken = get().refreshToken;
         await api.post('/auth/logout', refreshToken ? { refreshToken } : undefined).catch(() => undefined);

@@ -638,6 +638,49 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
     URL.revokeObjectURL(url);
   }
 
+  async function exportPartCsv() {
+    if (!selectedTest || loading) return;
+    try {
+      // Fetch this part explicitly so a recent selection cannot export stale questions.
+      const items = await unwrap<Question[]>(api.get(`/questions?testId=${selectedTest.id}`));
+      if (!items.length) {
+        toast.error('Part này chưa có câu hỏi để xuất');
+        return;
+      }
+      const answerCount = Math.max(4, ...items.map((question) => question.answers.length));
+      const headers = [
+        'type', 'topic', 'audio_url', 'script_text', 'content', 'explanation',
+        'points', 'sort_order', 'featured',
+        ...Array.from({ length: answerCount }, (_, index) => `answer${index + 1}`),
+        'correct_index', 'correct_indices', 'answers_json'
+      ];
+      const rows = [...items].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id).map((question) => {
+        const answers = [...question.answers].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+        const correctIndices = answers.flatMap((answer, index) => answer.correct ? [index + 1] : []);
+        return [
+          question.type, question.topic, question.audioUrl, question.scriptText, question.content,
+          question.explanation, question.points, question.sortOrder, question.featured,
+          ...Array.from({ length: answerCount }, (_, index) => answers[index]?.content ?? ''),
+          correctIndices[0] ?? '', correctIndices.join('|'), JSON.stringify(answers)
+        ];
+      });
+      const escapeCell = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`;
+      const csv = [headers, ...rows].map((row) => row.map(escapeCell).join(',')).join('\r\n');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      const link = document.createElement('a');
+      link.href = url;
+      const filename = selectedTest.title.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '-').trim() || 'part';
+      link.download = `${filename}-${selectedTest.id}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Đã xuất ${items.length} câu hỏi của ${selectedTest.title}`);
+    } catch (error: any) {
+      toast.error(apiErrorMessage(error, 'Không xuất được dữ liệu part'));
+    }
+  }
+
   async function importCsv(file: File | undefined) {
     if (!selectedTestId) {
       toast.error('Hãy chọn bài luyện trước khi import CSV');
@@ -975,6 +1018,9 @@ function QuestionsPanel({ tests, setTests, selectedTestId, setSelectedTestId, qu
               <h3 className="font-semibold">{selectedTest?.title ?? 'Chưa chọn bài luyện'}</h3>
             </div>
             <div className="flex flex-wrap gap-2">
+              <button type="button" className="btn-secondary h-9 px-3 text-xs disabled:opacity-50" onClick={exportPartCsv} disabled={!selectedTest || loading}>
+                <Download size={15} />Xuất CSV part
+              </button>
               <button type="button" className="btn-secondary h-9 px-3 text-xs" onClick={toggleAllQuestions} disabled={!questions.length}>
                 {allSelected ? 'Bỏ chọn tất cả' : 'Chọn tất cả'}
               </button>

@@ -298,7 +298,7 @@ export function TestPartMenu() {
         {partSkills.map((skill) => (
           (() => {
             const active = selectedSkill.type === skill.type;
-            const textColor = active ? '#ffffff' : '#7f1d1d';
+            const textColor = active ? '#ffffff' : '#fff7ed';
             return (
               <button
                 key={skill.type}
@@ -310,7 +310,7 @@ export function TestPartMenu() {
                     ? 'bg-brand-600 text-white shadow-soft'
                     : 'border border-brand-100 bg-white text-red-900 hover:border-brand-200 hover:text-brand-700'
                 }`}
-                style={{ color: textColor }}
+                style={{ color: textColor, textShadow: '0 1px 3px rgba(15, 23, 42, 0.42)' }}
               >
                 <span className="parts-skill-icon" style={{ color: textColor }}>{skill.icon}</span>
                 <span className="parts-skill-label" style={{ color: textColor }}>{skill.title}<small className="sm:hidden" style={{ color: textColor }}>{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
@@ -833,11 +833,11 @@ function partsForSkill(skill?: SkillType | '') {
   return defaultParts;
 }
 
-function isPartPracticeSource(test: Test) {
+export function isPartPracticeSource(test: Test) {
   return test.status === 'PUBLISHED' && isPracticeTest(test) && hasImportedQuestions(test);
 }
 
-function isQuestionInPart(question: Question, skill: SkillType | '', part: number, test?: Test) {
+export function isQuestionInPart(question: Question, skill: SkillType | '', part: number, test?: Test) {
   const template = parseQuestionTemplate(question.content);
   const rawPart = template && 'part' in template ? String((template as { part?: unknown }).part ?? '') : '';
   const content = normalizePartSearchText([
@@ -905,7 +905,7 @@ function isPracticeTest(test: Test) {
   return !isExamTest(test);
 }
 
-function isRandomTest(test: Test) {
+export function isRandomTest(test: Test) {
   const title = test.title.toLowerCase();
   return title.startsWith('bộ đề random');
 }
@@ -925,7 +925,7 @@ function isFreeAllowedExam(tests: Test[], target: Test) {
     .some((test) => test.id === target.id);
 }
 
-function compareTestsByNaturalNumber(left: Test, right: Test) {
+export function compareTestsByNaturalNumber(left: Test, right: Test) {
   const leftNumber = getTestOrderNumber(left);
   const rightNumber = getTestOrderNumber(right);
 
@@ -1042,5 +1042,6 @@ function displayQuestionMeta(question: Question) {
   const prefix = topic ? `${topic} - ` : '';
   return `${prefix}${POINTS_PER_QUESTION} điểm`;
 }
+
 
 

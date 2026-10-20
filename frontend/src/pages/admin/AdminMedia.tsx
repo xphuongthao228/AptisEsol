@@ -22,6 +22,7 @@ export function AdminMedia() {
   const { data, loading: loadingList, setData } = useApi<MediaResponse[]>(() => unwrap(api.get('/media')), []);
   const [loading, setLoading] = useState(false);
   const [bannerUrl, setBannerUrl] = useState('');
+  const [failedPreviewIds, setFailedPreviewIds] = useState<Set<number>>(() => new Set());
   const mediaList = data ?? [];
   const bannerList = mediaList
     .filter((media) => media.banner)
@@ -166,7 +167,18 @@ export function AdminMedia() {
             {bannerList.map((media, index) => (
               <article className="overflow-hidden rounded-lg border border-brand-100 bg-white" key={media.id}>
                 <div className="aspect-[16/6] bg-slate-100">
-                  <img src={media.sourceUrl || `${baseUrl}/api/media/${media.id}`} alt={media.originalName} className="h-full w-full object-cover" />
+                  {failedPreviewIds.has(media.id) ? (
+                    <div className="grid h-full place-items-center px-4 text-center text-sm font-bold text-red-600">
+                      Ảnh không tải được. Hãy xóa banner này hoặc thay bằng URL ảnh trực tiếp.
+                    </div>
+                  ) : (
+                    <img
+                      src={media.sourceUrl || `${baseUrl}/api/media/${media.id}`}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      onError={() => setFailedPreviewIds((current) => new Set(current).add(media.id))}
+                    />
+                  )}
                 </div>
                 <div className="flex items-center gap-2 p-3">
                   <div className="min-w-0 flex-1">

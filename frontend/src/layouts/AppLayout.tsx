@@ -17,6 +17,7 @@
   LogOut,
   Mail,
   Menu,
+  Mic,
   Monitor,
   Moon,
   Palette,
@@ -53,7 +54,6 @@ type LayoutLink = {
 const studentLinks: LayoutLink[] = [
   { to: '/app/tests/parts', label: 'Luyện tập theo part', icon: BookOpen },
   { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
-  { to: '/app/ai-practice', label: 'Tạo đề AI', icon: Bot },
   { to: '/app/history', label: 'Lịch sử', icon: Clock3 },
   { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
   { to: '/app/lessons/LISTENING', label: 'Mẹo thi', icon: Lightbulb },
@@ -63,8 +63,9 @@ const studentLinks: LayoutLink[] = [
 ];
 
 const studentMoreLinks: LayoutLink[] = [
+  { to: '/app/ai-practice', label: 'Tạo đề AI', icon: Bot },
   { to: '/app/writing-bank', label: 'Kho đề Writing', icon: PenLine },
-  { to: '/', label: 'Tổng quan', icon: LayoutDashboard, end: true },
+  { to: '/app/speaking-bank', label: 'Kho đề Speaking', icon: Mic },
   { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },
   { to: '/app/contact', label: 'Liên hệ', icon: Mail },
   { to: '/app/settings', label: 'Cài đặt', icon: Settings }
@@ -79,8 +80,13 @@ const adminLinks: LayoutLink[] = [
   { to: '/admin/leaderboard', label: 'Bảng xếp hạng', icon: Trophy },
   { to: '/admin/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
+  { to: '/admin/notifications', label: 'Thông báo', icon: Bell }
+];
+
+const adminMoreLinks: LayoutLink[] = [
   { to: '/admin/ai-usage', label: 'Chấm AI', icon: Bot },
-  { to: '/admin/notifications', label: 'Thông báo', icon: Bell },
+  { to: '/admin/writing-bank', label: 'Kho đề Writing', icon: PenLine },
+  { to: '/admin/speaking-bank', label: 'Kho đề Speaking', icon: Mic },
   { to: '/admin/appearance', label: 'Giao diện', icon: Palette },
   { to: '/admin/media', label: 'Media', icon: Upload }
 ];
@@ -97,6 +103,13 @@ export function AppLayout() {
   const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [visibleNavCount, setVisibleNavCount] = useState(0);
+  const [headerHeight, setHeaderHeight] = useState(64);
+  const desktopNavRef = useRef<HTMLElement>(null);
+  const desktopNavContentRef = useRef<HTMLDivElement>(null);
+  const headerRowRef = useRef<HTMLDivElement>(null);
+  const brandRef = useRef<HTMLAnchorElement>(null);
+  const headerActionsRef = useRef<HTMLDivElement>(null);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [navHidden, setNavHidden] = useState(false);
   const [studentSkin, setStudentSkin] = useState<StudentSkin>('halloween');
@@ -108,12 +121,52 @@ export function AppLayout() {
   const location = useLocation();
   const isAuthenticated = Boolean(user);
   const isAdmin = userHasRole(user, 'ADMIN');
-  const mainLinks = isAdmin ? adminLinks : studentLinks;
-  const mobileLinks = isAdmin ? adminLinks : [...studentLinks, ...studentMoreLinks];
+  const allMainLinks = isAdmin ? adminLinks : studentLinks;
+  const mainLinks = allMainLinks.slice(0, visibleNavCount);
+  const moreLinks = [...allMainLinks.slice(visibleNavCount), ...(isAdmin ? adminMoreLinks : studentMoreLinks)];
+  const mobileLinks = isAdmin ? [...adminLinks, ...adminMoreLinks] : [...studentLinks, ...studentMoreLinks];
+  const hasActiveMoreLink = moreLinks.some((link) => (
+    link.end ? location.pathname === link.to : location.pathname.startsWith(link.to)
+  ));
   const isExamMode = !isAdmin && /^\/app\/tests\/\d+/.test(location.pathname);
   const mockScreen = new URLSearchParams(location.search).get('screen');
   const isMockTestMode = !isAdmin && location.pathname.startsWith('/app/mock-tests') && Boolean(mockScreen) && mockScreen !== 'select';
   const seo = getSeoByPath(location.pathname, Boolean(isAdmin));
+
+  useEffect(() => {
+    const nav = desktopNavRef.current;
+    const content = desktopNavContentRef.current;
+    const row = headerRowRef.current;
+    const brand = brandRef.current;
+    const actions = headerActionsRef.current;
+    if (!nav || !content || !row || !brand || !actions) return;
+    const update = () => {
+      // Measure the actual rendered text, including browser zoom and loaded fonts.
+      const rowStyle = getComputedStyle(row);
+      const gap = parseFloat(rowStyle.columnGap) || 0;
+      const contentGap = parseFloat(getComputedStyle(content).columnGap) || 0;
+      const available = row.clientWidth - parseFloat(rowStyle.paddingLeft) - parseFloat(rowStyle.paddingRight)
+        - brand.getBoundingClientRect().width - actions.getBoundingClientRect().width - gap * 2;
+      const widths = Array.from(content.children).map((child) => child.getBoundingClientRect().width);
+      let used = widths[widths.length - 1] + 8;
+      let count = 0;
+      for (const width of widths.slice(0, -1)) {
+        if (used + width + contentGap + 2 > available) break;
+        used += width + contentGap + 2;
+        count += 1;
+      }
+      setVisibleNavCount(count);
+      setHeaderHeight(row.getBoundingClientRect().height);
+    };
+    const observer = new ResizeObserver(update);
+    observer.observe(nav);
+    observer.observe(content);
+    observer.observe(row);
+    observer.observe(brand);
+    observer.observe(actions);
+    update();
+    return () => observer.disconnect();
+  }, [isAdmin, isExamMode, isMockTestMode]);
 
   useEffect(() => {
     if (!isAuthenticated || isAdmin) {
@@ -238,19 +291,24 @@ export function AppLayout() {
       {!isAdmin && studentSkin === 'halloween' && <HalloweenDecor />}
 
       <header className={`fixed inset-x-0 top-0 z-40 border-b border-brand-100 bg-white/92 shadow-[0_8px_28px_rgba(165,15,21,0.09)] backdrop-blur-xl transition-transform duration-300 ease-out ${navHidden ? '-translate-y-full' : 'translate-y-0'}`}>
-        <div className="mx-auto flex h-16 w-full items-center gap-4 px-4 sm:px-6 lg:px-8 2xl:gap-6">
-          <Link to={isAdmin ? '/admin' : '/'} className="mr-4 flex w-[230px] shrink-0 items-center gap-2 text-brand-700 2xl:mr-2 2xl:w-[230px]">
+        <div ref={headerRowRef} className="mx-auto flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:px-6">
+          <Link ref={brandRef} to={isAdmin ? '/admin' : '/'} className="flex shrink-0 items-center gap-2 text-brand-700">
             <span className="grid h-10 w-10 place-items-center rounded-xl border border-brand-100 bg-white shadow-soft">
               <img src="/brand/lingomaster-logo.svg" alt="Aptis Lingo" className="h-7 w-7 rounded-lg" />
             </span>
             <span className="mobile-wordmark hidden whitespace-nowrap text-base font-extrabold tracking-tight xl:inline 2xl:text-lg">Aptis Lingo</span>
           </Link>
 
-          <nav className="hidden min-w-0 flex-1 items-center justify-start gap-0.5 xl:flex 2xl:justify-center 2xl:gap-2">
+          <nav ref={desktopNavRef} className="relative hidden min-w-0 flex-1 items-center justify-center xl:flex" aria-label="Điều hướng chính">
+            <div ref={desktopNavContentRef} aria-hidden="true" className="pointer-events-none invisible absolute left-0 top-0 flex w-max items-center gap-0.5">
+              {allMainLinks.map((link) => <span key={link.to} className={`inline-flex h-10 shrink-0 items-center whitespace-nowrap px-2 text-[11px] 2xl:text-[12px] ${isAdmin ? 'font-extrabold' : 'font-black'}`}>{link.label}</span>)}
+              <span className="inline-flex h-10 shrink-0 items-center gap-1 whitespace-nowrap px-2 text-[11px] font-extrabold 2xl:text-[12px]">More<ChevronDown size={15} /></span>
+            </div>
+            <div className="flex w-max shrink-0 items-center gap-0.5">
             {mainLinks.map((link) => (
               <TopNavLink key={link.to} link={link} />
             ))}
-            {!isAdmin && (
+            {moreLinks.length > 0 && (
               <div className="relative" ref={moreMenuRef}>
                 <button
                   type="button"
@@ -259,10 +317,10 @@ export function AppLayout() {
                     setThemeMenuOpen(false);
                     setAccountMenuOpen(false);
                   }}
-                  className={`inline-flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-2 text-[12px] font-extrabold transition 2xl:px-3 2xl:text-sm ${
-                    moreMenuOpen
-                      ? 'bg-white/12 text-white shadow-soft'
-                      : 'text-white/90 hover:bg-white/10 hover:text-white'
+                  className={`header-more-button inline-flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-2 text-[11px] font-extrabold transition 2xl:text-[12px] ${
+                    moreMenuOpen || hasActiveMoreLink
+                      ? 'bg-brand-50 text-brand-700 shadow-soft'
+                      : 'text-navy hover:bg-brand-50 hover:text-brand-700'
                   }`}
                   aria-label="Mở thêm chức năng"
                   aria-expanded={moreMenuOpen}
@@ -273,16 +331,17 @@ export function AppLayout() {
                 </button>
                 {moreMenuOpen && (
                   <div className="more-menu-panel absolute right-0 top-full z-50 mt-3 grid w-56 gap-1 rounded-xl border border-brand-100 bg-white p-2 shadow-lift">
-                    {studentMoreLinks.map((link) => (
+                    {moreLinks.map((link) => (
                       <TopMoreNavLink key={link.to} link={link} onClick={() => setMoreMenuOpen(false)} />
                     ))}
                   </div>
                 )}
               </div>
             )}
+            </div>
           </nav>
 
-          <div className="ml-auto flex shrink-0 items-center gap-2">
+          <div ref={headerActionsRef} className="ml-auto flex shrink-0 items-center gap-2">
             {!isAuthenticated && <Link to="/login" className="mobile-sign-in rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white sm:hidden">Đăng nhập</Link>}
             <div className="relative hidden md:block">
               <button
@@ -325,7 +384,7 @@ export function AppLayout() {
             {!isAdmin && (
               <>
               {subscription?.active && <SubscriptionBadge subscription={subscription} />}
-              <Link to="/app/renewal" className="hidden h-10 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-[#f59e0b] via-[#fbbf24] to-[#fde047] px-3.5 text-[11px] font-extrabold text-[#3b2400] shadow-[0_10px_24px_rgba(245,158,11,0.24)] transition hover:-translate-y-0.5 hover:shadow-lift 2xl:inline-flex">
+              <Link to="/app/renewal" className="hidden h-10 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full bg-gradient-to-r from-[#f59e0b] via-[#fbbf24] to-[#fde047] px-3.5 text-[11px] font-extrabold text-[#3b2400] shadow-[0_10px_24px_rgba(245,158,11,0.24)] transition hover:-translate-y-0.5 hover:shadow-lift md:inline-flex">
                 <Crown size={15} />
                 Nâng cấp
               </Link>
@@ -388,7 +447,7 @@ export function AppLayout() {
               </div>
             )}
             <button
-              className="grid h-10 w-10 place-items-center rounded-lg text-brand-700 transition hover:bg-brand-50 xl:hidden"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-lg text-brand-700 transition hover:bg-brand-50 xl:hidden"
               onClick={() => setMobileMenuOpen((open) => !open)}
               aria-label={mobileMenuOpen ? 'Đóng menu' : 'Mở menu'}
               aria-expanded={mobileMenuOpen}
@@ -460,7 +519,7 @@ export function AppLayout() {
         )}
       </header>
 
-      <main className="min-h-screen pb-20 pt-16">
+      <main className="min-h-screen pb-20" style={{ paddingTop: headerHeight }}>
         <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
           <Outlet />
         </div>
@@ -714,9 +773,9 @@ function TopNavLink({ link }: { link: LayoutLink }) {
       to={link.to}
       end={link.end}
       className={({ isActive }) => {
-        const base = 'inline-flex h-10 items-center justify-center whitespace-nowrap text-[12px] font-extrabold transition 2xl:text-sm';
+        const base = 'inline-flex h-10 items-center justify-center whitespace-nowrap text-[11px] font-extrabold transition 2xl:text-[12px]';
         const active = isActive || isLeaderboardActive || (link.to === '/app/tests/parts' && isPracticeActive) || (link.to === '/app/mock-tests' && isMockTestActive);
-        return `${base} rounded-xl px-2 2xl:px-3 ${active ? 'bg-brand-50 text-brand-700 shadow-soft' : 'text-navy hover:bg-brand-50 hover:text-brand-700'}`;
+        return `${base} shrink-0 rounded-xl px-2 ${active ? 'bg-brand-50 text-brand-700 shadow-soft' : 'text-navy hover:bg-brand-50 hover:text-brand-700'}`;
       }}
     >
       {link.label}

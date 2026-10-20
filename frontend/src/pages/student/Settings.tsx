@@ -72,7 +72,7 @@ export function Settings() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6">
+    <div className="settings-page mx-auto max-w-5xl space-y-6">
       <section className="overflow-hidden rounded-[28px] border border-brand-100 bg-white shadow-soft">
         <div className="bg-[linear-gradient(135deg,#06204a,#0057d9)] px-6 py-7 text-white sm:px-8">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
@@ -87,7 +87,7 @@ export function Settings() {
               <div className="grid h-14 w-14 place-items-center rounded-2xl bg-brand-500 text-xl font-extrabold">
                 {user?.fullName?.[0]?.toUpperCase() ?? 'A'}
               </div>
-              <div className="min-w-0">
+              <div className="settings-account-identity min-w-0">
                 <p className="truncate text-lg font-extrabold">{user?.fullName ?? 'Học viên'}</p>
                 <p className="truncate text-sm text-slate-300">{user?.email}</p>
               </div>
@@ -120,13 +120,13 @@ export function Settings() {
                   key={option.value}
                   type="button"
                   onClick={() => setPreference(option.value)}
-                  className={`flex min-h-[108px] items-start gap-4 rounded-2xl border p-4 text-left transition ${
+                  className={`settings-theme-option flex min-h-[108px] items-start gap-4 rounded-2xl border p-4 text-left transition ${
                     active
-                      ? 'border-brand-500 bg-brand-50 text-brand-700 shadow-soft'
+                      ? 'border-brand-500 text-brand-700 shadow-soft'
                       : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 hover:bg-sky-50'
                   }`}
                 >
-                  <span className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl ${active ? 'bg-brand-600 text-white' : 'bg-sky-50 text-brand-600'}`}>
+                  <span className="settings-option-icon grid h-11 w-11 shrink-0 place-items-center rounded-xl">
                     <Icon size={20} />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -152,7 +152,7 @@ export function Settings() {
             </label>
             <label className="block">
               <span className="mb-2 block text-sm font-extrabold text-slate-700">Email</span>
-              <div className="flex h-13 items-center gap-3 rounded-2xl border border-brand-100 bg-sky-50 px-4 text-slate-600">
+              <div className="settings-email-field flex h-13 items-center gap-3 rounded-2xl border border-brand-100 bg-sky-50 px-4 text-slate-600">
                 <Mail size={18} />
                 <span className="truncate">{user?.email}</span>
               </div>
@@ -187,7 +187,7 @@ export function Settings() {
 function SummaryCard({ icon, title, text }: { icon: ReactNode; title: string; text: string }) {
   return (
     <div className="flex items-center gap-4 p-5">
-      <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>
+      <div className="settings-option-icon grid h-12 w-12 shrink-0 place-items-center rounded-2xl">{icon}</div>
       <div className="min-w-0">
         <h2 className="font-extrabold text-navy">{title}</h2>
         <p className="mt-1 truncate text-sm text-slate-600">{text}</p>
@@ -199,7 +199,7 @@ function SummaryCard({ icon, title, text }: { icon: ReactNode; title: string; te
 function SectionTitle({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>
+      <div className="settings-option-icon grid h-11 w-11 place-items-center rounded-2xl">{icon}</div>
       <div>
         <h2 className="text-xl font-extrabold text-navy">{title}</h2>
         <p className="mt-0.5 text-sm text-slate-600">{subtitle}</p>

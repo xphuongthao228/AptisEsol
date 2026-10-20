@@ -3,7 +3,7 @@ import { useAuthStore } from '../store/authStore';
 import type { ApiResponse, AuthResponse } from '../types';
 
 const baseURL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
-const REQUEST_TIMEOUT_MS = 15_000;
+const REQUEST_TIMEOUT_MS = 60_000;
 
 export const api = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS, withCredentials: true });
 export const publicApi = axios.create({ baseURL, timeout: REQUEST_TIMEOUT_MS, withCredentials: true });

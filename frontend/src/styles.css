@@ -1090,8 +1090,8 @@ html[data-student-skin="halloween"] .student-shell header::after {
 }
 
 html[data-student-skin="halloween"] .student-shell header .mobile-wordmark::after {
-  content: "Halloween";
-  display: inline-flex;
+  content: none;
+  display: none;
   align-items: center;
   height: 1.15rem;
   margin-left: 0.55rem;
@@ -6706,6 +6706,14 @@ html.dark[data-student-skin="halloween"] .student-shell .leaderboard-top-card > 
   color: #dc2626 !important;
 }
 
+html[data-student-skin="halloween"] .student-shell .leaderboard-top-card > div > span:first-child,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .leaderboard-top-card > div > span:first-child,
+html.dark[data-student-skin="halloween"] .student-shell .leaderboard-top-card > div > span:first-child {
+  border-color: #e2e8f0 !important;
+  background: #ffffff !important;
+  color: #475569 !important;
+}
+
 html[data-student-skin="halloween"] .student-shell .leaderboard-reset-card,
 html:not(.dark)[data-student-skin="halloween"] .student-shell .leaderboard-reset-card,
 html.dark[data-student-skin="halloween"] .student-shell .leaderboard-reset-card {
@@ -8812,6 +8820,18 @@ html.dark[data-student-skin="halloween"] .student-shell .writing-bank-history-em
   -webkit-text-fill-color: currentColor !important;
 }
 
+.student-shell .writing-bank-sentences-empty,
+html[data-student-skin="halloween"] .student-shell .writing-bank-sentences-empty,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .writing-bank-sentences-empty,
+html.dark[data-student-skin="halloween"] .student-shell .writing-bank-sentences-empty {
+  background: #f8fafc !important;
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  text-shadow: none !important;
+}
+
 html.dark[data-student-skin="halloween"] .mock-assessment-native .mock-writing-result-card button.mock-writing-exit-button,
 html.dark[data-student-skin="halloween"] .mock-assessment-native button.mock-writing-exit-button,
 html.dark[data-student-skin="halloween"] button.mock-writing-exit-button {
@@ -9014,6 +9034,11 @@ html.dark[data-student-skin="halloween"] .student-shell .writing-bank-page :wher
 
 html.dark[data-student-skin="halloween"] .student-shell .writing-bank-page :where(.bg-slate-50, .bg-slate-100) {
   background-color: #f8fafc !important;
+}
+
+.student-shell .writing-bank-page .writing-answer-item,
+html.dark[data-student-skin="halloween"] .student-shell .writing-bank-page .writing-answer-item {
+  background-color: #ffffff !important;
 }
 
 html.dark[data-student-skin="halloween"] .student-shell .writing-bank-page :where(.bg-pink-50, .bg-rose-50) {
@@ -9640,3 +9665,93 @@ html.dark[data-student-skin="halloween"] .practice-runner-light-mode .practice-t
   opacity: 1 !important;
 }
 
+
+/* Keep the Writing guide banner readable across student themes. */
+.student-shell .writing-bank-page header.writing-guide-banner,
+html[data-student-skin="halloween"] .student-shell .writing-bank-page header.writing-guide-banner,
+html:not(.dark)[data-student-skin="halloween"] .student-shell .writing-bank-page header.writing-guide-banner,
+html.dark[data-student-skin="halloween"] .student-shell .writing-bank-page header.writing-guide-banner {
+  background: linear-gradient(110deg, #fff1f2 0%, #ffffff 55%, #f5f3ff 100%) !important;
+  border-color: #fbcfe8 !important;
+  box-shadow: 0 4px 16px rgb(236 72 153 / 6%) !important;
+}
+
+html[data-student-skin="halloween"] .student-shell .writing-bank-page header.writing-guide-banner::after {
+  content: none !important;
+}
+
+/* Keep connector rows and their translations readable in every student theme. */
+html .student-shell .writing-bank-page table.writing-guide-connectors tbody tr,
+html .student-shell .writing-bank-page table.writing-guide-connectors tbody tr > :is(th, td) {
+  background: #ffffff !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+html:root body .student-shell .settings-page .settings-option-icon,
+html:root body .student-shell .settings-page .settings-option-icon svg {
+  background: #e0f2fe !important;
+  color: #0369a1 !important;
+  -webkit-text-fill-color: #0369a1 !important;
+}
+
+html:root body .student-shell .settings-page button.settings-theme-option,
+html:root.dark body .student-shell .settings-page button.settings-theme-option {
+  background: #ffffff !important;
+}
+
+html body .student-shell .settings-page .settings-theme-option:hover,
+html.dark body .student-shell .settings-page .settings-theme-option:hover {
+  background: #fff7ed !important;
+}
+
+html body .student-shell .settings-page form input.input,
+html body .student-shell .settings-page .settings-email-field,
+html.dark body .student-shell .settings-page form input.input,
+html.dark body .student-shell .settings-page .settings-email-field {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color-scheme: light;
+}
+
+html body .student-shell .settings-page .settings-email-field :is(span, svg),
+html.dark body .student-shell .settings-page .settings-email-field :is(span, svg) {
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+}
+
+html body .student-shell .settings-page form input.input::placeholder,
+html.dark body .student-shell .settings-page form input.input::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+  opacity: 1;
+}
+
+html body .settings-account-identity p,
+html.dark body .settings-account-identity p {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+html body header nav .header-more-button,
+html body header nav .header-more-button svg,
+html.dark body header nav .header-more-button,
+html.dark body header nav .header-more-button svg {
+  background-color: #4c1d65 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body header nav .header-more-button:hover,
+html body header nav .header-more-button:hover svg,
+html.dark body header nav .header-more-button:hover,
+html.dark body header nav .header-more-button:hover svg {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html .student-shell .writing-bank-page table.writing-guide-connectors tbody tr:nth-child(odd),
+html .student-shell .writing-bank-page table.writing-guide-connectors tbody tr:nth-child(odd) > :is(th, td) {
+  background: #eff6ff !important;
+}

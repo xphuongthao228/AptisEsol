@@ -78,6 +78,7 @@ export function SEO({ title, description, robots = 'index, follow', image = DEFA
 }
 
 export function getSeoByPath(pathname: string, isAdmin = false): SEOProps {
+  if (pathname.includes('/speaking-bank')) return { title: 'Kho đề Speaking', description: 'Kho mẫu câu và đáp án Speaking theo Part, chủ đề và trình độ.', robots: 'noindex, nofollow' };
   if (isAdmin) {
     if (pathname.includes('/admin/users')) return { title: 'Quản lý người dùng', description: 'Quản lý học viên, trạng thái truy cập, hạn học và tài khoản trong hệ thống LingoMaster Aptis.', robots: 'noindex, nofollow' };
     if (pathname.includes('/admin/content')) return { title: 'Quản lý nội dung', description: 'Tạo và cập nhật câu hỏi, bài luyện, topic, đáp án và nội dung ôn thi Aptis.', robots: 'noindex, nofollow' };
