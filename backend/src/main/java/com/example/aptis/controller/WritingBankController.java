@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -77,6 +78,22 @@ public class WritingBankController {
         if ("samples".equalsIgnoreCase(bankType)) return "samples";
         throw new IllegalArgumentException("Loại kho Writing không hợp lệ: " + bankType);
     }
+
+    @DeleteMapping("/{bankType}/prompts")
+    @Transactional
+    public ApiResponse<Integer> deletePrompts(@PathVariable String bankType,
+                                            @Valid @RequestBody List<DeletePromptRequest> requests) {
+        String bank = normalizeBankType(bankType);
+        int deleted = 0;
+        for (String part : requests.stream().map(DeletePromptRequest::part).distinct().toList()) {
+            List<String> ids = requests.stream().filter(request -> part.equals(request.part()))
+                    .map(DeletePromptRequest::id).distinct().toList();
+            deleted += repository.deletePrompts(bank, part, ids);
+        }
+        return ApiResponse.ok(deleted);
+    }
+
+    public record DeletePromptRequest(@NotBlank String id, @NotBlank String part) {}
 
     private String cleanRequired(String value, String field, int index) {
         String cleaned = cleanOptional(value);

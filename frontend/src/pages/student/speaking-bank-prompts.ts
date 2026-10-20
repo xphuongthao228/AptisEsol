@@ -1,4 +1,5 @@
 import type { SpeakingPracticePrompt } from './speaking-practice-data';
+import importedBankImages from './speaking-bank-images.json';
 
 export type SpeakingBankRow = {
   id: string; part: string; topic: string; question: string; vi: string;
@@ -23,10 +24,13 @@ export function mergeSpeakingBank(practice: SpeakingPracticePrompt[], rows: Spea
     const unambiguous = new Set(candidates.map(row => row.topic)).size <= 1;
     const matching = rows.filter(row => row.part === prompt.part &&
       (bankId && row.id === bankId || (scoped.length ? scoped : unambiguous ? candidates : []).includes(row)));
-    const forms = matching.filter(row => row.bank === 'samples').map(row => ({
+    const toStep = (row: SpeakingBankRow) => ({
       title: row.tag || 'Triển khai câu trả lời', hint_vi: row.textVi || '',
       starter_en: '', suggested_answer: row.text,
-    }));
+    });
+    const forms = matching.filter(row => row.bank === 'samples' && (!row.level || row.level === 'B1')).map(toStep);
+    const formsByLevel = Object.fromEntries(['B1', 'B2', 'C1'].map(level => [level,
+      matching.filter(row => row.bank === 'samples' && row.level === level).map(toStep)]));
     const levelSamples = { ...prompt.levelSamples };
     for (const level of ['B1', 'B2', 'C1']) {
       const answers = matching.filter(row => row.bank === 'answers' && row.level === level);
@@ -34,10 +38,12 @@ export function mergeSpeakingBank(practice: SpeakingPracticePrompt[], rows: Spea
     }
     const fullQuestion = matching.find(row => row.question.replace(/\\n/g, '\n').includes('\n'))?.question;
     return { ...prompt, question: fullQuestion?.replace(/\\n/g, '\n') || prompt.question,
-      forms: prompt.forms?.length ? prompt.forms : forms, levelSamples };
+      forms: prompt.forms?.length ? prompt.forms : forms, formsByLevel, levelSamples };
   };
   const groupedPart3Topics = new Set(rows.filter(row => row.part === 'Speaking Part 3' && /[-_]Q[123]$/i.test(row.id)).map(row => row.topic));
-  const result = practice.filter(prompt => prompt.part !== 'Speaking Part 2' &&
+  const hasPart4Samples = rows.some(row => row.part === 'Speaking Part 4' && row.bank === 'samples');
+  const result = practice.filter(prompt => !(hasPart4Samples && prompt.part === 'Speaking Part 4' &&
+    questionKey(prompt.topic).normalize('NFD').replace(/[\u0300-\u036f]/g, '') === 'mau form chung cho toan bo cau hoi') && prompt.part !== 'Speaking Part 2' &&
     !(prompt.part === 'Speaking Part 3' && groupedPart3Topics.has(prompt.topic))).map(prompt => {
     if (!prompt.subQuestions?.length) return enrich(prompt);
     const subQuestions = prompt.subQuestions.map(sub => {
@@ -73,11 +79,30 @@ export function mergeSpeakingBank(practice: SpeakingPracticePrompt[], rows: Spea
     const setId = setKey.slice(first.part.length + 1);
     const pictureNumber = Number(setId.match(/^(?:P2|part3)[-_](\d+)$/i)?.[1]);
     // These numbered assets belong to the imported P2-01 ... P2-37 sets.
-    const images = first.part === 'Speaking Part 2'
+    const localImages = first.part === 'Speaking Part 2'
       ? pictureNumber >= 1 && pictureNumber <= 37 ? [`/images/speaking/part2/${pictureNumber}.png`] : []
       : pictureNumber >= 1 && pictureNumber <= 25 ? [1, 2].map(side => `/images/speaking/part3/de${String(pictureNumber).padStart(2, '0')}_${side}.png`) : [];
+    // Match the actual imported prompt; bank numbering need not match test numbering.
+    const topicMatches = practice.filter(prompt => prompt.part === first.part &&
+      questionKey(prompt.topic) === questionKey(first.topic));
+    const questionMatches = practice.filter(prompt => prompt.part === first.part &&
+      [...set.values()].some(row => [prompt.question, ...(prompt.subQuestions || []).map(sub => sub.question)]
+        .some(question => sameQuestion(question, row.question))));
+    const matches = topicMatches.length ? topicMatches : questionMatches;
+    const matchedImages = [0, 1].map(side => {
+      const urls = [...new Set(matches.map(prompt => prompt.images[side]).filter(Boolean))];
+      const imported = importedBankImages.find(entry => entry.part === first.part &&
+        questionKey(entry.topic) === questionKey(first.topic));
+      return urls.length === 1 ? urls[0] : imported?.images[side] || '';
+    });
+    // Use the matched question's image even when its URL points to a local asset.
+    // New imports may use IDs unrelated to the original P2-01 numbering.
+    const images = matchedImages.some(Boolean) ? matchedImages.filter(Boolean) : localImages;
     result.push({ id: `bank:${first.part}:${setId}`, part: first.part, topic: first.topic,
-      ...subQuestions[0], subQuestions, images, source: 'Kho mẫu câu & đáp án' });
+      ...subQuestions[0], subQuestions, images, imageFallbacks: images.map((src, side) => {
+        const imported = importedBankImages.find(entry => entry.part === first.part && questionKey(entry.topic) === questionKey(first.topic));
+        return imported?.images[side] !== src ? imported?.images[side] || '' : '';
+      }), source: 'Kho mẫu câu & đáp án' });
   }
   for (const row of groups.values()) {
     if ((row.part === 'Speaking Part 2' || row.part === 'Speaking Part 3') && /[-_]Q[123]$/i.test(row.id)) continue;

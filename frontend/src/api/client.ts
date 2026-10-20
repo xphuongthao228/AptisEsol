@@ -1,4 +1,4 @@
-﻿import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { useAuthStore } from '../store/authStore';
 import type { ApiResponse, AuthResponse } from '../types';
 
@@ -208,8 +208,10 @@ api.interceptors.response.use(
 
       originalRequest.headers.Authorization = `Bearer ${data.accessToken}`;
       return api(originalRequest);
-    } catch (refreshError) {
-      return Promise.reject(refreshError);
+    } catch {
+      // Preserve the protected request's 401 if session recovery fails.
+      // A refresh endpoint's 400 must not look like a data validation error.
+      return Promise.reject(error);
     } finally {
       refreshPromise = null;
       sessionPromise = null;
@@ -275,7 +277,7 @@ export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Pro
       } else if (error.response?.status === 403) {
         error.message = 'Phiên học đã hết hạn hoặc tài khoản chưa có quyền truy cập.';
       } else if (error.code === 'ECONNABORTED') {
-        error.message = 'Backend phản hồi quá lâu. Hãy kiểm tra backend đang chạy ở cổng 8080 rồi thử lại.';
+        error.message = 'Yêu cầu mất nhiều thời gian hơn dự kiến. Vui lòng thử lại.';
       }
 
       throw error;

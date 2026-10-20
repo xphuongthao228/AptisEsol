@@ -1,4 +1,4 @@
-﻿import { BookOpen, Pencil, Plus, RotateCcw, Save, Search, Trash2, UploadCloud } from 'lucide-react';
+import { BookOpen, Pencil, Plus, RotateCcw, Save, Search, Trash2, UploadCloud } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
@@ -60,7 +60,7 @@ const resourceTypeLabels: Record<LessonResourceType, string> = {
 function apiErrorMessage(error: any, fallback: string) {
   const message = error?.response?.data?.message ?? error?.response?.data?.errors?.[0] ?? error?.message;
   const status = error?.response?.status;
-  return message ? `${fallback}: ${message}` : `${fallback}${status ? ` (HTTP ${status})` : ''}`;
+  return message ? `${fallback}: ${message}` : `${fallback}${status ? ` Vui lòng thử lại.` : ''}`;
 }
 
 export function AdminLessons() {

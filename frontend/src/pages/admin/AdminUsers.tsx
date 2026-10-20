@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { AlertCircle, CalendarPlus, ChevronLeft, ChevronRight, Lock, Pencil, RefreshCw, Search, Trash2, Unlock, UserCheck, UserX, Wifi } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
@@ -110,7 +110,7 @@ export function AdminUsers() {
     } catch (error: any) {
       const status = error?.response?.status;
       const message = error?.response?.data?.message;
-      toast.error(message ?? `Không cộng được thời gian${status ? ` (HTTP ${status})` : ''}. Hãy chạy lại backend.`);
+      toast.error(message ?? 'Không cộng được thời gian. Vui lòng thử lại sau.');
     }
   }
 

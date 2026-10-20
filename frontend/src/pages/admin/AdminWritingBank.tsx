@@ -1,6 +1,6 @@
-﻿import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
-import { BookOpen, Download, Search, Trash2, UploadCloud } from 'lucide-react';
+import { BookOpen, Download, RefreshCw, Search, Trash2, UploadCloud } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { api, unwrap } from '../../api/client';
@@ -55,14 +55,13 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
   };
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeBank, setActiveBank] = useState<BankType>(() => parseBankType(searchParams.get('bank')) ?? 'samples');
-  const [banks, setBanks] = useState<Record<BankType, WritingPrompt[]>>(() => ({
-    samples: loadStoredPrompts(writingBankStorageKey),
-    answers: loadStoredPrompts(writingAnswerBankStorageKey)
-  }));
+  const [banks, setBanks] = useState<Record<BankType, WritingPrompt[]>>({ samples: [], answers: [] });
   const [query, setQuery] = useState('');
   const [speakingPart, setSpeakingPart] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
-  const loadWarningShownRef = useRef(false);
+  const [loadingBanks, setLoadingBanks] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const loadingBanksRef = useRef(false);
   const prompts = skill === 'speaking' ? banks[activeBank].filter(p => p.part === `Speaking Part ${speakingPart}`) : banks[activeBank];
   const activeConfig = bankConfig[activeBank];
 
@@ -136,8 +135,7 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
   async function removePrompt(id: string) {
     if (!confirm(`Xóa chủ đề này khỏi ${activeConfig.label.toLowerCase()}?`)) return;
     try {
-      const next = banks[activeBank].filter((prompt) => prompt.id !== id);
-      await saveBank(activeBank, next);
+      await deleteBankPrompts(activeBank, banks[activeBank].filter(prompt => prompt.id === id));
       setSelectedIds((current) => {
         const selected = new Set(current);
         selected.delete(id);
@@ -146,7 +144,7 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
       toast.success('Đã xóa chủ đề');
     } catch (error) {
       console.error(error);
-      toast.error('Không xóa được dữ liệu. Hãy kiểm tra backend và quyền admin.');
+      toast.error(bankDeleteError(error));
     }
   }
 
@@ -154,13 +152,12 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
     if (!selectedCount) return;
     if (!confirm(`Xóa ${selectedCount} chủ đề đã chọn khỏi ${activeConfig.label.toLowerCase()}?`)) return;
     try {
-      const next = banks[activeBank].filter((prompt) => !selectedIds.has(prompt.id));
-      await saveBank(activeBank, next);
+      await deleteBankPrompts(activeBank, banks[activeBank].filter(prompt => selectedIds.has(prompt.id)));
       setSelectedIds(new Set());
       toast.success(`Đã xóa ${selectedCount} chủ đề`);
     } catch (error) {
       console.error(error);
-      toast.error('Không xóa được dữ liệu đã chọn. Hãy kiểm tra backend và quyền admin.');
+      toast.error(bankDeleteError(error));
     }
   }
 
@@ -189,7 +186,7 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
       toast.success('Đã xóa câu');
     } catch (error) {
       console.error(error);
-      toast.error('Không xóa được câu. Hãy kiểm tra backend và quyền admin.');
+      toast.error('Không xóa được câu. Vui lòng thử lại sau.');
     }
   }
 
@@ -217,19 +214,34 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
   async function clearImportedBank(bankType: BankType = activeBank) {
     if (!confirm(`Xóa toàn bộ dữ liệu ${bankConfig[bankType].label.toLowerCase()}${skill === 'speaking' ? ` Part ${speakingPart}` : ''} đã import?`)) return;
     try {
-      await saveBank(bankType, skill === 'speaking' ? banks[bankType].filter(p => p.part !== `Speaking Part ${speakingPart}`) : []);
+      await deleteBankPrompts(bankType, banks[bankType].filter(p => skill !== 'speaking' || p.part === `Speaking Part ${speakingPart}`));
       setSelectedIds(new Set());
       toast.success('Đã xóa dữ liệu import');
     } catch (error) {
       console.error(error);
-      toast.error('Không xóa được dữ liệu import. Hãy kiểm tra backend và quyền admin.');
+      toast.error('Không xóa được dữ liệu import. Vui lòng thử lại sau.');
     }
   }
 
   async function loadBanks() {
+    if (loadingBanksRef.current) return;
+    loadingBanksRef.current = true;
+    setLoadingBanks(true);
+    setLoadError('');
+    async function fetchBank(bank: BankType) {
+      for (let attempt = 0; ; attempt++) {
+        try {
+          return await unwrap<WritingBankRow[]>(api.get(`/${skill}-bank/${bank}`));
+        } catch (error: any) {
+          const status = error?.response?.status;
+          if (attempt >= 2 || (status && status < 500)) throw error;
+          await new Promise(resolve => setTimeout(resolve, (attempt + 1) * 1000));
+        }
+      }
+    }
     const [samplesResult, answersResult] = await Promise.allSettled([
-      unwrap<WritingBankRow[]>(api.get(`/${skill}-bank/samples`)),
-      unwrap<WritingBankRow[]>(api.get(`/${skill}-bank/answers`))
+      fetchBank('samples'),
+      fetchBank('answers')
     ]);
 
     setBanks((current) => {
@@ -254,9 +266,34 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
       return next;
     });
 
-    if ((samplesResult.status === 'rejected' || answersResult.status === 'rejected') && !loadWarningShownRef.current) {
-      loadWarningShownRef.current = true;
-      toast.error(`Chưa kết nối được backend kho ${skillLabel}. Nếu vừa cập nhật code, hãy restart backend.`);
+    const failures = [samplesResult, answersResult].filter(result => result.status === 'rejected');
+    if (failures.length) {
+      const statuses = failures.map(result => result.status === 'rejected' ? result.reason?.response?.status : undefined);
+      setLoadError(statuses.includes(401)
+        ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để tải và quản lý kho đề.'
+        : statuses.includes(403)
+          ? 'Tài khoản hiện tại chưa có quyền quản lý kho đề. Vui lòng đăng nhập bằng tài khoản quản trị.'
+          : 'Chưa tải được dữ liệu mới nhất. Vui lòng bấm Tải lại dữ liệu.');
+    }
+    loadingBanksRef.current = false;
+    setLoadingBanks(false);
+  }
+
+  async function deleteBankPrompts(bankType: BankType, removed: WritingPrompt[]) {
+    if (!removed.length) return;
+    await unwrap(api.delete(`/${skill}-bank/${bankType}/prompts`, {
+      data: removed.map(prompt => ({ id: prompt.id, part: prompt.part }))
+    }));
+    const next = banks[bankType].filter(prompt => !removed.some(item => item.id === prompt.id && item.part === prompt.part));
+    savePrompts(bankConfig[bankType].storageKey, next);
+    setBanks(current => ({ ...current, [bankType]: next }));
+    if (skill === 'speaking') {
+      window.dispatchEvent(new Event('speaking-bank-updated'));
+      if (typeof BroadcastChannel !== 'undefined') {
+        const channel = new BroadcastChannel('speaking-bank-sync');
+        channel.postMessage('updated');
+        channel.close();
+      }
     }
   }
 
@@ -317,6 +354,13 @@ function AdminSentenceBank({ skill = 'writing' }: { skill?: 'writing' | 'speakin
 
   return (
     <div className="space-y-6">
+      <div className="flex flex-wrap items-center gap-3" aria-live="polite">
+        <button type="button" className="btn-secondary" disabled={loadingBanks} onClick={() => void loadBanks()}>
+          <RefreshCw size={17} className={loadingBanks ? 'animate-spin' : ''} />
+          {loadingBanks ? 'Đang tải dữ liệu…' : 'Tải lại dữ liệu'}
+        </button>
+        {loadError && <p role="alert" className="text-sm text-red-700">{loadError}</p>}
+      </div>
       {skill === 'speaking' && <section className="grid grid-cols-2 gap-3 sm:grid-cols-4" aria-label="Chọn Part để import">
         {[1, 2, 3, 4].map(part => <button type="button" key={part} aria-pressed={speakingPart === part} className={`${speakingPart === part ? 'border-pink-500 bg-pink-50 text-pink-700' : 'bg-white text-slate-700'} rounded-2xl border p-4 text-left`} onClick={() => { setSpeakingPart(part); switchBank('samples'); }}><span className="block text-lg font-extrabold">Part {part}</span><span className="mt-1 block text-sm">{banks.samples.filter(p => p.part === `Speaking Part ${part}`).length} câu hỏi mẫu · {banks.answers.filter(p => p.part === `Speaking Part ${part}`).length} câu hỏi có đáp án</span></button>)}
       </section>}
@@ -569,7 +613,7 @@ function convertDynamicSpeakingRows(rows: string[][], bank: BankType): string[][
   records.forEach((record, index) => {
     if (!record.some(v => v.trim())) return;
     const row = Object.fromEntries(headers.map((h, i) => [cleanHeader(h).toLowerCase(), record[i]?.trim() || '']));
-    if (!row.part && row.question1 && 'q2_forms_json' in row && 'q3_forms_json' in row) {
+    if ((!row.part || /^(?:Speaking\s+Part\s*|Part\s*)?4$/i.test(row.part)) && row.question1 && 'q2_forms_json' in row && 'q3_forms_json' in row) {
       row.part = '4';
       row.id = row.id || `P4-${row.sort_order || index + 1}`;
       row.question = [row.question1, row.question2, row.question3].filter(Boolean).join('\n');
@@ -600,15 +644,26 @@ function convertDynamicSpeakingRows(rows: string[][], bank: BankType): string[][
       for (const n of [1, 2]) if (row[`original_answer${n}`]) { add('body', row[`original_answer${n}`], '', '', `Đáp án gốc ${n}`); count++; }
       if (!count) throw new Error(`Dòng ${index + 2}: thiếu b1_sample/b2_sample/c1_sample hoặc original_answer1/2.`);
     } else {
-      let steps: unknown;
-      try { steps = JSON.parse(row.forms_json || 'null'); } catch { throw new Error(`Dòng ${index + 2}: forms_json không phải JSON hợp lệ.`); }
-      if (!Array.isArray(steps) || !steps.length) throw new Error(`Dòng ${index + 2}: forms_json phải là mảng các bước trả lời.`);
-      steps.forEach((step, i) => {
+      for (const [level, key] of [['B1', 'forms_json'], ['B2', 'b2_forms_json'], ['C1', 'c1_forms_json']]) {
+        if (level !== 'B1' && !row[key]) continue;
+        let steps: unknown;
+        try { steps = JSON.parse(row[key] || 'null'); } catch { throw new Error(`Dòng ${index + 2}: ${key} không phải JSON hợp lệ.`); }
+        if (!Array.isArray(steps) || !steps.length) throw new Error(`Dòng ${index + 2}: ${key} phải là mảng các bước trả lời.`);
+        const combined = [...steps];
+        if (level !== 'B1' && part === '4') {
+          for (const n of [2, 3]) {
+            const extra = JSON.parse(row[`q${n}_forms_json`] || '[]');
+            if (!Array.isArray(extra)) throw new Error(`Dòng ${index + 2}: q${n}_forms_json phải là mảng.`);
+            combined.push(...extra.map(step => ({ ...step, title: `Q${n} · ${step.title || 'Triển khai câu trả lời'}` })));
+          }
+        }
+        combined.forEach((step, i) => {
         const answer = step?.suggested_answer ?? step?.value;
         if (typeof answer !== 'string') throw new Error(`Dòng ${index + 2}, bước ${i + 1}: thiếu suggested_answer hoặc value.`);
         if (!answer.trim()) return;
-        add(i === 0 ? 'opening' : i === steps.length - 1 ? 'ending' : 'body', answer.trim(), typeof step.hint_vi === 'string' ? step.hint_vi : '', '', typeof step.title === 'string' ? step.title : `Bước ${i + 1}`);
+        add(i === 0 ? 'opening' : i === combined.length - 1 ? 'ending' : 'body', answer.trim(), typeof step.hint_vi === 'string' ? step.hint_vi : '', level, typeof step.title === 'string' ? step.title : `Bước ${i + 1}`);
       });
+      }
     }
   });
   return output;
@@ -708,23 +763,26 @@ function parseBankType(value: string | null): BankType | null {
   return value === 'samples' || value === 'answers' ? value : null;
 }
 
-function loadStoredPrompts(storageKey: string) {
-  try {
-    const raw = localStorage.getItem(storageKey);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw) as WritingPrompt[];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+function bankDeleteError(error: unknown) {
+  const status = (error as { response?: { status?: number } })?.response?.status;
+  if (status === 401) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại rồi thực hiện xóa.';
+  if (status === 403) return 'Bạn cần đăng nhập bằng tài khoản quản trị để xóa dữ liệu.';
+  return 'Không xóa được dữ liệu. Vui lòng tải lại dữ liệu rồi thử lại.';
 }
 
 function savePrompts(storageKey: string, prompts: WritingPrompt[]) {
-  localStorage.setItem(storageKey, JSON.stringify(prompts));
+  // A full browser cache must not turn a successful server operation into an error.
+  try {
+    localStorage.setItem(storageKey, JSON.stringify(prompts));
+  } catch (error) {
+    console.warn('Could not cache bank data', error);
+  }
   const skill = storageKey.startsWith('aptis-speaking-') ? 'speaking' : 'writing';
   window.dispatchEvent(new CustomEvent(`${skill}-bank-updated`, { detail: { storageKey } }));
-  const channel = new BroadcastChannel(`${skill}-bank-sync`);
-  channel.postMessage({ storageKey, prompts });
-  channel.close();
+  if (typeof BroadcastChannel !== 'undefined') {
+    const channel = new BroadcastChannel(`${skill}-bank-sync`);
+    channel.postMessage({ storageKey });
+    channel.close();
+  }
 }
 

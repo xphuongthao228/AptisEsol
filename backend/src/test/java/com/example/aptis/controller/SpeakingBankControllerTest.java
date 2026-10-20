@@ -37,6 +37,22 @@ class SpeakingBankControllerTest {
     }
 
     @Test
+    void deletesOnlySelectedSpeakingPromptsInTheirPart() {
+        controller.deletePrompts("samples", List.of(
+                new WritingBankController.DeletePromptRequest("selected", "Speaking Part 4"),
+                new WritingBankController.DeletePromptRequest("selected", "Speaking Part 4")));
+        verify(repository).deletePrompts("speaking-samples", "Speaking Part 4", List.of("selected"));
+        verify(repository, never()).deleteByBankType(anyString());
+        verify(repository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void emptySelectionDoesNotDeleteAnything() {
+        controller.deletePrompts("answers", List.of());
+        verifyNoInteractions(repository);
+    }
+
+    @Test
     void speakingRequiresProOrAdmin() {
         var student = new UsernamePasswordAuthenticationToken("student", "",
                 List.of(new SimpleGrantedAuthority("ROLE_STUDENT")));

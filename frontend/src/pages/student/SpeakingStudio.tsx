@@ -6,7 +6,6 @@ import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import './speaking-studio.css';
 import { mergeSpeakingBank, type SpeakingBankRow } from './speaking-bank-prompts';
-import { speakingLevelForms } from './speaking-level-forms';
 import type { Question, Test } from '../../types';
 import { isPartPracticeSource, isRandomTest, compareTestsByNaturalNumber } from './Tests';
 import { speakingPracticePrompts, type SpeakingPracticePrompt } from './speaking-practice-data';
@@ -21,6 +20,7 @@ const forms: Step[][] = [
   [['Mở đầu – Giới thiệu chủ đề', 'Nói bạn sẽ nói về điều gì.', "I’d like to talk about", 'a memorable trip I had'], ['Bối cảnh và thời gian', 'Chuyện diễn ra khi nào và ở đâu?', 'I went to', 'Da Nang last summer'], ['Đi cùng ai', 'Bạn đi với ai?', 'I went there with', 'my family'], ['Trải nghiệm và hoạt động', 'Bạn đã làm gì ở đó?', 'We', 'visited beautiful beaches and tried local food'], ['Lý do đáng nhớ', 'Điều gì khiến chuyến đi đáng nhớ?', 'What made it special was', 'the time I spent with my family'], ['Kết luận và cảm xúc', 'Cảm nhận và bài học.', 'Overall, it was a wonderful experience because', 'I could relax and create unforgettable memories']]
 ];
 const questions = ['What do you usually do in your free time?', 'Describe this picture.', 'Compare these two pictures.', 'Tell me about a time when you had a memorable trip.'];
+const showSidebarLibrary = false;
 const translations = ['Bạn thường làm gì trong thời gian rảnh?', 'Hãy miêu tả bức tranh và trả lời câu hỏi.', 'Hãy so sánh hai bức tranh và trả lời câu hỏi.', 'Hãy kể về một chuyến đi đáng nhớ của bạn.'];
 const followUpForm: Step[] = [['Trả lời trực tiếp', 'Trả lời đúng trọng tâm câu hỏi.', 'I think', ''], ['Giải thích lý do', 'Giải thích lý do cho câu trả lời của bạn.', 'One reason is that', ''], ['Đưa ví dụ', 'Nêu một ví dụ hoặc trải nghiệm thực tế.', 'For example,', ''], ['Kết luận', 'Tóm lại ý kiến hoặc cảm nhận của bạn.', 'Overall,', '']];
 const vocabulary = [['read books', 'watch films', 'play sports', 'listen to music', 'cook', 'travel', 'relax', 'take photos'], ['people', 'in the background', 'outdoors', 'together', 'happy', 'relaxed', 'sunny', 'activity'], ['both pictures', 'whereas', 'in contrast', 'similar', 'different', 'prefer', 'together', 'alone'], ['destination', 'trip', 'travel', 'memorable', 'experience', 'beautiful', 'local food', 'scenery']];
@@ -93,8 +93,8 @@ export function SpeakingStudio({ onOpenLibrary }: { onOpenLibrary: () => void })
   const subQuestion = group?.subQuestions?.[subIndex];
   const prompt = group && { ...group, ...(subQuestion || {}), id: subQuestion ? `${group.id}:q${subIndex + 1}` : group.id };
   const draftKey = prompt ? `${prompt.id}:${level}` : '';
-  const levelForms = useMemo(() => speakingLevelForms(prompt?.levelSamples?.[level], level), [prompt?.levelSamples, level]);
-  const activeForms = levelForms.length ? levelForms : prompt?.forms;
+  const importedForms = prompt?.formsByLevel?.[level];
+  const activeForms = importedForms?.length ? importedForms : prompt?.forms;
   const duration = prompt?.duration || defaultDuration;
   const questionText = prompt?.question || questions[part];
   const questionLines = questionText.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
@@ -136,8 +136,10 @@ export function SpeakingStudio({ onOpenLibrary }: { onOpenLibrary: () => void })
         <div className="ss-nav-section"><Mic size={19} /><b>Speaking</b><ChevronRight size={16} /></div>
         <div className="ss-subnav">
           {labels.map((label, i) => <button key={label} disabled={recording || requesting} aria-current={part === i ? 'page' : undefined} className={part === i ? 'active' : ''} onClick={() => { setPart(i); setIndex(0); setSavedOpen(false); setSidebarOpen(false); }}>Speaking Part {i + 1}</button>)}
-          <button disabled={recording || requesting} onClick={onOpenLibrary}><Library size={15} />Kho mẫu câu & đáp án</button>
-          <button className={savedOpen ? 'active' : ''} onClick={() => { setSavedOpen(true); setSidebarOpen(false); window.setTimeout(() => root.current?.querySelector('.ss-saved-toggle')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0); }}><Bookmark size={15} />Bài đã lưu <span>{saved.length}</span></button>
+          {showSidebarLibrary && <>
+            <button disabled={recording || requesting} onClick={onOpenLibrary}><Library size={15} />Kho mẫu câu & đáp án</button>
+            <button className={savedOpen ? 'active' : ''} onClick={() => { setSavedOpen(true); setSidebarOpen(false); window.setTimeout(() => root.current?.querySelector('.ss-saved-toggle')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0); }}><Bookmark size={15} />Bài đã lưu <span>{saved.length}</span></button>
+          </>}
         </div>
       </nav>
     </aside>
@@ -155,7 +157,7 @@ export function SpeakingStudio({ onOpenLibrary }: { onOpenLibrary: () => void })
       {group?.subQuestions && <p className="ss-muted">Câu hỏi nhỏ {subIndex + 1}/{group.subQuestions.length} · {duration} giây mỗi câu</p>}
       {part4Questions.length > 1 ? <div className="ss-part4-questions" id="ss-question-panel"><div className="ss-part4-heading"><h2>Trả lời các câu hỏi sau</h2><span>2 phút cho toàn bộ bài nói</span></div><ol>{part4Questions.map((question, i) => <li key={i}><span className="ss-part4-number">Q{i + 1}</span><p>{question}</p><button type="button" aria-label={`Nghe câu hỏi ${i + 1}`} onClick={() => speak(question)}><Volume2 size={18} /></button></li>)}</ol></div> : <div className="ss-question-title" id="ss-question-panel" role={group?.subQuestions ? 'tabpanel' : undefined} aria-labelledby={group?.subQuestions ? `ss-q-tab-${subIndex}` : undefined}><h2>{questionText}</h2><button aria-label="Nghe câu hỏi" onClick={() => speak(questionText)}><Volume2 size={20} /></button></div>}<p className="ss-translation">{prompt ? prompt.vi : translations[part]}</p>
       {prompt && <p className="ss-muted">Nguồn: Luyện đề theo Part · {prompt.source}</p>}
-      {!!prompt?.images.length && <section className="ss-picture-section" aria-label={part === 2 ? 'Hai bức tranh để so sánh' : 'Tranh miêu tả'}>{part === 2 && <h3>So sánh hai bức tranh</h3>}<div className={`ss-pictures ${part === 2 ? 'pair' : ''}`}>{prompt.images.map((src, i) => <SpeakingPicture key={`${group?.id}:${src}:${i}`} src={src} number={i + 1} />)}</div></section>}
+      {!!prompt?.images.length && <section className="ss-picture-section" aria-label={part === 2 ? 'Hai bức tranh để so sánh' : 'Tranh miêu tả'}>{part === 2 && <h3>So sánh hai bức tranh</h3>}<div className={`ss-pictures ${part === 2 ? 'pair' : ''}`}>{prompt.images.map((src, i) => <SpeakingPicture key={`${group?.id}:${src}:${i}`} src={src} fallback={prompt.imageFallbacks?.[i]} number={i + 1} />)}</div></section>}
       {(part === 1 || part === 2) && prompt && !prompt.images.length && <p className="ss-notice">Đề này chưa có ảnh trong kho Speaking.</p>}
       <div className="ss-instruction">{part === 3 ? 'Bạn có 1 phút chuẩn bị và 2 phút để nói. Hãy phát triển câu trả lời với lý do và ví dụ.' : `Hãy trả lời trong khoảng ${duration} giây. Dùng các bước bên phải để xây dựng bài nói của bạn.`}</div>
       <div className="ss-recorder"><div className="ss-clock"><Timer size={33} /><div><small>{preparing ? 'Thời gian chuẩn bị' : 'Thời gian luyện nói'}</small><strong>{time}</strong></div><progress max={preparing ? 60 : duration} value={remaining} /></div><button className={`ss-record ${recording ? 'recording' : ''}`} disabled={requesting} onClick={() => void record()}>{recording ? <Square size={26} /> : <Mic size={29} />}<small>{requesting ? 'Đang mở micro…' : recording ? 'Dừng ghi âm' : 'Bắt đầu ghi âm'}</small></button><button disabled={!audioUrl || recording} onClick={() => void audio.current?.play().catch(() => toast.error('Không phát được bản ghi.'))}><Play size={23} /><small>Nghe lại</small></button><button disabled={recording || requesting} onClick={reset}><RotateCcw size={23} /><small>Làm lại</small></button></div>
@@ -165,9 +167,7 @@ export function SpeakingStudio({ onOpenLibrary }: { onOpenLibrary: () => void })
       {hints && <><div className="ss-ideas"><h3><Lightbulb size={22} />Ý tưởng trả lời (bằng tiếng Việt)</h3><ul>{ideaHints.map((hint, i) => <li key={i}>{hint}</li>)}</ul></div><div className="ss-vocabulary"><h3><BookOpen size={21} />Từ vựng gợi ý <small>Bấm để nghe</small></h3><div>{vocabularyHints.map(v => <button key={v} onClick={() => speak(v)}>{v}</button>)}</div></div></>}
     </section>
     <section className="ss-card ss-builder"><div className="ss-builder-heading"><h3><Sparkles size={23} />Các bước phát triển câu trả lời</h3><div><button className={!advanced ? 'active' : ''} onClick={() => setAdvanced(false)}>Form cơ bản</button><button className={advanced ? 'active' : ''} onClick={() => setAdvanced(true)}>Form nâng cao</button></div></div>
-      {levelForms.length > 0 && <p className="ss-instruction">Mẫu {level}: các câu bên dưới được tách từ bài mẫu đúng trình độ đã nhập.</p>}
-      {prompt && !levelForms.length && !!activeForms?.length && <p className="ss-instruction">Chưa có bài mẫu {level} cho câu hỏi này. Đang hiển thị form chung.</p>}
-      {prompt && !activeForms?.length && <p role="status" className="ss-instruction">Câu hỏi này chưa có dữ liệu các bước trả lời từ file import. Form bên dưới để bạn tự điền; hãy kiểm tra cột forms_json của dữ liệu đã nhập.</p>}
+      {prompt && !activeForms?.length && <p role="status" className="ss-instruction">Chưa có mẫu hướng dẫn cho câu hỏi này. Bạn có thể tự viết câu trả lời bên dưới.</p>}
       {advanced && <p className="ss-instruction">Phát triển mỗi ý bằng một chi tiết cụ thể, lý do hoặc ví dụ. Kết hợp câu với although, whereas hoặc which khi phù hợp.</p>}
       <div className="ss-steps">{steps.map((s, i) => <div className="ss-step" key={`${part}-${i}`}><span className="ss-number">{i + 1}</span><div className="ss-step-label"><b>{s[0]}</b><p>{s[1]}</p><em>{s[2]} …</em></div><div className="ss-step-input"><div><AutoGrowingTextarea rows={2} aria-label={`${s[0]}: ${s[2]}`} value={values[i] || ''} onChange={e => { const next = values.map((v, n) => n === i ? e.target.value : v); setValues(next); if (prompt) drafts.current.set(draftKey, next); }} /><button aria-label={`Nghe bước ${i + 1}`} onClick={() => speak(`${s[2]} ${values[i]}`)}><Volume2 size={18} /></button></div><details><summary>Gợi ý cách triển khai</summary><p>{activeForms?.[i]?.expansion_hint_vi || (advanced ? 'Thêm một trải nghiệm thực tế và giải thích tác động của nó. ' : 'Thay phần nội dung bằng ý của bạn. ')} Ví dụ: {s[2]} {s[3]}.</p></details></div></div>)}</div>
       <div className="ss-result"><div className="ss-result-title"><h3><FileIcon />Bài nói hoàn chỉnh <span>{level}</span></h3><button onClick={() => void copy()}><Copy size={15} />Sao chép toàn bộ</button></div><p>{fullText}</p><div className="ss-result-actions"><button className="primary" onClick={() => speak(fullText)}><Headphones size={18} />Nghe phát âm</button><button disabled={requesting} onClick={() => void record()}><Mic size={18} />{recording ? 'Dừng ghi âm' : 'Luyện nói'}</button><button onClick={save}><Bookmark size={18} />Lưu bài</button><button disabled={recording || requesting} onClick={reset}><RotateCcw size={18} />Làm lại</button></div></div>
@@ -203,8 +203,10 @@ function AutoGrowingTextarea(props: ComponentProps<'textarea'>) {
 
 
 
-function SpeakingPicture({ src, number }: { src: string; number: number }) {
+function SpeakingPicture({ src, fallback, number }: { src: string; fallback?: string; number: number }) {
   const [failed, setFailed] = useState(false);
-  useEffect(() => { setFailed(false); }, [src]);
-  return <figure>{failed ? <div className="ss-picture-error" role="status">Không tải được ảnh {number}.<button onClick={() => setFailed(false)}>Tải lại ảnh</button><a href={src} target="_blank" rel="noopener noreferrer" className="underline">Mở URL ảnh</a></div> : <img src={src} referrerPolicy="no-referrer" alt={`Bức tranh ${number}`} onError={() => setFailed(true)} />}</figure>;
+  const [useFallback, setUseFallback] = useState(false);
+  const activeSrc = useFallback && fallback ? fallback : src;
+  useEffect(() => { setFailed(false); setUseFallback(false); }, [src, fallback]);
+  return <figure>{failed ? <div className="ss-picture-error" role="status">Không tải được ảnh {number}.<button onClick={() => { setFailed(false); setUseFallback(false); }}>Tải lại ảnh</button><a href={activeSrc} target="_blank" rel="noopener noreferrer" className="underline">Mở URL ảnh</a></div> : <img src={activeSrc} referrerPolicy="no-referrer" alt={`Bức tranh ${number}`} onError={() => { if (!useFallback && fallback && fallback !== src) setUseFallback(true); else setFailed(true); }} />}</figure>;
 }

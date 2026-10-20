@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 
 export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []) {
@@ -24,17 +24,11 @@ export function useApi<T>(loader: () => Promise<T>, deps: unknown[] = []) {
         if (!mounted) return;
 
         const status = err?.response?.status;
-        const apiMessage = err?.response?.data?.message;
-        const detail = err?.response?.data?.errors ? `: ${JSON.stringify(err.response.data.errors)}` : '';
         const message = status === 401
           ? 'Không xác thực được yêu cầu. Phiên hiện tại vẫn được giữ; vui lòng tải lại trang hoặc thử đăng nhập lại nếu lỗi lặp lại.'
           : status === 403
             ? 'Bạn không có quyền truy cập dữ liệu này.'
-            : apiMessage
-              ? `${apiMessage}${detail}`
-              : status
-                ? `Không thể tải dữ liệu (HTTP ${status})`
-                : 'Không thể tải dữ liệu. Kiểm tra backend có đang chạy không.';
+            : 'Chưa tải được dữ liệu. Vui lòng thử lại sau.';
 
         setError(message);
         if (status !== 401 && status !== 403) {

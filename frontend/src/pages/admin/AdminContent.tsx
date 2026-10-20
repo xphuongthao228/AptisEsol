@@ -1,4 +1,4 @@
-﻿import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
 import { BookOpen, Download, Layers, ListChecks, MessageCircle, Mic, Pencil, Play, Plus, Star, Trash2, UploadCloud, Volume2, Wand2 } from 'lucide-react';
@@ -115,7 +115,7 @@ function SkillsPanel({ skills, setSkills }: { skills: Skill[]; setSkills: Dispat
         ? 'Không lưu được: tài khoản hiện tại không có quyền ADMIN. Hãy đăng nhập bằng tài khoản quản trị.'
         : status === 400
           ? `Không lưu được: ${apiMessage ?? 'dữ liệu chưa hợp lệ'}`
-          : `Không lưu được kỹ năng${status ? ` (HTTP ${status})` : ''}. Kiểm tra backend đang chạy và token đăng nhập.`;
+          : `Không lưu được kỹ năng. Vui lòng thử lại.`;
       setErrorMessage(message);
       toast.error(message);
     } finally {
@@ -1572,7 +1572,7 @@ function apiErrorMessage(error: any, fallback: string) {
   }
 
   if (message) return `${fallback}: ${message}`;
-  if (status) return `${fallback} (HTTP ${status})`;
+  if (status) return `${fallback} Vui lòng thử lại.`;
   return fallback;
 }
 

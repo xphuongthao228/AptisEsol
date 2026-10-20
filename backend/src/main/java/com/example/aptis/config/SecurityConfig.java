@@ -121,6 +121,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/writing-bank/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/speaking-bank/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/speaking-bank/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE, "/api/writing-bank/**", "/api/speaking-bank/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/ui-settings").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/ui-settings").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()

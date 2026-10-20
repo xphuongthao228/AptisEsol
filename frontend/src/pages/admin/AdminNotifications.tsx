@@ -1,4 +1,4 @@
-﻿import { type FormEvent, useEffect, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Bell, CheckCircle2, Megaphone, Pencil, Pin, PinOff, Plus, Trash2, XCircle } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
@@ -70,7 +70,7 @@ function apiErrorMessage(error: any, fallback: string) {
   }
 
   if (message) return `${fallback}: ${message}`;
-  if (status) return `${fallback} (HTTP ${status})`;
+  if (status) return `${fallback} Vui lòng thử lại.`;
   return fallback;
 }
 

@@ -1,4 +1,4 @@
-﻿import { Copy, Download, FileCheck, Pencil, Plus, RotateCcw, Save, Search, Star, Trash2, UploadCloud } from 'lucide-react';
+import { Copy, Download, FileCheck, Pencil, Plus, RotateCcw, Save, Search, Star, Trash2, UploadCloud } from 'lucide-react';
 import type { ChangeEvent } from 'react';
 import { useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
@@ -478,7 +478,7 @@ export function AdminMockTests() {
       resetForm();
       toast.success(form.id ? 'Đã cập nhật đề thi thử' : 'Đã tạo đề thi thử');
     } catch {
-      toast.error('Không lưu được đề thi thử vào backend');
+      toast.error('Không lưu được đề thi thử. Vui lòng thử lại.');
     }
   }
 

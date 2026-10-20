@@ -1,10 +1,10 @@
-﻿import type { Question, Test } from '../../types';
+import type { Question, Test } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
 import { isQuestionInPart } from './Tests';
 
 export type SpeakingSubQuestion = { question: string; vi: string; samples: string[] } & ReturnType<typeof dynamicFields>;
 export type SpeakingFormStep = { title: string; hint_vi: string; starter_en: string; suggested_answer: string; expansion_hint_vi?: string; is_optional?: boolean };
-export type SpeakingPracticePrompt = { id: string; part: string; topic: string; question: string; vi: string; images: string[]; samples: string[]; source: string; subQuestions?: SpeakingSubQuestion[]; forms?: SpeakingFormStep[]; ideas?: string[]; vocabulary?: string[]; levelSamples?: Record<string, string>; duration?: number };
+export type SpeakingPracticePrompt = { id: string; part: string; topic: string; question: string; vi: string; images: string[]; imageFallbacks?: string[]; samples: string[]; source: string; subQuestions?: SpeakingSubQuestion[]; forms?: SpeakingFormStep[]; formsByLevel?: Record<string, SpeakingFormStep[]>; ideas?: string[]; vocabulary?: string[]; levelSamples?: Record<string, string>; duration?: number };
 function jsonArray(value: unknown): unknown[] {
   try { const parsed = typeof value === 'string' ? JSON.parse(value) : value; return Array.isArray(parsed) ? parsed : []; } catch { return []; }
 }
@@ -50,7 +50,8 @@ export function speakingPracticePrompts(test: Test, questions: Question[]): Spea
       imageIndexes[part] = imageIndex + 1;
       const item: Record<string, unknown> = typeof raw === 'string' ? { question: raw } : raw && typeof raw === 'object' ? raw as Record<string, unknown> : {};
       const images = [1, 2].slice(0, part === 3 ? 2 : part === 2 ? 1 : 0).map(side => {
-        const path = pick(item, [`urlpic${side}`, `urlPic${side}`, `url_pic${side}`, `url_pic_${side}`, `image${side}`, `image${side}Url`, `image_${side}`, `picture${side}`, `picture${side}Url`, `pic${side}`, `photo${side}`, `photo${side}Url`, ...(side === 1 ? ['imageUrl'] : [])]);
+        const keys = [`urlpic${side}`, `urlPic${side}`, `url_pic${side}`, `url_pic_${side}`, `image${side}`, `image${side}Url`, `imageUrl${side}`, `image_url${side}`, `image_${side}`, `picture${side}`, `picture${side}Url`, `pic${side}`, `photo${side}`, `photo${side}Url`, ...(side === 1 ? ['imageUrl', 'image_url'] : [])];
+        const path = pick(item, keys) || (data ? pick(data, keys) : '');
         // Same local fallback convention as the Part practice runner.
         return image(path || (part === 2 ? `/images/speaking/part2/${imageIndex + 1}.png` : `/images/speaking/part3/de${String(imageIndex + 1).padStart(2, '0')}_${side}.png`));
       });

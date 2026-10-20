@@ -1,4 +1,4 @@
-﻿import {
+import {
   ArrowLeft,
   ArrowRight,
   AlertCircle,
@@ -5492,7 +5492,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
   if (cardsError) {
     return (
       <div className="p-10 text-center" role="alert">
-        <p className="font-semibold text-red-700">Không kết nối được backend để tải danh sách đề.</p>
+        <p className="font-semibold text-red-700">Chưa tải được danh sách đề. Vui lòng thử lại sau.</p>
         <button type="button" className="mt-4 rounded-lg bg-brand-600 px-4 py-2 text-sm font-extrabold text-white hover:bg-brand-700" onClick={() => setReloadIndex((value) => value + 1)}>
           Thử lại
         </button>
