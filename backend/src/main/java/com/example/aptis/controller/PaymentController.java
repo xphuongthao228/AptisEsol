@@ -23,6 +23,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class PaymentController {
     private final PaymentService paymentService;
+    private final com.example.aptis.service.ReferralService referrals;
+    @GetMapping("/referral/me")
+    public ApiResponse<com.example.aptis.service.ReferralService.ReferralInfo> referral(Authentication authentication) {
+        return ApiResponse.ok(referrals.mine(authentication.getName()));
+    }
+    public record QuoteRequest(@jakarta.validation.constraints.NotNull Integer days,String discountCode) {}
+    @PostMapping("/quote")
+    public ApiResponse<com.example.aptis.service.DiscountService.Quote> quote(Authentication authentication, @Valid @RequestBody QuoteRequest request){return ApiResponse.ok(paymentService.quote(authentication.getName(),request.days(),request.discountCode()));}
 
     @PostMapping("/renewal")
     public ApiResponse<PaymentDtos.PaymentResponse> createRenewal(Authentication authentication,

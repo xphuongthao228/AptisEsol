@@ -16,6 +16,7 @@ const AdminMedia = lazy(() => import('../pages/admin/AdminMedia').then((module) 
 const AdminMockTests = lazy(() => import('../pages/admin/AdminMockTests').then((module) => ({ default: module.AdminMockTests })));
 const AdminNotifications = lazy(() => import('../pages/admin/AdminNotifications').then((module) => ({ default: module.AdminNotifications })));
 const AdminPredictions = lazy(() => import('../pages/admin/AdminPredictions').then((module) => ({ default: module.AdminPredictions })));
+const AdminDiscounts = lazy(() => import('../pages/admin/AdminDiscounts').then(module => ({default:module.AdminDiscounts})));
 const AdminRevenue = lazy(() => import('../pages/admin/AdminRevenue').then((module) => ({ default: module.AdminRevenue })));
 const AdminUsers = lazy(() => import('../pages/admin/AdminUsers').then((module) => ({ default: module.AdminUsers })));
 const AdminWritingBank = lazy(() => import('../pages/admin/AdminWritingBank').then((module) => ({ default: module.AdminWritingBank })));
@@ -139,6 +140,7 @@ export const router = createBrowserRouter([
       { path: 'leaderboard', element: <Leaderboard /> },
       { path: 'predictions', element: <AdminPredictions /> },
       { path: 'revenue', element: <AdminRevenue /> },
+      { path: 'discounts', element: <AdminDiscounts /> },
       { path: 'ai-usage', element: <AdminAiUsage /> },
       { path: 'writing-bank', element: <AdminWritingBank /> },
       { path: 'speaking-bank', element: <AdminWritingBank key="speaking" skill="speaking" /> },

@@ -35,6 +35,11 @@ public class PaymentOrder extends BaseEntity {
 
     @Column(nullable = false)
     private Integer amount;
+    private Integer originalAmount;
+    @Column(length=40)
+    private String discountCode;
+    private Long referrerId;
+    private Boolean referralRewarded;
 
     @Column(name = "payment_code", nullable = false, unique = true, length = 80)
     private String paymentCode;

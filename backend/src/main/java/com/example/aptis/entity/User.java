@@ -45,6 +45,9 @@ public class User extends BaseEntity {
 
     @Column(name = "pro_expires_at")
     private LocalDateTime proExpiresAt;
+    @Column(unique=true,length=40)
+    private String referralCode;
+    private Long referredByUserId;
 
     @Column(name = "last_seen_at")
     private LocalDateTime lastSeenAt;

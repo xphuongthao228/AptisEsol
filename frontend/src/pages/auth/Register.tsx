@@ -93,7 +93,7 @@ export function Register() {
       ) : (
         <form onSubmit={submitOtp} className="space-y-5">
           <div className="rounded-2xl border border-brand-100 bg-brand-50 p-4 text-sm font-semibold leading-6 text-brand-800">
-            Kiểm tra Gmail, Spam hoặc Quảng cáo nếu chưa thấy mã OTP.
+            Kiểm tra Gmail, Thư rác (Spam) hoặc Quảng cáo nếu chưa thấy mã OTP.
           </div>
           {devOtp && (
             <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-6 text-amber-800">

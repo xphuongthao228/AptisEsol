@@ -80,6 +80,7 @@ const adminLinks: LayoutLink[] = [
   { to: '/admin/leaderboard', label: 'Bảng xếp hạng', icon: Trophy },
   { to: '/admin/predictions', label: 'Dự đoán đề', icon: FileSearch },
   { to: '/admin/revenue', label: 'Doanh thu', icon: DollarSign },
+  { to: '/admin/discounts', label: 'Mã giảm giá', icon: DollarSign },
   { to: '/admin/notifications', label: 'Thông báo', icon: Bell }
 ];
 

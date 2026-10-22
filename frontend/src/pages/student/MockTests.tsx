@@ -4840,7 +4840,7 @@ export function MockTests() {
               onToggleSound={toggleSpeakingSound}
             />
           )}
-          {screen === 'fullStart' && <FullStart mockCard={selectedMockCard} onStart={startFullSpeaking} />}
+          {screen === 'fullStart' && <FullStart mockCard={selectedMockCard} loading={selectedMockCardLoading || subscriptionLoading} onStart={startFullSpeaking} />}
           {screen === 'readingStart' && <ReadingStart mockCard={selectedMockCard} data={activeReadingData} loading={selectedMockCardLoading} onStart={() => setScreen('readingInstructions')} />}
           {screen === 'readingInstructions' && <ReadingInstructions />}
           {screen === 'readingQuestion' && <ReadingQuestion data={activeReadingData.gaps} answers={readingGapAnswers} bookmarkActive={isBookmarked(bookmarkKey('reading-part1', 1))} showAnswer={answerRevealOpen} timeRemaining={formatReadingTime(readingSeconds)} onAnswer={(index, answer) => setReadingGapAnswers((currentAnswers) => ({ ...currentAnswers, [index]: answer }))} onToggleBookmark={() => toggleBookmark(bookmarkKey('reading-part1', 1))} />}
@@ -5945,7 +5945,8 @@ function FullTopbar({ onExit }: { onExit: () => void }) {
   );
 }
 
-function FullStart({ mockCard, onStart }: { mockCard?: MockCard | null; onStart: () => void }) {
+function FullStart({ mockCard, loading, onStart }: { mockCard?: MockCard | null; loading: boolean; onStart: () => void }) {
+  const canStart = !loading && Boolean(mockCard?.questionData?.trim());
   const sections = [
     { name: 'Speaking', detail: '4 parts · 12 min' },
     { name: 'Listening', detail: '4 parts · 40 min' },
@@ -5990,8 +5991,8 @@ function FullStart({ mockCard, onStart }: { mockCard?: MockCard | null; onStart:
           <MicTestPanel />
         </div>
 
-        <button type="button" onClick={onStart} className="mt-8 h-[46px] rounded-xl px-7 text-lg font-semibold text-white hover:opacity-95" style={{ backgroundColor: '#2b075c' }}>
-          Start Assessment
+        <button type="button" onClick={onStart} disabled={!canStart} aria-busy={loading} className="mt-8 h-[46px] rounded-xl px-7 text-lg font-semibold text-white enabled:hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-40" style={{ backgroundColor: '#2b075c' }}>
+          {loading || !mockCard ? 'Đang tải đề...' : 'Start Assessment'}
         </button>
       </section>
     </main>
@@ -6265,6 +6266,8 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
                     <button
                       key={option}
                       type="button"
+                      className="mock-grammar-option"
+                      aria-pressed={selected}
                       onClick={() => onAnswer(option)}
                       style={{
                         width: '100%',

@@ -3851,8 +3851,6 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
               <h2 className="text-xl font-bold">{data.prompt}</h2>
               <SpeakingRecordButton compact />
             </div>
-            <p className="mt-6 text-xs font-bold uppercase tracking-widest text-slate-600">Your answer</p>
-            <textarea className="mt-2 min-h-20 w-full rounded-xl border border-brand-100 bg-sky-50 p-4 italic text-slate-600" placeholder="Your speech will appear here..." value={saved.speech ?? ''} onChange={(event) => setAnswer('speech', event.target.value)} />
             <button type="button" className="mt-8 h-10 w-full rounded-lg border border-brand-600 text-sm font-semibold text-brand-600"><MessageCircle className="mr-2 inline" size={15} />Sample Answer</button>
           </div>
         </div>
@@ -4222,13 +4220,6 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <SpeakingRecordButton compact onRecordingComplete={setRecordedAudio} />
         </div>
-        <p className="mt-8 text-xs font-extrabold uppercase tracking-widest text-slate-600">Your answer</p>
-        <textarea
-          className="mt-2 min-h-24 w-full rounded-xl border border-brand-100 bg-sky-50 p-4 text-sm italic text-slate-700"
-          placeholder="Your speech will appear here..."
-          value={saved[`speakingPart1Answer-${index}`] ?? ''}
-          onChange={(event) => setAnswer(`speakingPart1Answer-${index}`, event.target.value)}
-        />
         <SpeakingAiScorePanel
           partTitle="Speaking Part 1"
           prompt={String(current.question ?? '')}
@@ -4449,13 +4440,6 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
             </div>
             <SpeakingRecordButton compact onRecordingComplete={setRecordedAudio} />
           </div>
-          <p className="mt-6 text-xs font-bold uppercase tracking-widest text-slate-600">Your answer</p>
-          <textarea
-            className="mt-2 min-h-20 w-full rounded-xl border border-brand-100 bg-sky-50 p-4 italic text-slate-600"
-            placeholder="Your speech will appear here..."
-            value={saved[`speakingPart2Answer-${index}-${tab}`] ?? ''}
-            onChange={(event) => setAnswer(`speakingPart2Answer-${index}-${tab}`, event.target.value)}
-          />
           <SpeakingAiScorePanel
             partTitle="Speaking Part 2"
             prompt={String(prompt ?? '')}
@@ -4725,13 +4709,6 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
             </div>
             <SpeakingRecordButton compact onRecordingComplete={setRecordedAudio} />
           </div>
-          <p className="mt-6 text-xs font-bold uppercase tracking-widest text-slate-600">Your answer</p>
-          <textarea
-            className="mt-2 min-h-20 w-full rounded-xl border border-brand-100 bg-sky-50 p-4 italic text-slate-600"
-            placeholder="Your speech will appear here..."
-            value={saved[`speakingPart3Answer-${index}-${tab}`] ?? ''}
-            onChange={(event) => setAnswer(`speakingPart3Answer-${index}-${tab}`, event.target.value)}
-          />
           <SpeakingAiScorePanel
             partTitle="Speaking Part 3"
             prompt={String(prompt ?? '')}
@@ -4876,13 +4853,6 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
               </div>
               <SpeakingRecordButton compact durationSeconds={120} onRecordingComplete={setRecordedAudio} />
             </div>
-            <p className="mt-8 text-xs font-bold uppercase tracking-widest text-slate-600">Your answer</p>
-            <textarea
-              className="mt-2 min-h-24 w-full rounded-xl border border-brand-100 bg-sky-50 p-4 italic text-slate-600"
-              placeholder="Your speech will appear here..."
-              value={saved[`speakingPart4Answer-${index}`] ?? ''}
-              onChange={(event) => setAnswer(`speakingPart4Answer-${index}`, event.target.value)}
-            />
             <SpeakingAiScorePanel
               partTitle="Speaking Part 4"
               prompt={String(current.question ?? 'Speaking Part 4 question')}

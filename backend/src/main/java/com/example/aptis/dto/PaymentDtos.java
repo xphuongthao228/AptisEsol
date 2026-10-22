@@ -13,7 +13,8 @@ public class PaymentDtos {
                         @NotBlank String fullName,
                         @NotBlank String packageLabel,
                         @NotNull @Positive Integer days,
-                        @NotNull @Positive Integer amount) {
+                        @NotNull @Positive Integer amount, String discountCode) {
+ public CreateRenewalPaymentRequest(String fullName,String packageLabel,Integer days,Integer amount){this(fullName,packageLabel,days,amount,null);}
         }
 
         public record PaymentResponse(

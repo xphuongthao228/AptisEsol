@@ -8458,6 +8458,20 @@ html.dark[data-student-skin="halloween"] .mock-assessment-native .mock-grammar-c
   color: #020817 !important;
 }
 
+.mock-assessment-native .mock-grammar-card button.mock-grammar-option[aria-pressed="true"] {
+  background: #ede3ff !important;
+  box-shadow: inset 4px 0 0 #2b075c;
+}
+
+.mock-assessment-native .mock-grammar-card button.mock-grammar-option[aria-pressed="true"] > span {
+  font-weight: 700 !important;
+}
+
+.mock-assessment-native .mock-grammar-card button.mock-grammar-option:focus-visible {
+  outline: 2px solid #2b075c;
+  outline-offset: -3px;
+}
+
 html.dark .mock-assessment-native .mock-grammar-card select,
 html[data-student-skin="halloween"] .mock-assessment-native .mock-grammar-card select,
 html.dark[data-student-skin="halloween"] .mock-assessment-native .mock-grammar-card select {
@@ -9749,6 +9763,43 @@ html.dark body header nav .header-more-button:hover,
 html.dark body header nav .header-more-button:hover svg {
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
+}
+
+html body .student-shell .renewal-page #discount-code,
+html body .student-shell .renewal-page .renewal-discount-apply {
+  background: transparent !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+html body .student-shell .renewal-page input.renewal-payer-name {
+  background: #ffffff !important;
+  color: #334155 !important;
+  -webkit-text-fill-color: #334155 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: none !important;
+}
+
+html body .student-shell .renewal-page input.renewal-payer-name::placeholder,
+html body .student-shell .renewal-page #discount-code::placeholder {
+  color: #64748b !important;
+  -webkit-text-fill-color: #64748b !important;
+}
+
+html body .student-shell .renewal-page button.renewal-discount-apply,
+html body .student-shell .renewal-page button.renewal-discount-apply:disabled {
+  background: transparent !important;
+  color: #6b21a8 !important;
+  -webkit-text-fill-color: #6b21a8 !important;
+  border: 1px solid #d8b4fe !important;
+  opacity: 1 !important;
+  box-shadow: none !important;
+}
+
+html body .student-shell .renewal-page button.renewal-discount-apply:hover:not(:disabled) {
+  background: transparent !important;
 }
 
 html .student-shell .writing-bank-page table.writing-guide-connectors tbody tr:nth-child(odd),

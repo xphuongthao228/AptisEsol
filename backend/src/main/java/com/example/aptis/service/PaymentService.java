@@ -32,6 +32,20 @@ public class PaymentService {
     private final PaymentOrderRepository paymentOrders;
     private final UserRepository users;
     private final QuestionRepository questions;
+    private final DiscountService discountService;
+    private final ReferralService referrals;
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+    @Transactional(readOnly=true)
+    public DiscountService.Quote quote(String email, Integer days, String code) {
+        String normalized = DiscountService.normalize(code);
+        if (!normalized.startsWith("REF")) return discountService.quote(days, code);
+        referrals.validate(email, normalized);
+        var original = discountService.quote(days, null);
+        int amount = original.amount() * 90 / 100;
+        return new DiscountService.Quote(original.amount(), original.amount()-amount, amount, normalized);
+    }
+
 
     @Value("${app.payment.bank-id}")
     private String bankId;
@@ -51,24 +65,34 @@ public class PaymentService {
     @Transactional
     public PaymentDtos.PaymentResponse createRenewalPayment(String email,
             PaymentDtos.CreateRenewalPaymentRequest request) {
-        int expectedAmount = switch (request.days() == null ? 0 : request.days()) {
-            case 7 -> 40000;
-            case 14 -> 75000;
-            case 30 -> 140000;
-            case 60 -> 250000;
-            default -> throw new IllegalArgumentException("Invalid renewal package");
-        };
+        var quote = quote(email, request.days(), request.discountCode());
+        int expectedAmount = quote.amount();
         if (!Integer.valueOf(expectedAmount).equals(request.amount())) {
             throw new IllegalArgumentException("Renewal price has changed. Please reload the page.");
         }
         User user = users.findByEmailAndDeletedAtIsNull(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        Long referrerId = null;
+        if (quote.discountCode() != null && quote.discountCode().startsWith("REF")) {
+            user = users.findByIdForUpdate(user.getId()).orElseThrow();
+            entityManager.refresh(user);
+            referrerId = referrals.validate(email, quote.discountCode()).getId();
+            var pending = paymentOrders.findByUserIdAndReferrerIdIsNotNullAndStatus(user.getId(), PaymentStatus.PENDING);
+            if (!pending.isEmpty()) {
+                PaymentOrder existing = pending.get(0);
+                if (existing.getDays().equals(request.days()) && existing.getReferrerId().equals(referrerId)) return response(existing);
+                throw new IllegalArgumentException("Bạn đã có đơn giới thiệu đang chờ thanh toán. Vui lòng hoàn tất đơn trước.");
+            }
+        }
         PaymentOrder order = new PaymentOrder();
         order.setUser(user);
         order.setPackageLabel(request.packageLabel());
         order.setDays(request.days());
         order.setAmount(expectedAmount);
+        order.setOriginalAmount(quote.originalAmount());
+        order.setDiscountCode(quote.discountCode());
+        order.setReferrerId(referrerId);
         order.setPaymentCode(generatePaymentCode(user));
         order.setStatus(PaymentStatus.PENDING);
         return response(paymentOrders.save(order));
@@ -211,8 +235,19 @@ public class PaymentService {
         order.setSepayTransactionId(firstText(request.id(), request.transactionId(), request.referenceCode()));
         order.setSepayReferenceCode(firstText(request.referenceCode(), request.code()));
         order.setSepayContent(text);
-        User payingUser = users.findByIdForUpdate(order.getUser().getId())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        Long buyerId = order.getUser().getId();
+        Long referrerId = order.getReferrerId();
+        User referrer = null;
+        if (referrerId != null && referrerId < buyerId) {
+            referrer = users.findByIdForUpdate(referrerId).orElseThrow();
+        }
+        User payingUser = users.findByIdForUpdate(buyerId).orElseThrow();
+        if (referrerId != null && referrer == null) referrer = users.findByIdForUpdate(referrerId).orElseThrow();
+        if (referrer != null && payingUser.getReferredByUserId() == null) {
+            payingUser.setReferredByUserId(referrerId);
+            extendUserSubscription(referrer, 3);
+            order.setReferralRewarded(true);
+        }
         extendUserSubscription(payingUser, order.getDays());
         return webhookResponse(true, "Payment confirmed and subscription extended", paymentCode, receivedAmount,
                 response(paymentOrders.save(order)));
