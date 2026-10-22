@@ -1,9 +1,24 @@
+import axios from 'axios';
 import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, unwrap } from '../../api/client';
 type Discount = {id:number;code:string;type:string;value:number;startsAt:string;endsAt:string;active:boolean};
 const localDate = (iso:string) => {const d=new Date(iso); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);};
 const empty = () => ({code:'',type:'PERCENT',value:10,startsAt:localDate(new Date().toISOString()),endsAt:localDate(new Date(Date.now()+7*86400000).toISOString()),active:true});
+
+function discountError(error: unknown, fallback: string) {
+ if (!axios.isAxiosError(error)) return fallback;
+ const status = error.response?.status;
+ if (!status) return 'Không kết nối được API mã giảm giá. Kiểm tra backend và kết nối mạng.';
+ if (status === 401) return 'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại tài khoản admin. (401)';
+ if (status === 403) return 'Yêu cầu bị từ chối. Kiểm tra quyền admin và cấu hình CORS trên backend. (403)';
+ if (status === 404) return 'Backend đang kết nối chưa có API mã giảm giá. Kiểm tra địa chỉ API và phiên bản backend. (404)';
+ if (status >= 500) return 'Backend lỗi khi xử lý mã giảm giá. Cần kiểm tra log server và bảng discount_codes. (' + status + ')';
+ const payload = error.response?.data;
+ const message = typeof payload?.message === 'string' ? payload.message : typeof payload?.error === 'string' ? payload.error : fallback;
+ return message + ' (' + status + ')';
+}
+
 export function AdminDiscounts() {
  const [items,setItems]=useState<Discount[]>([]);
  const [form,setForm]=useState(empty);
@@ -12,7 +27,7 @@ export function AdminDiscounts() {
  const [updatingStatus,setUpdatingStatus]=useState<number|null>(null);
  const [loading,setLoading]=useState(true);
  const [error,setError]=useState('');
- async function load(){try{setItems(await unwrap<Discount[]>(api.get('/discounts')));setError('');}catch{setError('Không tải được danh sách mã giảm giá.');}finally{setLoading(false);}}
+ async function load(){setLoading(true);try{setItems(await unwrap<Discount[]>(api.get('/discounts')));setError('');}catch(e){setError(discountError(e,'Không tải được danh sách mã giảm giá.'));}finally{setLoading(false);}}
  useEffect(()=>{void load();},[]);
  async function toggleStatus(item:Discount) {
    setUpdatingStatus(item.id);
@@ -25,13 +40,13 @@ export function AdminDiscounts() {
      if (editing===updated.id) setForm(current=>({...current,active:updated.active}));
      toast.success(updated.active?'Đã bật mã giảm giá.':'Đã tắt mã giảm giá.');
    } catch(e:any) {
-     toast.error(e?.response?.data?.message ?? 'Không cập nhật được trạng thái.');
+     toast.error(discountError(e, 'Không cập nhật được trạng thái.'));
    } finally { setUpdatingStatus(null); }
  }
  async function save(e:React.FormEvent){e.preventDefault();if(new Date(form.endsAt)<=new Date(form.startsAt)){toast.error('Ngày kết thúc phải sau ngày bắt đầu.');return;}setSaving(true);try{
  const body={...form,code:form.code.trim().toUpperCase(),startsAt:new Date(form.startsAt).toISOString(),endsAt:new Date(form.endsAt).toISOString()};
  await (editing ? api.put('/discounts/'+editing,body):api.post('/discounts',body));toast.success('Đã lưu mã giảm giá.');setEditing(null);setForm(empty());await load();
- }catch(e:any){toast.error(e?.response?.data?.message ?? 'Không lưu được mã giảm giá.');}finally{setSaving(false);}}
+ }catch(e:any){toast.error(discountError(e, 'Không lưu được mã giảm giá.'));}finally{setSaving(false);}}
  return <div className="space-y-6">
  <h1 className="text-2xl font-extrabold">Mã giảm giá</h1>
  <p className="text-sm text-slate-600">Áp dụng cho mọi gói trả phí. Thời gian theo múi giờ thiết bị. Số tiền thanh toán tối thiểu 1.000đ.</p>
