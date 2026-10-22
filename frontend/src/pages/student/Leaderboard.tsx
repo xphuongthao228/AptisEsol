@@ -10,7 +10,10 @@ import { userHasRole } from '../../utils/roles';
 import { repairMojibake } from '../../utils/textRepair';
 
 export function Leaderboard() {
-  const { data, loading, error } = useApi<LeaderboardRow[]>(() => unwrap(api.get('/submissions/leaderboard')), []);
+  const { data, loading, error, setData } = useApi<LeaderboardRow[]>(() => unwrap(api.get('/submissions/leaderboard')), []);
+  const [bonusStudent, setBonusStudent] = useState<LeaderboardRow | null>(null);
+  const [bonusPoints, setBonusPoints] = useState('');
+  const [savingBonus, setSavingBonus] = useState(false);
   const [query, setQuery] = useState('');
   const [examDate, setExamDate] = useState('');
   const [savingExamDate, setSavingExamDate] = useState(false);
@@ -46,6 +49,29 @@ export function Leaderboard() {
       toast.error(saveError instanceof Error ? saveError.message : 'Không lưu được ngày thi');
     } finally {
       setSavingExamDate(false);
+    }
+  }
+
+  async function addBonus() {
+    if (!bonusStudent || savingBonus) return;
+    const points = Number(bonusPoints);
+    if (!Number.isSafeInteger(points) || points <= 0 || points > 2147483647) {
+      toast.error('Nhập số điểm nguyên dương.');
+      return;
+    }
+    setSavingBonus(true);
+    try {
+      const updated = await unwrap<LeaderboardRow[]>(api.post(`/submissions/leaderboard/${bonusStudent.userId}/bonus`, {
+        points
+      }));
+      setData(updated);
+      setBonusStudent(null);
+      setBonusPoints('');
+      toast.success('Đã cộng điểm và cập nhật bảng xếp hạng.');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Không cộng được điểm. Vui lòng thử lại.');
+    } finally {
+      setSavingBonus(false);
     }
   }
 
@@ -175,6 +201,20 @@ export function Leaderboard() {
       )}
 
       <section className="overflow-hidden rounded-[8px] border border-brand-100 bg-white shadow-soft">
+        {isAdmin && bonusStudent && (
+          <form className="space-y-3 border-b border-brand-100 p-5" onSubmit={(event) => { event.preventDefault(); void addBonus(); }}>
+            <h2 className="font-extrabold text-navy">Cộng điểm cho {repairMojibake(bonusStudent.fullName)}</h2>
+            <p className="text-sm text-slate-500">{bonusStudent.email} · Điểm cộng chỉ áp dụng cho kỳ xếp hạng hiện tại.</p>
+            <label className="block text-sm font-bold text-navy">
+              Số điểm cộng
+              <input type="number" min="1" max="2147483647" step="1" required disabled={savingBonus} value={bonusPoints} onChange={(event) => setBonusPoints(event.target.value)} className="mt-1 block w-full rounded-lg border border-brand-100 bg-white p-3" />
+            </label>
+            <div className="flex gap-3">
+              <button type="submit" disabled={savingBonus} className="rounded-lg bg-brand-600 px-4 py-2 font-bold text-white disabled:opacity-60">{savingBonus ? 'Đang lưu...' : 'Cộng điểm'}</button>
+              <button type="button" disabled={savingBonus} onClick={() => setBonusStudent(null)} className="rounded-lg border border-brand-100 px-4 py-2 font-bold">Hủy</button>
+            </div>
+          </form>
+        )}
         <div className="leaderboard-table-head grid grid-cols-[72px_minmax(180px,1fr)_110px_110px_170px] gap-4 border-b border-brand-100 bg-sky-50 px-5 py-4 text-sm font-extrabold text-slate-600 max-lg:hidden">
           <span>Hạng</span>
           <span>Học viên</span>
@@ -196,6 +236,9 @@ export function Leaderboard() {
               <div className="min-w-0">
                 <h2 className="truncate text-base font-extrabold text-navy">{repairMojibake(row.fullName)}</h2>
                 <p className="mt-1 truncate text-sm font-semibold text-slate-500">{row.email}</p>
+                {isAdmin && (
+                  <button type="button" disabled={savingBonus} onClick={() => { setBonusStudent(row); setBonusPoints(''); }} className="mt-2 rounded-lg border border-brand-100 px-3 py-1 text-sm font-bold text-brand-700 disabled:opacity-60">+ Cộng điểm</button>
+                )}
               </div>
               <Metric label="Điểm" value={row.score} strong />
               <Metric label="Bài nộp" value={row.submissions} />

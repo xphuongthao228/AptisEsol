@@ -70,6 +70,7 @@ public class CoreService {
     private final ProgressRepository progress;
     private final MediaFileRepository mediaFiles;
     private final LeaderboardSettingsRepository leaderboardSettings;
+    private final LeaderboardBonusRepository leaderboardBonuses;
     private final UiSettingsRepository uiSettings;
     private final DtoMapper mapper;
     private final ObjectMapper objectMapper;
@@ -2059,6 +2060,15 @@ public class CoreService {
             item.add(row.getScore(), row.getSubmissions(), row.getLatestSubmissionAt());
         });
 
+        leaderboardBonuses.findByPeriodStart(startDate).forEach(bonus -> {
+            User user = bonus.getUser();
+            if (user.getDeletedAt() != null || user.getRoles().stream().noneMatch(role -> role.getName() == RoleName.STUDENT)) return;
+            LeaderboardAccumulator item = scores.computeIfAbsent(user.getId(), id ->
+                    new LeaderboardAccumulator(id, user.getFullName(), user.getEmail()));
+            item.applyProExpiration(user.getProExpiresAt(), startAt, endAt);
+            item.add(bonus.getPoints().longValue(), 0L, null);
+        });
+
         List<LeaderboardAccumulator> rows = scores.values().stream()
                 .filter(row -> row.score() > 0)
                 .sorted(Comparator
@@ -2092,6 +2102,24 @@ public class CoreService {
         }
 
         return result;
+    }
+
+    @Transactional
+    public List<CoreDtos.LeaderboardRowResponse> addLeaderboardBonus(String adminEmail, Long userId,
+            CoreDtos.LeaderboardBonusRequest request) {
+        User admin = users.findByEmail(adminEmail).orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        User user = users.findById(userId).orElseThrow(() -> new ResourceNotFoundException("Student not found"));
+        if (user.getDeletedAt() != null || user.getRoles().stream().noneMatch(role -> role.getName() == RoleName.STUDENT)) {
+            throw new IllegalArgumentException("Only students can receive leaderboard points");
+        }
+        LeaderboardBonus bonus = new LeaderboardBonus();
+        bonus.setUser(user);
+        bonus.setAdmin(admin);
+        bonus.setPoints(request.points());
+        bonus.setReason(request.reason() == null ? "" : request.reason().trim());
+        bonus.setPeriodStart(leaderboardPeriodStart());
+        leaderboardBonuses.saveAndFlush(bonus);
+        return leaderboard();
     }
 
     private LocalDate leaderboardPeriodStart() {

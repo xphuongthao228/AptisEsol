@@ -19,6 +19,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public class CoreDtos {
+    public record LeaderboardBonusRequest(@NotNull @Positive Integer points,
+            @jakarta.validation.constraints.Size(max = 500) String reason) {}
+
     public record SourcePrompt(String skill, String title, String content) {}
     public record UserUpdateRequest(@NotBlank String fullName, Boolean enabled) {
     }

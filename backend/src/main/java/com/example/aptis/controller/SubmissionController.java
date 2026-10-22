@@ -51,6 +51,14 @@ public class SubmissionController {
         return ApiResponse.ok(service.leaderboardSettings());
     }
 
+    @PostMapping("/leaderboard/{userId}/bonus")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ApiResponse<List<CoreDtos.LeaderboardRowResponse>> addLeaderboardBonus(
+            Authentication auth, @PathVariable Long userId,
+            @Valid @RequestBody CoreDtos.LeaderboardBonusRequest request) {
+        return ApiResponse.ok(service.addLeaderboardBonus(auth.getName(), userId, request));
+    }
+
     @PutMapping("/leaderboard/settings")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<CoreDtos.LeaderboardSettingsResponse> updateLeaderboardSettings(
