@@ -22,7 +22,22 @@ $env:DB_PASSWORD="demo123"
 $env:JWT_SECRET="replace-with-a-long-random-secret-at-least-32-characters"
 ```
 
-## Run
+## Railway deployment
+
+Use the backend service's Root Directory `/backend` and the Dockerfile builder.
+Clear any custom Build Command and Start Command so the Dockerfile builds and
+starts the application. Deploy the latest commit from the connected source branch.
+
+The Dockerfile compiles Java 17 source on every build and verifies that
+`DiscountController` is inside the executable JAR. Local `target/` files and
+`.env` files are excluded from the Docker build context. Keep credentials in
+Railway Variables.
+
+After deployment, open `/v3/api-docs` on the backend domain and confirm both
+`/api/discounts` and `/api/discounts/{id}` appear. This public endpoint verifies
+route registration; using the discount API itself still requires an admin session.
+
+## Local run
 
 ```powershell
 mvn spring-boot:run
