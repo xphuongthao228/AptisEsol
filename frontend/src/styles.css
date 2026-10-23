@@ -9806,3 +9806,28 @@ html .student-shell .writing-bank-page table.writing-guide-connectors tbody tr:n
 html .student-shell .writing-bank-page table.writing-guide-connectors tbody tr:nth-child(odd) > :is(th, td) {
   background: #eff6ff !important;
 }
+
+/* Keep saved answer comparisons readable across student themes. */
+html:root body .student-shell .saved-answer-review-row.saved-answer-review-row {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0;
+}
+
+html:root body .student-shell .saved-answer-review-row.saved-answer-review-row p {
+  color: #475569 !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html:root body .student-shell .saved-answer-review-row.saved-answer-review-row p:first-child {
+  color: #0f172a !important;
+}
+
+html:root body .student-shell .saved-answer-review-row.saved-answer-review-row strong.text-emerald-700 {
+  color: #047857 !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html:root body .student-shell .saved-answer-review-row.saved-answer-review-row strong.text-rose-700 {
+  color: #be123c !important;
+  -webkit-text-fill-color: currentColor !important;
+}

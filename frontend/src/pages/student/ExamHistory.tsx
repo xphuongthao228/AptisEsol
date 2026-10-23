@@ -273,7 +273,7 @@ function SavedAnswerReview({ groups, onBack }: { groups: SavedReviewGroup[]; onB
           </div>
         )}
         {groups.map((group) => <section key={group.title}><h3 className="mb-3 text-base font-extrabold text-navy">{group.title}</h3><div className="space-y-2">{group.rows.map((row, index) => (
-          <div key={`${group.title}-${index}`} className="grid gap-3 rounded-[8px] bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_minmax(150px,0.45fr)_minmax(150px,0.45fr)]">
+          <div key={`${group.title}-${index}`} className="saved-answer-review-row grid gap-3 rounded-[8px] bg-slate-50 p-4 md:grid-cols-[minmax(0,1fr)_minmax(150px,0.45fr)_minmax(150px,0.45fr)]">
             <p className="text-sm font-bold leading-6 text-navy">{index + 1}. {row.question}</p>
             <p className="text-sm text-slate-600">Bạn chọn: <strong className={row.correct ? 'text-emerald-700' : 'text-rose-700'}>{row.userAnswer}</strong></p>
             <p className="text-sm text-slate-600">Đáp án: <strong className="text-emerald-700">{row.correctAnswer}</strong></p>
