@@ -119,7 +119,7 @@ const whyChooseItems: Array<{ icon: LucideIcon; title: string; text: string }> =
 
 import { communityInviteDismissedKey, facebookCommunityUrl, zaloCommunityUrl, zaloCommunityUrl2 } from '../../utils/community';
 
-const zaloContactUrl = 'https://zalo.me/0867833227';
+const zaloContactUrl = 'https://zalo.me/0973280050';
 const mediaBaseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8080';
 
 type BannerMedia = { id: number; originalName: string; sourceUrl?: string | null };
@@ -1502,7 +1502,6 @@ function OverviewFooter() {
         <FooterColumn title="Tính năng" links={['Bộ đề Aptis', 'Luyện theo kỹ năng', 'Nhận xét Speaking-Writing', 'Theo dõi tiến độ']} />
       </div>
       <div className="mx-auto mt-10 flex max-w-[1280px] flex-col gap-3 border-t border-white/10 pt-5 text-sm font-medium text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-        <p>© 2024 Aptis Lingo. All rights reserved.</p>
         <div className="flex gap-4">
           <span>Về chúng tôi</span>
           <span>Điều khoản sử dụng</span>
