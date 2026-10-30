@@ -225,10 +225,26 @@ async function refreshAccessToken(refreshToken: string) {
 }
 
 async function restoreCookieSession() {
-  const response = await authApi.get<ApiResponse<AuthResponse>>('/auth/session', {
-    params: { t: Date.now() }
-  });
-  return response.data.data;
+  try {
+    const response = await authApi.get<ApiResponse<AuthResponse>>('/auth/session', {
+      params: { t: Date.now() }
+    });
+    return response.data.data;
+  } catch (error) {
+    if (!axios.isAxiosError(error) || error.response?.status !== 401) throw error;
+  }
+
+  // The access cookie can expire before the HttpOnly refresh cookie.
+  // Send no body so the backend reads the refresh token from that cookie.
+  try {
+    const response = await authApi.post<ApiResponse<AuthResponse>>('/auth/refresh-token');
+    return response.data.data;
+  } catch (error) {
+    if (axios.isAxiosError(error) && [400, 401].includes(error.response?.status ?? 0)) {
+      useAuthStore.getState().clearAuth();
+    }
+    throw error;
+  }
 }
 
 function shouldRefreshAccessToken(token: string) {

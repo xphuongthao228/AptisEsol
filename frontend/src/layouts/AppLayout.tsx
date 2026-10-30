@@ -18,13 +18,10 @@
   Mail,
   Menu,
   Mic,
-  Monitor,
-  Moon,
   Palette,
   PenLine,
   Settings,
   Shield,
-  Sun,
   Trophy,
   Upload,
   Users,
@@ -41,7 +38,7 @@ import { SEO, getSeoByPath } from '../components/SEO';
 import { communityInviteDismissedKey } from '../utils/community';
 import { useAuthStore } from '../store/authStore';
 import type { AppNotification, SubscriptionResponse, UiSettings, User } from '../types';
-import { ThemePreference, applyStudentSkin, hasStoredThemePreference, type StudentSkin, useThemePreference } from '../utils/theme';
+import { applyStudentSkin, getStoredStudentSkin, STUDENT_SKIN_KEY, UI_SETTINGS_UPDATED_EVENT, type StudentSkin } from '../utils/theme';
 import { userHasRole } from '../utils/roles';
 
 type LayoutLink = {
@@ -92,16 +89,11 @@ const adminMoreLinks: LayoutLink[] = [
   { to: '/admin/media', label: 'Media', icon: Upload }
 ];
 
-const themeOptions: Array<{ value: ThemePreference; label: string; icon: LucideIcon }> = [
-  { value: 'light', label: 'Màn hình sáng', icon: Sun },
-  { value: 'dark', label: 'Màn hình tối', icon: Moon },
-  { value: 'auto', label: 'Auto', icon: Monitor }
-];
+
 
 export function AppLayout() {
   const { user, logout } = useAuthStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [themeMenuOpen, setThemeMenuOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [visibleNavCount, setVisibleNavCount] = useState(0);
@@ -113,11 +105,10 @@ export function AppLayout() {
   const headerActionsRef = useRef<HTMLDivElement>(null);
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [navHidden, setNavHidden] = useState(false);
-  const [studentSkin, setStudentSkin] = useState<StudentSkin>('halloween');
+  const [studentSkin, setStudentSkin] = useState<StudentSkin>(getStoredStudentSkin);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const lastScrollYRef = useRef(0);
-  const { preference, resolvedTheme, setPreference } = useThemePreference();
   const navigate = useNavigate();
   const location = useLocation();
   const isAuthenticated = Boolean(user);
@@ -197,30 +188,47 @@ export function AppLayout() {
     }
 
     let mounted = true;
-    applyStudentSkin('halloween');
-    setStudentSkin('halloween');
-    unwrap<UiSettings>(publicApi.get('/ui-settings'))
-      .then((settings) => {
+    let inFlight = false;
+    const cachedSkin = getStoredStudentSkin();
+    applyStudentSkin(cachedSkin);
+    setStudentSkin(cachedSkin);
+    const syncSettings = async () => {
+      if (inFlight || document.visibilityState === 'hidden') return;
+      inFlight = true;
+      try {
+        const settings = await unwrap<UiSettings>(publicApi.get('/ui-settings', { headers: { 'Cache-Control': 'no-cache' } }));
         if (!mounted) return;
-        const nextSkin = settings.studentSkin ?? 'halloween';
+        const nextSkin = settings.studentSkin ?? 'default';
         applyStudentSkin(nextSkin);
         setStudentSkin(nextSkin);
-        if (!hasStoredThemePreference()) setPreference(settings.studentTheme);
-      })
-      .catch(() => {
-        applyStudentSkin('halloween');
-        if (mounted) setStudentSkin('halloween');
-      });
+        window.localStorage.setItem(STUDENT_SKIN_KEY, nextSkin);      } catch {
+        // Keep the last applied admin setting during temporary network failures.
+      } finally {
+        inFlight = false;
+      }
+    };
+    const onStorage = (event: StorageEvent) => {
+      if (event.key === STUDENT_SKIN_KEY) void syncSettings();
+    };
+    void syncSettings();
+    const timer = window.setInterval(syncSettings, 30_000);
+    window.addEventListener('focus', syncSettings);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener(UI_SETTINGS_UPDATED_EVENT, syncSettings);
+    document.addEventListener('visibilitychange', syncSettings);
 
     return () => {
       mounted = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', syncSettings);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener(UI_SETTINGS_UPDATED_EVENT, syncSettings);
+      document.removeEventListener('visibilitychange', syncSettings);
     };
-  }, [isAdmin, setPreference]);
+  }, [isAdmin]);
 
   useEffect(() => {
-    setAccountMenuOpen(false);
-    setThemeMenuOpen(false);
-    setMoreMenuOpen(false);
+    setAccountMenuOpen(false);    setMoreMenuOpen(false);
     setMobileMenuOpen(false);
   }, [location.pathname]);
 
@@ -264,10 +272,10 @@ export function AppLayout() {
   }, [navHidden]);
 
   useEffect(() => {
-    if (mobileMenuOpen || accountMenuOpen || themeMenuOpen || moreMenuOpen) {
+    if (mobileMenuOpen || accountMenuOpen || moreMenuOpen) {
       setNavHidden(false);
     }
-  }, [accountMenuOpen, mobileMenuOpen, moreMenuOpen, themeMenuOpen]);
+  }, [accountMenuOpen, mobileMenuOpen, moreMenuOpen]);
 
   const signOut = async () => {
     setMobileMenuOpen(false);
@@ -314,9 +322,7 @@ export function AppLayout() {
                 <button
                   type="button"
                   onClick={() => {
-                    setMoreMenuOpen((open) => !open);
-                    setThemeMenuOpen(false);
-                    setAccountMenuOpen(false);
+                    setMoreMenuOpen((open) => !open);                    setAccountMenuOpen(false);
                   }}
                   className={`header-more-button inline-flex h-10 items-center justify-center gap-1 whitespace-nowrap rounded-xl px-2 text-[11px] font-extrabold transition 2xl:text-[12px] ${
                     moreMenuOpen || hasActiveMoreLink
@@ -344,44 +350,6 @@ export function AppLayout() {
 
           <div ref={headerActionsRef} className="ml-auto flex shrink-0 items-center gap-2">
             {!isAuthenticated && <Link to="/login" className="mobile-sign-in rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white sm:hidden">Đăng nhập</Link>}
-            <div className="relative hidden md:block">
-              <button
-                type="button"
-                className="header-icon-button grid h-9 w-9 place-items-center rounded-full text-navy transition hover:bg-brand-50 hover:text-brand-700"
-                aria-label="Chọn giao diện sáng, tối hoặc auto"
-                aria-expanded={themeMenuOpen}
-                onClick={() => setThemeMenuOpen((open) => !open)}
-              >
-                {resolvedTheme === 'dark' ? <Moon size={18} /> : <Sun size={18} />}
-              </button>
-              {themeMenuOpen && (
-                <div className="theme-menu-panel absolute right-0 top-full z-50 mt-3 w-56 rounded-xl border border-brand-100 bg-white p-2 shadow-lift">
-                  {themeOptions.map((option) => {
-                    const Icon = option.icon;
-                    const active = preference === option.value;
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => {
-                          setPreference(option.value);
-                          setThemeMenuOpen(false);
-                        }}
-                        className={`theme-menu-option flex h-10 w-full items-center justify-between rounded-lg px-3 text-sm font-bold transition ${
-                          active ? 'bg-brand-50 text-brand-700' : 'text-slate-700 hover:bg-sky-100 hover:text-brand-700'
-                        }`}
-                      >
-                        <span className="flex items-center gap-2">
-                          <Icon size={17} />
-                          {option.label}
-                        </span>
-                        {active && <span className="h-2 w-2 rounded-full bg-brand-600" />}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
             {!isAdmin && (
               <>
               {subscription?.active && <SubscriptionBadge subscription={subscription} />}
@@ -398,9 +366,7 @@ export function AppLayout() {
                   <button
                     type="button"
                     onClick={() => {
-                      setAccountMenuOpen((open) => !open);
-                      setThemeMenuOpen(false);
-                    }}
+                      setAccountMenuOpen((open) => !open);                    }}
                     className="grid h-10 w-10 place-items-center rounded-full bg-[#9b6f63] text-sm font-extrabold text-white shadow-soft ring-2 ring-white transition hover:scale-105 hover:ring-brand-100"
                     title="Tài khoản"
                     aria-label="Mở menu tài khoản"
@@ -464,31 +430,6 @@ export function AppLayout() {
               {mobileLinks.map((link) => (
                 <MobileNavLink key={link.to} link={link} onClick={() => setMobileMenuOpen(false)} />
               ))}
-              <div className="mt-2 border-t border-brand-100 pt-3">
-                <p className="px-3 text-xs font-extrabold uppercase text-slate-500">Giao diện</p>
-                <div className="mt-2 grid grid-cols-3 gap-2">
-                  {themeOptions.map((option) => {
-                    const Icon = option.icon;
-                    const active = preference === option.value;
-
-                    return (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => setPreference(option.value)}
-                        className={`flex h-10 items-center justify-center gap-2 rounded-lg border text-xs font-extrabold transition ${
-                          active
-                            ? 'border-brand-500 bg-brand-50 text-brand-700'
-                            : 'border-brand-100 bg-white text-slate-700 hover:bg-sky-100 hover:text-brand-700'
-                        }`}
-                      >
-                        <Icon size={16} />
-                        <span className="truncate">{option.value === 'light' ? 'Sáng' : option.value === 'dark' ? 'Tối' : 'Auto'}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
               {subscription?.active && (
                 <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-extrabold text-emerald-700">
                   Còn {subscription.daysLeft} ngày sử dụng

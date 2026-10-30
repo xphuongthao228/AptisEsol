@@ -3,7 +3,7 @@
 export function sanitizeAnswerHtml(html: string): string {
   const source = new DOMParser().parseFromString(html, 'text/html');
   const output = document.createElement('div');
-  const allowed = new Set(['P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'UL', 'OL', 'LI', 'DIV', 'SPAN', 'BLOCKQUOTE', 'H2', 'H3', 'H4', 'TABLE', 'TBODY', 'THEAD', 'TR', 'TD', 'TH']);
+  const allowed = new Set(['P', 'BR', 'B', 'STRONG', 'I', 'EM', 'U', 'S', 'MARK', 'UL', 'OL', 'LI', 'DIV', 'SPAN', 'BLOCKQUOTE', 'H2', 'H3', 'H4', 'TABLE', 'TBODY', 'THEAD', 'TR', 'TD', 'TH']);
   const discard = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'SVG', 'MATH', 'TEMPLATE', 'NOSCRIPT']);
   function copy(node: Node, parent: Node) {
     if (node.nodeType === Node.TEXT_NODE) {

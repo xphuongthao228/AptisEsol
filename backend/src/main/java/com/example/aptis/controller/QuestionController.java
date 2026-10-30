@@ -4,6 +4,8 @@ import com.example.aptis.dto.ApiResponse;
 import com.example.aptis.dto.CoreDtos;
 import com.example.aptis.service.CoreService;
 import com.example.aptis.service.PaymentService;
+import com.example.aptis.service.ListeningReviewService;
+import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -21,6 +23,7 @@ import java.util.List;
 public class QuestionController {
     private final CoreService service;
     private final PaymentService paymentService;
+    private final ListeningReviewService listeningReviewService;
 
     @GetMapping
     public ApiResponse<List<CoreDtos.QuestionResponse>> all(Authentication auth,
@@ -37,6 +40,14 @@ public class QuestionController {
             throw new AccessDeniedException("Question requires Pro access");
         }
         return ApiResponse.ok(service.question(id));
+    }
+
+    @PostMapping("/{id}/listening-review")
+    public ApiResponse<JsonNode> listeningReview(Authentication auth, @PathVariable Long id) {
+        if (!isAdmin(auth) && !paymentService.canAccessQuestion(auth.getName(), id)) {
+            throw new AccessDeniedException("Question requires Pro access");
+        }
+        return ApiResponse.ok(listeningReviewService.review(service.question(id)));
     }
 
     @PostMapping

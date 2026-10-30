@@ -17,6 +17,8 @@ const premiumFeatures = [
   'Kho luyện đề phong phú'
 ];
 
+type AvailableDiscount = { code: string; type: 'PERCENT' | 'FIXED'; value: number; endsAt: string };
+
 const packages = [
   {
     id: 'free',
@@ -98,6 +100,24 @@ export function Renewal() {
     catch {toast.error('Không sao chép được. Bạn có thể chọn mã và sao chép thủ công.');}
   }
   const [discountInput, setDiscountInput] = useState('');
+  const [availableDiscounts, setAvailableDiscounts] = useState<AvailableDiscount[]>([]);
+  const [discountsLoading, setDiscountsLoading] = useState(true);
+  const [discountsError, setDiscountsError] = useState(false);
+  async function loadDiscounts() {
+    setDiscountsLoading(true);
+    setDiscountsError(false);
+    try { setAvailableDiscounts(await unwrap<AvailableDiscount[]>(api.get('/discounts/available'))); }
+    catch { setDiscountsError(true); }
+    finally { setDiscountsLoading(false); }
+  }
+  useEffect(() => { void loadDiscounts(); }, []);
+  function selectDiscount(code: string) {
+    quoteVersion.current++;
+    setApplying(false);
+    setDiscountInput(code);
+    setQuote(null);
+    setPayment(null);
+  }
   const [quote, setQuote] = useState<{originalAmount:number; discountAmount:number; amount:number; discountCode:string|null} | null>(null);
   const [applying, setApplying] = useState(false);
   const quoteVersion = useRef(0);
@@ -270,12 +290,25 @@ export function Renewal() {
         </div>
         {!isFreeSelected && (
           <div className="relative mt-4 flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
+            <div className="min-w-0 flex-1">
               <label htmlFor="discount-code" className="mb-2 block text-sm font-bold">Mã giảm giá / mã giới thiệu</label>
               <div className="flex gap-2">
                 <input id="discount-code" className="input w-full sm:w-60" maxLength={40} placeholder="Nhập mã ưu đãi hoặc giới thiệu" value={discountInput}
-                  disabled={creating} onChange={e => {quoteVersion.current++;setApplying(false);setDiscountInput(e.target.value);setQuote(null);setPayment(null);}} />
+                  disabled={creating} onChange={e => selectDiscount(e.target.value)} />
                 <button type="button" className="renewal-discount-apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-bold whitespace-nowrap disabled:cursor-not-allowed" disabled={applying || creating || !discountInput.trim()} onClick={applyDiscount}>{applying ? 'Đang kiểm tra...' : 'Áp dụng'}</button>
+              </div>
+              <div className="mt-3">
+                <label htmlFor="available-discount" className="mb-1.5 block text-sm font-semibold text-slate-600">Chọn mã ưu đãi có sẵn</label>
+                <select id="available-discount" className="input w-full" disabled={creating || discountsLoading || discountsError || availableDiscounts.length === 0}
+                  value={availableDiscounts.some(item => item.code === discountInput) ? discountInput : ''}
+                  onChange={event => selectDiscount(event.target.value)}>
+                  <option value="">{discountsLoading ? 'Đang tải mã ưu đãi...' : discountsError ? 'Không tải được mã ưu đãi' : availableDiscounts.length === 0 ? 'Hiện chưa có mã ưu đãi' : 'Chọn mã giảm giá'}</option>
+                  {availableDiscounts.map(item => <option key={item.code} value={item.code}>
+                    {item.code} — Giảm {item.type === 'PERCENT' ? `${item.value}%` : `${formatMoney(item.value)}đ`} — Hết hạn {new Date(item.endsAt).toLocaleDateString('vi-VN')}
+                  </option>)}
+                </select>
+                {discountsError ? <button type="button" onClick={loadDiscounts} className="mt-1 text-sm text-brand-700 underline">Thử tải lại mã ưu đãi</button>
+                  : <p className="mt-1 text-xs text-slate-500">Chọn mã rồi nhấn Áp dụng. Mỗi lần thanh toán dùng một mã.</p>}
               </div>
             </div>
             <div className="text-sm sm:text-right" aria-live="polite">

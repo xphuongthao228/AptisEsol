@@ -176,7 +176,7 @@ export function Dashboard() {
     setShowCommunityInvite(false);
   }
 
-  if (user) return <StudentLearningDashboard />;
+  if (user) return <><StudentLearningDashboard /><ZaloContactButton /></>;
 
   return (
     <div className="dashboard-page -mx-4 -mt-6 overflow-hidden bg-[#fff8f2] text-navy sm:-mx-6 lg:-mx-10">
@@ -209,7 +209,37 @@ export function Dashboard() {
         </LazySection>
       </div>
 
+      <ZaloContactButton />
       {showCommunityInvite && <CommunityInviteModal onClose={closeCommunityInvite} />}
+    </div>
+  );
+}
+
+function ZaloContactButton() {
+  const contacts = [
+    { href: zaloContactUrl, label: 'Admin', description: 'Nhắn Zalo cho admin' },
+    { href: zaloCommunityUrl, label: 'Nhóm 1', description: 'Tham gia nhóm Zalo 1' },
+    { href: zaloCommunityUrl2, label: 'Nhóm 2', description: 'Tham gia nhóm Zalo 2' }
+  ];
+  return (
+    <div className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-5 z-40 flex flex-col gap-4" aria-label="Liên hệ Zalo">
+    {contacts.map((contact) => (
+    <a
+      key={contact.href}
+      href={contact.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={contact.description}
+      title={contact.description}
+      className="relative grid h-[60px] w-[60px] place-items-center rounded-full bg-[#0088ff] shadow-[0_4px_16px_rgba(0,104,255,0.4)] transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-blue-500 motion-reduce:transition-none"
+    >
+      <svg viewBox="0 0 48 48" className="h-11 w-11" aria-hidden="true">
+        <path fill="white" d="M24 5C12.4 5 4 12.4 4 22.2c0 5.2 2.5 9.8 6.7 12.9l-1.5 7.1 8-3.7c2.1.6 4.4.9 6.8.9 11.6 0 20-7.4 20-17.2S35.6 5 24 5Z" />
+        <text x="24" y="27" textAnchor="middle" fill="#0088ff" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="700" letterSpacing="-0.8">Zalo</text>
+      </svg>
+      <span className="absolute -bottom-2 whitespace-nowrap rounded-full border border-blue-100 bg-white px-2 py-0.5 text-[10px] font-bold text-blue-700 shadow-sm">{contact.label}</span>
+    </a>
+    ))}
     </div>
   );
 }
@@ -382,7 +412,7 @@ function StudentLearningDashboard() {
             <p className="mt-1 text-sm font-semibold text-slate-700">Xem lộ trình và các bước bắt đầu luyện Aptis hiệu quả trên Aptis Lingo.</p>
           </div>
           <a
-            href="https://docs.google.com/document/d/1watnMSe6cibOX1qRb31z4DKerySzN56g/edit"
+            href="https://docs.google.com/document/d/1KnD0AhMlSYWo1f6D-F9RKhyFcB88vZrO/edit?usp=sharing&ouid=108129578450215256465&rtpof=true&sd=true"
             target="_blank"
             rel="noreferrer"
             className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-brand-600 px-4 text-sm font-extrabold text-brand-600 transition hover:bg-brand-50"

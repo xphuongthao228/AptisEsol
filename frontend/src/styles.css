@@ -941,8 +941,8 @@ html.dark[data-student-skin="halloween"] .student-shell .tips-landing-hero::befo
   overflow: hidden;
 }
 
-.mobile-parts-page .grid > a[class*="rounded-[22px]"]::after,
-.mobile-parts-page .grid > div[class*="rounded-[22px]"]::after {
+html[data-student-skin="halloween"] .mobile-parts-page .grid > a[class*="rounded-[22px]"]::after,
+html[data-student-skin="halloween"] .mobile-parts-page .grid > div[class*="rounded-[22px]"]::after {
   content: "";
   position: absolute;
   right: -0.2rem;
@@ -4201,6 +4201,22 @@ html[data-student-skin="halloween"] .student-shell > header .theme-menu-option:h
 html.dark[data-student-skin="halloween"] .student-shell > header .theme-menu-option:hover {
   background: #ffedd5 !important;
   color: #7c2d12 !important;
+}
+
+html:root body .student-shell > header .theme-menu-panel button.theme-menu-option {
+  background: transparent !important;
+  color: #334155 !important;
+}
+
+html:root body .student-shell > header .theme-menu-panel button.theme-menu-option[aria-pressed="true"],
+html:root body .student-shell > header .theme-menu-panel button.theme-menu-option:hover {
+  background: #ffedd5 !important;
+  color: #9a3412 !important;
+}
+
+html:root body .student-shell > header .theme-menu-panel button.theme-menu-option span {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
 }
 
 .student-shell > header .more-menu-panel,
@@ -9774,12 +9790,15 @@ html body .student-shell .renewal-page .renewal-discount-apply {
   box-shadow: none !important;
 }
 
+html body .student-shell .renewal-page #available-discount,
+html body .student-shell .renewal-page #available-discount option,
 html body .student-shell .renewal-page input.renewal-payer-name {
   background: #ffffff !important;
   color: #334155 !important;
   -webkit-text-fill-color: #334155 !important;
   border-color: #cbd5e1 !important;
   box-shadow: none !important;
+  color-scheme: light !important;
 }
 
 html body .student-shell .renewal-page input.renewal-payer-name::placeholder,
@@ -9830,4 +9849,181 @@ html:root body .student-shell .saved-answer-review-row.saved-answer-review-row s
 html:root body .student-shell .saved-answer-review-row.saved-answer-review-row strong.text-rose-700 {
   color: #be123c !important;
   -webkit-text-fill-color: currentColor !important;
+}
+
+html:root body .practice-runner-light-mode button.practice-reading-order-slot.practice-reading-order-slot.practice-reading-order-slot,
+html:root body .practice-runner-light-mode button.practice-reading-order-choice.practice-reading-order-choice.practice-reading-order-choice {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color-scheme: light;
+}
+
+html:root body .practice-runner-light-mode button.practice-reading-order-slot.practice-reading-order-slot.practice-reading-order-slot[data-order-state="filled"] {
+  background: #f0f9ff !important;
+}
+
+html:root body .practice-runner-light-mode button.practice-reading-order-slot.practice-reading-order-slot.practice-reading-order-slot[data-order-state="correct"] {
+  background: #ecfdf5 !important;
+}
+
+html:root body .practice-runner-light-mode button.practice-reading-order-slot.practice-reading-order-slot.practice-reading-order-slot[data-order-state="wrong"] {
+  background: #fef2f2 !important;
+}
+
+/* Seasonal illustrations must follow the admin-selected skin. */
+html:not([data-student-skin="halloween"]) .student-shell .halloween-scene,
+html:not([data-student-skin="halloween"]) .student-shell .halloween-progress-decor,
+html:not([data-student-skin="halloween"]) .student-shell .dashboard-halloween-decor {
+  display: none !important;
+}
+
+html:not([data-student-skin="halloween"]) .student-shell .halloween-parts-hero {
+  min-height: auto;
+  background: linear-gradient(135deg, #06204a, #0057d9) !important;
+  border-color: transparent;
+  box-shadow: 0 12px 32px rgba(6, 32, 74, 0.12);
+}
+
+html:not([data-student-skin="halloween"]) .student-shell .halloween-parts-hero::before,
+html:not([data-student-skin="halloween"]) .student-shell .halloween-parts-hero::after {
+  display: none;
+}
+
+html:not([data-student-skin="halloween"]) .student-shell .halloween-parts-hero > a,
+html:not([data-student-skin="halloween"]) .student-shell .halloween-parts-hero > p,
+html:not([data-student-skin="halloween"]) .student-shell .halloween-parts-hero > h1 {
+  max-width: 100%;
+}
+
+html[data-student-skin="mid_autumn"] .student-shell .halloween-parts-hero {
+  background: linear-gradient(135deg, #b45309, #c2410c, #0f766e) !important;
+}
+
+html[data-student-skin="tet"] .student-shell .halloween-parts-hero {
+  background: linear-gradient(135deg, #991b1b, #dc2626, #b45309) !important;
+}
+
+/* Default tips pages use a plain, readable banner rather than seasonal art. */
+html[data-student-skin="default"] .student-shell .mobile-tips-page {
+  background: transparent !important;
+}
+
+html[data-student-skin="default"] .student-shell .mobile-tips-page::before,
+html[data-student-skin="default"] .student-shell .lessons-halloween-hero::before,
+html[data-student-skin="default"] .student-shell .lessons-halloween-hero::after,
+html:not([data-student-skin="halloween"]) .student-shell .lessons-halloween-hero > [aria-hidden="true"] {
+  display: none !important;
+}
+
+html[data-student-skin="default"] .student-shell .lessons-halloween-hero {
+  min-height: auto;
+  background: linear-gradient(135deg, #eff6ff, #ffffff) !important;
+  border: 1px solid #dbeafe;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+html[data-student-skin="default"] .student-shell .lessons-halloween-hero :is(h1, h2, p, span),
+html[data-student-skin="default"] .student-shell .lessons-halloween-hero .tips-landing-copy-black {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+html[data-student-skin="default"] .student-shell .lessons-halloween-hero :is(.lessons-halloween-kicker, p:first-of-type) {
+  color: #1d4ed8 !important;
+  -webkit-text-fill-color: #1d4ed8 !important;
+}
+
+html.dark[data-student-skin="default"] .student-shell .lessons-halloween-hero {
+  background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+  border-color: #334155;
+}
+
+html.dark[data-student-skin="default"] .student-shell .lessons-halloween-hero :is(h1, h2, p, span),
+html.dark[data-student-skin="default"] .student-shell .lessons-halloween-hero .tips-landing-copy-black {
+  color: #f1f5f9 !important;
+  -webkit-text-fill-color: #f1f5f9 !important;
+}
+
+html.dark[data-student-skin="default"] .student-shell .lessons-halloween-hero :is(.lessons-halloween-kicker, p:first-of-type) {
+  color: #93c5fd !important;
+  -webkit-text-fill-color: #93c5fd !important;
+}
+
+html:not([data-student-skin="halloween"]) .student-shell .prediction-halloween-scene {
+  display: none !important;
+}
+
+html[data-student-skin="default"] .student-shell .predictions-page::before,
+html[data-student-skin="default"] .student-shell .prediction-halloween-hero::before,
+html[data-student-skin="default"] .student-shell .prediction-halloween-hero::after {
+  display: none !important;
+}
+
+html[data-student-skin="default"] .student-shell .predictions-page .prediction-halloween-hero {
+  background: linear-gradient(135deg, #06204a, #0057d9) !important;
+  color: #ffffff !important;
+}
+
+html[data-student-skin="default"] .student-shell .predictions-page .prediction-halloween-hero :is(h1, p, span, svg) {
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  text-shadow: none !important;
+}
+
+html[data-student-skin="default"] .student-shell .predictions-page .prediction-halloween-hero > .relative:last-child {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+html[data-student-skin="default"] .student-shell .parts-skill-selector button {
+  text-shadow: none !important;
+}
+
+html[data-student-skin="default"] .student-shell .parts-skill-selector button:not([aria-pressed="true"]) {
+  background: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
+}
+
+html[data-student-skin="default"] .student-shell .parts-skill-selector button[aria-pressed="true"] {
+  background: #d71920 !important;
+  border-color: #d71920 !important;
+  color: #ffffff !important;
+}
+
+html[data-student-skin="default"] .student-shell .parts-skill-selector button :is(span, small, svg) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+  text-shadow: none !important;
+}
+
+html.dark[data-student-skin="default"] .student-shell .parts-skill-selector button:not([aria-pressed="true"]) {
+  background: #1e293b !important;
+  border-color: #475569 !important;
+  color: #f1f5f9 !important;
+}
+
+html[data-student-skin="default"] .student-shell .parts-skill-selector button:not([aria-pressed="true"]):hover {
+  border-color: #d71920 !important;
+  color: #d71920 !important;
+}
+
+html[data-student-skin="default"] .student-shell :is(
+  .halloween-web,
+  .halloween-global-web,
+  .dashboard-bg-web,
+  .summary-web,
+  .decor-web,
+  .banner-decor-web,
+  .prediction-halloween-web
+) {
+  display: none !important;
+}
+
+html:root body .practice-runner-light-mode button.practice-reading-order-slot.practice-reading-order-slot.practice-reading-order-slot span,
+html:root body .practice-runner-light-mode button.practice-reading-order-choice.practice-reading-order-choice.practice-reading-order-choice span {
+  color: #0f172a !important;
+  -webkit-text-fill-color: #0f172a !important;
 }

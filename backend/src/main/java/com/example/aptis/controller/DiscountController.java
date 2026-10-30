@@ -15,6 +15,13 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class DiscountController {
  private final DiscountCodeRepository codes;
+ public record AvailableDiscount(String code, String type, Integer value, Instant endsAt) {}
+ @GetMapping("/available") @PreAuthorize("isAuthenticated()")
+ public ApiResponse<List<AvailableDiscount>> available(){
+  Instant now = Instant.now();
+  return ApiResponse.ok(codes.findByActiveTrueAndStartsAtLessThanEqualAndEndsAtGreaterThanOrderByEndsAtAsc(now, now)
+   .stream().map(item -> new AvailableDiscount(item.getCode(), item.getType(), item.getValue(), item.getEndsAt())).toList());
+ }
  public record DiscountRequest(@NotBlank @Pattern(regexp="[A-Za-z0-9_-]{2,40}") String code,@NotBlank String type,@NotNull @Min(1) Integer value,@NotNull Instant startsAt,@NotNull Instant endsAt,boolean active) {}
  @GetMapping public ApiResponse<List<DiscountCode>> list(){return ApiResponse.ok(codes.findAll(org.springframework.data.domain.Sort.by("id").descending()));}
  @PostMapping @Transactional public ApiResponse<DiscountCode> create(@Valid @RequestBody DiscountRequest r){return save(new DiscountCode(),r);}

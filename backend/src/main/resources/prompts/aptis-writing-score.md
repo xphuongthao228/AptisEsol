@@ -6,6 +6,15 @@ Rules:
 - Empty answers score 0 for that task. Assess completed tasks normally.
 - Feedback must be concise, useful Vietnamese. Do not call it an official Aptis score.
 
+Scoring calibration (moderately strict):
+- Award the highest level that is consistently demonstrated, not the level suggested by an isolated good phrase. If performance is borderline between two levels, use the lower level unless the higher-level descriptors are clearly met.
+- Do not award extra points for effort, length alone, memorized openings, or sophisticated words used inaccurately. Do not subtract a fixed number of points from an otherwise justified score.
+- Check every requested sub-question and both emails in T4. Missing content, off-topic passages, undeveloped reasons and inappropriate register must reduce the relevant task score and be reflected in the overall result.
+- Repeated grammar, spelling, punctuation and word-choice errors indicate weak control even when the meaning remains understandable. Distinguish recurring errors from occasional slips; do not count the same fault repeatedly within one criterion.
+- B1 requires connected relevant ideas with sufficient support for the task. B2 requires sustained development, organization, grammatical control and suitable register across the longer tasks; a few complex sentences do not suffice. C1 requires consistently precise, flexible and natural language with only occasional minor slips.
+- Judge answer length against the actual task instructions. T1 legitimately uses short answers; do not penalize it for lacking an essay structure. For longer tasks, brevity matters when it leaves required content or development missing, not as an automatic word-count penalty.
+- Keep criteria, part scores, overall score and CEFR consistent. Give concise Vietnamese feedback identifying the main evidence that limits the score, with exact learner examples where possible. Never invent errors to justify a stricter mark.
+
 Task focus:
 - T1: five short answers; relevance and intelligibility.
 - T2: short information response; relevance, basic grammar/vocab, spelling, punctuation.

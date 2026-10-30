@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { api, publicApi, unwrap } from '../../api/client';
 import type { StudentSkin, UiSettings } from '../../types';
+import { STUDENT_SKIN_KEY, UI_SETTINGS_UPDATED_EVENT } from '../../utils/theme';
 
 const skinOptions: Array<{
   value: StudentSkin;
@@ -82,6 +83,8 @@ export function AdminAppearance() {
       setSelectedSkin(settings.studentSkin ?? 'default');
       setSavedSkin(settings.studentSkin ?? 'default');
       setStudentTheme(settings.studentTheme ?? 'dark');
+      window.localStorage.setItem(STUDENT_SKIN_KEY, settings.studentSkin ?? 'default');
+      window.dispatchEvent(new Event(UI_SETTINGS_UPDATED_EVENT));
       toast.success('Đã lưu skin giao diện cho học viên.');
     } catch (error) {
       toast.error(errorMessage(error, 'Không lưu được cấu hình giao diện.'));
@@ -96,7 +99,7 @@ export function AdminAppearance() {
         <p className="text-sm font-bold uppercase tracking-[0.18em] text-blue-200">Admin</p>
         <h1 className="mt-3 text-3xl font-extrabold">Giao diện theo mùa</h1>
         <p className="mt-3 max-w-2xl text-slate-300">
-          Chọn skin áp dụng cho khu vực học viên như Halloween, Trung thu hoặc Tết. Chế độ sáng/tối vẫn để học viên tự chỉnh trong tài khoản của họ.
+          Chọn skin áp dụng cho khu vực học viên như Halloween, Trung thu hoặc Tết. Toàn bộ trang sử dụng chế độ sáng.
         </p>
       </section>
 

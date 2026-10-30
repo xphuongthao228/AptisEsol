@@ -6,10 +6,13 @@ import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, Chec
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
+import { useListeningReview } from '../../hooks/useListeningReview';
 import { useAuthStore } from '../../store/authStore';
 import type { Answer, Question, Submission, Test } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
 import { sanitizeAnswerHtml } from '../../utils/safeHtml';
+import { formatListeningReview } from '../../utils/listeningReview';
+import { getListeningPersonEvidence, getListeningScriptVietnamese } from '../../utils/listeningEvidence';
 
 const examLinks = [
   { to: '/app', label: 'Trang ch\u1ee7', icon: LayoutDashboard, active: false },
@@ -554,7 +557,17 @@ export function PracticeRunner() {
       return;
     }
 
-    const value = getCurrentAnswerValueForCheck(mergedTemplateData, answers[activeQuestion.id]);
+    const value = answers[activeQuestion.id] ?? '';
+    const isListeningChoice = mergedTemplateData?.template === 'LISTENING_AUDIO_MC'
+      || mergedTemplateData?.template === 'LISTENING_PEOPLE_MATCH'
+      || mergedTemplateData?.template === 'LISTENING_OPINION_MATCH'
+      || (!mergedTemplateData && activeQuestion.answers.some((answer) => answer.correct)
+        && /listening|nghe/i.test(`${test?.skillName ?? ''} ${test?.title ?? ''}`));
+    if (!value && (isListeningChoice || mergedTemplateData?.template === 'READING_HEADING_MATCH' || mergedTemplateData?.template === 'READING_FORUM_MATCH' || mergedTemplateData?.template === 'READING_SENTENCE_ORDER' || mergedTemplateData?.template === 'READING_GAP_FILL')) {
+      setCheckedAnswers({ ...checkedAnswers, [activeQuestion.id]: false });
+      toast.success('Đã hiện đáp án và giải thích bên dưới.');
+      return;
+    }
     if (!value) {
       toast.error('Bạn hãy chọn hoặc nhập câu trả lời trước.');
       return;
@@ -588,15 +601,6 @@ export function PracticeRunner() {
       textAnswer,
       correct
     })).catch(() => undefined);
-  }
-
-  function getCurrentAnswerValueForCheck(data: TemplateData | null, value?: string) {
-    if (value) return value;
-    if (data?.template === 'READING_SENTENCE_ORDER') {
-      const displaySentences = getReadingOrderDisplaySentences(data);
-      if (displaySentences.length) return JSON.stringify({ order: displaySentences });
-    }
-    return value ?? '';
   }
 
   function resetCurrentQuestion() {
@@ -652,6 +656,18 @@ export function PracticeRunner() {
           <AppTopbar exitLabel={exitLabel} onExit={exitRunner} />
         <form onSubmit={submit} className="pb-24">
           {loading && <div className="mx-auto max-w-[1460px] p-8">Đang tải câu hỏi...</div>}
+          {!isExamSetMode && totalQuestions > 0 && (
+            <div className="min-w-0 px-4 pt-2 sm:px-5">
+              <QuestionNavigator
+                total={totalQuestions}
+                currentIndex={currentIndex}
+                answeredIds={answers}
+                checkedIds={checkedAnswers}
+                questions={questions ?? []}
+                onSelect={setCurrentIndex}
+              />
+            </div>
+          )}
           {activeQuestion?.featured && !templateOwnsHeader && <FeaturedQuestionCallout />}
           {activeQuestion && mergedTemplateData && (
             <AptisTemplateRenderer
@@ -831,7 +847,7 @@ export function PracticeRunner() {
                     <textarea className="min-h-[170px] w-full rounded-[14px] border border-slate-300 bg-white p-4 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Nhập câu trả lời..." onChange={(e) => setAnswers({ ...answers, [activeQuestion.id]: e.target.value })} />
                   )}
                   {activeChecked !== undefined && <QuestionFeedback isCorrect={activeChecked} textOnly={!activeQuestion.answers.length} />}
-                  <ListeningScriptReview scriptText={scriptText} checked={activeChecked} />
+                  <ListeningScriptReview questionId={activeQuestion.id} scriptText={scriptText} checked={activeChecked} correctAnswers={activeQuestion.answers.filter((answer) => answer.correct).map((answer) => answer.content)} />
               </section>
             )}
           </div>
@@ -1109,12 +1125,24 @@ function QuestionScriptBox({ scriptText, compact }: { scriptText?: string; compa
   );
 }
 
-function ListeningScriptReview({ scriptText, checked, showAnswers }: {
+function ListeningScriptReview({ questionId, scriptText, checked, showAnswers, correctAnswers = [] }: {
+  questionId?: number;
   scriptText?: string;
   checked?: boolean;
   showAnswers?: boolean;
+  correctAnswers?: string[];
 }) {
-  const text = repairMojibake(scriptText ?? '').trim();
+  const text = formatListeningReview(repairMojibake(scriptText ?? '').trim());
+  const vietnamese = getListeningScriptVietnamese(repairMojibake(scriptText ?? '').trim());
+  const review = useListeningReview(questionId, scriptText ?? '',
+    Boolean(text) && (checked !== undefined || Boolean(showAnswers)) && !vietnamese
+    && !/BẢN DỊCH TOÀN BỘ SCRIPT|Bản dịch tiếng Việt/i.test(text));
+  const normalize = (value: string) => stripHtml(value).toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
+  const evidence = (review.data?.answers ?? []).filter((item) =>
+    typeof item.answer === 'string' && typeof item.en === 'string' && Boolean(item.en.trim())
+    && typeof item.vi === 'string' && Boolean(item.vi.trim())
+    && correctAnswers.some((answer) => normalize(answer) === normalize(item.answer))
+    && normalize(scriptText ?? '').includes(normalize(item.en)));
   if (!text || (checked === undefined && !showAnswers)) return null;
 
   return (
@@ -1130,9 +1158,32 @@ function ListeningScriptReview({ scriptText, checked, showAnswers }: {
           <p className="font-extrabold text-brand-700">Giải thích / Transcript:</p>
         </div>
       </div>
-      <div className="whitespace-pre-line rounded-lg border border-blue-100 bg-white/80 p-3 text-slate-800">
-        {text}
-      </div>
+      {evidence.length > 0 && (
+        <div className="mb-4 space-y-3">
+          {evidence.map((item) => (
+            <div key={`${item.index}-${item.answer}`} className="space-y-2 rounded-lg border border-green-200 bg-white p-3 text-slate-800">
+              <p className="font-extrabold text-green-700">Đáp án đúng: {item.answer}</p>
+              <p><strong>Đoạn đúng:</strong> <mark className="rounded bg-yellow-200 px-0.5 text-slate-950">{item.en}</mark></p>
+              <p><strong>Dịch tiếng Việt:</strong> {item.vi}</p>
+              {item.reasonVi && <p><strong>Vì sao chọn đáp án này:</strong> {item.reasonVi}</p>}
+            </div>
+          ))}
+        </div>
+      )}
+      <div
+        className="whitespace-pre-line rounded-lg border border-blue-100 bg-white/80 p-3 text-slate-800 [&_mark]:rounded [&_mark]:bg-yellow-200 [&_mark]:px-0.5 [&_mark]:text-slate-950"
+        dangerouslySetInnerHTML={{ __html: sanitizeAnswerHtml(text) }}
+      />
+      {(vietnamese || review.data?.scriptVi) && (
+        <div className="mt-4 rounded-lg border border-blue-100 bg-white/80 p-3 text-slate-800">
+          <p className="mb-2 font-extrabold text-brand-700">Bản dịch tiếng Việt:</p>
+          <p className="whitespace-pre-line">{vietnamese || review.data?.scriptVi}</p>
+        </div>
+      )}
+      {review.loading && <p className="mt-3 text-sm text-slate-600">Đang tải bản dịch tiếng Việt và câu dẫn chứng…</p>}
+      {review.error && (
+        <p className="mt-3 text-sm text-slate-600">Chưa tải được bản dịch. <button type="button" className="font-bold text-brand-700 underline" onClick={review.retry}>Thử lại</button></p>
+      )}
     </div>
   );
 }
@@ -1241,7 +1292,7 @@ function QuestionNavigator({ total, currentIndex, answeredIds, checkedIds, quest
   onSelect: (index: number) => void;
 }) {
   return (
-    <div className="mb-2 rounded-lg border border-brand-100 bg-white px-3 py-1 shadow-soft">
+    <div className="question-navigator mb-2 min-w-0 rounded-lg border border-brand-100 bg-white px-3 py-1 shadow-soft">
       <div className="mb-1 flex items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           <h2 className="text-sm font-extrabold">Chọn câu hỏi</h2>
@@ -3042,6 +3093,9 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
   const [showScript, setShowScript] = useState(false);
   const [showTips, setShowTips] = useState(false);
   const [dragSentence, setDragSentence] = useState('');
+  const listeningReview = useListeningReview(questionId, data.scriptText ?? '',
+    (data.template === 'LISTENING_PEOPLE_MATCH' || data.template === 'LISTENING_OPINION_MATCH')
+    && (checked !== undefined || showAnswers) && !getListeningScriptVietnamese(data.scriptText ?? ''));
   const saved = useMemo<Record<string, string>>(() => {
     try {
       return value ? JSON.parse(value) : {};
@@ -3234,12 +3288,12 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
                     <label className={`practice-listening-radio-option flex min-h-10 w-full items-center gap-3 rounded-lg border px-3 py-1.5 text-[15px] sm:min-h-0 sm:w-fit sm:gap-2.5 sm:rounded-md sm:px-2 sm:py-0.5 sm:text-[14px] ${statusClass}`} key={option}>
                       <input className="practice-listening-radio h-4 w-4 shrink-0" type="radio" name={`${questionId}-${groupIndex}`} checked={saved[`g${groupIndex}`] === option} onChange={() => setAnswer(`g${groupIndex}`, option)} />
                       <span>{option}</span>
-                      {showAnswers && isCorrect && <span className="text-xs font-bold text-green-700">Đáp án</span>}
+                      {revealStatus && isCorrect && <span className="text-xs font-bold text-green-700">Đáp án</span>}
                     </label>
                   );})}
                 </div>
                 )}
-                {showAnswers && group.correctAnswer && (
+                {revealStatus && group.correctAnswer && (
                   <div className="mt-2 inline-flex rounded-lg bg-green-100 px-3 py-1.5 text-xs font-extrabold text-green-700">
                     {groupIndex + 1} là {group.correctAnswer}
                   </div>
@@ -3256,7 +3310,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
             {showScript ? 'Ẩn đoạn văn' : 'Hiện đoạn văn'}
           </button>
         </div>
-        <ListeningScriptReview scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} />
+        <ListeningScriptReview questionId={questionId} scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} correctAnswers={(data.groups ?? []).map((group: any) => group.correctAnswer).filter(Boolean)} />
         {showScript && (
           <div className={`mt-3 whitespace-pre-line rounded border p-4 text-sm leading-6 ${data.scriptText ? 'border-slate-300 bg-sky-50 text-slate-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
             {repairMojibake(data.scriptText ?? '').trim()
@@ -3308,19 +3362,37 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
             {showScript ? 'Ẩn đoạn văn' : 'Hiện đoạn văn'}
           </button>
         </div>
-        {showAnswers && data.correctAnswers?.length > 0 && (
+        {revealAnswers && data.correctAnswers?.length > 0 && (
           <div className="mt-4 rounded-lg border border-green-200 bg-green-50 p-4">
             <h3 className="mb-3 font-extrabold text-green-800">Đáp án của câu</h3>
             <div className="grid gap-2 sm:grid-cols-2">
-              {data.correctAnswers.map((answer: string, index: number) => (
-                <div className="rounded-md bg-white px-3 py-2 text-sm font-bold text-navy shadow-soft" key={`${answer}-${index}`}>
-                  {index + 1} là <span className="text-green-700">{answer}</span>
-                </div>
-              ))}
+              {data.correctAnswers.map((answer: string, index: number) => {
+                const localEvidence = data.template === 'LISTENING_PEOPLE_MATCH'
+                  ? getListeningPersonEvidence(repairMojibake(data.scriptText ?? ''), index, answer,
+                    data.translations ?? data.translationMap ?? data.vietnameseTranslations ?? data.viTranslations)
+                  : null;
+                const normalizeEvidence = (value: string) => stripHtml(value).toLowerCase().replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
+                const generated = listeningReview.data?.answers?.find((item) => item.index === index
+                  && normalizeEvidence(item.answer) === normalizeEvidence(answer)
+                  && Boolean(item.en?.trim()) && Boolean(item.vi?.trim())
+                  && normalizeEvidence(data.scriptText ?? '').includes(normalizeEvidence(item.en)));
+                const evidence = localEvidence?.vi ? localEvidence : generated ?? localEvidence;
+                return (
+                  <div className="rounded-md bg-white px-3 py-3 text-sm text-navy shadow-soft" key={`${answer}-${index}`}>
+                    <p className="font-bold">{data.template === 'LISTENING_PEOPLE_MATCH' ? rows?.[index] ?? `${index + 1}` : `${index + 1}`} là <span className="text-green-700">{answer}</span></p>
+                    {evidence && (
+                      <div className="mt-3 space-y-2 border-t border-green-100 pt-3 leading-6">
+                        <p><strong>Đoạn đúng:</strong> {evidence.en || 'Chưa có đoạn script tương ứng.'}</p>
+                        <p className="text-slate-600"><strong>Dịch tiếng Việt:</strong> {evidence.vi || (listeningReview.loading ? 'Đang tải bản dịch…' : 'Chưa có bản dịch tương ứng cho đoạn đúng.')}</p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}
-        <ListeningScriptReview scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} />
+        <ListeningScriptReview questionId={questionId} scriptText={data.scriptText} checked={checked} showAnswers={showAnswers} correctAnswers={data.correctAnswers ?? []} />
         {showScript && (
           <div className={`mt-4 whitespace-pre-line rounded border p-5 leading-7 ${data.scriptText ? 'border-slate-300 bg-sky-50 text-slate-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
             {repairMojibake(data.scriptText ?? '').trim()
@@ -3373,7 +3445,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
             className="mt-5 whitespace-pre-line text-sm"
           />
         )}
-        {showAnswers && correctAnswers.length > 0 && (
+        {revealStatus && correctAnswers.length > 0 && (
           <div className="mt-4 rounded-xl border border-green-200 bg-green-50 p-3">
             <h3 className="mb-2 font-extrabold text-green-800">Đáp án</h3>
             <div className="grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
@@ -3444,7 +3516,8 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
                     <button
                       type="button"
                       key={`slot-${index}`}
-                      className={`grid min-h-[46px] w-full grid-cols-[28px_1fr] items-center gap-2 rounded-[8px] border-2 border-dashed px-3 text-left transition ${
+                      data-order-state={correct ? 'correct' : wrong ? 'wrong' : sentence ? 'filled' : 'empty'}
+                      className={`practice-reading-order-slot grid min-h-[46px] w-full grid-cols-[28px_1fr] items-center gap-2 rounded-[8px] border-2 border-dashed px-3 text-left transition ${
                         correct
                           ? 'border-emerald-400 bg-emerald-50'
                           : wrong
@@ -3494,7 +3567,7 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
                   type="button"
                   key={`${sentence}-${index}`}
                   draggable
-                  className="grid min-h-[46px] w-full cursor-grab grid-cols-[16px_1fr] items-start gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium leading-4 text-slate-800 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 active:cursor-grabbing"
+                  className="practice-reading-order-choice grid min-h-[46px] w-full cursor-grab grid-cols-[16px_1fr] items-start gap-2 rounded-[8px] border border-slate-200 bg-white px-3 py-2 text-left text-xs font-medium leading-4 text-slate-800 shadow-sm transition hover:border-brand-300 hover:bg-brand-50 active:cursor-grabbing"
                   onClick={() => addToNextEmpty(sentence)}
                   onDragStart={(event) => {
                     setDragSentence(sentence);
@@ -3683,9 +3756,15 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
                       </div>
                     </div>
                     {correct && (
-                      <p className="mt-2 text-slate-600">
-                        Đoạn đúng: <span className="font-semibold text-slate-900">{stripHtml(getForumOpinionByAnswer(correct, data))}</span>
-                      </p>
+                      <div className="mt-2 space-y-2">
+                        <p className="text-slate-600">
+                          Đoạn đúng: <span className="font-semibold text-slate-900">{stripHtml(getForumOpinionByAnswer(correct, data))}</span>
+                        </p>
+                        <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-slate-700">
+                          <p className="font-bold text-brand-700">Dịch đoạn đúng:</p>
+                          <p className="mt-1">{getForumTranslation(getForumOpinionByAnswer(correct, data), data)}</p>
+                        </div>
+                      </div>
                     )}
                   </div>
                 );
@@ -3799,8 +3878,45 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
             Xem đáp án
           </button>
         </div>
+        {checked !== undefined && (
+          <section className="mt-6 rounded-xl border border-blue-200 bg-blue-50 p-5">
+            <h3 className="text-lg font-extrabold text-brand-700">Đáp án và giải thích</h3>
+            {paragraphs.map((paragraph: string, index: number) => {
+              const correct = correctAnswers[index] ?? '';
+            const explanationSource = data.explanations ?? data.explanation;
+            const explanation = Array.isArray(explanationSource)
+              ? explanationSource[index]
+              : explanationSource && typeof explanationSource === 'object'
+                ? explanationSource[index] ?? explanationSource[correct]
+                : '';
+            const keywords = meaningfulEnglishWords(correct).filter((word) => meaningfulEnglishWords(paragraph).includes(word));
+              if (!correct) return null;
+              return (
+                    <div key={index} className="mt-3 space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-slate-700">
+                      <p className="font-bold text-green-700">{index + 1}. Đáp án đúng: {correct}</p>
+                      <p className="font-bold text-brand-700">Giải thích:</p>
+                      {typeof explanation === 'string' && explanation.trim() ? (
+                        <p className="whitespace-pre-line">{stripHtml(explanation)}</p>
+                      ) : (
+                        <p>
+                          Chọn tiêu đề theo ý chính của cả đoạn, thay vì chỉ dựa vào một từ riêng lẻ.
+                          {keywords.length > 0 && <> Các từ xuất hiện trong cả tiêu đề và đoạn văn: <strong>{keywords.join(', ')}</strong>.</>}
+                        </p>
+                      )}
+                      <p className="font-semibold">Nội dung đoạn {index + 1} để đối chiếu:</p>
+                      <p><HighlightForumKeywords text={paragraph} keywords={keywords} /></p>
+                    </div>
+              );
+            })}
+          </section>
+        )}
         {showAnswers && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4"
+            onClick={(event) => {
+              if (event.target === event.currentTarget) setShowAnswers(false);
+            }}
+          >
             <div className="max-h-[86vh] w-full max-w-4xl overflow-auto rounded-lg bg-white shadow-2xl">
               <div className="flex items-center justify-between border-b border-brand-100 px-5 py-4">
                 <h3 className="text-lg font-bold">Test and Answer Review Question 5</h3>

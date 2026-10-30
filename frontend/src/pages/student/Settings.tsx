@@ -1,16 +1,11 @@
 import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { Check, Lock, Mail, Monitor, Moon, Save, ShieldCheck, Sun, UserRound, type LucideIcon } from 'lucide-react';
+import { Lock, Mail, Save, ShieldCheck, Sun, UserRound } from 'lucide-react';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { User } from '../../types';
-import { ThemePreference, useThemePreference } from '../../utils/theme';
 
-const themeOptions: Array<{ value: ThemePreference; label: string; description: string; icon: LucideIcon }> = [
-  { value: 'light', label: 'Sáng', description: 'Giao diện nền sáng, dễ nhìn ban ngày.', icon: Sun },
-  { value: 'dark', label: 'Tối', description: 'Giao diện nền tối, dịu mắt khi học buổi tối.', icon: Moon },
-  { value: 'auto', label: 'Auto', description: 'Tự đổi theo chế độ của thiết bị.', icon: Monitor }
-];
+
 
 export function Settings() {
   const user = useAuthStore((state) => state.user);
@@ -21,7 +16,6 @@ export function Settings() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const { preference, resolvedTheme, setPreference } = useThemePreference();
 
   useEffect(() => {
     setFullName(user?.fullName ?? '');
@@ -99,48 +93,15 @@ export function Settings() {
           <SummaryCard icon={<UserRound size={22} />} title="Hồ sơ" text="Tên hiển thị và email." />
           <SummaryCard icon={<ShieldCheck size={22} />} title="Bảo mật" text="Đổi mật khẩu đăng nhập." />
           <SummaryCard
-            icon={resolvedTheme === 'dark' ? <Moon size={22} /> : <Sun size={22} />}
+            icon={<Sun size={22} />}
             title="Giao diện"
-            text={preference === 'auto' ? 'Auto theo thiết bị.' : preference === 'dark' ? 'Đang dùng nền tối.' : 'Đang dùng nền sáng.'}
+            text="Giao diện sáng."
           />
         </div>
       </section>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <section className="rounded-[24px] border border-brand-100 bg-white p-6 shadow-soft lg:col-span-2">
-          <SectionTitle icon={<Monitor size={20} />} title="Giao diện" subtitle="Chọn màu sáng, tối hoặc tự động theo thiết bị của bạn." />
 
-          <div className="mt-6 grid gap-3 md:grid-cols-3">
-            {themeOptions.map((option) => {
-              const Icon = option.icon;
-              const active = preference === option.value;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setPreference(option.value)}
-                  className={`settings-theme-option flex min-h-[108px] items-start gap-4 rounded-2xl border p-4 text-left transition ${
-                    active
-                      ? 'border-brand-500 text-brand-700 shadow-soft'
-                      : 'border-brand-100 bg-white text-slate-700 hover:border-brand-300 hover:bg-sky-50'
-                  }`}
-                >
-                  <span className="settings-option-icon grid h-11 w-11 shrink-0 place-items-center rounded-xl">
-                    <Icon size={20} />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="flex items-center justify-between gap-3">
-                      <span className="text-base font-extrabold">{option.label}</span>
-                      {active && <Check size={18} className="shrink-0" />}
-                    </span>
-                    <span className="mt-1 block text-sm font-semibold leading-6 text-slate-600">{option.description}</span>
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </section>
 
         <form onSubmit={saveProfile} className="rounded-[24px] border border-brand-100 bg-white p-6 shadow-soft">
           <SectionTitle icon={<UserRound size={20} />} title="Hồ sơ học viên" subtitle="Thông tin hiển thị trên tài khoản của bạn." />
