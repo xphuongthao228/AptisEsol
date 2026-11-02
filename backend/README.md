@@ -217,3 +217,26 @@ TEXT,"Write an email to a friend about your study plan.","Include reason and tim
 Seed accounts:
 - Admin: `admin@aptis.com` / `123456`
 - Student: `student@aptis.com` / `123456`
+
+## Container startup and health checks
+
+Set the deployment health-check path to `/health` on the service's `PORT`
+(default `8080`). It returns HTTP 200 without authentication once the web
+application is serving requests. Allow enough startup time for Hibernate schema
+updates and the initial data seed. This endpoint checks HTTP availability only;
+it does not check database readiness.
+
+Google login is optional. Set both `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` to enable it; missing or blank credentials leave Google
+login disabled without preventing the backend from starting.
+
+Configure `DB_URL` (a `jdbc:mysql://...` URL), `DB_USERNAME`, and `DB_PASSWORD`
+in the deployment platform. The default `localhost:3306` is for local development;
+in a backend container it points to that container, not a separate MySQL service.
+The Docker image does not load `backend/.env`.
+
+If a candidate still restarts, collect its full startup log through the first
+`APPLICATION FAILED TO START` / `Caused by` stack trace, plus its exit code and
+OOM status. A `restart=4` counter and the two Spring startup INFO lines alone do
+not identify the failure. The platform's unavailable repair assistant is a
+separate issue that must be reported to its administrator.

@@ -62,6 +62,7 @@ public class SecurityConfig {
 
     @Bean
     @Order(1)
+    @org.springframework.context.annotation.Conditional(GoogleOAuthConfigured.class)
     SecurityFilterChain oauth2FilterChain(HttpSecurity http) throws Exception {
         return http.securityMatcher("/oauth2/**", "/login/oauth2/**")
                 .csrf(csrf -> csrf.disable())
@@ -103,6 +104,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
                         .requestMatchers(PUBLIC_AUTH_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/verify-email").permitAll()
