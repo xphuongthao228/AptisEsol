@@ -671,7 +671,7 @@ export function PracticeRunner() {
           {activeQuestion?.featured && !templateOwnsHeader && <FeaturedQuestionCallout />}
           {activeQuestion && mergedTemplateData && (
             <AptisTemplateRenderer
-              data={mergedTemplateData}
+              data={{ ...mergedTemplateData, audioUrl: getQuestionAudioUrl(activeQuestion, mergedTemplateData) }}
               questionId={activeQuestion.id}
               currentNumber={currentIndex + 1}
               totalQuestions={totalQuestions}
@@ -791,7 +791,7 @@ export function PracticeRunner() {
 
             {activeQuestion && mergedTemplateData && (
               <AptisTemplateRenderer
-                data={mergedTemplateData}
+                data={{ ...mergedTemplateData, audioUrl: getQuestionAudioUrl(activeQuestion, mergedTemplateData) }}
                 questionId={activeQuestion.id}
                 currentNumber={currentIndex + 1}
                 totalQuestions={totalQuestions}
