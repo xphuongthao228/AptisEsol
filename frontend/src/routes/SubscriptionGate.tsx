@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { api, unwrap } from '../api/client';
 import type { SubscriptionResponse } from '../types';
-import { getSubscriptionStatus, saveSubscriptionUntil } from '../utils/subscription';
+import { saveSubscriptionUntil } from '../utils/subscription';
 
 type SubscriptionGateProps = {
   children: ReactNode;
@@ -42,7 +42,7 @@ export function SubscriptionGate({
         setCheckFailed(false);
         const accessAllowed = resolveAccess(subscription, requirePro, testAccess);
         setAllowed(accessAllowed);
-        setExpired(!accessAllowed);
+        setExpired(!accessAllowed && !subscription.active);
         if (subscription.active) saveSubscriptionUntil(subscription.expiresAt);
       })
       .catch(() => {
@@ -113,7 +113,11 @@ export function SubscriptionGate({
     return <ProAccessNotice title="Tài khoản Pro đã hết hạn" description="Bạn cần gia hạn tài khoản để tiếp tục dùng tính năng này. Hệ thống sẽ chuyển sang trang thanh toán." />;
   }
 
-  return <Navigate to="/app/renewal" replace state={{ reason: requirePro ? 'pro-required' : 'expired' }} />;
+  if (requirePro || testAccess) {
+    return <ProAccessNotice title={proTitle} description={proDescription} />;
+  }
+
+  return <Navigate to="/app/renewal" replace state={{ reason: 'expired' }} />;
 }
 
 function ProAccessNotice({ title, description }: { title: string; description: string }) {

@@ -126,6 +126,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/writing-bank/**", "/api/speaking-bank/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/ui-settings").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/ui-settings").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/learning-materials", "/api/learning-materials/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/blog", "/api/blog/*").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/submissions/leaderboard/settings").permitAll()
                         .requestMatchers(HttpMethod.GET,
@@ -163,7 +165,7 @@ public class SecurityConfig {
                 .map(String::trim)
                 .filter(origin -> !origin.isBlank())
                 .toList());
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

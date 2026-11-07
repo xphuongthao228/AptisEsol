@@ -1,0 +1,27 @@
+.material-slider-track {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  padding: 5px 0 12px;
+}
+.material-slider-track::-webkit-scrollbar { display: none; }
+.material-slider-item { flex: 0 0 86%; min-width: 0; scroll-snap-align: start; }
+.material-slider .material-slide-card > div:first-child { aspect-ratio: 16 / 8; }
+.material-slider .material-slide-card > div:first-child > div { gap: 10px; }
+.material-slider .material-slide-card > div:first-child > div svg { width: 32px; height: 32px; }
+.material-slider .material-slide-card > div:first-child > div span { font-size: 15px; }
+.material-slider .material-slide-card > div:first-child > span { bottom: 10px; left: 12px; font-size: 10px; padding: 3px 10px; }
+.material-slider .material-slide-card > div:nth-child(2) { padding: 16px; }
+.material-slider .material-slide-card h3 { font-size: 16px; line-height: 24px; margin-top: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.material-slider .material-slide-card h3 + p { font-size: 13px; line-height: 22px; margin-top: 8px; -webkit-line-clamp: 2; }
+.material-slider .material-slide-card > div:nth-child(2) > p:first-child { font-size: 10px; }
+.material-slider .material-slide-card > div:nth-child(2) > span { font-size: 12px; padding-top: 14px; }
+.material-slider-controls { display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 10px; }
+.material-slider-controls span { font-size: 12px; color: #8c6258; }
+.material-slider-controls button { display: grid; place-items: center; width: 36px; height: 36px; border: 1px solid #f5d9c6; border-radius: 50%; background: white; color: #b5121b; }
+.material-slider-controls button:disabled { opacity: .35; cursor: default; }
+.material-slider-controls button:focus-visible { outline: 2px solid #b5121b; outline-offset: 3px; }
+@media (min-width: 640px) { .material-slider-item { flex-basis: calc((100% - 16px) / 2); } }
+@media (min-width: 1024px) { .material-slider-item { flex-basis: calc((100% - 48px) / 4); } }

@@ -30,7 +30,7 @@ export function Leaderboard() {
   const filteredRows = useMemo(() => {
     const keyword = query.trim().toLowerCase();
     if (!keyword) return rows;
-    return rows.filter((row) => `${row.fullName} ${row.email}`.toLowerCase().includes(keyword));
+    return rows.filter((row) => row.fullName.toLowerCase().includes(keyword));
   }, [query, rows]);
   const periodStartDate = useMemo(() => currentPeriodStart(examDate), [examDate]);
   const examEndDate = useMemo(() => addDays(periodStartDate, 9), [periodStartDate]);
@@ -204,7 +204,7 @@ export function Leaderboard() {
         {isAdmin && bonusStudent && (
           <form className="space-y-3 border-b border-brand-100 p-5" onSubmit={(event) => { event.preventDefault(); void addBonus(); }}>
             <h2 className="font-extrabold text-navy">Cộng điểm cho {repairMojibake(bonusStudent.fullName)}</h2>
-            <p className="text-sm text-slate-500">{bonusStudent.email} · Điểm cộng chỉ áp dụng cho kỳ xếp hạng hiện tại.</p>
+            <p className="text-sm text-slate-500">Điểm cộng chỉ áp dụng cho kỳ xếp hạng hiện tại.</p>
             <label className="block text-sm font-bold text-navy">
               Số điểm cộng
               <input type="number" min="1" max="2147483647" step="1" required disabled={savingBonus} value={bonusPoints} onChange={(event) => setBonusPoints(event.target.value)} className="mt-1 block w-full rounded-lg border border-brand-100 bg-white p-3" />
@@ -235,7 +235,6 @@ export function Leaderboard() {
               </div>
               <div className="min-w-0">
                 <h2 className="truncate text-base font-extrabold text-navy">{repairMojibake(row.fullName)}</h2>
-                <p className="mt-1 truncate text-sm font-semibold text-slate-500">{row.email}</p>
                 {isAdmin && (
                   <button type="button" disabled={savingBonus} onClick={() => { setBonusStudent(row); setBonusPoints(''); }} className="mt-2 rounded-lg border border-brand-100 px-3 py-1 text-sm font-bold text-brand-700 disabled:opacity-60">+ Cộng điểm</button>
                 )}
@@ -274,7 +273,6 @@ function TopStudent({ row }: { row: LeaderboardRow }) {
         <span className="text-3xl font-black">#{row.rank}</span>
       </div>
       <h2 className="mt-5 truncate text-xl font-extrabold text-navy">{repairMojibake(row.fullName)}</h2>
-      <p className="mt-1 truncate text-sm font-semibold text-slate-500">{row.email}</p>
       <p className="mt-4 text-3xl font-black text-brand-700">{row.score} điểm</p>
     </article>
   );

@@ -67,6 +67,7 @@ public class CoreService {
     private final SubmissionRepository submissions;
     private final SubmissionAnswerRepository submissionAnswers;
     private final PracticeScoreRepository practiceScores;
+    private final LearningCompletionRepository learningCompletions;
     private final ProgressRepository progress;
     private final MediaFileRepository mediaFiles;
     private final LeaderboardSettingsRepository leaderboardSettings;
@@ -1202,6 +1203,7 @@ public class CoreService {
     public void deleteQuestion(Long id) {
         Question q = questions.findById(id).orElseThrow(() -> new ResourceNotFoundException("Question not found"));
         practiceScores.deleteByQuestionId(id);
+        learningCompletions.deleteByQuestionId(id);
         submissionAnswers.deleteByQuestionId(id);
         questions.delete(q);
     }
@@ -2094,7 +2096,6 @@ public class CoreService {
                     rank,
                     row.userId(),
                     row.fullName(),
-                    row.email(),
                     score,
                     score,
                     row.submissions(),
@@ -2299,7 +2300,7 @@ public class CoreService {
     public CoreDtos.MediaResponse media(MediaFile media) {
         return new CoreDtos.MediaResponse(media.getId(), media.getOriginalName(), media.getContentType(),
                 media.getSizeBytes(), media.getType(), media.isBanner(), media.isBannerActive(),
-                media.getBannerSortOrder(), media.getSourceUrl());
+                media.getBannerSortOrder(), media.getSourceUrl(), media.getBannerTargetUrl());
     }
 
     public List<CoreDtos.MediaResponse> mediaList() {
@@ -2320,6 +2321,21 @@ public class CoreService {
         media.setBanner(request.banner());
         media.setBannerActive(request.banner() && request.active());
         media.setBannerSortOrder(request.sortOrder());
+        if (request.bannerTargetUrl() != null) {
+            String target = request.bannerTargetUrl().trim();
+            if (!target.isEmpty()) {
+                try {
+                    URI uri = URI.create(target);
+                    boolean internal = target.startsWith("/") && !target.startsWith("//") && !target.contains("\\");
+                    boolean external = ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()))
+                            && uri.getHost() != null && uri.getUserInfo() == null;
+                    if (!internal && !external) throw new IllegalArgumentException();
+                } catch (IllegalArgumentException ex) {
+                    throw new IllegalArgumentException("Đường dẫn chương trình phải bắt đầu bằng /, https:// hoặc http://");
+                }
+            }
+            media.setBannerTargetUrl(target.isEmpty() ? null : target);
+        }
         return media(mediaFiles.save(media));
     }
 

@@ -14,5 +14,10 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByGoogleIdAndDeletedAtIsNull(String googleId);
     Optional<User> findByGoogleId(String googleId);
     Optional<User> findByReferralCodeAndDeletedAtIsNullAndEnabledTrue(String referralCode);
+    @org.springframework.data.jpa.repository.Query("""
+            select u from User u where u.deletedAt is null and u.enabled = true
+              and (u.referralCode = :code or u.shortReferralCode = :code)
+            """)
+    Optional<User> findByActiveReferralCode(@org.springframework.data.repository.query.Param("code") String code);
     boolean existsByEmail(String email);
 }

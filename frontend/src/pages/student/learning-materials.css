@@ -1,0 +1,25 @@
+.learning-materials { max-width: 1280px; margin: 24px auto; padding: 24px 28px 18px; border: 1px solid #eeeae4; border-radius: 20px; background: #fff; }
+.learning-materials-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:18px; }
+.learning-materials-heading h2 { display:flex; align-items:center; gap:8px; color:#a91825; font-size:18px; font-weight:900; }
+.learning-materials-heading button { color:#bc2530; font-size:12px; font-weight:800; }
+.learning-materials-carousel { position:relative; }
+.learning-materials-track { display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; padding:2px 2px 8px; }
+.learning-materials-track::-webkit-scrollbar { display:none; }
+.learning-material-card { flex:0 0 calc((100% - 64px)/5); min-width:0; overflow:hidden; scroll-snap-align:start; border:1px solid #f0eeeb; border-radius:14px; background:white; box-shadow:0 3px 8px #382b1510; }
+.learning-material-cover { height:116px; display:grid; place-items:center; overflow:hidden; }
+.learning-material-book { width:90px; height:104px; padding:10px; margin-top:16px; background:#ffffffee; border-radius:3px 8px 0 0; border-left:5px solid #ffffff88; transform:rotate(9deg); box-shadow:-7px 5px 0 #ffffff60,0 4px 8px #00000012; text-align:center; }
+.learning-material-book svg { margin:auto; width:15px; height:15px; }
+.learning-material-book span { display:block; font-size:12px; line-height:1.1; font-weight:900; margin:4px 0 9px; }
+.learning-material-book i { display:block; height:2px; margin:5px 0; background:currentColor; opacity:.16; }
+.learning-material-info { position:relative; padding:12px 30px 14px 12px; min-height:94px; }
+.learning-material-info h3 { color:#23364b; font-weight:800; font-size:12px; overflow-wrap:anywhere; }
+.learning-material-info p { margin-top:5px; color:#85909d; font-size:11px; line-height:1.5; overflow-wrap:anywhere; }
+.learning-material-info small { display:block; color:#8d96a2; font-size:10px; margin-top:5px; }
+.learning-material-download { position:absolute; right:8px; top:10px; padding:4px; background:#fff3f0; border-radius:5px; color:#ef5252; }
+.materials-arrow { position:absolute; top:38%; z-index:2; width:30px; height:30px; display:grid; place-items:center; border:1px solid #ff9b9b; border-radius:50%; background:white; color:#f34a4a; box-shadow:0 2px 5px #00000008; }
+.materials-arrow-prev { left:-15px; }.materials-arrow-next { right:-15px; }
+.learning-material-dots { display:flex; justify-content:center; gap:8px; margin-top:12px; }
+.learning-material-dots button { width:7px; height:7px; border-radius:50%; background:#e7e2dd; }.learning-material-dots button.is-active { background:#b62430; }
+.learning-materials-track.is-expanded { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); overflow:visible; }
+@media(max-width:900px) { .learning-material-card { flex-basis:calc((100% - 32px)/3); } }
+@media(max-width:540px) { .learning-materials { padding:18px; margin:18px auto; }.learning-materials-heading h2 { font-size:16px; }.learning-material-card { flex-basis:76%; }.learning-materials-track.is-expanded { grid-template-columns:repeat(2,minmax(0,1fr)); } }

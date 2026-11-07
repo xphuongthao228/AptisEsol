@@ -42,7 +42,7 @@ public class PaymentService {
         if (!normalized.startsWith("REF")) return discountService.quote(days, code);
         referrals.validate(email, normalized);
         var original = discountService.quote(days, null);
-        int amount = original.amount() * 90 / 100;
+        int amount = original.amount() - (int) ((long) original.amount() * ReferralService.DISCOUNT_PERCENT / 100);
         return new DiscountService.Quote(original.amount(), original.amount()-amount, amount, normalized);
     }
 
@@ -81,7 +81,8 @@ public class PaymentService {
             var pending = paymentOrders.findByUserIdAndReferrerIdIsNotNullAndStatus(user.getId(), PaymentStatus.PENDING);
             if (!pending.isEmpty()) {
                 PaymentOrder existing = pending.get(0);
-                if (existing.getDays().equals(request.days()) && existing.getReferrerId().equals(referrerId)) return response(existing);
+                if (existing.getDays().equals(request.days()) && existing.getReferrerId().equals(referrerId)
+                        && existing.getAmount().equals(expectedAmount)) return response(existing);
                 throw new IllegalArgumentException("Bạn đã có đơn giới thiệu đang chờ thanh toán. Vui lòng hoàn tất đơn trước.");
             }
         }
@@ -243,9 +244,9 @@ public class PaymentService {
         }
         User payingUser = users.findByIdForUpdate(buyerId).orElseThrow();
         if (referrerId != null && referrer == null) referrer = users.findByIdForUpdate(referrerId).orElseThrow();
-        if (referrer != null && payingUser.getReferredByUserId() == null) {
-            payingUser.setReferredByUserId(referrerId);
-            extendUserSubscription(referrer, 3);
+        if (referrer != null && !Boolean.TRUE.equals(order.getReferralRewarded())) {
+            if (payingUser.getReferredByUserId() == null) payingUser.setReferredByUserId(referrerId);
+            referrals.creditCommission(order, referrer);
             order.setReferralRewarded(true);
         }
         extendUserSubscription(payingUser, order.getDays());

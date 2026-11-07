@@ -14,6 +14,7 @@ interface MediaResponse {
   bannerActive: boolean;
   bannerSortOrder: number;
   sourceUrl?: string | null;
+  bannerTargetUrl?: string | null;
 }
 
 const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8080';
@@ -22,21 +23,36 @@ export function AdminMedia() {
   const { data, loading: loadingList, setData } = useApi<MediaResponse[]>(() => unwrap(api.get('/media')), []);
   const [loading, setLoading] = useState(false);
   const [bannerUrl, setBannerUrl] = useState('');
+  const [targetDrafts, setTargetDrafts] = useState<Record<number, string>>({});
+  const [savingTargetId, setSavingTargetId] = useState<number | null>(null);
   const [failedPreviewIds, setFailedPreviewIds] = useState<Set<number>>(() => new Set());
   const mediaList = data ?? [];
   const bannerList = mediaList
     .filter((media) => media.banner)
     .sort((first, second) => first.bannerSortOrder - second.bannerSortOrder || first.id - second.id);
 
-  async function saveBanner(media: MediaResponse, changes: Partial<Pick<MediaResponse, 'banner' | 'bannerActive' | 'bannerSortOrder'>>) {
+  async function saveBanner(media: MediaResponse, changes: Partial<Pick<MediaResponse, 'banner' | 'bannerActive' | 'bannerSortOrder' | 'bannerTargetUrl'>>) {
     const next = { ...media, ...changes };
     const updated = await unwrap<MediaResponse>(api.patch(`/media/${media.id}/banner`, {
       banner: next.banner,
       active: next.bannerActive,
-      sortOrder: next.bannerSortOrder
+      sortOrder: next.bannerSortOrder,
+      ...(changes.bannerTargetUrl !== undefined ? { bannerTargetUrl: changes.bannerTargetUrl } : {})
     }));
     setData((current) => (current ?? []).map((item) => item.id === updated.id ? updated : item));
     return updated;
+  }
+
+  async function saveTarget(media: MediaResponse) {
+    setSavingTargetId(media.id);
+    try {
+      await saveBanner(media, { bannerTargetUrl: (targetDrafts[media.id] ?? media.bannerTargetUrl ?? '').trim() });
+      toast.success('Đã lưu đường dẫn chương trình');
+    } catch (error: any) {
+      toast.error(error?.response?.data?.message ?? 'Không thể lưu đường dẫn');
+    } finally {
+      setSavingTargetId(null);
+    }
   }
 
   async function upload(event: ChangeEvent<HTMLInputElement>) {
@@ -189,6 +205,19 @@ export function AdminMedia() {
                   <button type="button" className="grid h-9 w-9 place-items-center rounded-md border border-slate-200 disabled:opacity-30" disabled={index === bannerList.length - 1} onClick={() => moveBanner(index, 1)} title="Đưa xuống"><ArrowDown size={16} /></button>
                   <button type="button" className="grid h-9 w-9 place-items-center rounded-md border border-slate-200 text-brand-700" onClick={() => saveBanner(media, { bannerActive: !media.bannerActive })} title={media.bannerActive ? 'Ẩn banner' : 'Hiện banner'}>{media.bannerActive ? <Eye size={16} /> : <EyeOff size={16} />}</button>
                   <button type="button" className="grid h-9 w-9 place-items-center rounded-md border border-red-100 text-red-600" onClick={() => remove(media)} title="Xóa ảnh"><Trash2 size={16} /></button>
+                </div>
+                <div className="border-t border-brand-100 p-3">
+                  <label htmlFor={`banner-target-${media.id}`} className="text-sm font-bold">Đường dẫn chương trình</label>
+                  <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                    <input id={`banner-target-${media.id}`} className="input min-w-0 flex-1" type="text" maxLength={2000}
+                      value={targetDrafts[media.id] ?? media.bannerTargetUrl ?? ''}
+                      onChange={(event) => setTargetDrafts((current) => ({ ...current, [media.id]: event.target.value }))}
+                      placeholder="/app/referral hoặc https://..." />
+                    <button type="button" className="btn-secondary shrink-0 px-4" disabled={savingTargetId !== null} onClick={() => saveTarget(media)}>
+                      {savingTargetId === media.id ? 'Đang lưu...' : 'Lưu đường dẫn'}
+                    </button>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">Học viên bấm banner để mở chương trình. Để trống nếu không cần chuyển trang.</p>
                 </div>
               </article>
             ))}

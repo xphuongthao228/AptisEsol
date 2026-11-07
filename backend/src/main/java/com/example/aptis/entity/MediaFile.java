@@ -26,6 +26,9 @@ public class MediaFile extends BaseEntity {
     @Column(length = 2000)
     private String sourceUrl;
 
+    @Column(length = 2000)
+    private String bannerTargetUrl;
+
     @Column(nullable = false)
     private String contentType;
 

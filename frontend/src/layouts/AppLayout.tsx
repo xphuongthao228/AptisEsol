@@ -52,14 +52,15 @@ const studentLinks: LayoutLink[] = [
   { to: '/app/tests/parts', label: 'Luyện tập theo part', icon: BookOpen },
   { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
   { to: '/app/history', label: 'Lịch sử', icon: Clock3 },
-  { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
-  { to: '/app/lessons/LISTENING', label: 'Mẹo thi', icon: Lightbulb },
+  { to: '/app/lessons', label: 'Mẹo thi', icon: Lightbulb },
   { to: '/app/predictions', label: 'Đề Key Dự Đoán', icon: FileSearch },
   { to: '/leaderboard', label: 'Bảng xếp hạng', icon: Trophy },
   { to: '/app/renewal', label: 'Bảng giá', icon: CalendarPlus }
 ];
 
 const studentMoreLinks: LayoutLink[] = [
+  { to: '/learning-materials', label: 'Tài liệu học tập', icon: BookOpen },
+  { to: '/app/referral', label: 'Mã giới thiệu', icon: UserPlus },
   { to: '/app/ai-practice', label: 'Tạo đề AI', icon: Bot },
   { to: '/app/writing-bank', label: 'Kho đề Writing', icon: PenLine },
   { to: '/app/speaking-bank', label: 'Kho đề Speaking', icon: Mic },
@@ -73,6 +74,7 @@ const adminLinks: LayoutLink[] = [
   { to: '/admin/users', label: 'Người dùng', icon: Users },
   { to: '/admin/content', label: 'Nội dung', icon: BookOpen },
   { to: '/admin/lessons', label: 'Bài học', icon: GraduationCap },
+  { to: '/admin/learning-materials', label: 'Tài liệu học tập', icon: BookOpen },
   { to: '/admin/mock-tests', label: 'Thi thử', icon: FileCheck },
   { to: '/admin/leaderboard', label: 'Bảng xếp hạng', icon: Trophy },
   { to: '/admin/predictions', label: 'Dự đoán đề', icon: FileSearch },
@@ -82,6 +84,7 @@ const adminLinks: LayoutLink[] = [
 ];
 
 const adminMoreLinks: LayoutLink[] = [
+  { to: '/admin/withdrawals', label: 'Rút hoa hồng', icon: DollarSign },
   { to: '/admin/ai-usage', label: 'Chấm AI', icon: Bot },
   { to: '/admin/writing-bank', label: 'Kho đề Writing', icon: PenLine },
   { to: '/admin/speaking-bank', label: 'Kho đề Speaking', icon: Mic },
@@ -462,7 +465,7 @@ export function AppLayout() {
       </header>
 
       <main className="min-h-screen pb-20" style={{ paddingTop: headerHeight }}>
-        <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10">
+        <div className={`mx-auto max-w-[1800px] px-4 py-6 sm:px-6 sm:py-8 lg:px-10${!isAdmin && !['/', '/app', '/app/'].includes(location.pathname) ? ' student-page-content' : ''}`}>
           <Outlet />
         </div>
       </main>
@@ -472,7 +475,7 @@ export function AppLayout() {
           { to: '/app/tests/parts', label: 'Theo part', icon: BookOpen, active: location.pathname.startsWith('/app/tests') },
           { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck, active: location.pathname.startsWith('/app/mock-tests') },
           { to: '/app/renewal', label: 'Bảng giá', icon: CalendarPlus, active: location.pathname.startsWith('/app/renewal') },
-          { to: '/app/lessons', label: 'Bài học', icon: GraduationCap, active: location.pathname.startsWith('/app/lessons') },
+          { to: '/app/lessons', label: 'Mẹo thi', icon: Lightbulb, active: location.pathname.startsWith('/app/lessons') },
           { to: isAuthenticated ? '/app/settings' : '/login', label: 'Tài khoản', icon: UserRound, active: location.pathname === '/app/settings' }
         ].map(({ to, label, icon: Icon, active }) => <Link key={label} to={to} className={active ? 'is-active' : ''} aria-current={active ? 'page' : undefined} onClick={() => setMobileMenuOpen(false)}><span><Icon size={21} /></span><span>{label}</span></Link>)}
       </nav>}

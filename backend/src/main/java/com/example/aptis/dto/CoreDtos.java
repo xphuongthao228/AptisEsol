@@ -101,7 +101,7 @@ public class CoreDtos {
             Integer maxScore, LocalDateTime createdAt, List<SubmissionAnswerResponse> answers) {
     }
 
-    public record LeaderboardRowResponse(Integer rank, Long userId, String fullName, String email,
+    public record LeaderboardRowResponse(Integer rank, Long userId, String fullName,
             Long score, Long correctAnswers, Long submissions, LocalDateTime latestSubmissionAt) {
     }
 
@@ -121,10 +121,11 @@ public class CoreDtos {
     }
 
     public record MediaResponse(Long id, String originalName, String contentType, Long sizeBytes, MediaType type,
-                                boolean banner, boolean bannerActive, Integer bannerSortOrder, String sourceUrl) {
+                                boolean banner, boolean bannerActive, Integer bannerSortOrder, String sourceUrl, String bannerTargetUrl) {
     }
 
-    public record MediaBannerRequest(boolean banner, boolean active, @NotNull @PositiveOrZero Integer sortOrder) {
+    public record MediaBannerRequest(boolean banner, boolean active, @NotNull @PositiveOrZero Integer sortOrder,
+                                     @jakarta.validation.constraints.Size(max = 2000) String bannerTargetUrl) {
     }
 
     public record MediaUrlRequest(@NotBlank String url, @NotNull @PositiveOrZero Integer sortOrder) {

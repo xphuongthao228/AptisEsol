@@ -137,24 +137,24 @@ const skillTips: SkillTip[] = [
         points: ['Đọc cả câu trước và sau ô trống.', 'Kiểm tra loại từ cần điền: danh từ, động từ, tính từ.', 'Chọn từ làm câu tự nhiên nhất, đúng thì và đúng ngữ cảnh.']
       },
       {
-        title: 'Part 2 & 3: Sắp xếp câu',
+        title: 'Part 2: Sắp xếp câu 2 & 3',
         description: 'Cần tìm câu mở đầu, câu nối ý và câu kết. Dùng dấu hiệu liên kết để xếp thứ tự.',
         color: 'bg-cyan-500 text-navy',
         button: 'Học câu 2 & 3',
         points: ['Tìm câu tổng quan trước.', 'Để ý đại từ this, that, they và từ nối however, because, after that.', 'Đọc lại cả đoạn sau khi sắp xếp để kiểm tra mạch văn.']
       },
       {
-        title: 'Part 4: Đọc ý kiến bốn người',
+        title: 'Part 3: Đọc ý kiến bốn người',
         description: 'Đọc nhanh từng người A, B, C, D và gắn keyword riêng cho mỗi người.',
         color: 'bg-amber-400 text-navy',
         button: 'Học câu 4',
         points: ['Gạch ý chính của từng người.', 'Câu hỏi hay dùng từ đồng nghĩa, không phải từ y nguyên.', 'Nếu phân vân, chọn người có ý gần nhất với cả câu hỏi.']
       },
       {
-        title: 'Part 5: Nối tiêu đề với đoạn',
+        title: 'Part 4 Reading: Nối tiêu đề với đoạn',
         description: 'Không cần dịch từng từ. Hãy tìm keyword và ý chính của mỗi đoạn.',
         color: 'bg-emerald-700 text-white',
-        button: 'Mẹo học nhanh Part 5',
+        button: 'Luyện Reading Part 4',
         points: ['Đọc danh sách tiêu đề trước.', 'Đọc câu đầu và câu cuối của mỗi đoạn.', 'Loại tiêu đề quá chi tiết hoặc chỉ đúng với một ví dụ nhỏ.']
       }
     ]
@@ -272,19 +272,19 @@ const tipLanding: Record<SkillKey, TipLanding> = {
         actions: [{ label: 'Học câu 1', to: '/app/tests/questions/READING/part/1', tone: 'blue', icon: 'book' }]
       },
       {
-        title: 'Part 2 & 3: Câu hỏi thứ hai và thứ ba',
+        title: 'Part 2: Sắp xếp câu 2 & 3',
         description: 'Part này cần học đầy đủ các câu hỏi mẫu, đặc biệt là cách nối ý và sắp xếp câu.',
         actions: [{ label: 'Học câu 2 & 3', to: '/app/tests/questions/READING/part/2', tone: 'cyan', icon: 'puzzle' }]
       },
       {
-        title: 'Part 4: Câu hỏi thứ tư',
+        title: 'Part 3: Đọc ý kiến bốn người',
         description: 'Part này không quá khó và số lượng câu hỏi ít. Hãy luyện đọc ý chính của từng người.',
-        actions: [{ label: 'Học câu 4', to: '/app/tests/questions/READING/part/4', tone: 'amber', icon: 'clipboard' }]
+        actions: [{ label: 'Học câu 4', to: '/app/tests/questions/READING/part/3', tone: 'amber', icon: 'clipboard' }]
       },
       {
-        title: 'Part 5: Câu hỏi thứ năm',
+        title: 'Part 4 Reading: Nối tiêu đề với đoạn',
         description: 'Part này có thể học theo key, theo thẻ hoặc theo đoạn văn. Mỗi bài có mẹo riêng, học đúng mẹo sẽ làm nhanh hơn.',
-        actions: [{ label: 'Mẹo học nhanh (chỉ học đáp án)', to: '/app/tests/questions/READING/part/5', tone: 'green', icon: 'lightbulb' }]
+        actions: [{ label: 'Luyện Reading Part 4', to: '/app/tests/questions/READING/part/4', tone: 'green', icon: 'lightbulb' }]
       }
     ]
   },
@@ -811,7 +811,7 @@ export function Lessons() {
         </div>
 
         <div className="mt-6 grid gap-4 lg:grid-cols-2">
-          {current.sections.map((section) => (
+          {current.sections.map((section, index) => (
             <article key={section.title} className="lesson-study-tip-card overflow-hidden rounded-[20px] border border-brand-100 bg-sky-50">
               <div className={`${section.color} px-5 py-4`}>
                 <h3 className="text-lg font-extrabold">{section.title}</h3>
@@ -824,7 +824,7 @@ export function Lessons() {
                     <span>{point}</span>
                   </div>
                 ))}
-                <Link to={`/app/lessons/${current.key}`} onClick={requireLogin} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
+                <Link to={`${current.practicePath}/part/${index + 1}`} onClick={requireLogin} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
                   <BookOpen size={16} /> {section.button}
                 </Link>
               </div>

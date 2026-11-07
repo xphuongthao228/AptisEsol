@@ -1,5 +1,5 @@
 ﻿import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { Fragment } from 'react';
+import { Fragment, createContext, useContext } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, Languages, LayoutDashboard, ListChecks, Loader2, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
@@ -10,9 +10,13 @@ import { useListeningReview } from '../../hooks/useListeningReview';
 import { useAuthStore } from '../../store/authStore';
 import type { Answer, Question, Submission, Test } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
+import './practice-controls.css';
 import { sanitizeAnswerHtml } from '../../utils/safeHtml';
 import { formatListeningReview } from '../../utils/listeningReview';
 import { getListeningPersonEvidence, getListeningScriptVietnamese } from '../../utils/listeningEvidence';
+import { savePracticeCompletion } from '../../utils/learningRoadmap';
+
+const PracticeQuestionContext = createContext<number | null>(null);
 
 const examLinks = [
   { to: '/app', label: 'Trang ch\u1ee7', icon: LayoutDashboard, active: false },
@@ -78,10 +82,22 @@ function pickTextValue(source: Record<string, unknown>, keys: string[], fallback
   return fallback;
 }
 
-function SpeakingAiScorePanel({ answer, audioBlob, partTitle, prompt }: { answer: string; audioBlob?: Blob | null; partTitle: string; prompt: string }) {
+function SpeakingAiScorePanel({ answer, audioBlob, partTitle, prompt, completion }: { answer: string; audioBlob?: Blob | null; partTitle: string; prompt: string; completion?: { questionId?: number; unitKey: string } }) {
+  const parentQuestionId = useContext(PracticeQuestionContext);
   const [loading, setLoading] = useState(false);
+  const [savingProgress, setSavingProgress] = useState(false);
   const [result, setResult] = useState<SpeakingAiScoreResult | null>(null);
   const hasAudio = Boolean(audioBlob && audioBlob.size > 0);
+
+  async function saveSpeakingProgress() {
+    const questionId = completion?.questionId ?? parentQuestionId;
+    if (!parentQuestionId || !questionId || !completion) return;
+    if (!hasAudio && !answer.trim()) { toast.error('Ghi âm hoặc nhập câu trả lời trước khi lưu tiến độ.'); return; }
+    setSavingProgress(true);
+    try { await savePracticeCompletion(questionId, completion.unitKey); toast.success('Đã lưu câu Speaking vào lộ trình.'); }
+    catch { toast.error('Chưa lưu được tiến độ. Vui lòng thử lại.'); }
+    finally { setSavingProgress(false); }
+  }
 
   useEffect(() => {
     setResult(null);
@@ -106,6 +122,11 @@ function SpeakingAiScorePanel({ answer, audioBlob, partTitle, prompt }: { answer
           }]
         }));
       setResult(response);
+      const questionId = completion?.questionId ?? parentQuestionId;
+      if (parentQuestionId && questionId && completion) {
+        try { await savePracticeCompletion(questionId, completion.unitKey); }
+        catch { toast.error('Đã chấm bài nhưng chưa lưu được tiến độ lộ trình. Bấm chấm lại để lưu.'); }
+      }
       toast.success('AI đã chấm bài Speaking.');
     } catch (error: any) {
       toast.error(error?.response?.data?.message || error?.message || 'Không chấm được Speaking lúc này.');
@@ -132,6 +153,7 @@ function SpeakingAiScorePanel({ answer, audioBlob, partTitle, prompt }: { answer
           {loading ? <Loader2 className="animate-spin" size={16} /> : <CheckSquare size={16} />}
           {loading ? 'Đang chấm...' : 'Chấm AI'}
         </button>
+        {completion && parentQuestionId && <button type="button" disabled={savingProgress} onClick={saveSpeakingProgress} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-emerald-600 bg-white px-4 text-sm font-extrabold text-emerald-700 disabled:opacity-50">{savingProgress ? 'Đang lưu…' : 'Hoàn thành câu này · Lưu lộ trình'}</button>}
       </div>
 
       {result && (
@@ -373,6 +395,11 @@ export function PracticeRunner() {
       }))
     };
     const result = await unwrap<Submission>(api.post('/submissions', payload));
+    if (test?.mode === 'PRACTICE') {
+      try {
+        await Promise.all((questions ?? []).filter(question => hasCompletePracticeAnswer(getRenderableTemplateData(question, test, questions?.length ?? 0), answers[question.id] ?? '')).map(question => savePracticeCompletion(question.id)));
+      } catch { toast.error('Bài làm đã lưu, nhưng chưa lưu được toàn bộ tiến độ lộ trình.'); }
+    }
     toast.success(`Đã nộp bài: ${result.totalScore}/${result.maxScore}`);
     navigate('/app/history');
   }
@@ -531,6 +558,15 @@ export function PracticeRunner() {
 
   function checkCurrentQuestion() {
     if (!activeQuestion) return;
+    if (test?.mode === 'PRACTICE') {
+      const candidates = fullReadingExam || (fullListeningExam && currentIndex >= totalQuestions - 1) ? questions ?? [] : [activeQuestion];
+      candidates.forEach(question => {
+        const data = getRenderableTemplateData(question, test, questions?.length ?? 0);
+        if (hasCompletePracticeAnswer(data, answers[question.id] ?? '')) {
+          void savePracticeCompletion(question.id).catch(() => toast.error('Chưa lưu được tiến độ lộ trình. Bấm Kiểm tra để thử lại.', { id: 'roadmap-save' }));
+        }
+      });
+    }
 
     if (fullListeningExam && currentIndex >= totalQuestions - 1) {
       const nextChecked = { ...checkedAnswers };
@@ -673,6 +709,7 @@ export function PracticeRunner() {
             <AptisTemplateRenderer
               data={{ ...mergedTemplateData, audioUrl: getQuestionAudioUrl(activeQuestion, mergedTemplateData) }}
               questionId={activeQuestion.id}
+              trackProgress={test?.mode === 'PRACTICE'}
               currentNumber={currentIndex + 1}
               totalQuestions={totalQuestions}
               featured={activeQuestion.featured}
@@ -735,7 +772,7 @@ export function PracticeRunner() {
         </header>
 
         <form onSubmit={submit}>
-          <div className="px-4 pb-16 pt-2 sm:px-5">
+          <div className="practice-content px-4 pb-16 pt-2 sm:px-5">
             {!templateOwnsHeader && (
             <div className="mb-2 flex flex-col justify-between gap-2 lg:flex-row lg:items-end">
               <div>
@@ -793,6 +830,7 @@ export function PracticeRunner() {
               <AptisTemplateRenderer
                 data={{ ...mergedTemplateData, audioUrl: getQuestionAudioUrl(activeQuestion, mergedTemplateData) }}
                 questionId={activeQuestion.id}
+                trackProgress={test?.mode === 'PRACTICE'}
                 currentNumber={currentIndex + 1}
                 totalQuestions={totalQuestions}
                 featured={activeQuestion.featured}
@@ -852,7 +890,7 @@ export function PracticeRunner() {
             )}
           </div>
 
-          <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
+          <div className="practice-bottom-bar fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
             <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
               <button type="button" onClick={goBack} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 sm:h-9 sm:w-auto sm:border-transparent sm:bg-transparent sm:text-sm sm:font-semibold sm:justify-start" disabled={!canGoBack}><ArrowLeft size={18} />Quay lại</button>
               <button type="button" className="btn-secondary h-11 w-full px-3 text-xs outline-none focus:ring-2 focus:ring-brand-200 sm:h-9 sm:w-auto" onClick={resetCurrentQuestion}><RotateCcw size={16} />Làm lại</button>
@@ -921,7 +959,7 @@ function RunnerBottomBar({ currentIndex, totalQuestions, onBack, onReset, onChec
   showCheck?: boolean;
 }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
+    <div className="practice-bottom-bar fixed bottom-0 left-0 right-0 z-30 border-t border-slate-300 bg-white/95 px-3 py-1.5 pb-[calc(0.375rem+env(safe-area-inset-bottom))] shadow-[0_-8px_24px_rgba(15,23,42,0.06)] backdrop-blur sm:px-5">
       <div className="grid grid-cols-2 gap-2 sm:flex sm:items-center sm:justify-between">
         <button type="button" onClick={onBack} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-extrabold text-slate-700 outline-none focus:ring-2 focus:ring-slate-200 disabled:opacity-50 sm:h-9 sm:w-auto sm:border-transparent sm:bg-transparent sm:text-sm sm:font-semibold sm:justify-start" disabled={currentIndex === 0}>
           <ArrowLeft />Quay lại
@@ -3010,6 +3048,28 @@ function toTitleCase(value: string) {
   return value.replace(/\b[a-z]/g, (char) => char.toUpperCase());
 }
 
+function hasCompletePracticeAnswer(data: TemplateData | null, value: string): boolean {
+  if (!value.trim()) return false;
+  if (!data) return true;
+  if (data.template?.startsWith('SPEAKING_') || data.template?.startsWith('WRITING_')) return false;
+  let saved: Record<string, any>;
+  try { saved = JSON.parse(value); } catch { return false; }
+  const filled = (prefix: string, count: number) => count > 0 && Array.from({ length: count }, (_, index) => saved[`${prefix}${index}`]).every(answer => String(answer ?? '').trim());
+  switch (data.template) {
+    case 'LISTENING_AUDIO_MC': return filled('g', data.groups?.length ?? 0);
+    case 'LISTENING_PEOPLE_MATCH': return filled('r', data.rows?.length ?? 0);
+    case 'LISTENING_OPINION_MATCH': return filled('r', data.statements?.length ?? 0);
+    case 'READING_GAP_FILL': return filled('gap', getReadingGapCorrectAnswers(data).length);
+    case 'READING_SENTENCE_ORDER': return Array.isArray(saved.order) && saved.order.length === getReadingOrderCorrectSentences(data).length && saved.order.every((answer: string) => answer.trim());
+    case 'READING_FORUM_MATCH': return filled('forum', data.correctAnswers?.length ?? 0);
+    case 'READING_HEADING_MATCH': return filled('heading', data.correctAnswers?.length ?? 0);
+    case 'GRAMMAR_CHOICE': return Boolean(String(saved.choice ?? '').trim());
+    case 'GRAMMAR_MATCH':
+    case 'GRAMMAR_GAP_SELECT': return filled('grammar', getGrammarCorrectAnswers(data).length);
+    default: return filled('r', data.correctAnswers?.length ?? 0);
+  }
+}
+
 function evaluateTemplateAnswer(data: TemplateData | null, value: string) {
   let saved: Record<string, string>;
   try {
@@ -3078,9 +3138,14 @@ function autoGrowTextarea(textarea: HTMLTextAreaElement) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
-function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions, featured, initialClubIndex, checked, value, onChange }: {
+function AptisTemplateRenderer(props: Parameters<typeof AptisTemplateContent>[0]) {
+  return <PracticeQuestionContext.Provider value={props.trackProgress ? props.questionId : null}><AptisTemplateContent {...props} /></PracticeQuestionContext.Provider>;
+}
+
+function AptisTemplateContent({ data, questionId, currentNumber, totalQuestions, featured, initialClubIndex, checked, value, onChange, trackProgress }: {
   data: TemplateData;
   questionId: number;
+  trackProgress?: boolean;
   currentNumber?: number;
   totalQuestions?: number;
   featured?: boolean;
@@ -3103,6 +3168,11 @@ function AptisTemplateRenderer({ data, questionId, currentNumber, totalQuestions
       return {};
     }
   }, [value]);
+
+  useEffect(() => {
+    if (!trackProgress || (!showAnswers && checked === undefined) || !hasCompletePracticeAnswer(data, value)) return;
+    void savePracticeCompletion(questionId).catch(() => toast.error('Chưa lưu được tiến độ. Bấm Kiểm tra để thử lại.', { id: 'roadmap-save' }));
+  }, [questionId, trackProgress, showAnswers, checked, value]);
 
   function setAnswer(key: string, next: string) {
     onChange(JSON.stringify({ ...saved, [key]: next }));
@@ -4338,6 +4408,7 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
         </div>
         <SpeakingAiScorePanel
           partTitle="Speaking Part 1"
+          completion={{ questionId: current.__sourceQuestionId, unitKey: `speaking-${current.__sourceItemIndex ?? index}-0` }}
           prompt={String(current.question ?? '')}
           answer={saved[`speakingPart1Answer-${index}`] ?? ''}
           audioBlob={recordedAudio}
@@ -4558,6 +4629,7 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <SpeakingAiScorePanel
             partTitle="Speaking Part 2"
+            completion={{ questionId: current.__sourceQuestionId, unitKey: `speaking-${current.__sourceItemIndex ?? index}-${tab}` }}
             prompt={String(prompt ?? '')}
             answer={saved[`speakingPart2Answer-${index}-${tab}`] ?? ''}
             audioBlob={recordedAudio}
@@ -4827,6 +4899,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
           </div>
           <SpeakingAiScorePanel
             partTitle="Speaking Part 3"
+            completion={{ questionId: current.__sourceQuestionId, unitKey: `speaking-${current.__sourceItemIndex ?? index}-${tab}` }}
             prompt={String(prompt ?? '')}
             answer={saved[`speakingPart3Answer-${index}-${tab}`] ?? ''}
             audioBlob={recordedAudio}
@@ -4971,6 +5044,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
             </div>
             <SpeakingAiScorePanel
               partTitle="Speaking Part 4"
+              completion={{ questionId: current.__sourceQuestionId, unitKey: `speaking-${current.__sourceItemIndex ?? index}-0` }}
               prompt={String(current.question ?? 'Speaking Part 4 question')}
               answer={saved[`speakingPart4Answer-${index}`] ?? ''}
               audioBlob={recordedAudio}
@@ -5183,6 +5257,8 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
   showAnswers: boolean;
   setShowAnswers: Dispatch<SetStateAction<boolean>>;
 }) {
+  const questionId = useContext(PracticeQuestionContext);
+  const [savingCompletion, setSavingCompletion] = useState(false);
   const clubs = data.clubs ?? [];
   const selectedClubIndex = Number(saved.selectedClubIndex ?? initialClubIndex ?? -1);
   const partIndex = Number(saved.writingPartIndex ?? 0);
@@ -5208,6 +5284,21 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
 
   function getWriting(key: string) {
     return saved[`${selectedClubIndex}-${partIndex}-${key}`] ?? '';
+  }
+
+  async function completeWritingPart() {
+    const prompts = club?.parts?.[partIndex]?.prompts ?? [];
+    const keys = partIndex === 1 ? ['p2'] : prompts.map((_: unknown, i: number) => `p${partIndex + 1}-${i}`);
+    if (!questionId || !keys.length || keys.some((key: string) => !getWriting(key).trim())) {
+      toast.error('Bạn hãy trả lời đủ các câu của phần này trước khi lưu tiến độ.');
+      return;
+    }
+    setSavingCompletion(true);
+    try {
+      await savePracticeCompletion(questionId, `writing-${selectedClubIndex}-${partIndex}`);
+      toast.success('Đã lưu tiến độ Writing vào lộ trình.');
+    } catch { toast.error('Chưa lưu được tiến độ. Vui lòng thử lại.'); }
+    finally { setSavingCompletion(false); }
   }
 
   if (!club) {
@@ -5258,6 +5349,7 @@ function WritingClubCollectionRenderer({ data, saved, initialClubIndex, setAnswe
       </div>
 
       <h1 className="mb-3 text-2xl font-normal">Question {partIndex + 1} of 4 - {partTitle}</h1>
+      <button type="button" disabled={savingCompletion} onClick={completeWritingPart} className="mb-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{savingCompletion ? 'Đang lưu…' : 'Hoàn thành phần này · Lưu lộ trình'}</button>
 
       {partIndex === 0 && (
         <>

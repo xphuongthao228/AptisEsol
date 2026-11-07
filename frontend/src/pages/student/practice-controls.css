@@ -1,0 +1,65 @@
+/* Larger controls for the desktop practice screen. */
+@media (min-width: 768px) {
+  .practice-runner-light-mode button:not(.question-navigator button) {
+    min-height: 44px;
+    min-width: 44px;
+    font-size: 15px;
+  }
+
+  .practice-runner-light-mode header.sticky:has(.practice-topbar-exit) > div:first-child {
+    height: auto;
+    min-height: 64px;
+    padding-top: 8px;
+    padding-bottom: 8px;
+    align-items: center;
+  }
+
+  .practice-runner-light-mode .practice-topbar-exit {
+    height: 44px;
+    flex-shrink: 0;
+    justify-content: center;
+    padding: 8px 16px;
+    line-height: 1.25;
+    white-space: nowrap;
+  }
+
+  .practice-runner-light-mode .practice-topbar-search {
+    height: 44px;
+  }
+
+  .practice-runner-light-mode .practice-template-select,
+  .practice-runner-light-mode .practice-template-select-button {
+    min-height: 48px;
+    padding: 10px 14px;
+    font-size: 16px;
+  }
+
+  .practice-runner-light-mode .practice-template-select-wrap > div {
+    top: 100%;
+  }
+
+  .practice-runner-light-mode .practice-template-select-wrap > div button {
+    padding: 10px 16px;
+  }
+
+  .practice-runner-light-mode .practice-bottom-bar {
+    padding-top: 12px;
+    padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  }
+
+  .practice-runner-light-mode .practice-bottom-bar button {
+    min-height: 52px;
+    min-width: 140px;
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+
+  .practice-runner-light-mode .practice-bottom-bar button svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .practice-runner-light-mode .practice-content {
+    padding-bottom: 100px;
+  }
+}

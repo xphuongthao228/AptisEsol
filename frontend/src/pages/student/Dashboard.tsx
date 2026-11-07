@@ -1,4 +1,8 @@
-﻿import {
+import { LearningRoadmap, SkillRadar } from './LearningRoadmap';
+import { BlogSection } from './Blog';
+import { createPortal } from 'react-dom';
+import { dashboardSkillScores, placementTestUrl, type LearningGoal } from '../../utils/learningRoadmap';
+import {
   ArrowRight,
   BarChart3,
   Bell,
@@ -12,6 +16,7 @@
   FileText,
   Flame,
   GraduationCap,
+  Headset,
   MessageCircle,
   Monitor,
   Pin,
@@ -122,7 +127,7 @@ import { communityInviteDismissedKey, facebookCommunityUrl, zaloCommunityUrl, za
 const zaloContactUrl = 'https://zalo.me/0973280050';
 const mediaBaseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'http://localhost:8080';
 
-type BannerMedia = { id: number; originalName: string; sourceUrl?: string | null };
+type BannerMedia = { id: number; originalName: string; sourceUrl?: string | null; bannerTargetUrl?: string | null };
 type HeroSlide = {
   eyebrow: string;
   title: string;
@@ -176,13 +181,31 @@ export function Dashboard() {
     setShowCommunityInvite(false);
   }
 
-  if (user) return <><StudentLearningDashboard /><ZaloContactButton /></>;
+  if (user) return (
+    <>
+      <div className="student-home-content">
+      <StudentLearningDashboard />
+      <BlogSection />
+      <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[20px]">
+        <OverviewFooter />
+      </div>
+      </div>
+      <ZaloContactButton />
+      <a href={zaloContactUrl} target="_blank" rel="noopener noreferrer" className="learning-support-button">
+        <Headset size={17} aria-hidden="true" />
+        Hỗ Trợ Học Tập
+        <span className="learning-support-dot" aria-hidden="true" />
+      </a>
+    </>
+  );
 
   return (
-    <div className="dashboard-page -mx-4 -mt-6 overflow-hidden bg-[#fff8f2] text-navy sm:-mx-6 lg:-mx-10">
+    <div className="dashboard-page mx-auto w-full max-w-[1280px] overflow-hidden rounded-[20px] bg-[#fff8f2] text-navy">
       <div className="dashboard-flag-zone relative overflow-hidden">
         <FlagFall />
-        <HeroSection />
+        <div className="mb-6 overflow-hidden rounded-[20px] sm:mb-8">
+          <HeroSection />
+        </div>
 
         <LazySection minHeight={180}>
           <StatsBanner />
@@ -204,6 +227,10 @@ export function Dashboard() {
           <TestimonialsAndCta />
         </LazySection>
 
+        <LazySection minHeight={540}>
+          <BlogSection />
+        </LazySection>
+
         <LazySection minHeight={360}>
           <OverviewFooter />
         </LazySection>
@@ -216,13 +243,36 @@ export function Dashboard() {
 }
 
 function ZaloContactButton() {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      if (!containerRef.current?.contains(event.target as Node)) setIsOpen(false);
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setIsOpen(false);
+        containerRef.current?.querySelector('button')?.focus();
+      }
+    }
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
+
   const contacts = [
     { href: zaloContactUrl, label: 'Admin', description: 'Nhắn Zalo cho admin' },
     { href: zaloCommunityUrl, label: 'Nhóm 1', description: 'Tham gia nhóm Zalo 1' },
     { href: zaloCommunityUrl2, label: 'Nhóm 2', description: 'Tham gia nhóm Zalo 2' }
   ];
   return (
-    <div className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-5 z-40 flex flex-col gap-4" aria-label="Liên hệ Zalo">
+    <div ref={containerRef} className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-5 z-40 flex flex-col gap-4" aria-label="Liên hệ Zalo">
+    {isOpen && <div id="zalo-contact-options" className="flex flex-col gap-4">
     {contacts.map((contact) => (
     <a
       key={contact.href}
@@ -231,6 +281,7 @@ function ZaloContactButton() {
       rel="noopener noreferrer"
       aria-label={contact.description}
       title={contact.description}
+      onClick={() => setIsOpen(false)}
       className="relative grid h-[60px] w-[60px] place-items-center rounded-full bg-[#0088ff] shadow-[0_4px_16px_rgba(0,104,255,0.4)] transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-blue-500 motion-reduce:transition-none"
     >
       <svg viewBox="0 0 48 48" className="h-11 w-11" aria-hidden="true">
@@ -240,6 +291,22 @@ function ZaloContactButton() {
       <span className="absolute -bottom-2 whitespace-nowrap rounded-full border border-blue-100 bg-white px-2 py-0.5 text-[10px] font-bold text-blue-700 shadow-sm">{contact.label}</span>
     </a>
     ))}
+    </div>}
+    <button
+      type="button"
+      aria-label={isOpen ? 'Đóng liên hệ Zalo' : 'Mở liên hệ Zalo'}
+      aria-expanded={isOpen}
+      aria-controls="zalo-contact-options"
+      onClick={() => setIsOpen((open) => !open)}
+      className="grid h-[60px] w-[60px] place-items-center rounded-full bg-[#0088ff] shadow-[0_4px_16px_rgba(0,104,255,0.4)] transition-transform hover:scale-105 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-blue-500 motion-reduce:transition-none"
+    >
+      {isOpen ? <X size={28} className="text-white" aria-hidden="true" /> : (
+        <svg viewBox="0 0 48 48" className="h-11 w-11" aria-hidden="true">
+          <path fill="white" d="M24 5C12.4 5 4 12.4 4 22.2c0 5.2 2.5 9.8 6.7 12.9l-1.5 7.1 8-3.7c2.1.6 4.4.9 6.8.9 11.6 0 20-7.4 20-17.2S35.6 5 24 5Z" />
+          <text x="24" y="27" textAnchor="middle" fill="#0088ff" fontFamily="Arial, sans-serif" fontSize="14" fontWeight="700" letterSpacing="-0.8">Zalo</text>
+        </svg>
+      )}
+    </button>
     </div>
   );
 }
@@ -247,16 +314,16 @@ function ZaloContactButton() {
 function StudentLearningDashboard() {
   const user = useAuthStore((state) => state.user)!;
   const goalStorageKey = `aptis-learning-goal:${user.id}`;
-  const [learningGoal, setLearningGoal] = useState<{ examDate: string; level: 'B1' | 'B2' | 'C1' } | null>(() => loadLearningGoal(goalStorageKey));
+  const [learningGoal, setLearningGoal] = useState<LearningGoal | null>(() => loadLearningGoal(goalStorageKey));
   const [goalDialogOpen, setGoalDialogOpen] = useState(false);
-  const [goalDraft, setGoalDraft] = useState<{ examDate: string; level: 'B1' | 'B2' | 'C1' }>(() => learningGoal ?? { examDate: '', level: 'B2' });
+  const [goalDraft, setGoalDraft] = useState<LearningGoal>(() => learningGoal ?? { examDate: '', level: 'B2' });
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [appInstalled, setAppInstalled] = useState(() => window.matchMedia?.('(display-mode: standalone)').matches ?? false);
   const { data: submissionData, loading: loadingSubmissions } = useApi<Submission[]>(
     () => unwrap(api.get('/submissions/my-results')),
     []
   );
-  const { data: mockResultData, loading: loadingMockResults } = useApi<MockTestResult[]>(
+  const { data: mockResultData, loading: loadingMockResults, reload: reloadMockResults } = useApi<MockTestResult[]>(
     () => unwrap(api.get('/mock-tests/results/my')),
     []
   );
@@ -266,6 +333,14 @@ function StudentLearningDashboard() {
   );
   const submissions = submissionData ?? [];
   const mockResults = mockResultData ?? [];
+  useEffect(() => {
+    window.addEventListener('focus', reloadMockResults);
+    window.addEventListener('aptis:mock-result-saved', reloadMockResults);
+    return () => {
+      window.removeEventListener('focus', reloadMockResults);
+      window.removeEventListener('aptis:mock-result-saved', reloadMockResults);
+    };
+  }, [reloadMockResults]);
   const progress = progressData ?? [];
   const scoreEntries = useMemo(() => [
     ...submissions.map((value) => ({ kind: 'submission' as const, value })),
@@ -314,7 +389,7 @@ function StudentLearningDashboard() {
   }
 
   function saveLearningGoal() {
-    if (!goalDraft.examDate) return;
+    if (!goalDraft.examDate || goalDraft.examDate < localDateKey(new Date())) return;
     window.localStorage.setItem(goalStorageKey, JSON.stringify(goalDraft));
     setLearningGoal(goalDraft);
     setGoalDialogOpen(false);
@@ -337,130 +412,29 @@ function StudentLearningDashboard() {
 
   return (
     <div className="student-dashboard relative space-y-6 overflow-hidden pb-10">
-      <div className="student-dashboard-bg-decor pointer-events-none absolute inset-0" aria-hidden="true">
-        <span className="dashboard-bg-web dashboard-bg-web-left" />
-        <span className="dashboard-bg-web dashboard-bg-web-right" />
-        <span className="dashboard-bg-moon" />
-        <span className="dashboard-bg-bat dashboard-bg-bat-one" />
-        <span className="dashboard-bg-bat dashboard-bg-bat-two" />
-        <span className="dashboard-bg-bat dashboard-bg-bat-three" />
-        <span className="dashboard-bg-pumpkin dashboard-bg-pumpkin-one" />
-        <span className="dashboard-bg-pumpkin dashboard-bg-pumpkin-two" />
-      </div>
-
-      <div className="relative z-10 overflow-hidden rounded-lg border border-brand-100 shadow-soft">
+      <div className="relative overflow-hidden rounded-[20px] border border-brand-100 shadow-soft">
         <HeroSection showNotifications={false} />
       </div>
-
-      <section className="student-dashboard-summary relative overflow-hidden rounded-lg border border-red-100 bg-[linear-gradient(110deg,#fff1eb_0%,#fff_48%,#fff3ed_100%)] p-5 shadow-soft sm:p-7">
-        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(#e2e8f0_1px,transparent_1px),linear-gradient(90deg,#e2e8f0_1px,transparent_1px)] [background-size:48px_48px]" />
-        <div className="dashboard-summary-decor pointer-events-none absolute inset-0" aria-hidden="true">
-          <span className="summary-glow summary-glow-one" />
-          <span className="summary-glow summary-glow-two" />
-          <span className="summary-moon" />
-          <span className="summary-web" />
-          <span className="summary-bat summary-bat-one" />
-          <span className="summary-bat summary-bat-two" />
-          <span className="summary-pumpkin summary-pumpkin-one" />
-          <span className="summary-pumpkin summary-pumpkin-two" />
-          <span className="summary-witch-hat" />
+      <section className="learning-panel learning-welcome">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div><p className="learning-eyebrow">☀ SẴN SÀNG CHO MỘT NGÀY HỌC MỚI</p><h1 className="mt-2 text-2xl font-black text-navy sm:text-3xl">Xin chào, <span className="text-brand-600">{user.fullName}!</span></h1><p className="mt-2 text-sm text-slate-500">Chuỗi học <strong className="text-brand-600">{streak} ngày liên tiếp</strong> · Hôm nay cùng tiến gần hơn tới mục tiêu nhé!</p></div>
+          <div className="flex flex-wrap gap-2"><button onClick={installApp} className="btn-secondary h-10 px-4 text-xs">{canInstallApp ? <Download size={15} /> : <Monitor size={15} />} Cài ứng dụng</button><Link to="/app/renewal" className="btn-primary h-10 px-4 text-xs"><Trophy size={15} />{isPro ? 'Quản lý gói Pro' : 'Nâng cấp tài khoản'}</Link></div>
         </div>
-        <div className="relative flex flex-col justify-between gap-5 lg:flex-row lg:items-start">
-          <div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200 bg-white/80 px-3 py-1 text-xs font-extrabold text-brand-700">
-              <BarChart3 size={14} /> Dashboard
-            </span>
-            <h1 className="mt-4 text-3xl font-black text-slate-950 sm:text-4xl">
-              Xin chào, <span className="text-brand-600">{user.fullName}</span>
-            </h1>
-            <p className="mt-2 text-sm font-medium text-slate-600 sm:text-base">
-              Đã có dữ liệu <strong className="text-slate-900">{skillProgress.filter((item) => item.completedTests > 0).length}/4 kỹ năng</strong>
-              {' '}· Chuỗi học <strong className="text-brand-600">{streak} ngày</strong> · Hôm nay luyện tiếp nhé!
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2 lg:justify-end">
-            <button type="button" onClick={installApp} className="btn-secondary h-11 self-start px-5 sm:hidden">
-              <Download size={17} /> Cài đặt app
-            </button>
-            {canInstallApp && (
-              <button type="button" onClick={installApp} className="btn-secondary h-11 self-start px-5">
-                <Download size={17} /> Cài đặt app
-              </button>
-            )}
-            <Link to="/app/mock-tests" className="btn-primary h-11 self-start px-5">
-              <Rocket size={17} /> Thi thử ngay
-            </Link>
-          </div>
-        </div>
-
-        <div className="relative mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <DashboardMetric icon={Flame} label="Chuỗi ngày" value={`${streak} ngày`} tone="bg-red-100 text-red-600" />
-          <DashboardMetric icon={CheckCircle2} label="Câu đã làm" value={String(totalQuestions)} tone="bg-amber-100 text-amber-600" />
-          <DashboardMetric icon={Target} label="Chính xác" value={`${accuracy}%`} tone="bg-emerald-100 text-emerald-600" />
-          <DashboardMetric icon={TrendingUp} label="Trình độ" value={level} tone="bg-violet-100 text-violet-600" />
-          <DashboardMetric icon={Trophy} label="Gói hiện tại" value={isPro ? 'Pro' : 'Miễn phí'} tone="bg-slate-100 text-slate-600" />
+        <div className="learning-summary-grid">
+          <article><span className="learning-stat-icon bg-red-50 text-red-500"><Target size={21} /></span><div className="min-w-0 flex-1"><p className="learning-eyebrow">TIẾN ĐỘ HỌC TẬP</p><strong>{scoreEntries.length} bài hoàn thành</strong><div className="learning-meter"><span style={{width: `${accuracy}%`}} /></div><small>Chính xác {accuracy}% · {totalQuestions} câu đã làm</small></div></article>
+          <article className="learning-goal-card"><span className="learning-stat-icon bg-amber-50 text-amber-500"><Trophy size={21} /></span><div className="min-w-0 flex-1"><p className="learning-eyebrow">MỤC TIÊU THI</p><strong>{learningGoal ? `Aptis ${learningGoal.level}` : 'Chinh phục Aptis B2'}</strong><p className="mt-2 text-xs text-slate-500">{learningGoal ? `Ngày thi: ${formatGoalDate(learningGoal.examDate)}` : 'Đặt ngày thi và band điểm của bạn'}</p><button type="button" onClick={openGoalDialog} className="learning-small-link learning-goal-trigger mt-2" aria-haspopup="dialog">Điều chỉnh mục tiêu →</button></div></article>
+          <article><span className="learning-stat-icon bg-emerald-50 text-emerald-500"><TrendingUp size={21} /></span><div className="min-w-0 flex-1"><p className="learning-eyebrow">NĂNG LỰC HIỆN TẠI</p><strong>{level}</strong><p className="mt-2 text-xs text-slate-500">Điểm trung bình {averageScore}%</p><Link to={placementTestUrl} className="learning-small-link mt-2 inline-block">Thi thử đầu vào →</Link></div></article>
         </div>
       </section>
-
-      <section className="space-y-4">
-        <div className="dashboard-action-row flex flex-col gap-4 rounded-lg border border-red-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-red-50 text-brand-600">
-            <GraduationCap size={20} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base font-black text-slate-950 sm:text-lg">Hướng dẫn người mới học Aptis trên Aptis Lingo</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-700">Xem lộ trình và các bước bắt đầu luyện Aptis hiệu quả trên Aptis Lingo.</p>
-          </div>
-          <a
-            href="https://docs.google.com/document/d/1KnD0AhMlSYWo1f6D-F9RKhyFcB88vZrO/edit?usp=sharing&ouid=108129578450215256465&rtpof=true&sd=true"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md border border-brand-600 px-4 text-sm font-extrabold text-brand-600 transition hover:bg-brand-50"
-          >
-            Xem hướng dẫn <ArrowRight size={16} />
-          </a>
-        </div>
-
-        <div className="dashboard-action-row flex flex-col gap-4 rounded-lg border border-slate-200 bg-white px-5 py-4 sm:flex-row sm:items-center">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-lg bg-amber-50 text-brand-600">
-            <Target size={20} />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="text-base font-black text-slate-950 sm:text-lg">Set up mục tiêu của bạn</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-700">
-              {learningGoal
-                ? `Mục tiêu ${learningGoal.level} · Ngày thi ${formatGoalDate(learningGoal.examDate)}`
-                : 'Chọn ngày thi và trình độ mục tiêu B1, B2 hoặc C1.'}
-            </p>
-          </div>
-          <button type="button" onClick={openGoalDialog} className="inline-flex h-10 shrink-0 items-center justify-center rounded-md bg-brand-600 px-5 text-sm font-extrabold text-white transition hover:bg-brand-700">
-            {learningGoal ? 'Thay đổi' : 'Đặt ngay'}
-          </button>
-        </div>
+      <LearningRoadmap mockResults={mockResults} resultsLoading={loadingMockResults} goal={learningGoal} onEditGoal={openGoalDialog} />
+      <section>
+        <div className="learning-section-heading"><div><h2>📚 Cụm 1: Học Tập & Luyện Tập</h2><p className="mt-1 text-xs text-slate-500">Chọn kỹ năng bạn muốn cải thiện hôm nay</p></div><Link to="/app/tests/parts" className="learning-small-link">Tất cả bài luyện →</Link></div>
+        <div className="learning-practice-grid">{skillProgress.map((skill, index) => <article className="learning-panel" key={skill.name}><div className="flex items-center justify-between"><span className={`learning-stat-icon ${['bg-sky-50 text-sky-500', 'bg-violet-50 text-violet-500', 'bg-emerald-50 text-emerald-500', 'bg-amber-50 text-amber-500'][index]}`}><GraduationCap size={20} /></span><span className="learning-practice-tag">PRACTICE</span></div><h3 className="mt-4 font-extrabold text-navy">Kỹ năng {skill.name}</h3><p className="mt-3 text-2xl font-black text-navy">{skill.completedTests} <span className="text-xs font-medium text-slate-500">bài đã luyện</span></p><p className="mt-2 text-xs text-slate-500">Điểm trung bình: {skill.percent}%</p><div className="learning-meter"><span className={skill.color} style={{width: `${skill.percent}%`}} /></div><Link to={`/app/tests/parts?skill=${skill.name.toUpperCase()}`} className="btn-primary mt-4 flex h-9 w-full text-xs">Luyện tập ngay <ArrowRight size={14} /></Link></article>)}</div>
       </section>
-
-      <section className="dashboard-progress-card relative overflow-hidden rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
-        <div className="halloween-progress-decor" aria-hidden="true">
-          <span className="halloween-web halloween-web-left" />
-          <span className="halloween-web halloween-web-right" />
-          <span className="halloween-spider">
-            <span className="halloween-spider-body" />
-          </span>
-          <span className="halloween-pumpkin halloween-pumpkin-one" />
-          <span className="halloween-pumpkin halloween-pumpkin-two" />
-        </div>
-        <div className="relative z-10 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-          <div>
-            <h2 className="text-xl font-black text-slate-950">Thống kê tiến độ luyện tập</h2>
-            <p className="mt-3 text-sm text-slate-600 sm:text-base">Theo dõi sự tiến bộ điểm số của bạn qua các lần luyện tập và thi thử.</p>
-          </div>
-          <Link to="/app/history" className="text-sm font-extrabold text-brand-600 hover:text-brand-700">Xem lịch sử</Link>
-        </div>
-        <div className="relative z-10">
-          {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : <ProgressLineChart submissions={submissions} mockResults={mockResults} />}
-        </div>
-      </section>
-
+      <div className="learning-bottom-grid">
+        <section className="learning-panel learning-radar-card">
+          {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : <SkillRadar skills={dashboardSkillScores(mockResults, submissions)} goal={learningGoal} />}
+        </section>
       <section className="recent-results-card rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
           <div>
@@ -493,9 +467,10 @@ function StudentLearningDashboard() {
         )}
       </section>
 
-      {goalDialogOpen && (
-        <div className="fixed inset-0 z-[80] grid place-items-center bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="learning-goal-title">
-          <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
+      </div>
+      {goalDialogOpen && createPortal(
+        <div className="fixed inset-0 z-[200] grid place-items-center overflow-y-auto bg-slate-950/45 p-4" role="dialog" aria-modal="true" aria-labelledby="learning-goal-title">
+          <div className="my-auto w-full max-w-md rounded-lg bg-white p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-extrabold uppercase text-brand-600">Mục tiêu học tập</p>
@@ -531,13 +506,15 @@ function StudentLearningDashboard() {
               />
             </label>
 
+
+
             <div className="mt-6 flex justify-end gap-3">
               <button type="button" onClick={() => setGoalDialogOpen(false)} className="btn-secondary h-10 px-4 text-sm">Hủy</button>
-              <button type="button" onClick={saveLearningGoal} disabled={!goalDraft.examDate} className="btn-primary h-10 px-5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Lưu mục tiêu</button>
+              <button type="button" onClick={saveLearningGoal} disabled={!goalDraft.examDate || goalDraft.examDate < localDateKey(new Date())} className="btn-primary h-10 px-5 text-sm disabled:cursor-not-allowed disabled:opacity-50">Lưu mục tiêu</button>
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
@@ -733,7 +710,8 @@ function loadLearningGoal(storageKey: string) {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null');
     if (!parsed?.examDate || !['B1', 'B2', 'C1'].includes(parsed.level)) return null;
-    return parsed as { examDate: string; level: 'B1' | 'B2' | 'C1' };
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.examDate) || !Number.isFinite(new Date(`${parsed.examDate}T00:00:00`).getTime())) return null;
+    return parsed as LearningGoal;
   } catch {
     return null;
   }
@@ -769,12 +747,12 @@ function FlagFall() {
 function HeroSection({ showNotifications = true }: { showNotifications?: boolean } = {}) {
   const defaultSlides: HeroSlide[] = [
     {
-      eyebrow: 'Sự kiện độc quyền tháng 10',
+      eyebrow: 'Luyện thi Aptis mỗi ngày',
       title: 'Học Aptis đúng hướng, tiến bộ thần tốc mỗi ngày',
-      description: 'Biết nên luyện phần nào trước và tập trung sửa đúng lỗi để về đích thành công rực rỡ trước đêm tiệc Halloween.',
+      description: 'Biết nên luyện phần nào trước, tập trung sửa đúng lỗi và từng bước đạt mục tiêu Aptis của bạn.',
       action: 'Vào luyện ngay',
       href: '/app/tests/parts',
-      tone: 'from-[#210832] via-[#2d0d43] to-[#411022]',
+      tone: 'from-[#fff4f4] via-white to-[#fff6d8]',
       visual: 'study'
     },
     {
@@ -808,6 +786,7 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
         ...defaultSlides[index % defaultSlides.length],
         imageUrl: media.sourceUrl || `${mediaBaseUrl}/api/media/${media.id}`,
         imageAlt: media.originalName,
+        href: media.bannerTargetUrl || '',
         mediaId: media.id
       }))
     : defaultSlides;
@@ -891,7 +870,14 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
       {showNotifications && <DashboardNotificationPanel />}
       <div className="relative mx-auto min-h-[430px] max-w-[1560px]">
         {hasBannerSlides ? (
-          <img key={activeSlide} src={slide.imageUrl} alt="" onError={handleBannerError} className={`dashboard-slide dashboard-slide-${slideDirection} absolute inset-0 h-full min-h-[430px] w-full object-cover`} />
+          <div key={activeSlide} className="absolute inset-0">
+            <img src={slide.imageUrl} alt={slide.imageAlt || ''} onError={handleBannerError} className={`dashboard-slide dashboard-slide-${slideDirection} absolute inset-0 h-full min-h-[430px] w-full object-cover`} />
+            {slide.href && (slide.href.startsWith('/') ? (
+              <Link to={slide.href} aria-label={`Xem chương trình: ${slide.imageAlt}`} className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-brand-500" />
+            ) : (
+              <a href={slide.href} aria-label={`Xem chương trình: ${slide.imageAlt}`} className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-brand-500" />
+            ))}
+          </div>
         ) : (
         <div key={activeSlide} className={`dashboard-slide dashboard-slide-${slideDirection} grid min-h-[430px] items-center gap-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-10`}>
           <div className="relative z-10 px-1 py-8 sm:px-5 lg:py-6">
@@ -910,7 +896,7 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
                 {slide.action} <ArrowRight size={18} />
               </Link>
               <Link to="/app/ai-practice" className="btn-secondary h-12 px-6 text-sm sm:text-base">
-                Xem lộ trình ma quái
+                Xem lộ trình học tập
               </Link>
             </div>
             <div className="mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs font-extrabold text-slate-600">
@@ -1096,7 +1082,7 @@ function dashboardNotificationLevelLabel(level: AppNotification['level']) {
 
 function StatsBanner() {
   return (
-    <section className="bg-[linear-gradient(135deg,#a50f15_0%,#d71920_55%,#ffde00_100%)] px-4 py-12 text-white sm:px-6 lg:px-10">
+    <section className="overflow-hidden rounded-[20px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_55%,#ffde00_100%)] px-4 py-12 text-white sm:px-6 lg:px-10">
       <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-4 text-center md:grid-cols-4 md:divide-x md:divide-white/20">
         {stats.map(([value, label]) => (
           <div className="p-3" key={label}>
@@ -1525,11 +1511,16 @@ function OverviewFooter() {
         <div>
           <h2 className="text-2xl font-extrabold">Aptis Lingo</h2>
           <p className="mt-4 text-sm font-medium leading-7 text-slate-300">
-            Nơi luyện Aptis theo kỹ năng, làm bài có bấm giờ và xem lại phản hồi sau mỗi lượt nộp.
+            Nơi luyện thi Aptis theo kỹ năng, mô phỏng phòng thi thật và AI chấm bài.
           </p>
         </div>
         <FooterColumn title="Luyện tập" links={['Grammar & Vocab', 'Reading', 'Listening', 'Speaking', 'Writing']} />
-        <FooterColumn title="Tính năng" links={['Bộ đề Aptis', 'Luyện theo kỹ năng', 'Nhận xét Speaking-Writing', 'Theo dõi tiến độ']} />
+        <FooterColumn title="Tính năng" links={[
+          { label: 'Luyện đề Aptis', to: '/app/mock-tests' },
+          { label: 'Luyện theo kĩ năng', to: '/app/tests/parts' },
+          { label: 'Thi thử', to: '/app/mock-tests?skill=FULL' },
+          { label: 'Mẹo thi', to: '/app/lessons' }
+        ]} />
       </div>
       <div className="mx-auto mt-10 flex max-w-[1280px] flex-col gap-3 border-t border-white/10 pt-5 text-sm font-medium text-slate-500 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex gap-4">
@@ -1542,13 +1533,15 @@ function OverviewFooter() {
   );
 }
 
-function FooterColumn({ title, links }: { title: string; links: string[] }) {
+function FooterColumn({ title, links }: { title: string; links: Array<string | { label: string; to: string }> }) {
   return (
     <div>
       <h3 className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-100">{title}</h3>
       <div className="mt-4 space-y-3">
-        {links.map((link) => (
+        {links.map((link) => typeof link === 'string' ? (
           <p className="text-sm font-medium text-slate-300" key={link}>{link}</p>
+        ) : (
+          <Link to={link.to} className="block w-fit rounded text-sm font-medium text-slate-300 transition hover:text-white hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" key={link.label}>{link.label}</Link>
         ))}
       </div>
     </div>

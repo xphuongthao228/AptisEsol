@@ -314,7 +314,7 @@ type QuestionListItem = {
 
 const sidebarLinks: SidebarLink[] = [
   { to: '/app', label: 'Tổng quan', icon: LayoutDashboard },
-  { to: '/app/lessons', label: 'Bài học', icon: GraduationCap },
+  { to: '/app/lessons', label: 'Mẹo thi', icon: GraduationCap },
   { to: '/app/tests/parts', label: 'Luyện tập', icon: BookOpen },
   { to: '/app/mock-tests', label: 'Đề thi', icon: FileText },
   { to: '/app/mock-tests', label: 'Thi thử', icon: FileCheck },
@@ -1213,6 +1213,10 @@ function normalizeImportedQuestionAliases(row: Record<string, unknown>) {
 
 function hasImportedQuestionData(card?: MockCard | null) {
   return Boolean(card?.questionData?.trim());
+}
+
+function hasFullAssessmentData(card: MockCard) {
+  return card.skill === 'FULL' && fullRequiredSkills.every(skill => hasImportedQuestionData(skillCardFromFullMockCard(card, skill)));
 }
 
 function skillCardFromFullMockCard(card: MockCard | null | undefined, skill: Exclude<MockSkill, 'FULL'>): MockCard | null {
@@ -3189,8 +3193,10 @@ function savedReviewRow(question: string, userAnswer?: string, correctAnswer?: s
 export function MockTests() {
   const accessToken = useAuthStore((state) => state.accessToken);
   const currentUser = useAuthStore((state) => state.user);
+  const navigate = useNavigate();
   const initialSubscription = useMemo(() => cachedSubscriptionResponse(), []);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [roadmapAssessment] = useState(() => searchParams.get('roadmap') === '1');
   const urlTestId = readTestId(searchParams.get('testId'));
   const [screen, setScreen] = useState<SpeakingScreen>(() => readScreen(searchParams.get('screen')));
   const [answerRevealOpen, setAnswerRevealOpen] = useState(false);
@@ -3494,6 +3500,7 @@ export function MockTests() {
 
   useEffect(() => {
     const params = new URLSearchParams();
+    if (roadmapAssessment) params.set('roadmap', '1');
 
     // Keep the requested mockId while its assessment data is being restored.
     // Otherwise the next restore can select the first available test instead.
@@ -3605,17 +3612,23 @@ export function MockTests() {
           const examCards = await apiExamTestsToCards(tests);
           const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
-          card = cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item))
+          card = cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item) && (!roadmapAssessment || hasFullAssessmentData(item)))
             ?? null;
         }
 
         if (!card || !requireProToStart(card)) {
+          if (!card && roadmapAssessment && !cancelled) toast.error('Chưa có Full Test đủ 5 kỹ năng. Vui lòng chọn đề khác hoặc liên hệ admin bổ sung dữ liệu.');
           if (!cancelled) setScreen('select');
           return;
         }
 
         const hydratedCard = await hydrateAssessmentCard(card);
         if (cancelled) return;
+        if (roadmapAssessment && (!hydratedCard || !hasFullAssessmentData(hydratedCard))) {
+          toast.error('Đề đầu vào cần đủ dữ liệu 5 kỹ năng. Vui lòng chọn Full Test khác.');
+          setScreen('select');
+          return;
+        }
 
         setSelectedMockCard(hydratedCard);
         setSelectedSkill((hydratedCard ?? card).skill);
@@ -3998,6 +4011,13 @@ export function MockTests() {
       toast.error('Đề Full test này chưa có dữ liệu import.');
       return;
     }
+    if (roadmapAssessment && !hasFullAssessmentData(hydratedCard)) {
+      toast.error('Đề đầu vào cần đủ dữ liệu 5 kỹ năng. Vui lòng chọn Full Test khác.');
+      return;
+    }
+    savedResultKeyRef.current = '';
+    resultSavePromise.current = Promise.resolve(false);
+    setResultSaveError(false);
     setSelectedMockCard(hydratedCard);
     setIsFullMock(true);
     setSelectedSkill('FULL');
@@ -4522,9 +4542,19 @@ export function MockTests() {
   const fullTotalScore = clampScore50(readingSummary.score) + clampScore50(listeningSummary.score) + clampScore50(speakingScore?.overallScore ?? 0) + clampScore50(writingScore?.overallScore ?? 0);
   const questionListItems = buildCurrentQuestionListItems();
   const savedResultKeyRef = useRef('');
+  const resultSavePromise = useRef<Promise<boolean>>(Promise.resolve(false));
+  const [savingResult, setSavingResult] = useState(false);
+  const [resultSaveError, setResultSaveError] = useState(false);
+  const [resultSaveAttempt, setResultSaveAttempt] = useState(0);
+
+  async function returnToDashboard() {
+    if (await resultSavePromise.current) navigate('/app');
+    else toast.error('Kết quả chưa được lưu. Vui lòng thử lưu lại trước khi về trang chủ.');
+  }
 
   useEffect(() => {
     if (!accessToken || !selectedMockCard) return;
+    if (isFullMock && screen !== 'fullResult') return;
 
     let score: number | null = null;
     let maxScore = 50;
@@ -4573,7 +4603,9 @@ export function MockTests() {
     if (savedResultKeyRef.current === saveKey) return;
     savedResultKeyRef.current = saveKey;
 
-    void unwrap(api.post('/mock-tests/results', {
+    setSavingResult(true);
+    setResultSaveError(false);
+    resultSavePromise.current = unwrap(api.post('/mock-tests/results', {
       mockTestId: selectedMockCard.id,
       title: selectedMockCard.title,
       skill: isFullMock ? 'FULL' : selectedMockCard.skill,
@@ -4581,11 +4613,15 @@ export function MockTests() {
       maxScore,
       cefrLevel,
       resultJson: JSON.stringify(details)
-    })).catch(() => {
-      savedResultKeyRef.current = '';
+    })).then(() => {
+      window.dispatchEvent(new Event('aptis:mock-result-saved'));
+      return true;
+    }).catch(() => {
+      setResultSaveError(true);
       toast.error('Chưa lưu được kết quả vào lịch sử. Vui lòng thử lại.');
-    });
-  }, [accessToken, fullTotalScore, grammarSummary, isFullMock, listeningSummary, readingSummary, screen, selectedMockCard, speakingScore, writingScore]);
+      return false;
+    }).finally(() => setSavingResult(false));
+  }, [accessToken, fullTotalScore, grammarSummary, isFullMock, listeningSummary, readingSummary, screen, selectedMockCard, speakingScore, writingScore, resultSaveAttempt]);
 
   function hasActiveListeningData() {
     return activeListeningPart1Questions.length > 0
@@ -4624,13 +4660,17 @@ export function MockTests() {
   }
 
   function firstListeningQuestionScreen(): SpeakingScreen {
-    return 'listeningQuestion';
+    if (activeListeningPart1Questions.length > 0) return 'listeningQuestion';
+    if (hasActiveListeningMatchingData()) return 'listeningMatching';
+    if (hasActiveListeningShortData()) return 'listeningShort';
+    if (activeListeningMonologues.length > 0) return 'listeningMonologues';
+    return isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult';
   }
 
   function nextListeningScreenAfter(screenName: 'part1' | 'matching' | 'short' | 'monologues'): SpeakingScreen {
-    if (screenName === 'part1') return 'listeningMatching';
-    if (screenName === 'matching') return 'listeningShort';
-    if (screenName === 'short') return 'listeningMonologues';
+    if (screenName === 'part1' && hasActiveListeningMatchingData()) return 'listeningMatching';
+    if ((screenName === 'part1' || screenName === 'matching') && hasActiveListeningShortData()) return 'listeningShort';
+    if (screenName !== 'monologues' && activeListeningMonologues.length > 0) return 'listeningMonologues';
     return isFullMock ? nextFullScreenAfter('LISTENING') : 'listeningResult';
   }
 
@@ -4859,10 +4899,12 @@ export function MockTests() {
               writing={writingScore}
               speakingError={speakingScoreError}
               writingError={writingScoreError}
-              onExit={() => setScreen('select')}
+              onExit={() => { void returnToDashboard(); }}
               onRetry={() => openFullTest()}
             />
           )}
+          {screen === 'fullResult' && <div className="my-4 text-center"><button type="button" disabled={savingResult} onClick={() => { void returnToDashboard(); }} className="btn-primary disabled:opacity-50">{savingResult ? 'Đang lưu điểm kỹ năng…' : 'Về trang chủ · Xem biểu đồ năng lực'}</button></div>}
+          {screen === 'fullResult' && resultSaveError && <div className="my-3 text-center"><button type="button" onClick={() => { savedResultKeyRef.current = ''; setResultSaveAttempt(value => value + 1); }} className="btn-secondary">Thử lưu lại kết quả</button></div>}
           {screen === 'readingResult' && (
             <ReadingResult
               summary={readingSummary}

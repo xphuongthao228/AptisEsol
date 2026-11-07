@@ -150,7 +150,6 @@ export interface LeaderboardRow {
   rank: number;
   userId: number;
   fullName: string;
-  email: string;
   score: number;
   correctAnswers: number;
   submissions: number;

@@ -1,0 +1,16 @@
+[
+  {
+    "width": 1366,
+    "separateReferralPage": true,
+    "legacyDataSafe": true,
+    "checkoutInputPreserved": true,
+    "overflow": false
+  },
+  {
+    "width": 390,
+    "separateReferralPage": true,
+    "legacyDataSafe": true,
+    "checkoutInputPreserved": true,
+    "overflow": false
+  }
+]

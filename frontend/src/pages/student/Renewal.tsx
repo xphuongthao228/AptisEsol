@@ -8,7 +8,6 @@ import type { PaymentOrder, SubscriptionResponse } from '../../types';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 
 const premiumFeatures = [
-  'Học cùng giáo viên',
   'Cập nhật đề thường xuyên',
   'Chấm theo AI',
   'Chấm Writing theo AI',
@@ -18,7 +17,6 @@ const premiumFeatures = [
 ];
 
 type AvailableDiscount = { code: string; type: 'PERCENT' | 'FIXED'; value: number; endsAt: string };
-
 const packages = [
   {
     id: 'free',
@@ -86,18 +84,17 @@ export function Renewal() {
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [selectedPackageId, setSelectedPackageId] = useState(packages[3].id);
   const [payment, setPayment] = useState<PaymentOrder | null>(null);
-  const [referral, setReferral] = useState<{code:string;discountPercent:number;rewardDays:number}|null>(null);
-  const [referralError,setReferralError] = useState(false);
-  async function loadReferral() {
-    setReferralError(false);
-    try {setReferral(await unwrap<{code:string;discountPercent:number;rewardDays:number}>(api.get('/payments/referral/me')));}
-    catch {setReferralError(true);}
-  }
-  useEffect(()=>{void loadReferral();},[]);
-  async function copyReferral() {
-    if (!referral) return;
-    try {await navigator.clipboard.writeText(referral.code);toast.success('Đã sao chép mã giới thiệu.');}
-    catch {toast.error('Không sao chép được. Bạn có thể chọn mã và sao chép thủ công.');}
+  const [giftCode,setGiftCode]=useState('');
+  const [redeeming,setRedeeming]=useState(false);
+  async function redeemGift(){
+    setRedeeming(true);
+    try {
+      const gift=await unwrap<{days:number;expiresAt:string}>(api.post('/discounts/redeem',{code:giftCode}));
+      saveSubscriptionUntil(gift.expiresAt);
+      setServerSubscription(await unwrap<SubscriptionResponse>(api.get('/payments/subscription/me')));
+      setGiftCode('');toast.success('Đã nhận '+gift.days+' ngày Pro miễn phí!');
+    }catch(error:any){toast.error(error?.response?.data?.message ?? 'Không đổi được mã.');}
+    finally{setRedeeming(false);}
   }
   const [discountInput, setDiscountInput] = useState('');
   const [availableDiscounts, setAvailableDiscounts] = useState<AvailableDiscount[]>([]);
@@ -280,13 +277,13 @@ export function Renewal() {
           ))}
         </div>
 
-        <div className="relative mt-4 rounded-2xl border border-brand-100 bg-white p-4">
-          <p className="font-extrabold text-navy">Mã giới thiệu của bạn</p>
-          <p className="mt-1 text-sm text-slate-600">Bạn bè nhập mã được giảm 10%. Bạn nhận thêm 3 ngày học khi bạn bè thanh toán thành công. Mỗi tài khoản nhận ưu đãi giới thiệu một lần; không cộng dồn với mã giảm giá khác.</p>
-          {referral ? <div className="mt-3 flex flex-wrap items-center gap-3">
-            <code className="break-all rounded-lg border border-brand-200 px-3 py-2 text-sm font-bold select-all">{referral.code}</code>
-            <button type="button" onClick={copyReferral} className="renewal-discount-apply inline-flex items-center gap-2 rounded-xl px-4 py-2 font-bold"><Copy size={16}/>Sao chép mã</button>
-          </div> : referralError ? <button type="button" onClick={loadReferral} className="mt-2 text-sm underline">Không tải được mã. Thử lại</button> : <p className="mt-2 text-sm">Đang tải mã giới thiệu...</p>}
+        <div className="mt-4 rounded-2xl border bg-white p-4">
+          <label htmlFor="pro-gift-code" className="mb-2 block font-bold">Đổi mã tặng ngày Pro</label>
+          <p className="mb-3 text-sm text-slate-600">Nhận Pro miễn phí, không cần thanh toán. Mỗi tài khoản dùng mỗi mã một lần.</p>
+          <div className="flex flex-wrap gap-2">
+            <input id="pro-gift-code" className="input sm:w-72" maxLength={40} placeholder="PRO1DAY" value={giftCode} disabled={redeeming} onChange={e=>setGiftCode(e.target.value)}/>
+            <button type="button" className="btn-primary" disabled={redeeming || !giftCode.trim()} onClick={redeemGift}>{redeeming?'Đang đổi mã...':'Nhận Pro miễn phí'}</button>
+          </div>
         </div>
         {!isFreeSelected && (
           <div className="relative mt-4 flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-4 sm:flex-row sm:items-end sm:justify-between">

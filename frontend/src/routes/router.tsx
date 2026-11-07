@@ -1,6 +1,9 @@
 ﻿import { lazy } from 'react';
 import { createBrowserRouter, Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
+const Blog = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.Blog })));
+const BlogDetail = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.BlogDetail })));
+const LegacyBlogRedirect = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.LegacyBlogRedirect })));
 const ForgotPassword = lazy(() => import('../pages/auth/ForgotPassword').then((module) => ({ default: module.ForgotPassword })));
 const Login = lazy(() => import('../pages/auth/Login').then((module) => ({ default: module.Login })));
 const Register = lazy(() => import('../pages/auth/Register').then((module) => ({ default: module.Register })));
@@ -13,11 +16,13 @@ const AdminContent = lazy(() => import('../pages/admin/AdminContent').then((modu
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard').then((module) => ({ default: module.AdminDashboard })));
 const AdminLessons = lazy(() => import('../pages/admin/AdminLessons').then((module) => ({ default: module.AdminLessons })));
 const AdminMedia = lazy(() => import('../pages/admin/AdminMedia').then((module) => ({ default: module.AdminMedia })));
+const AdminLearningMaterials = lazy(() => import('../pages/admin/AdminLearningMaterials').then((module) => ({ default: module.AdminLearningMaterials })));
 const AdminMockTests = lazy(() => import('../pages/admin/AdminMockTests').then((module) => ({ default: module.AdminMockTests })));
 const AdminNotifications = lazy(() => import('../pages/admin/AdminNotifications').then((module) => ({ default: module.AdminNotifications })));
 const AdminPredictions = lazy(() => import('../pages/admin/AdminPredictions').then((module) => ({ default: module.AdminPredictions })));
 const AdminDiscounts = lazy(() => import('../pages/admin/AdminDiscounts').then(module => ({default:module.AdminDiscounts})));
 const AdminRevenue = lazy(() => import('../pages/admin/AdminRevenue').then((module) => ({ default: module.AdminRevenue })));
+const AdminWithdrawals = lazy(() => import('../pages/admin/AdminWithdrawals').then((module) => ({ default: module.AdminWithdrawals })));
 const AdminUsers = lazy(() => import('../pages/admin/AdminUsers').then((module) => ({ default: module.AdminUsers })));
 const AdminWritingBank = lazy(() => import('../pages/admin/AdminWritingBank').then((module) => ({ default: module.AdminWritingBank })));
 const Dashboard = lazy(() => import('../pages/student/Dashboard').then((module) => ({ default: module.Dashboard })));
@@ -31,6 +36,7 @@ const MockTests = lazy(() => import('../pages/student/MockTests').then((module) 
 const PracticeRunner = lazy(() => import('../pages/student/PracticeRunner').then((module) => ({ default: module.PracticeRunner })));
 const Predictions = lazy(() => import('../pages/student/Predictions').then((module) => ({ default: module.Predictions })));
 const Renewal = lazy(() => import('../pages/student/Renewal').then((module) => ({ default: module.Renewal })));
+const Referral = lazy(() => import('../pages/student/Referral').then((module) => ({ default: module.Referral })));
 const Settings = lazy(() => import('../pages/student/Settings').then((module) => ({ default: module.Settings })));
 const WritingBank = lazy(() => import('../pages/student/WritingBank').then((module) => ({ default: module.WritingBank })));
 const SpeakingBank = lazy(() => import('../pages/student/SpeakingBank').then((module) => ({ default: module.SpeakingBank })));
@@ -44,6 +50,10 @@ export const router = createBrowserRouter([
   { path: '*', element: <main className="min-h-screen grid place-content-center gap-5 p-8 text-center"><h1 className="text-3xl font-bold">404 â€” Không tìm thấy trang</h1><p>Đường dẫn này không tồn tại hoặc đã được thay đổi.</p><Link to="/" className="btn-primary">Về trang chủ</Link></main> },
   { path: '/', element: <AppLayout />, children: [
     { index: true, element: <Dashboard /> },
+    { path: 'learning-materials', element: <Blog /> },
+    { path: 'blog', element: <Navigate to="/learning-materials" replace /> },
+    { path: 'blog/:id', element: <LegacyBlogRedirect /> },
+    { path: 'learning-materials/:id', element: <BlogDetail /> },
     { path: 'leaderboard', element: <Leaderboard /> }
   ] },
   { path: '/login', element: <Login /> },
@@ -80,6 +90,9 @@ export const router = createBrowserRouter([
       )
     },
     { path: 'renewal', element: <Renewal /> },
+    { path: 'referral', element: <ProtectedRoute role="STUDENT" />, children: [
+      { index: true, element: <Referral /> }
+    ] },
     { path: 'donate', element: <Donate /> },
     { path: 'contact', element: <Contact /> },
     {
@@ -136,10 +149,13 @@ export const router = createBrowserRouter([
       { path: 'users', element: <AdminUsers /> },
       { path: 'content', element: <AdminContent /> },
       { path: 'lessons', element: <AdminLessons /> },
+      { path: 'blog', element: <Navigate to="/admin/learning-materials" replace /> },
+      { path: 'learning-materials', element: <AdminLearningMaterials /> },
       { path: 'mock-tests', element: <AdminMockTests /> },
       { path: 'leaderboard', element: <Leaderboard /> },
       { path: 'predictions', element: <AdminPredictions /> },
       { path: 'revenue', element: <AdminRevenue /> },
+      { path: 'withdrawals', element: <AdminWithdrawals /> },
       { path: 'discounts', element: <AdminDiscounts /> },
       { path: 'ai-usage', element: <AdminAiUsage /> },
       { path: 'writing-bank', element: <AdminWritingBank /> },
