@@ -1,4 +1,33 @@
+html:root body .student-shell.student-night .student-page-content .prediction-question-link .prediction-question-label {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+  text-shadow: none !important;
+}
+
+html:root body .student-shell.student-night .student-page-content .prediction-question-link .prediction-question-action {
+  color: #ffda79 !important;
+  -webkit-text-fill-color: #ffda79 !important;
+}
+
+html:root body .student-shell.student-night .student-page-content .prediction-content-box,
+html:root body .student-shell.student-night .student-page-content .prediction-content-box p {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+  text-shadow: none !important;
+}
+
+html:root body .student-shell.student-night .student-page-content span.prediction-skill-badge {
+  color: #172b4d !important;
+  -webkit-text-fill-color: #172b4d !important;
+}
+
 /* Answer badges keep pale backgrounds in both themes. */
+html:root body .student-shell.student-night .student-page-content .listening-quick-guide :is(p, b) {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+  text-shadow: none !important;
+}
+
 html:root body .student-shell .student-page-content span.listening-answer-key {
   color: #172b4d !important;
   -webkit-text-fill-color: #172b4d !important;

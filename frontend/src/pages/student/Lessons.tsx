@@ -1326,7 +1326,7 @@ function ListeningQuestion15TipPage() {
         <ArrowLeft size={18} /> Quay lại mẹo Listening
       </Link>
 
-      <section className="rounded-xl border border-sky-100 bg-sky-50 px-5 py-4 text-blue-950">
+      <section className="listening-quick-guide rounded-xl border border-sky-100 bg-sky-50 px-5 py-4 text-blue-950">
         <div className="flex gap-3">
           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-blue-600 font-black text-white">i</span>
           <p className="leading-7">

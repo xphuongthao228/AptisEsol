@@ -151,7 +151,7 @@ function PredictionCard({ item }: { item: Prediction }) {
         <div className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
           <Target size={22} />
         </div>
-        <span className="inline-flex h-8 items-center rounded-full bg-sky-100 px-3 text-xs font-extrabold text-slate-700">
+        <span className="prediction-skill-badge inline-flex h-8 items-center rounded-full bg-sky-100 px-3 text-xs font-extrabold text-slate-700">
           {skillLabels[item.skill]}
         </span>
       </div>
@@ -218,10 +218,10 @@ function QuestionLink({ link }: { link: PredictionQuestionLink }) {
   return (
     <Link
       to={`/app/tests/${link.testId}?questionId=${link.questionId}`}
-      className="flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-soft transition hover:text-brand-700"
+      className="prediction-question-link flex items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-soft transition hover:text-brand-700"
     >
-      <span>{link.label || `Câu hỏi ${link.questionId}`}</span>
-      <span className="text-xs font-extrabold uppercase tracking-[0.12em] text-brand-600">Mở câu</span>
+      <span className="prediction-question-label">{link.label || `Câu hỏi ${link.questionId}`}</span>
+      <span className="prediction-question-action text-xs font-extrabold uppercase tracking-[0.12em] text-brand-600">Mở câu</span>
     </Link>
   );
 }
