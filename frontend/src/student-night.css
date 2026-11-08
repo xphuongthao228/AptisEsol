@@ -1,0 +1,367 @@
+/* Answer badges keep pale backgrounds in both themes. */
+html:root body .student-shell .student-page-content span.listening-answer-key {
+  color: #172b4d !important;
+  -webkit-text-fill-color: #172b4d !important;
+  text-shadow: none !important;
+}
+
+/* Scoped to the browsing layout. Exam and practice runners do not mount this shell.
+   Keep html/body and the global dark class untouched so exam colors stay intact. */
+html:root body .student-shell.student-night {
+  color-scheme: dark;
+  color: #f6f0e9;
+  background: radial-gradient(ellipse at 50% 0, #284e8033, transparent 60%), #0b1f3a !important;
+  --night-panel: #122b4d;
+  --night-border: #46678f;
+}
+
+/* The full-width main has a separate light background in the base stylesheet.
+   Let the shell background show through, including both outer gutters. */
+html:root body .student-shell.student-night > main {
+  background: transparent !important;
+}
+
+html:root body .student-shell.student-night::before,
+html:root body .student-shell.student-night::after {
+  background: none !important;
+}
+
+html:root body .student-night > header {
+  background: #122b4df5 !important;
+  border-color: #a777573f !important;
+  box-shadow: 0 2px 18px #eaa95c12 !important;
+}
+
+html:root body .student-night :is(.student-dashboard, .student-home-content, .student-page-content) {
+  background: transparent !important;
+}
+
+/* Landing sections have their own light gradients; change their surfaces only
+   when the user explicitly selects dark mode. Banner images retain their colors. */
+html:root body .student-night :is(.dashboard-page, .dashboard-flag-zone, .dashboard-feature-section, .dashboard-why-section, .dashboard-testimonials-section, .dashboard-contact-section, .dashboard-contact-section > div, .dashboard-cta-card) {
+  background: var(--night-panel) !important;
+}
+
+html:root body .student-light { color-scheme: light; }
+
+html:root body .student-shell.student-night .material-blog-section {
+  background: #0f2542 !important;
+}
+
+html:root body .student-shell.student-night .material-blog-section #home-blog-title {
+  color: #f8fafc !important;
+  -webkit-text-fill-color: #f8fafc !important;
+}
+
+html:root body .student-shell.student-night .material-blog-section p.text-slate-600 {
+  color: #d0dcee !important;
+  -webkit-text-fill-color: #d0dcee !important;
+}
+
+/* Placeholder covers stay light, so their illustration needs a dark foreground. */
+html:root body .student-shell.student-night .material-blog-cover > div,
+html:root body .student-shell.student-night .material-blog-cover > div :is(span, svg) {
+  color: #94320f !important;
+  -webkit-text-fill-color: #94320f !important;
+}
+
+html:root body .student-shell.student-night .renewal-page .renewal-discount-panel :is(label, p) {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+  text-shadow: none !important;
+}
+
+html:root body .student-shell.student-night .renewal-page :is(#discount-code, #available-discount, #available-discount option) {
+  background: #0b1f3a !important;
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+  border-color: #7d9bc0 !important;
+  font-weight: 600;
+  color-scheme: dark !important;
+}
+
+html:root body .student-shell.student-night .renewal-page #available-discount:disabled {
+  opacity: 1;
+}
+
+html:root body .student-shell.student-night .renewal-page #discount-code::placeholder {
+  color: #c3d1e5 !important;
+  -webkit-text-fill-color: #c3d1e5 !important;
+  opacity: 1;
+}
+
+html:root body .student-shell.student-night .renewal-page button.renewal-discount-apply {
+  background: #23466e !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+  border-color: #93b4dd !important;
+  opacity: 1 !important;
+}
+
+html:root body .student-shell.student-night .renewal-page button.renewal-discount-apply:hover:not(:disabled) {
+  background: #305b8b !important;
+}
+
+html:root body .student-shell.student-night .renewal-page > section:first-child {
+  background: #0f2542 !important;
+  border-color: var(--night-border) !important;
+  color: #f6f0e9 !important;
+}
+
+html:root body .student-shell.student-night .renewal-page > section:first-child > .absolute {
+  background: none !important;
+}
+
+html:root body .student-shell.student-night .renewal-page h1,
+html:root body .student-shell.student-night .renewal-page .renewal-plan-price {
+  color: #fff2da !important;
+  -webkit-text-fill-color: #fff2da !important;
+}
+
+html:root body .student-shell.student-night .renewal-page .renewal-payment-summary {
+  background: #122b4d !important;
+  border-color: var(--night-border) !important;
+}
+
+html:root body .student-shell.student-night .renewal-page .renewal-payment-summary p {
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+}
+
+html:root body .student-shell.student-night .renewal-page input.renewal-payer-name {
+  background: #0b1f3a !important;
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+  border-color: var(--night-border) !important;
+  color-scheme: dark !important;
+}
+
+html:root body .student-shell.student-night .renewal-page input.renewal-payer-name::placeholder {
+  color: #b8c8de !important;
+  -webkit-text-fill-color: #b8c8de !important;
+  opacity: 1;
+}
+
+html:root body .student-night :is(.card, .learning-panel, .recent-results-card) {
+  background: linear-gradient(125deg, #193657, #102744) !important;
+  border-color: var(--night-border) !important;
+  box-shadow: inset 0 0 14px #a75bfa0b, 0 0 10px #a75bfa24 !important;
+}
+
+html:root body .student-night :is([class~="bg-white"], [class*="bg-white/"], [class~="bg-sky-50"], [class~="bg-slate-50"], [class~="bg-gray-50"]) {
+  background-color: var(--night-panel) !important;
+}
+
+html:root body .student-night :is(.learning-summary-grid article, .learning-roadmap-status, .learning-radar-summary > div, .learning-cefr-badge) {
+  background: linear-gradient(120deg, #241a3b, #19142f) !important;
+  border-color: var(--night-border) !important;
+  color: #ded6e9 !important;
+}
+
+html:root body .student-night :is(.text-navy, .text-slate-900, .text-slate-800, .text-gray-900, .learning-summary-grid strong, .learning-section-heading h2, .learning-roadmap-status > strong) {
+  color: #fff2da !important;
+}
+
+html:root body .student-night :is(.text-slate-700, .text-slate-600, .text-slate-500, .text-gray-600, .text-gray-500, .learning-summary-grid small, .learning-radar-heading p) {
+  color: #c2b9d3 !important;
+}
+
+html:root body .student-night :is(.text-brand-700, .text-brand-600, .learning-small-link, .learning-eyebrow) {
+  color: #ffbc91 !important;
+}
+
+html:root body .student-night .learning-welcome h1,
+html:root body .student-night .learning-welcome h1 span {
+  color: #ffda79 !important;
+}
+
+html:root body .student-night :is(.btn-secondary, .input, select, textarea, input:not([type="checkbox"]):not([type="radio"])) {
+  color: #f8eddf !important;
+  background: #211a36 !important;
+  border-color: #80608c !important;
+}
+
+html:root body .student-night :is(input, textarea)::placeholder { color: #a69ab7 !important; }
+
+/* The search wrapper owns the surface; keep its nested input transparent. */
+html:root body .student-shell.student-night .history-search-field {
+  background: var(--night-panel) !important;
+}
+
+html:root body .student-shell.student-night .history-search-field .history-search-input {
+  min-width: 0;
+  background: transparent !important;
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+}
+
+html:root body .student-shell.student-night .history-search-field .history-search-input::placeholder {
+  color: #b8c8de !important;
+  -webkit-text-fill-color: #b8c8de !important;
+  opacity: 1;
+}
+
+html:root body .student-night :is(.btn-primary, .header-more-button) {
+  background: linear-gradient(135deg, #ff3942, #f50922) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 18px #ff182e42 !important;
+}
+
+html:root body .student-night > header :is(a, button) { color: #fff2df !important; }
+html:root body .student-night > header nav a { background: transparent !important; }
+html:root body .student-night > header nav a:is(:hover, [aria-current="page"]) {
+  background: #a977e326 !important;
+  color: #ffda79 !important;
+}
+
+html:root body .student-night :is([class~="bg-brand-50"], [class~="bg-orange-50"], [class~="bg-slate-100"]) {
+  background-color: #362341 !important;
+}
+
+html:root body .student-night .student-dashboard > div:first-child {
+  border-color: #cc8b79 !important;
+  box-shadow: 0 0 6px #ffcf7970, 0 0 20px #b95cdb30 !important;
+}
+
+html:root body .student-night .learning-meter { background: #514668; }
+html:root body .student-night .learning-meter span { background-color: #f7d76c; }
+html:root body .student-night .learning-radar-label { fill: #e8dfef; }
+html:root body .student-night .learning-stage-list a {
+  background: #1c2934;
+  border-color: #366354;
+  color: #a9e2c4;
+}
+html:root body .student-night .learning-stage-list .is-current {
+  background: #412039;
+  border-color: #ff7184;
+  color: #ffd6db;
+}
+html:root body .student-night .learning-stage-list .is-goal {
+  background: #342b2d;
+  border-color: #9a7844;
+  color: #ffda79;
+}
+
+html:root body .student-night :is(button, a, input, textarea, select):focus-visible {
+  outline-color: #d9acff;
+}
+
+/* Legacy lesson rules set both color and text-fill to black with !important.
+   Override both properties, pairing each foreground with its actual surface. */
+html:root body .student-shell.student-night .student-decor-page .lesson-skill-selector .lesson-skill-card:not([aria-pressed="true"]) {
+  background: #1d1734 !important;
+  border-color: #72598f !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page :is(.lessons-halloween-hero, .lesson-tip-card, .lesson-study-tip-card, .lesson-tip-point, .lesson-material-item, .lessons-empty-state) {
+  background: #1d1734 !important;
+  border-color: #72598f !important;
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page :is(.lessons-halloween-hero, .lesson-tip-card, .lesson-study-tip-card, .lesson-tip-point, .lesson-material-item, .lessons-empty-state) :is(h1, h2, h3, h4, p, span, li, strong) {
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+  text-shadow: none !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page :is(.lessons-halloween-subtitle, .lesson-tip-description, .lessons-empty-state p + p) {
+  color: #c9bfd9 !important;
+  -webkit-text-fill-color: #c9bfd9 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lessons-halloween-kicker {
+  color: #ffda79 !important;
+  -webkit-text-fill-color: #ffda79 !important;
+}
+
+html:root body .student-shell.student-night .lesson-skill-selector .lesson-skill-card:not([aria-pressed="true"]),
+html:root body .student-shell.student-night .lesson-skill-selector .lesson-skill-card:not([aria-pressed="true"]) :is(span, svg) {
+  color: #eee5fa !important;
+  -webkit-text-fill-color: #eee5fa !important;
+  opacity: 1 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lesson-skill-selector .lesson-skill-card[aria-pressed="true"] {
+  background: #a92b50 !important;
+  border-color: #ff8ca8 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page :is(.lesson-skill-card[aria-pressed="true"], .lessons-resource-toggle button[aria-pressed="true"], .btn-primary),
+html:root body .student-shell.student-night .student-decor-page :is(.lesson-skill-card[aria-pressed="true"], .lessons-resource-toggle button[aria-pressed="true"], .btn-primary) :is(span, svg) {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+  opacity: 1 !important;
+}
+
+html:root body .student-shell.student-night .lesson-access-badge {
+  background: #29203f !important;
+  border-color: #80669c !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lesson-access-badge p + p {
+  color: #ffd597 !important;
+  -webkit-text-fill-color: #ffd597 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lesson-search-input {
+  background: transparent !important;
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lesson-search-input::placeholder {
+  color: #c9bfd9 !important;
+  -webkit-text-fill-color: #c9bfd9 !important;
+  opacity: 1;
+}
+
+html:root body .student-shell.student-night :is(.text-black, .text-slate-950, .text-gray-800, .text-gray-700) {
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lessons-resource-toggle button[aria-pressed="false"],
+html:root body .student-shell.student-night .student-decor-page .lessons-resource-toggle button[aria-pressed="false"] svg {
+  color: #ded5ed !important;
+  -webkit-text-fill-color: #ded5ed !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lessons-resource-toggle button[aria-pressed="true"] {
+  background: #a92b50 !important;
+}
+
+html:root body .student-shell.student-night .ai-practice-page :is(.ai-practice-history-panel, .ai-practice-tip-panel),
+html:root body .student-shell.student-night .ai-practice-page :is(.ai-practice-history-panel, .ai-practice-tip-panel) :is(p, h2, h3, span, div, time) {
+  color: #f6f0e9 !important;
+  -webkit-text-fill-color: #f6f0e9 !important;
+}
+
+/* SVG paths also receive legacy black text rules. Set the stroke directly on
+   the shapes instead of relying on inherited currentColor from the SVG. */
+html:root body .student-shell.student-night .student-decor-page svg,
+html:root body .student-shell.student-night .student-decor-page svg * {
+  color: #ffcc95 !important;
+  stroke: #ffcc95 !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lesson-skill-selector .lesson-skill-card > span:first-child {
+  background: #393052 !important;
+  border: 1px solid #78658e;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lesson-skill-selector .lesson-skill-card svg,
+html:root body .student-shell.student-night .student-decor-page .lesson-skill-selector .lesson-skill-card svg * {
+  color: #ffffff !important;
+  stroke: #ffffff !important;
+  fill: none !important;
+  opacity: 1 !important;
+}
+
+html:root body .student-shell.student-night .student-decor-page .lesson-skill-selector .lesson-skill-card[aria-pressed="true"] > span:first-child {
+  background: #63213c !important;
+  border-color: #e78ba6;
+}

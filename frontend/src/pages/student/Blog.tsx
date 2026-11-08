@@ -24,7 +24,7 @@ export function LegacyBlogRedirect() {
 
 function BlogCover({ post }: { post: BlogPreview }) {
   const [failed, setFailed] = useState(false);
-  return <div className="relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-red-50 via-orange-50 to-amber-100">
+  return <div className="material-blog-cover relative aspect-[16/9] overflow-hidden bg-gradient-to-br from-red-50 via-orange-50 to-amber-100">
     {post.coverUrl && !failed ? <img src={post.coverUrl} alt={post.title} loading="lazy" onError={() => setFailed(true)} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" /> :
       <div className="flex h-full items-center justify-center gap-4 text-brand-700"><BookOpen size={48} strokeWidth={1.4} /><span className="text-xl font-extrabold">Góc học Aptis</span></div>}
     <span className="absolute bottom-4 left-4 rounded-full bg-white px-3 py-1 text-xs font-bold text-brand-700 shadow-sm">{post.category}</span>
@@ -62,7 +62,7 @@ export function BlogSection() {
     }, 4000);
     return () => window.clearInterval(timer);
   }, [data, hovered, focused]);
-  return <section className="relative bg-[#fff8f2] px-4 py-14 sm:px-6 lg:px-10 lg:py-16" aria-labelledby="home-blog-title">
+  return <section className="material-blog-section relative bg-[#fff8f2] px-4 py-14 sm:px-6 lg:px-10 lg:py-16" aria-labelledby="home-blog-title">
     <div className="mx-auto max-w-[1280px]">
       <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
         <div><p className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-700">Cùng học, cùng tiến bộ</p>

@@ -286,7 +286,7 @@ export function Renewal() {
           </div>
         </div>
         {!isFreeSelected && (
-          <div className="relative mt-4 flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="renewal-discount-panel relative mt-4 flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 flex-1">
               <label htmlFor="discount-code" className="mb-2 block text-sm font-bold">Mã giảm giá / mã giới thiệu</label>
               <div className="flex gap-2">
@@ -463,7 +463,7 @@ function PlanCard({ item, selected, onSelect }: {
           {isFree ? (
             <p className="text-[25px] font-black leading-none text-navy">Miễn phí</p>
           ) : (
-            <p className={`inline-flex items-baseline justify-center whitespace-nowrap text-[23px] font-black leading-none ${
+            <p className={`renewal-plan-price inline-flex items-baseline justify-center whitespace-nowrap text-[23px] font-black leading-none ${
               highlighted ? 'text-red-600' : 'text-navy'
             }`}>
               {formatMoney(item.price)}đ

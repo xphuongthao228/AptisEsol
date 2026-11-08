@@ -200,7 +200,7 @@ export function Dashboard() {
   );
 
   return (
-    <div className="dashboard-page mx-auto w-full max-w-[1280px] overflow-hidden rounded-[20px] bg-[#fff8f2] text-navy">
+    <div className="dashboard-page mx-auto w-full max-w-[1120px] overflow-hidden rounded-[20px] bg-[#fff8f2] text-navy">
       <div className="dashboard-flag-zone relative overflow-hidden">
         <FlagFall />
         <div className="mb-6 overflow-hidden rounded-[20px] sm:mb-8">

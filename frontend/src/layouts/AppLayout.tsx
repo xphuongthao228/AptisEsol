@@ -18,10 +18,12 @@
   Mail,
   Menu,
   Mic,
+  Moon,
   Palette,
   PenLine,
   Settings,
   Shield,
+  Sun,
   Trophy,
   Upload,
   Users,
@@ -40,6 +42,7 @@ import { useAuthStore } from '../store/authStore';
 import type { AppNotification, SubscriptionResponse, UiSettings, User } from '../types';
 import { applyStudentSkin, getStoredStudentSkin, STUDENT_SKIN_KEY, UI_SETTINGS_UPDATED_EVENT, type StudentSkin } from '../utils/theme';
 import { userHasRole } from '../utils/roles';
+import { getStoredTheme, setStudentTheme, THEME_UPDATED_EVENT } from '../utils/theme';
 
 type LayoutLink = {
   to: string;
@@ -109,6 +112,17 @@ export function AppLayout() {
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [navHidden, setNavHidden] = useState(false);
   const [studentSkin, setStudentSkin] = useState<StudentSkin>(getStoredStudentSkin);
+  const [theme, setTheme] = useState(getStoredTheme);
+
+  useEffect(() => {
+    const syncTheme = () => setTheme(getStoredTheme());
+    window.addEventListener(THEME_UPDATED_EVENT, syncTheme);
+    window.addEventListener('storage', syncTheme);
+    return () => {
+      window.removeEventListener(THEME_UPDATED_EVENT, syncTheme);
+      window.removeEventListener('storage', syncTheme);
+    };
+  }, []);
   const accountMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const lastScrollYRef = useRef(0);
@@ -298,7 +312,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className={`${isAdmin ? '' : 'student-shell'} min-h-screen bg-sky-50 text-navy`}>
+    <div className={`${isAdmin ? '' : `student-shell ${theme === 'dark' ? 'student-night' : 'student-light'}`} min-h-screen bg-sky-50 text-navy`}>
       <SEO {...seo} />
       {!isAdmin && studentSkin === 'halloween' && <HalloweenDecor />}
 
@@ -352,6 +366,18 @@ export function AppLayout() {
           </nav>
 
           <div ref={headerActionsRef} className="ml-auto flex shrink-0 items-center gap-2">
+            {!isAdmin && (
+              <button
+                type="button"
+                onClick={() => setStudentTheme(theme === 'dark' ? 'light' : 'dark')}
+                className="header-icon-button grid h-10 w-10 shrink-0 place-items-center rounded-full text-navy transition hover:bg-brand-50"
+                title={theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối'}
+                aria-label={theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối'}
+                aria-pressed={theme === 'dark'}
+              >
+                {theme === 'dark' ? <Sun size={19} /> : <Moon size={19} />}
+              </button>
+            )}
             {!isAuthenticated && <Link to="/login" className="mobile-sign-in rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white sm:hidden">Đăng nhập</Link>}
             {!isAdmin && (
               <>

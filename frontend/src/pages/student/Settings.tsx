@@ -95,7 +95,7 @@ export function Settings() {
           <SummaryCard
             icon={<Sun size={22} />}
             title="Giao diện"
-            text="Giao diện sáng."
+            text="Chuyển giao diện sáng hoặc tối bằng nút mặt trăng / mặt trời trên thanh menu."
           />
         </div>
       </section>

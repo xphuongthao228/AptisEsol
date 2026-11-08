@@ -7,6 +7,7 @@ import { router } from './routes/router';
 import { registerServiceWorker } from './pwa';
 import './styles.css';
 import './mobile.css';
+import './student-night.css';
 import type { HeartbeatResponse } from './types';
 import { useAuthStore } from './store/authStore';
 import { applyThemePreference } from './utils/theme';

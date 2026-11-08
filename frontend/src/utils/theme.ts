@@ -2,6 +2,7 @@ export type ThemePreference = 'light' | 'dark' | 'auto';
 export type StudentSkin = 'default' | 'halloween' | 'mid_autumn' | 'tet';
 
 const THEME_KEY = 'aptis-theme';
+export const THEME_UPDATED_EVENT = 'aptis-theme-updated';
 export const STUDENT_SKIN_KEY = 'aptis-student-skin';
 export const UI_SETTINGS_UPDATED_EVENT = 'aptis-ui-settings-updated';
 
@@ -14,7 +15,15 @@ export function applyThemePreference() {
   document.documentElement.classList.remove('dark');
   document.documentElement.dataset.theme = 'light';
   document.documentElement.style.colorScheme = 'light';
-  window.localStorage.setItem(THEME_KEY, 'light');
+}
+
+export function getStoredTheme(): 'light' | 'dark' {
+  return window.localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light';
+}
+
+export function setStudentTheme(theme: 'light' | 'dark') {
+  window.localStorage.setItem(THEME_KEY, theme);
+  window.dispatchEvent(new Event(THEME_UPDATED_EVENT));
 }
 
 export function applyStudentSkin(skin: StudentSkin = 'default') {

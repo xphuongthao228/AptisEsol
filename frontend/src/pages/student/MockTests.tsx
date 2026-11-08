@@ -64,7 +64,7 @@ type SpeakingDraftTemplate = {
   fields: readonly SpeakingDraftField[];
 };
 
-type AiWritingScore = {
+export type AiWritingScore = {
   overallScore: number;
   cefrLevel: string;
   summary: string;
@@ -6680,7 +6680,7 @@ function WritingResult({ onExit, onRetry }: { onExit: () => void; onRetry: () =>
   );
 }
 
-function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, result }: { error: string; loading: boolean; onExit: () => void; onRetry: () => void; result: AiWritingScore | null }) {
+export function WritingCheckingResult({ error, loading: _loading, onExit, onRetry, result }: { error: string; loading: boolean; onExit: () => void; onRetry: () => void; result: AiWritingScore | null }) {
   if (error) {
     return (
       <main className="mock-writing-result-screen" style={{ minHeight: '100vh', backgroundColor: '#f7f7fc', padding: '72px 24px' }}>

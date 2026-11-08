@@ -15,6 +15,7 @@ import { sanitizeAnswerHtml } from '../../utils/safeHtml';
 import { formatListeningReview } from '../../utils/listeningReview';
 import { getListeningPersonEvidence, getListeningScriptVietnamese } from '../../utils/listeningEvidence';
 import { savePracticeCompletion } from '../../utils/learningRoadmap';
+import { WritingCheckingResult, type AiWritingScore } from './MockTests';
 
 const PracticeQuestionContext = createContext<number | null>(null);
 
@@ -262,6 +263,11 @@ export function PracticeRunner() {
   const [listeningReviewOpen, setListeningReviewOpen] = useState(false);
   const [listeningReviewGroup, setListeningReviewGroup] = useState<ListeningReviewGroup>('1-13');
   const [readingReviewOpen, setReadingReviewOpen] = useState(false);
+  const [writingScore, setWritingScore] = useState<AiWritingScore | null>(null);
+  const [writingScoreError, setWritingScoreError] = useState('');
+  const [writingScoreLoading, setWritingScoreLoading] = useState(false);
+  const [writingResultOpen, setWritingResultOpen] = useState(false);
+  const writingScoringLock = useRef(false);
   const logout = useAuthStore((state) => state.logout);
   const { data: test } = useApi<Test>(() => unwrap(api.get(`/tests/${id}`)), [id]);
   const { data: questions, loading } = useApi<Question[]>(() => unwrap(api.get(`/questions?testId=${id}`)), [id]);
@@ -284,7 +290,6 @@ export function PracticeRunner() {
   const listeningReview = useMemo(() => buildListeningExamReview(test, questions ?? [], answers), [test, questions, answers]);
   const fullReadingExam = useMemo(() => isExamSetMode && isFullReadingExam(test, questions ?? []), [isExamSetMode, test, questions]);
   const readingReview = useMemo(() => buildReadingExamReview(test, questions ?? [], answers), [test, questions, answers]);
-  const canCheckCurrent = !fullReadingExam || currentIndex >= totalQuestions - 1;
   const showClassicCheckButton = !fullReadingExam || currentIndex >= totalQuestions - 1;
   const activeChecked = activeQuestion ? checkedAnswers[activeQuestion.id] : undefined;
   const sharedAudioUrl = useMemo(() => getSharedAudioUrl(questions ?? []), [questions]);
@@ -308,6 +313,10 @@ export function PracticeRunner() {
   const isSpeakingPart3Question = mergedTemplateData?.template === 'SPEAKING_PART3';
   const isSpeakingPart4Question = mergedTemplateData?.template === 'SPEAKING_PART4';
   const writingPartIndex = Math.min(3, Math.max(0, Number(activeSavedAnswer.writingPartIndex ?? 0)));
+  const selectedWritingClubIndex = Number(activeSavedAnswer.selectedClubIndex ?? requestedClubIndex ?? -1);
+  const canCheckCurrent = !writingScoreLoading && (isWritingClubQuestion
+    ? writingPartIndex === 3 && Boolean(mergedTemplateData?.clubs?.[selectedWritingClubIndex])
+    : !fullReadingExam || currentIndex >= totalQuestions - 1);
   const speakingPart1Mode = activeSavedAnswer.speakingPart1Mode ?? 'intro';
   const speakingPart1Index = Math.max(0, Number(activeSavedAnswer.speakingPart1Index ?? 0));
   const speakingPart1Total = Array.isArray(mergedTemplateData?.questions) ? mergedTemplateData.questions.length : 0;
@@ -558,6 +567,10 @@ export function PracticeRunner() {
 
   function checkCurrentQuestion() {
     if (!activeQuestion) return;
+    if (isWritingClubQuestion) {
+      if (canCheckCurrent) void checkWritingWithAi();
+      return;
+    }
     if (test?.mode === 'PRACTICE') {
       const candidates = fullReadingExam || (fullListeningExam && currentIndex >= totalQuestions - 1) ? questions ?? [] : [activeQuestion];
       candidates.forEach(question => {
@@ -630,6 +643,42 @@ export function PracticeRunner() {
     toast[isCorrect ? 'success' : 'error'](isCorrect ? 'Chính xác!' : 'Chưa đúng, xem lại đáp án đúng.');
   }
 
+  async function checkWritingWithAi() {
+    if (writingScoringLock.current || writingPartIndex !== 3) return;
+    const club = mergedTemplateData?.clubs?.[selectedWritingClubIndex];
+    if (!club) return;
+    const parts = (club.parts ?? []).slice(0, 4).map((part: any, partIndex: number) => {
+      const prompts: string[] = part.prompts ?? [];
+      const answer = partIndex === 1
+        ? activeSavedAnswer[`${selectedWritingClubIndex}-1-p2`] ?? ''
+        : prompts.map((prompt, index) => `${index + 1}. ${prompt}\n${activeSavedAnswer[`${selectedWritingClubIndex}-${partIndex}-p${partIndex + 1}-${index}`] ?? ''}`).join('\n\n');
+      return {
+        title: `Part ${partIndex + 1} - ${club.clubName ?? 'Writing'}`,
+        prompt: [part.instructions, part.mainText, ...prompts].filter(Boolean).join('\n'),
+        answer
+      };
+    });
+    const hasAnswer = Object.entries(activeSavedAnswer).some(([key, value]) => key.startsWith(`${selectedWritingClubIndex}-`) && value.trim());
+    if (!hasAnswer || parts.length !== 4) {
+      toast.error('Bạn hãy nhập bài Writing trước khi kiểm tra.');
+      return;
+    }
+    writingScoringLock.current = true;
+    setWritingScoreLoading(true);
+    setWritingScore(null);
+    setWritingScoreError('');
+    setWritingResultOpen(true);
+    try {
+      const result = await unwrap<AiWritingScore>(api.post('/ai/writing/score', { parts }, { timeout: 180_000 }));
+      setWritingScore(result);
+    } catch (error: any) {
+      setWritingScoreError(error?.response?.data?.message ?? 'Chưa chấm được Writing. Vui lòng thử lại.');
+    } finally {
+      writingScoringLock.current = false;
+      setWritingScoreLoading(false);
+    }
+  }
+
   function recordPartPracticeScore(question: Question, correct: boolean, answerId: number | null, textAnswer: string | null) {
     void unwrap(api.post('/submissions/practice-score', {
       questionId: question.id,
@@ -649,6 +698,16 @@ export function PracticeRunner() {
 
   function exitRunner() {
     navigate(exitTarget);
+  }
+
+  if (writingResultOpen) {
+    return <WritingCheckingResult
+      result={writingScore}
+      error={writingScoreError}
+      loading={writingScoreLoading}
+      onExit={exitRunner}
+      onRetry={() => setWritingResultOpen(false)}
+    />;
   }
 
   if (!loading && questions && questions.length === 0) {

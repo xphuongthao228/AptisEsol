@@ -17,6 +17,7 @@ type TipItem = {
   description: string;
   color: string;
   button: string;
+  to?: string;
   points: string[];
 };
 
@@ -110,6 +111,7 @@ const skillTips: SkillTip[] = [
         description: 'Thường là dạng nối người với ý kiến hoặc thông tin. Cần phân biệt ai đang nói và thái độ của họ.',
         color: 'bg-amber-400 text-navy',
         button: 'Học câu 15',
+        to: '/app/lessons/LISTENING/cau-15',
         points: ['Tập nghe các từ báo hiệu ý kiến: think, prefer, agree, worried.', 'Không chọn theo từ đơn lẻ, hãy chọn theo ý chính.', 'Ghi lại các cụm đồng nghĩa sau mỗi bài.']
       },
       {
@@ -697,7 +699,7 @@ export function Lessons() {
               Chọn Listening, Reading, Speaking hoặc Writing để xem các mẹo ôn thi ngắn gọn, đúng trọng tâm.
             </p>
           </div>
-          <div className="rounded-3xl border border-white/35 bg-white/95 p-5 text-slate-800 shadow-[0_20px_45px_rgba(32,8,48,0.24)]">
+          <div className="lesson-access-badge rounded-3xl border border-white/35 bg-white/95 p-5 text-slate-800 shadow-[0_20px_45px_rgba(32,8,48,0.24)]">
             <div className="flex items-center gap-3">
               <ShieldCheck className="text-emerald-500" />
               <div>
@@ -762,6 +764,7 @@ export function Lessons() {
                 key={item.key}
                 type="button"
                 onClick={() => setResourceKind(item.key)}
+                aria-pressed={resourceKind === item.key}
                 className={`inline-flex h-10 items-center justify-center gap-2 rounded-xl px-4 text-sm font-extrabold transition ${
                   resourceKind === item.key ? 'bg-brand-600 text-white shadow-soft' : 'text-slate-700 hover:bg-white'
                 }`}
@@ -824,7 +827,7 @@ export function Lessons() {
                     <span>{point}</span>
                   </div>
                 ))}
-                <Link to={`${current.practicePath}/part/${index + 1}`} onClick={requireLogin} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
+                <Link to={section.to ?? `${current.practicePath}/part/${index + 1}`} onClick={requireLogin} className="mt-2 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-brand-600 px-4 text-sm font-extrabold text-brand-600 hover:bg-brand-50">
                   <BookOpen size={16} /> {section.button}
                 </Link>
               </div>
@@ -1391,7 +1394,7 @@ function SpeakerBadge({ speaker }: { speaker: 'Nam' | 'Nữ' }) {
 
 function KeyBadge({ value, highlight }: { value: string; highlight?: boolean }) {
   return (
-    <span className={`inline-flex min-w-[160px] justify-center rounded-sm px-3 py-2 font-mono text-xs font-black tracking-[0.2em] ${highlight ? 'bg-amber-100 text-navy' : 'bg-red-50 text-red-500'}`}>
+    <span className={`listening-answer-key inline-flex min-w-[160px] justify-center rounded-sm px-3 py-2 font-mono text-sm font-black tracking-[0.2em] ${highlight ? 'bg-amber-100 text-navy' : 'bg-red-50 text-red-500'}`}>
       {value}
     </span>
   );
