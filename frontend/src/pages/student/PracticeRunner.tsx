@@ -3591,7 +3591,7 @@ function AptisTemplateContent({ data, questionId, currentNumber, totalQuestions,
     return (
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} featured={featured} total={displayTotal} />
-        <AudioBar text={data.playsRemaining ?? '2 of 2 plays remaining'} audioUrl={data.audioUrl} />
+        <AudioBar text={data.playsRemaining ?? '2 of 2 plays remaining'} audioUrl={data.audioUrl} expanded={data.template === 'LISTENING_PEOPLE_MATCH'} />
         <div className="practice-listening-card rounded-lg bg-[#eeeeee] px-8 py-8">
           {topic && <h2 className="mb-6 text-xl font-extrabold">Topic: {topic}</h2>}
           {data.instructions && <p className="mb-7 max-w-6xl text-[15px] leading-7">{data.instructions}</p>}
@@ -3603,11 +3603,11 @@ function AptisTemplateContent({ data, questionId, currentNumber, totalQuestions,
                 ? selected === correct ? 'correct' : selected ? 'wrong' : 'answer'
                 : undefined;
               return (
-                <div className={`practice-listening-row grid items-center gap-3 rounded-md px-3 py-2 transition ${revealAnswers && correct ? 'bg-white/60' : ''} ${data.template === 'LISTENING_PEOPLE_MATCH' ? 'grid-cols-[96px_1fr]' : 'md:grid-cols-[minmax(360px,1fr)_280px_210px]'}`} key={row}>
+                <div className={`practice-listening-row grid items-center gap-3 rounded-md px-3 py-2 transition ${revealAnswers && correct ? 'bg-white/60' : ''} ${data.template === 'LISTENING_PEOPLE_MATCH' ? `grid-cols-[96px_minmax(0,1fr)] ${revealAnswers && correct ? 'md:grid-cols-[96px_minmax(0,1fr)_minmax(210px,auto)]' : ''}` : 'md:grid-cols-[minmax(360px,1fr)_280px_210px]'}`} key={row}>
                   <span className="text-[15px] leading-6">{data.template === 'LISTENING_PEOPLE_MATCH' ? row : `${index + 1}. ${stripLeadingIndex(row)}`}</span>
                   <TemplateSelect value={selected} options={data.options ?? []} onChange={(next) => setAnswer(`r${index}`, next)} wide={data.template === 'LISTENING_PEOPLE_MATCH'} status={status} />
                   {revealAnswers && correct && (
-                    <div className={`rounded-lg px-3 py-2 text-xs font-extrabold ${selected === correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <div className={`rounded-lg px-3 py-2 text-xs font-extrabold ${data.template === 'LISTENING_PEOPLE_MATCH' ? 'col-span-2 md:col-span-1' : ''} ${selected === correct ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
                       {selected === correct ? 'Đúng' : 'Sai'} · {correct}
                     </div>
                   )}
@@ -5650,7 +5650,7 @@ function InlineNumber({ value = 1 }: { value?: number }) {
   return <span className="inline-flex h-9 min-w-16 items-center justify-center rounded border border-slate-300 bg-white px-4 text-base font-bold">{value}</span>;
 }
 
-function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
+function AudioBar({ text, audioUrl, expanded = false }: { text?: string; audioUrl?: string; expanded?: boolean }) {
   const ref = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -5684,6 +5684,31 @@ function AudioBar({ text, audioUrl }: { text?: string; audioUrl?: string }) {
     } else {
       audio.pause();
     }
+  }
+
+  if (expanded) {
+    return (
+      <div className="mb-5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+        <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
+          <Volume2 size={18} aria-hidden="true" />
+          <span>Bài nghe · Part 2</span>
+        </div>
+        {normalizedAudioUrl ? (
+          <audio
+            key={normalizedAudioUrl}
+            ref={ref}
+            src={normalizedAudioUrl}
+            controls
+            preload="metadata"
+            aria-label="Bài nghe Part 2"
+            className="block h-12 w-full min-w-0"
+            onError={() => toast.error('Không tải được audio. Kiểm tra lại link file nghe.')}
+          />
+        ) : (
+          <p className="py-3 text-sm text-slate-500">Chưa có audio cho câu này.</p>
+        )}
+      </div>
+    );
   }
 
   return (

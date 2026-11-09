@@ -1,4 +1,5 @@
 import { Bell, Pin, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import type { AppNotification } from '../types';
 
 const notificationLevelStyles: Record<AppNotification['level'], string> = {
@@ -18,9 +19,17 @@ const notificationLevelLabels: Record<AppNotification['level'], string> = {
 export function NotificationDialog({ notification, onClose }: { notification: AppNotification | null; onClose: () => void }) {
   if (!notification) return null;
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="notification-dialog-title">
-      <div className="w-full max-w-[560px] overflow-hidden rounded-2xl border border-brand-100 bg-white text-left shadow-lift">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 px-4 py-6 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="notification-dialog-title"
+      onClick={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div className="flex max-h-[calc(100dvh-3rem)] w-full max-w-[560px] flex-col overflow-hidden rounded-2xl border border-brand-100 bg-white text-left shadow-lift">
         <div className="flex items-start justify-between gap-4 border-b border-brand-100 px-5 py-4">
           <div className="flex min-w-0 items-start gap-3">
             <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700">
@@ -53,11 +62,12 @@ export function NotificationDialog({ notification, onClose }: { notification: Ap
             <X size={19} />
           </button>
         </div>
-        <div className="max-h-[60vh] overflow-y-auto px-5 py-5">
-          <p className="whitespace-pre-line text-sm font-medium leading-7 text-slate-700">{notification.message}</p>
+        <div className="min-h-0 overflow-y-auto px-5 py-5">
+          <p className="whitespace-pre-line break-words text-sm font-medium leading-7 text-slate-700">{notification.message}</p>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

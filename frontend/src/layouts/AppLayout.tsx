@@ -1,4 +1,4 @@
-﻿import {
+import {
   Bell,
   BookOpen,
   Bot,
@@ -610,6 +610,7 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
     const nextIds = Array.from(new Set([...readIds, notification.id]));
     setReadIds(nextIds);
     saveReadNotificationIds(user, nextIds);
+    setOpen(false);
     setSelectedNotification(notification);
   }
 
