@@ -5,12 +5,15 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const source = fs.readFileSync(path.join(__dirname, '../src/pages/student/PracticeRunner.tsx'), 'utf8');
 const ast = ts.createSourceFile('PracticeRunner.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
-const runner = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'PracticeRunner');
+const runner = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'PartPracticeRunner');
 const handler = runner.body.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'checkWritingWithAi');
 const gate = runner.body.statements.find(node => ts.isVariableStatement(node) && node.declarationList.declarations.some(d => d.name.getText(ast) === 'canCheckCurrent'));
 let requests = [];
 const result = { overallScore: 38, cefrLevel: 'B2' };
 const context = vm.createContext({
+  test: { mode: 'PRACTICE' }, activeQuestion: { id: 42 },
+  savePracticeCompletion: async (questionId, unitKey) => { context.completed.push({ questionId, unitKey }); },
+  completed: [],
   writingScoringLock: { current: false }, writingPartIndex: 3, selectedWritingClubIndex: 1,
   writingScoreLoading: false, isWritingClubQuestion: true,
   mergedTemplateData: { clubs: [{}, { clubName: 'Art Club', parts: [
@@ -54,14 +57,28 @@ const canCheck = () => vm.runInContext(`(() => { ${gate.getText(ast)} return can
   assert.match(payload.parts[3].prompt, /Meeting cancelled/);
   assert.ok(!JSON.stringify(payload).includes('Other club'));
   assert.equal(context.score, result);
+  assert.deepEqual(Array.from(context.completed, item => item.unitKey), ['writing-1-0', 'writing-1-1', 'writing-1-2', 'writing-1-3']);
+  assert.ok(context.completed.every(item => item.questionId === 42));
   assert.equal(context.writingScoreLoading, false);
   context.api.post = async () => { throw { response: { data: { message: 'AI unavailable' } } }; };
   await context.checkWritingWithAi();
   assert.equal(context.error, 'AI unavailable');
   assert.equal(context.score, null);
+  assert.equal(context.completed.length, 4, 'Failed AI requests must not mark more parts complete');
   assert.equal(context.writingScoringLock.current, false);
   context.activeSavedAnswer = {};
   await context.checkWritingWithAi();
   assert.ok(context.validation);
-  console.log('Writing practice: page gate, four-part payload, AI result, duplicate guard and errors passed.');
+  const unitHelper = ast.statements.find(node => ts.isFunctionDeclaration(node) && node.name?.text === 'practiceUnitKeys');
+  context.parseTemplate = JSON.parse;
+  vm.runInContext(ts.transpileModule(unitHelper.getText(ast), { compilerOptions: { target: ts.ScriptTarget.ES2020 } }).outputText, context);
+  const units = data => Array.from(context.practiceUnitKeys({ id: 7, content: JSON.stringify(data) }));
+  assert.deepEqual(units({ template: 'READING_GAP_FILL' }), ['7:question']);
+  assert.equal(units({ template: 'SPEAKING_PART1', questions: [{}, {}] }).length, 2);
+  assert.deepEqual(units({ template: 'SPEAKING_PART2', questions: [{}] }), ['7:speaking-0-0', '7:speaking-0-1', '7:speaking-0-2']);
+  assert.equal(units({ template: 'SPEAKING_PART3', questions: [{}, {}] }).length, 6);
+  assert.equal(units({ template: 'SPEAKING_PART4', questions: [{}] }).length, 1);
+  const writingQuestion = { id: 7, content: JSON.stringify({ template: 'WRITING_CLUB_COLLECTION', clubs: [{ parts: [{}, {}, {}, {}] }, { parts: [{}, {}, {}, {}] }] }) };
+  assert.deepEqual(Array.from(context.practiceUnitKeys(writingQuestion, 1)), ['7:writing-1-0', '7:writing-1-1', '7:writing-1-2', '7:writing-1-3']);
+  console.log('Practice completion units and Writing scoring, progress saving, duplicate guard and errors passed.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

@@ -21,6 +21,9 @@ public class ProgressController {
         return ApiResponse.ok(learning.mine(auth.getName()));
     }
     public record CompletionRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 80) String unitKey) {}
+    @GetMapping("/practice") public ApiResponse<List<LearningProgressService.PracticeCompletion>> practice(Authentication auth) {
+        return ApiResponse.ok(learning.practiceCompletions(auth.getName()));
+    }
     @PostMapping("/questions/{id}/complete") public ApiResponse<String> complete(Authentication auth, @PathVariable Long id,
             @jakarta.validation.Valid @RequestBody CompletionRequest request) {
         learning.complete(auth.getName(), id, request.unitKey());

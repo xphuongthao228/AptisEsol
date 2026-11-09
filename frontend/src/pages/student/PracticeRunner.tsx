@@ -253,6 +253,47 @@ function getReturnTarget(state: unknown) {
 
 export function PracticeRunner() {
   const { id } = useParams();
+  const userId = useAuthStore((state) => state.user?.id);
+  const storageKey = `aptis-part-draft:${userId ?? 'guest'}:${id}`;
+  return <PartPracticeRunner key={storageKey} storageKey={storageKey} />;
+}
+
+type PartPracticeDraft = {
+  answers: Record<number, string>;
+  checkedAnswers: Record<number, boolean>;
+  currentIndex: number;
+  completedUnits?: string[];
+};
+
+function practiceUnitKeys(question: Question, clubIndex?: number): string[] {
+  const data = parseTemplate(question.content);
+  if (data?.template?.startsWith('SPEAKING_PART')) {
+    const prompts = ['SPEAKING_PART2', 'SPEAKING_PART3'].includes(data.template) ? 3 : 1;
+    return Array.from({ length: Math.max(1, data.questions?.length ?? 0) }, (_, item) =>
+      Array.from({ length: prompts }, (_, prompt) => `${question.id}:speaking-${item}-${prompt}`)).flat();
+  }
+  if (data?.template === 'WRITING_CLUB_COLLECTION') {
+    return (data.clubs ?? []).flatMap((club: any, index: number) =>
+      clubIndex !== undefined && clubIndex !== index ? [] :
+        Array.from({ length: Math.min(4, club.parts?.length ?? 0) }, (_, part) => `${question.id}:writing-${index}-${part}`));
+  }
+  return [`${question.id}:question`];
+}
+
+function readPartPracticeDraft(key: string): PartPracticeDraft | null {
+  try {
+    const draft = JSON.parse(localStorage.getItem(key) ?? 'null');
+    if (!draft || !Number.isInteger(draft.currentIndex) || draft.currentIndex < 0
+      || !draft.answers || Array.isArray(draft.answers) || typeof draft.answers !== 'object'
+      || !Object.values(draft.answers).every(value => typeof value === 'string')
+      || !draft.checkedAnswers || Array.isArray(draft.checkedAnswers) || typeof draft.checkedAnswers !== 'object'
+      || !Object.values(draft.checkedAnswers).every(value => typeof value === 'boolean')) return null;
+    return draft;
+  } catch { return null; }
+}
+
+function PartPracticeRunner({ storageKey }: { storageKey: string }) {
+  const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -260,6 +301,11 @@ export function PracticeRunner() {
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [checkedAnswers, setCheckedAnswers] = useState<Record<number, boolean>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [pendingDraft, setPendingDraft] = useState(() => readPartPracticeDraft(storageKey));
+  const resumedDraft = useRef(false);
+  const submitted = useRef(false);
+  const [completedUnits, setCompletedUnits] = useState<string[]>([]);
+  const completionAnnounced = useRef(false);
   const [listeningReviewOpen, setListeningReviewOpen] = useState(false);
   const [listeningReviewGroup, setListeningReviewGroup] = useState<ListeningReviewGroup>('1-13');
   const [readingReviewOpen, setReadingReviewOpen] = useState(false);
@@ -361,12 +407,38 @@ export function PracticeRunner() {
   const exitLabel = 'Thoát về luyện tập theo part';
 
   useEffect(() => {
+    function onCompleted(event: Event) {
+      const { questionId, unitKey } = (event as CustomEvent<{ questionId: number; unitKey: string }>).detail;
+      if (!questions?.some(question => question.id === questionId)) return;
+      const key = `${questionId}:${unitKey}`;
+      setCompletedUnits(current => current.includes(key) ? current : [...current, key]);
+    }
+    window.addEventListener('aptis-practice-unit-completed', onCompleted);
+    return () => window.removeEventListener('aptis-practice-unit-completed', onCompleted);
+  }, [questions]);
+
+  useEffect(() => {
+    if (pendingDraft || completionAnnounced.current || !questions?.length || !completedUnits.length) return;
+    const writingQuestion = questions.find(question => question.id === activeQuestion?.id
+      && parseTemplate(question.content)?.template === 'WRITING_CLUB_COLLECTION');
+    const required = writingQuestion
+      ? practiceUnitKeys(writingQuestion, selectedWritingClubIndex >= 0 ? selectedWritingClubIndex : undefined)
+      : questions.flatMap(question => practiceUnitKeys(question));
+    if (!required.length || !required.every(key => completedUnits.includes(key))) return;
+    completionAnnounced.current = true;
+    submitted.current = true;
+    try { localStorage.removeItem(storageKey); } catch { /* Keep completion visible if storage is unavailable. */ }
+  }, [completedUnits, questions, activeQuestion?.id, selectedWritingClubIndex, pendingDraft, storageKey]);
+
+  useEffect(() => {
+    if (pendingDraft || resumedDraft.current) return;
     if (!questions?.length || !requestedQuestionId) return;
     const index = questions.findIndex((question) => question.id === requestedQuestionId);
     if (index >= 0) setCurrentIndex(index);
-  }, [questions, requestedQuestionId]);
+  }, [questions, requestedQuestionId, pendingDraft]);
 
   useEffect(() => {
+    if (pendingDraft || resumedDraft.current) return;
     if (!requestedQuestionId || !activeQuestion || activeQuestion.id !== requestedQuestionId) return;
     if (!mergedTemplateData?.template?.startsWith('SPEAKING_PART')) return;
 
@@ -391,7 +463,38 @@ export function PracticeRunner() {
         [activeQuestion.id]: JSON.stringify({ ...savedAnswer, ...state })
       };
     });
-  }, [activeQuestion, mergedTemplateData, requestedQuestionId]);
+  }, [activeQuestion, mergedTemplateData, requestedQuestionId, pendingDraft]);
+
+  useEffect(() => {
+    if (pendingDraft || submitted.current || !questions?.length) return;
+    try {
+      if (!Object.keys(answers).length && !Object.keys(checkedAnswers).length && currentIndex === 0) {
+        localStorage.removeItem(storageKey);
+      } else {
+        localStorage.setItem(storageKey, JSON.stringify({ answers, checkedAnswers, currentIndex, completedUnits }));
+      }
+    } catch {
+      toast.error('Không lưu được bài làm trên trình duyệt. Vui lòng kiểm tra bộ nhớ trình duyệt.', { id: 'part-draft-storage' });
+    }
+  }, [answers, checkedAnswers, currentIndex, completedUnits, pendingDraft, questions, storageKey]);
+
+  function chooseDraft(continuePractice: boolean) {
+    if (continuePractice && pendingDraft && questions?.length) {
+      const questionIds = new Set(questions.map(question => String(question.id)));
+      setAnswers(Object.fromEntries(Object.entries(pendingDraft.answers).filter(([id]) => questionIds.has(id))));
+      setCheckedAnswers(Object.fromEntries(Object.entries(pendingDraft.checkedAnswers).filter(([id]) => questionIds.has(id))));
+      setCurrentIndex(Math.min(pendingDraft.currentIndex, questions.length - 1));
+      resumedDraft.current = true;
+      setCompletedUnits(Array.isArray(pendingDraft.completedUnits) ? pendingDraft.completedUnits.filter(key => typeof key === 'string') : []);
+    } else {
+      try { localStorage.removeItem(storageKey); } catch { /* Keep the new attempt usable. */ }
+      setAnswers({});
+      setCheckedAnswers({});
+      setCurrentIndex(0);
+      setCompletedUnits([]);
+    }
+    setPendingDraft(null);
+  }
 
   async function submit(event: FormEvent) {
     event.preventDefault();
@@ -404,6 +507,8 @@ export function PracticeRunner() {
       }))
     };
     const result = await unwrap<Submission>(api.post('/submissions', payload));
+    submitted.current = true;
+    try { localStorage.removeItem(storageKey); } catch { /* Submission is already saved. */ }
     if (test?.mode === 'PRACTICE') {
       try {
         await Promise.all((questions ?? []).filter(question => hasCompletePracticeAnswer(getRenderableTemplateData(question, test, questions?.length ?? 0), answers[question.id] ?? '')).map(question => savePracticeCompletion(question.id)));
@@ -671,6 +776,15 @@ export function PracticeRunner() {
     try {
       const result = await unwrap<AiWritingScore>(api.post('/ai/writing/score', { parts }, { timeout: 180_000 }));
       setWritingScore(result);
+      if (test?.mode === 'PRACTICE' && activeQuestion) {
+        const completeParts = (club.parts ?? []).slice(0, 4).flatMap((part: any, partIndex: number) => {
+          const keys = partIndex === 1 ? ['p2'] : (part.prompts ?? []).map((_: unknown, index: number) => `p${partIndex + 1}-${index}`);
+          return keys.length && keys.every((key: string) => (activeSavedAnswer[`${selectedWritingClubIndex}-${partIndex}-${key}`] ?? '').trim()) ? [partIndex] : [];
+        });
+        try {
+          await Promise.all(completeParts.map((partIndex: number) => savePracticeCompletion(activeQuestion.id, `writing-${selectedWritingClubIndex}-${partIndex}`)));
+        } catch { toast.error('Đã chấm bài nhưng chưa lưu được toàn bộ tiến độ Writing. Vui lòng thử lại.'); }
+      }
     } catch (error: any) {
       setWritingScoreError(error?.response?.data?.message ?? 'Chưa chấm được Writing. Vui lòng thử lại.');
     } finally {
@@ -694,6 +808,9 @@ export function PracticeRunner() {
     const { [activeQuestion.id]: _oldChecked, ...nextChecked } = checkedAnswers;
     setAnswers(nextAnswers);
     setCheckedAnswers(nextChecked);
+    setCompletedUnits(current => current.filter(key => !key.startsWith(`${activeQuestion.id}:`)));
+    completionAnnounced.current = false;
+    submitted.current = false;
   }
 
   function exitRunner() {
@@ -741,6 +858,22 @@ export function PracticeRunner() {
           </section>
         </main>
       </div>
+    );
+  }
+
+  if (pendingDraft && questions?.length) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4">
+        <section role="dialog" aria-modal="true" aria-labelledby="part-draft-title" aria-describedby="part-draft-description" className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+          <h1 id="part-draft-title" className="text-xl font-extrabold text-navy">Bạn có bài luyện đang làm dở</h1>
+          <p id="part-draft-description" className="mt-3 text-sm leading-6 text-slate-600">Bạn muốn làm tiếp bài {repairMojibake(test?.title ?? 'luyện này')} hay làm lại từ đầu? Nếu làm lại, câu trả lời đã lưu của bài này sẽ được xóa.</p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <button autoFocus type="button" onClick={() => chooseDraft(true)} className="btn-primary flex-1">Làm tiếp</button>
+            <button type="button" onClick={() => chooseDraft(false)} className="btn-secondary flex-1">Làm lại từ đầu</button>
+          </div>
+          <button type="button" onClick={() => navigate(exitTarget)} className="mt-4 text-sm font-semibold text-slate-500">Quay lại</button>
+        </section>
+      </main>
     );
   }
 
@@ -941,7 +1074,7 @@ export function PracticeRunner() {
                       ))}
                     </div>
                   ) : (
-                    <textarea className="min-h-[170px] w-full rounded-[14px] border border-slate-300 bg-white p-4 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Nhập câu trả lời..." onChange={(e) => setAnswers({ ...answers, [activeQuestion.id]: e.target.value })} />
+                    <textarea className="min-h-[170px] w-full rounded-[14px] border border-slate-300 bg-white p-4 text-sm outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-100" placeholder="Nhập câu trả lời..." value={answers[activeQuestion.id] ?? ''} onChange={(e) => setAnswers({ ...answers, [activeQuestion.id]: e.target.value })} />
                   )}
                   {activeChecked !== undefined && <QuestionFeedback isCorrect={activeChecked} textOnly={!activeQuestion.answers.length} />}
                   <ListeningScriptReview questionId={activeQuestion.id} scriptText={scriptText} checked={activeChecked} correctAnswers={activeQuestion.answers.filter((answer) => answer.correct).map((answer) => answer.content)} />

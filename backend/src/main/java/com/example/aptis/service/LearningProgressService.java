@@ -22,6 +22,32 @@ public class LearningProgressService {
     private final PaymentService payments;
 
     public record SkillProgress(String skill, int completed, int total) {}
+    public record PracticeCompletion(Long questionId, boolean completed, List<Integer> completedClubs) {}
+
+    @Transactional(readOnly = true)
+    public List<PracticeCompletion> practiceCompletions(String email) {
+        User user = users.findByEmailAndDeletedAtIsNull(email).orElseThrow();
+        Map<Long, Set<String>> saved = new HashMap<>();
+        for (LearningCompletion completion : completions.findByUserIdAndDeletedAtIsNull(user.getId())) {
+            if (completion.getQuestion() != null) saved.computeIfAbsent(completion.getQuestion().getId(), ignored -> new HashSet<>()).add(completion.getUnitKey());
+        }
+        List<PracticeCompletion> result = new ArrayList<>();
+        for (Question question : questions.findRoadmapQuestions()) {
+            Set<String> done = saved.get(question.getId());
+            if (done == null) continue;
+            Set<String> required = requiredUnits(question.getContent());
+            Map<Integer, Set<String>> clubs = new TreeMap<>();
+            for (String key : required) {
+                if (key.startsWith("writing-")) {
+                    int club = Integer.parseInt(key.split("-")[1]);
+                    clubs.computeIfAbsent(club, ignored -> new HashSet<>()).add(key);
+                }
+            }
+            result.add(new PracticeCompletion(question.getId(), done.containsAll(required),
+                    clubs.entrySet().stream().filter(entry -> done.containsAll(entry.getValue())).map(Map.Entry::getKey).toList()));
+        }
+        return result;
+    }
     public record RoadmapProgress(boolean guideReviewed, boolean predictionsReviewed, List<SkillProgress> skills, LocalDateTime lastPracticedAt) {}
 
     @Transactional(readOnly = true)

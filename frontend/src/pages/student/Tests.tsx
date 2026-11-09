@@ -12,6 +12,24 @@ import { repairMojibake } from '../../utils/textRepair';
 
 const POINTS_PER_QUESTION = 2;
 const PART_MENU_SKILL_KEY = 'aptis-part-menu-skill';
+
+type PracticeCompletion = { questionId: number; completed: boolean; completedClubs: number[] };
+
+function usePracticeCompleted() {
+  const userId = useAuthStore(state => state.user?.id);
+  const { data } = useApi<{ userId: typeof userId; items: PracticeCompletion[] }>(async () => ({
+    userId,
+    items: userId ? await unwrap<PracticeCompletion[]>(api.get('/progress/practice')) : []
+  }), [userId]);
+  return (questions: Question[], clubIndex?: number) => Boolean(userId && questions.length && questions.every(question => {
+    const progress = data?.userId === userId ? data.items.find(item => item.questionId === question.id) : undefined;
+    return clubIndex === undefined ? progress?.completed : progress?.completedClubs.includes(clubIndex);
+  }));
+}
+
+function CompletedBadge() {
+  return <span className="mt-2 inline-flex w-fit items-center rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-bold text-emerald-700">Đã làm</span>;
+}
 const partsPageHeroClass = 'mobile-page-heading halloween-parts-hero relative overflow-hidden rounded-[24px] bg-[linear-gradient(135deg,#2b0d42,#4c1233_58%,#6b1e34)] p-8 text-white shadow-soft';
 const partsPageBackClass = 'inline-flex items-center gap-2 text-sm font-bold text-orange-50 transition hover:text-white';
 const partsPageEyebrowClass = 'mt-7 text-sm font-extrabold uppercase tracking-[0.18em] text-blue-100';
@@ -208,6 +226,7 @@ export function Tests() {
 }
 
 export function TestPartMenu() {
+  const isCompleted = usePracticeCompleted();
   const requireLogin = useRequireLogin();
   const partSkills = skillCards.filter((skill) => skill.type !== 'GRAMMAR');
   const [searchParams, setSearchParams] = useSearchParams();
@@ -366,6 +385,7 @@ export function TestPartMenu() {
                 </div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Chủ đề Writing</p>
                 <h2 className="mt-1 text-2xl font-extrabold text-navy">{topic.displayName}</h2>
+                {isCompleted((writingGroups ?? []).flatMap(group => group.questions).filter(question => question.id === topic.questionId), topic.clubIndex) && <CompletedBadge />}
                 <span className={partsPrimaryActionClass}>
                   Bắt đầu <ArrowRight size={17} />
                 </span>
@@ -392,6 +412,7 @@ export function TestPartMenu() {
                 </div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">{selectedSkill.title}</p>
                 <h2 className="mt-1 text-2xl font-extrabold text-navy">Part {part}</h2>
+                {isCompleted(partGroups.flatMap(group => group.questions)) && <CompletedBadge />}
                 <p className="mt-2 min-h-6 text-sm leading-6 text-slate-600">
                   {loading || practiceQuestionsLoading ? 'Đang tải bài luyện...' : `${partGroups.length} đề đã import`}
                 </p>
@@ -474,6 +495,7 @@ function PartGuideModal({ guide, skillTitle, onClose }: { guide?: PartGuide; ski
 }
 
 export function SkillQuestionParts() {
+  const isCompleted = usePracticeCompleted();
   const requireLogin = useRequireLogin();
   const { skillType } = useParams();
   const selectedSkill = normalizeParam(skillType);
@@ -532,7 +554,9 @@ export function SkillQuestionParts() {
                 className={`${partsCardLinkClass} flex min-h-24 items-center justify-center border-orange-200 bg-orange-50 text-center text-lg font-black text-orange-950 hover:border-orange-300`}
                 key={`${topic.testId}-${topic.questionId}-${topic.clubIndex}`}
               >
-                {topic.displayName}
+                <span className="flex flex-col items-center">{topic.displayName}
+                  {isCompleted((writingGroups ?? []).flatMap(group => group.questions).filter(question => question.id === topic.questionId), topic.clubIndex) && <CompletedBadge />}
+                </span>
               </Link>
             ))}
           </section>
@@ -565,6 +589,7 @@ export function SkillQuestionParts() {
               </div>
               <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">{skill.title}</p>
               <h2 className="mt-1 text-2xl font-extrabold text-navy">Part {part}</h2>
+              {isCompleted((partQuestionGroups ?? []).flatMap(group => group.questions.filter(question => isQuestionInPart(question, selectedSkill, part, group.test)))) && <CompletedBadge />}
               <p className="mt-2 text-sm leading-6 text-slate-600">{displayTests.length} bài luyện</p>
               {firstTest ? (
                 <Link to={`/app/tests/questions/${skill.type}/part/${part}`} onClick={requireLogin} className={partsPrimaryActionClass}>
@@ -584,6 +609,7 @@ export function SkillQuestionParts() {
 }
 
 export function SkillPartQuestions() {
+  const isCompleted = usePracticeCompleted();
   const requireLogin = useRequireLogin();
   const { skillType, part } = useParams();
   const selectedSkill = normalizeParam(skillType);
@@ -647,6 +673,7 @@ export function SkillPartQuestions() {
                 <div className="min-w-0">
                   <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">{skill.title} - Part {selectedPart}</p>
                   <h2 className="mt-1 line-clamp-2 text-2xl font-extrabold text-navy">{test.title}</h2>
+                  {isCompleted(questions) && <CompletedBadge />}
                   <p className="mt-2 text-sm leading-6 text-slate-600">{questions.length} câu hỏi trong part này</p>
                 </div>
                 <ArrowRight className="mt-2 shrink-0 text-slate-500 transition group-hover:translate-x-1 group-hover:text-brand-600" size={18} />

@@ -75,6 +75,39 @@ class LearningProgressServiceTest {
         return user;
     }
 
+    @Test
+    void coverBadgesRequireEveryUnitAndKeepWritingClubsSeparate() {
+        user();
+        Question speaking = question(10L, SkillType.SPEAKING, "{\"template\":\"SPEAKING_PART2\",\"questions\":[{}]}");
+        Question writing = question(11L, SkillType.WRITING, "{\"template\":\"WRITING_CLUB_COLLECTION\",\"clubs\":[{\"parts\":[{},{}]},{\"parts\":[{}]}]}");
+        Question reading = question(12L, SkillType.READING, "plain question");
+        when(questions.findRoadmapQuestions()).thenReturn(List.of(speaking, writing, reading));
+        List<LearningCompletion> saved = new ArrayList<>();
+        for (String key : List.of("speaking-0-0", "speaking-0-1")) saved.add(completion(speaking, key));
+        saved.add(completion(writing, "writing-0-0"));
+        saved.add(completion(writing, "writing-0-1"));
+        when(completions.findByUserIdAndDeletedAtIsNull(1L)).thenReturn(saved);
+        var partial = service.practiceCompletions("student@example.com");
+        assertFalse(partial.get(0).completed());
+        assertFalse(partial.get(1).completed());
+        assertEquals(List.of(0), partial.get(1).completedClubs());
+        assertEquals(2, partial.size(), "Unattempted questions must not be marked complete");
+        saved.add(completion(speaking, "speaking-0-2"));
+        saved.add(completion(writing, "writing-1-0"));
+        saved.add(completion(reading, "question"));
+        var complete = service.practiceCompletions("student@example.com");
+        assertTrue(complete.stream().allMatch(LearningProgressService.PracticeCompletion::completed));
+        assertEquals(List.of(0, 1), complete.get(1).completedClubs());
+        verify(completions, times(2)).findByUserIdAndDeletedAtIsNull(1L);
+    }
+
+    private LearningCompletion completion(Question question, String unitKey) {
+        LearningCompletion completion = new LearningCompletion();
+        completion.setQuestion(question);
+        completion.setUnitKey(unitKey);
+        return completion;
+    }
+
     private Question question(Long id, SkillType type, String content) {
         Skill skill = new Skill(); skill.setType(type);
         com.example.aptis.entity.Test test = new com.example.aptis.entity.Test();

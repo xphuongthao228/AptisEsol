@@ -68,4 +68,5 @@ export function currentRoadmapStage(progress: RoadmapProgress | null, results: M
 export async function savePracticeCompletion(questionId: number, unitKey = 'question') {
   const { api, unwrap } = await import('../api/client');
   await unwrap(api.post(`/progress/questions/${questionId}/complete`, { unitKey }));
+  window.dispatchEvent(new CustomEvent('aptis-practice-unit-completed', { detail: { questionId, unitKey } }));
 }
