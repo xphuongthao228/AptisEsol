@@ -15,9 +15,10 @@ public class GoogleOAuthConfig {
     @Bean
     ClientRegistrationRepository clientRegistrationRepository(
             @Value("${GOOGLE_CLIENT_ID}") String clientId,
-            @Value("${GOOGLE_CLIENT_SECRET}") String clientSecret) {
+            @Value("${GOOGLE_CLIENT_SECRET}") String clientSecret,
+            @Value("${GOOGLE_REDIRECT_URI:{baseUrl}/login/oauth2/code/{registrationId}}") String redirectUri) {
         ClientRegistration google = CommonOAuth2Provider.GOOGLE.getBuilder("google")
-                .clientId(clientId).clientSecret(clientSecret).build();
+                .clientId(clientId).clientSecret(clientSecret).redirectUri(redirectUri).build();
         return new InMemoryClientRegistrationRepository(google);
     }
 }

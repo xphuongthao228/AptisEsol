@@ -28,7 +28,8 @@ export const useAuthStore = create<AuthState>()(
       },
       loginWithGoogle: () => {
         const apiUrl = import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api';
-        window.location.assign(new URL('/oauth2/authorization/google', apiUrl).toString());
+        const apiOrigin = new URL(apiUrl, window.location.origin);
+        window.location.assign(new URL('/oauth2/authorization/google', apiOrigin).toString());
       },
       register: async (fullName, email, password) => {
         return unwrap<OtpResponse>(publicApi.post('/auth/register', { fullName, email, password }));

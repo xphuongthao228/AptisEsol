@@ -18,6 +18,15 @@ class GoogleOAuthConfigTest {
     }
 
     @Test
+    void explicitRedirectUriUsesFrontendProxy() {
+        context.withPropertyValues("GOOGLE_CLIENT_ID=test-client", "GOOGLE_CLIENT_SECRET=test-secret",
+                        "GOOGLE_REDIRECT_URI=https://www.aptislingo.site/login/oauth2/code/google")
+                .run(c -> assertThat(c.getBean(ClientRegistrationRepository.class)
+                        .findByRegistrationId("google").getRedirectUri())
+                        .isEqualTo("https://www.aptislingo.site/login/oauth2/code/google"));
+    }
+
+    @Test
     void completeCredentialsEnableGoogle() {
         context.withPropertyValues("GOOGLE_CLIENT_ID=test-client", "GOOGLE_CLIENT_SECRET=test-secret")
                 .run(c -> {

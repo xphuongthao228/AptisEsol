@@ -385,7 +385,7 @@ export function TestPartMenu() {
                   <FileText />
                 </div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">{selectedSkill.title}</p>
-                <h2 className="mt-1 text-2xl font-extrabold text-navy">Part {part}</h2>
+                <h2 className="mt-1 text-2xl font-extrabold text-navy">Part {selectedSkill.type === 'READING' ? ({ 2: '2 & 3', 3: '4', 4: '5' }[part] ?? part) : part}</h2>
                 {isCompleted(partGroups.flatMap(group => group.questions)) && <CompletedBadge />}
                 <p className="mt-2 min-h-6 text-sm leading-6 text-slate-600">
                   {loading || practiceQuestionsLoading ? 'Đang tải bài luyện...' : `${partGroups.length} đề đã import`}

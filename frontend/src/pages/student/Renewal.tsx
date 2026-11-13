@@ -466,7 +466,7 @@ function PlanCard({ item, selected, onSelect }: {
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative min-w-0 flex min-h-[440px] flex-col rounded-[16px] border bg-white p-2 text-center transition hover:shadow-lift ${
+      className={`renewal-plan-card group relative min-w-0 flex min-h-[330px] flex-col rounded-[16px] border bg-white p-2 text-center transition hover:shadow-lift ${
         highlighted
           ? 'border-red-600 shadow-lift'
           : selected
@@ -519,7 +519,7 @@ function PlanCard({ item, selected, onSelect }: {
             ? highlighted
               ? 'bg-red-600 text-white'
               : 'bg-brand-600 text-white'
-            : 'renewal-plan-action--idle border border-white/20 text-white shadow-sm'
+            : 'renewal-plan-action--idle border border-red-200 bg-red-50 text-red-700 shadow-sm'
         }`}>
           {selected ? 'Đang chọn' : isFree ? 'Dùng miễn phí' : featured ? 'Bắt đầu ngay' : 'Chọn gói'}
           <ArrowRight size={16} />
