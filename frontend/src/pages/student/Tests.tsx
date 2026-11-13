@@ -1,7 +1,7 @@
-﻿import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, FileText, Headphones, Lightbulb, Loader2, Lock, Mic, PenLine, Search, Shuffle, SpellCheck, Star, Timer } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, ChevronDown, FileText, Headphones, Lightbulb, Loader2, Lock, Mic, PenLine, Search, Shuffle, SpellCheck, Star, Timer } from 'lucide-react';
 import { X } from 'lucide-react';
 import type { MouseEvent, ReactNode } from 'react';
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
@@ -270,76 +270,35 @@ export function TestPartMenu() {
   const writingTopics = useMemo(() => getWritingClubTopics(writingGroups ?? []), [writingGroups]);
   const isWritingSelected = selectedSkill.type === 'WRITING';
   const [guideSkill, setGuideSkill] = useState<SkillType | null>(null);
+  const [isMobileMenu, setIsMobileMenu] = useState(() => window.matchMedia('(max-width: 639px)').matches);
+  const [expandedSkill, setExpandedSkill] = useState<SkillType | null>(() => {
+    const skill = normalizeParam(searchParams.get('skill') ?? undefined);
+    return skill && partSkills.some(item => item.type === skill) ? skill : null;
+  });
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 639px)');
+    const update = () => setIsMobileMenu(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
+  }, []);
 
   useEffect(() => {
     const nextSkill = normalizeParam(searchParams.get('skill') ?? undefined);
     if (nextSkill && nextSkill !== selectedSkillType && partSkills.some((skill) => skill.type === nextSkill)) {
       setSelectedSkillType(nextSkill);
+      setExpandedSkill(nextSkill);
     }
   }, [searchParams]);
 
   function selectSkill(skillType: SkillType) {
+    if (isMobileMenu) setExpandedSkill(current => current === skillType ? null : skillType);
     setSelectedSkillType(skillType);
     window.localStorage.setItem(PART_MENU_SKILL_KEY, skillType);
     setSearchParams({ skill: skillType }, { replace: true });
   }
 
-  return (
-    <div className="mobile-parts-page space-y-7">
-      <section className={partsPageHeroClass}>
-        <div className="halloween-scene" aria-hidden="true">
-          <div className="halloween-moon" />
-          <div className="halloween-cloud halloween-cloud-one" />
-          <div className="halloween-cloud halloween-cloud-two" />
-          <div className="halloween-web halloween-web-right" />
-          <div className="halloween-bat halloween-bat-one" />
-          <div className="halloween-bat halloween-bat-two" />
-          <div className="halloween-bat halloween-bat-three" />
-          <div className="halloween-pumpkin halloween-pumpkin-main" />
-          <div className="halloween-pumpkin halloween-pumpkin-left" />
-          <div className="halloween-pumpkin halloween-pumpkin-small" />
-          <div className="halloween-ground" />
-          <div className="halloween-sparkles" />
-        </div>
-        <Link to="/app/tests" className={partsPageBackClass}><ArrowLeft size={18} />Quay lại luyện tập</Link>
-        <p className={partsPageEyebrowClass}>
-          {isWritingSelected ? 'Luyện tập theo chủ đề' : 'Luyện tập theo part'}
-        </p>
-        <h1 className="mt-3 text-4xl font-extrabold">Chọn kỹ năng cần luyện tập</h1>
-        <p className={partsPageLeadClass}>
-          {isWritingSelected
-            ? 'Chọn Writing, sau đó chọn chủ đề câu hỏi bạn muốn luyện.'
-            : 'Chọn Nghe, Nói hoặc Đọc, sau đó chọn Part 1, 2, 3 hoặc 4 để luyện.'}
-        </p>
-      </section>
-
-      <section className="parts-skill-selector flex flex-wrap gap-3" aria-label="Chọn kỹ năng luyện tập">
-        {partSkills.map((skill) => (
-          (() => {
-            const active = selectedSkill.type === skill.type;
-            const textColor = active ? '#ffffff' : '#fff7ed';
-            return (
-              <button
-                key={skill.type}
-                type="button"
-                onClick={() => selectSkill(skill.type)}
-                aria-pressed={active}
-                className={`inline-flex h-12 items-center gap-2 rounded-xl px-5 text-sm font-extrabold transition ${
-                  active
-                    ? 'bg-brand-600 text-white shadow-soft'
-                    : 'border border-brand-100 bg-white text-red-900 hover:border-brand-200 hover:text-brand-700'
-                }`}
-                style={{ color: textColor, textShadow: '0 1px 3px rgba(15, 23, 42, 0.42)' }}
-              >
-                <span className="parts-skill-icon" style={{ color: textColor }}>{skill.icon}</span>
-                <span className="parts-skill-label" style={{ color: textColor }}>{skill.title}<small className="sm:hidden" style={{ color: textColor }}>{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
-                <ChevronDown className="parts-skill-chevron sm:hidden" size={20} style={{ color: textColor }} />
-              </button>
-            );
-          })()
-        ))}
-      </section>
-
+  const selectionPanel = (<div className="space-y-4">
       {(error || (isWritingSelected ? writingError : practiceQuestionsError)) && (
         <InfoCard error>{error || (isWritingSelected ? writingError : practiceQuestionsError)}</InfoCard>
       )}
@@ -445,6 +404,69 @@ export function TestPartMenu() {
           })}
         </section>
       )}
+  </div>);
+
+  return (
+    <div className="mobile-parts-page space-y-7">
+      <section className={`${partsPageHeroClass} practice-selection-hero`}>
+        <div className="halloween-scene" aria-hidden="true">
+          <div className="halloween-moon" />
+          <div className="halloween-cloud halloween-cloud-one" />
+          <div className="halloween-cloud halloween-cloud-two" />
+          <div className="halloween-web halloween-web-right" />
+          <div className="halloween-bat halloween-bat-one" />
+          <div className="halloween-bat halloween-bat-two" />
+          <div className="halloween-bat halloween-bat-three" />
+          <div className="halloween-pumpkin halloween-pumpkin-main" />
+          <div className="halloween-pumpkin halloween-pumpkin-left" />
+          <div className="halloween-pumpkin halloween-pumpkin-small" />
+          <div className="halloween-ground" />
+          <div className="halloween-sparkles" />
+        </div>
+        <Link to="/app/tests" className={partsPageBackClass}><ArrowLeft size={18} />Quay lại luyện tập</Link>
+        <p className={partsPageEyebrowClass}>
+          {isWritingSelected ? 'Luyện tập theo chủ đề' : 'Luyện tập theo part'}
+        </p>
+        <h1 className="mt-3 text-4xl font-extrabold">Chọn kỹ năng luyện tập</h1>
+        <p className={partsPageLeadClass}>
+          {isWritingSelected
+            ? 'Chọn Writing, sau đó chọn chủ đề câu hỏi bạn muốn luyện.'
+            : 'Chọn kỹ năng, sau đó chọn phần hoặc chủ đề bạn muốn luyện.'}
+        </p>
+      </section>
+
+      <section className="parts-skill-selector flex flex-wrap gap-3" aria-label="Chọn kỹ năng luyện tập">
+        {partSkills.map((skill) => (
+          (() => {
+            const active = selectedSkill.type === skill.type && (!isMobileMenu || expandedSkill === skill.type);
+            const textColor = active ? '#ffffff' : '#7f1d1d';
+            return (
+              <Fragment key={skill.type}>
+              <button
+                type="button"
+                onClick={() => selectSkill(skill.type)}
+                aria-pressed={active}
+                aria-expanded={isMobileMenu ? active : undefined}
+                aria-controls={isMobileMenu && active ? `practice-parts-${skill.type}` : undefined}
+                className={`inline-flex h-12 items-center gap-2 rounded-xl px-5 text-sm font-extrabold transition ${
+                  active
+                    ? 'bg-brand-600 text-white shadow-soft'
+                    : 'border border-brand-100 bg-white text-red-900 hover:border-brand-200 hover:text-brand-700'
+                }`}
+                style={{ color: textColor, textShadow: 'none' }}
+              >
+                <span className="parts-skill-icon" style={{ color: textColor }}>{skill.icon}</span>
+                <span className="parts-skill-label" style={{ color: textColor }}>{skill.title}<small className="sm:hidden" style={{ color: textColor }}>{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
+                <ChevronDown className={`parts-skill-chevron sm:hidden transition-transform ${isMobileMenu && active ? 'rotate-180' : ''}`} size={20} style={{ color: textColor }} />
+              </button>
+              {isMobileMenu && active && <div id={`practice-parts-${skill.type}`} role="region" aria-label={`Bài luyện ${skill.title}`} className="min-w-0 rounded-2xl border border-brand-100 bg-white/70 p-3">{selectionPanel}</div>}
+              </Fragment>
+            );
+          })()
+        ))}
+      </section>
+
+      {!isMobileMenu && selectionPanel}
       {guideSkill && (
         <PartGuideModal
           guide={partGuides[guideSkill]}

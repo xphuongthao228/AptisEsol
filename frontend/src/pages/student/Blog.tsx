@@ -2,7 +2,7 @@ import { materialContentHtml } from '../../utils/materialHtml';
 import '../../components/material-editor.css';
 import { useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, Search } from 'lucide-react';
+import { ArrowLeft, ArrowRight, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { publicApi, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import './material-slider.css';
@@ -32,7 +32,7 @@ function BlogCover({ post }: { post: BlogPreview }) {
 }
 
 function BlogCard({ post, compact = false }: { post: BlogPreview; compact?: boolean }) {
-  return <Link to={`/learning-materials/${post.id}`} className={`${compact ? 'material-slide-card ' : ''}group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline focus-visible:outline-brand-500`}>
+  return <Link to={`/learning-materials/${post.id}`} className={`${compact ? 'material-slide-card ' : ''}material-blog-card group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg focus-visible:outline focus-visible:outline-brand-500`}>
     <BlogCover post={post} />
     <div className="flex flex-1 flex-col p-5 sm:p-6">
       <p className="text-xs text-slate-500">{dateLabel(post.updatedAt)} · Aptis Lingo</p>
@@ -49,6 +49,26 @@ export function BlogSection() {
   const [hovered, setHovered] = useState(false);
   const [focused, setFocused] = useState(false);
   const resumeAfter = useRef(0);
+  const [canScroll, setCanScroll] = useState({ previous: false, next: false });
+  useEffect(() => {
+    const node = track.current;
+    if (!node) return;
+    const update = () => setCanScroll({ previous: node.scrollLeft > 2, next: node.scrollLeft + node.clientWidth < node.scrollWidth - 2 });
+    update();
+    node.addEventListener('scroll', update, { passive: true });
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    return () => { node.removeEventListener('scroll', update); observer.disconnect(); };
+  }, [data]);
+
+  function moveSlide(direction: number) {
+    const node = track.current;
+    if (!node) return;
+    resumeAfter.current = Date.now() + 8000;
+    const first = node.firstElementChild as HTMLElement | null;
+    const step = first ? first.offsetWidth + 16 : node.clientWidth;
+    node.scrollBy({ left: direction * step, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
   useEffect(() => {
     if (hovered || focused || !data?.length) return;
     const timer = window.setInterval(() => {
@@ -56,7 +76,7 @@ export function BlogSection() {
       if (!node || document.hidden || Date.now() < resumeAfter.current || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
       if (node.scrollWidth <= node.clientWidth + 2) return;
       const first = node.firstElementChild as HTMLElement | null;
-      const step = first ? first.getBoundingClientRect().width + 16 : node.clientWidth;
+      const step = first ? first.offsetWidth + 16 : node.clientWidth;
       const atEnd = node.scrollLeft + node.clientWidth >= node.scrollWidth - 2;
       node.scrollTo({ left: atEnd ? 0 : node.scrollLeft + step, behavior: 'smooth' });
     }, 4000);
@@ -79,6 +99,10 @@ export function BlogSection() {
           <div ref={track} className="material-slider-track" tabIndex={0} aria-label="Vuốt ngang để xem thêm tài liệu">
             {data.map(post => <div className="material-slider-item" key={post.id}><BlogCard post={post} compact /></div>)}
           </div>
+          <div className="material-slider-controls" aria-label="Chuyển tài liệu">
+            <button type="button" onClick={() => moveSlide(-1)} disabled={!canScroll.previous} aria-label="Xem tài liệu trước"><ChevronLeft size={22} /></button>
+            <button type="button" onClick={() => moveSlide(1)} disabled={!canScroll.next} aria-label="Xem tài liệu tiếp theo"><ChevronRight size={22} /></button>
+          </div>
         </div> :
         <div className="rounded-2xl border border-brand-100 bg-white p-8 text-center"><BookOpen className="mx-auto text-brand-600" size={32} /><p className="mt-4 font-bold text-navy">Những bài chia sẻ đang được chuẩn bị</p><p className="mt-2 text-sm text-slate-500">Ghé lại để khám phá các bài viết học Aptis mới nhé.</p></div>}
     </div>
@@ -90,10 +114,10 @@ export function Blog() {
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Tất cả');
   const posts = (data ?? []).filter(p => (category === 'Tất cả' || p.category === category) && `${p.title} ${p.summary}`.toLocaleLowerCase('vi').includes(query.toLocaleLowerCase('vi')));
-  return <main className="mx-auto max-w-[1280px] px-4 py-10 sm:px-6">
+  return <main className="material-blog-page mx-auto max-w-[1280px] px-4 py-10 sm:px-6">
     <Link to="/" className="inline-flex items-center gap-2 text-sm font-bold text-brand-700"><ArrowLeft size={16} /> Trang chủ</Link>
-    <div className="my-8 rounded-3xl border border-brand-100 bg-gradient-to-br from-orange-50 to-amber-50 p-8 sm:p-12"><p className="text-xs font-extrabold uppercase tracking-widest text-brand-700">Góc học Aptis Lingo</p><h1 className="mt-3 text-4xl font-extrabold text-navy">Tài liệu học tập</h1><p className="mt-4 max-w-2xl leading-7 text-slate-600">Đọc một chút, hiểu thêm một chút. Khám phá những cách học và kinh nghiệm ôn Aptis dành cho bạn.</p></div>
-    <div className="mb-8 flex flex-wrap items-center gap-3"><label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4"><Search size={18} className="text-slate-400" /><input aria-label="Tìm bài viết" value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm bài viết…" className="h-11 min-w-0 bg-transparent outline-none" /></label><select aria-label="Chủ đề" className="input h-11" value={category} onChange={e => setCategory(e.target.value)}>{['Tất cả', ...new Set((data ?? []).map(p => p.category))].map(c => <option key={c}>{c}</option>)}</select></div>
+    <div className="material-blog-hero my-8 rounded-3xl border border-brand-100 bg-gradient-to-br from-orange-50 to-amber-50 p-8 sm:p-12"><p className="text-xs font-extrabold uppercase tracking-widest text-brand-700">Góc học Aptis Lingo</p><h1 className="mt-3 text-4xl font-extrabold text-navy">Tài liệu học tập</h1><p className="mt-4 max-w-2xl leading-7 text-slate-600">Đọc một chút, hiểu thêm một chút. Khám phá những cách học và kinh nghiệm ôn Aptis dành cho bạn.</p></div>
+    <div className="mb-8 flex flex-wrap items-center gap-3"><label className="material-blog-search flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4"><Search size={18} className="text-slate-400" /><input aria-label="Tìm bài viết" value={query} onChange={e => setQuery(e.target.value)} placeholder="Tìm bài viết…" className="h-11 min-w-0 bg-transparent outline-none" /></label><select aria-label="Chủ đề" className="input h-11" value={category} onChange={e => setCategory(e.target.value)}>{['Tất cả', ...new Set((data ?? []).map(p => p.category))].map(c => <option key={c}>{c}</option>)}</select></div>
     {loading ? <p role="status">Đang tải bài viết…</p> : error ? <p>Chưa tải được bài viết. <button onClick={reload} className="text-brand-700 underline">Thử lại</button></p> : posts.length ? <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">{posts.map(post => <BlogCard key={post.id} post={post} />)}</div> : <p className="rounded-2xl bg-white p-8 text-center text-slate-500">{data?.length ? 'Không tìm thấy bài viết phù hợp.' : 'Chưa có bài viết được đăng.'}</p>}
   </main>;
 }
@@ -107,7 +131,7 @@ export function BlogDetail() {
       || (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0) || b.id - a.id)
     .slice(0, 3);
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'instant' }); }, [id]);
-  return <main className="mx-auto max-w-[900px] px-4 py-10 sm:px-6">
+  return <main className="material-blog-page mx-auto max-w-[900px] px-4 py-10 sm:px-6">
     <Link to="/learning-materials" className="inline-flex items-center gap-2 text-sm font-bold text-brand-700"><ArrowLeft size={16} /> Tài liệu học tập</Link>
     {loading ? <p className="mt-8" role="status">Đang tải bài viết…</p> : error || !post ? <div className="mt-8 rounded-2xl bg-white p-8"><p>Bài viết chưa được đăng hoặc không thể tải lúc này.</p><button onClick={reload} className="mt-4 text-brand-700 underline">Thử lại</button></div> :
       <article className="mt-6 overflow-hidden rounded-3xl border border-brand-100 bg-white">

@@ -60,11 +60,12 @@ public class LearningProgressService {
         for (String skill : List.of("READING", "LISTENING", "WRITING", "SPEAKING", "GRAMMAR")) counts.put(skill, new int[2]);
         for (Question q : questions.findRoadmapQuestions()) {
             if (q.getTest().getTitle().toLowerCase(Locale.ROOT).startsWith("bộ đề random")) continue;
-            int[] count = counts.get(q.getTest().getSkill().getType().name());
+            String skill = q.getTest().getSkill().getType().name();
+            int[] count = counts.get(skill);
             if (count == null) continue;
-            for (String key : requiredUnits(q.getContent())) {
+            for (Set<String> unit : roadmapUnits(q.getContent(), skill)) {
                 count[1]++;
-                if (done.contains(q.getId() + ":" + key)) count[0]++;
+                if (unit.stream().allMatch(key -> done.contains(q.getId() + ":" + key))) count[0]++;
             }
         }
         return new RoadmapProgress(saved.stream().anyMatch(item -> item.getQuestion() == null && "guide".equals(item.getUnitKey())),
@@ -95,6 +96,21 @@ public class LearningProgressService {
         completion.setQuestion(question);
         completion.setUnitKey(unitKey);
         completions.save(completion);
+    }
+
+    // Keep granular completion records so existing progress remains valid, but
+    // show one Writing club or Speaking topic in the roadmap counter.
+    private static Collection<Set<String>> roadmapUnits(String content, String skill) {
+        Map<String, Set<String>> groups = new LinkedHashMap<>();
+        for (String key : requiredUnits(content)) {
+            String group = key;
+            if ((skill.equals("SPEAKING") && key.matches("speaking-\\d+-\\d+"))
+                    || (skill.equals("WRITING") && key.matches("writing-\\d+-\\d+"))) {
+                group = key.substring(0, key.lastIndexOf('-'));
+            }
+            groups.computeIfAbsent(group, ignored -> new LinkedHashSet<>()).add(key);
+        }
+        return groups.values();
     }
 
     static Set<String> requiredUnits(String content) {

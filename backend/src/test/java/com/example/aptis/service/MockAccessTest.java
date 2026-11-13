@@ -11,6 +11,22 @@ import static org.mockito.Mockito.*;
 
 class MockAccessTest {
     @Test
+    void priorityMetadataIsAvailableEvenForLockedTests() {
+        var repository = mock(MockTestRepository.class);
+        var important = test(1L, "FULL", "Full Test 1");
+        important.setQuestionData("[{\"full_test_priority\":\"Quan trọng\",\"exam_priority\":\"Tham khảo\"}]");
+        var reference = test(2L, "FULL", "Full Test 2");
+        var notable = test(3L, "FULL", "Full Test 3");
+        notable.setQuestionData("[{\"full_test_priority\":\"Đáng chú ý\"}]");
+        when(repository.findByStatusAndDeletedAtIsNullOrderByUpdatedAtDesc(TestStatus.PUBLISHED))
+                .thenReturn(List.of(important, reference, notable));
+        var rows = new MockTestService(repository, new ObjectMapper()).published(false);
+        assertEquals(List.of("IMPORTANT", "REFERENCE", "NOTABLE"), rows.stream().map(row -> row.priority()).toList());
+        assertFalse(rows.get(2).accessible());
+        assertNull(rows.get(2).questionData());
+    }
+
+    @Test
     void freeAccessUsesNumericOrderAndNeverReturnsLockedContent() {
         var repository = mock(MockTestRepository.class);
         var ten = test(10L, "FULL", "Full Test 10");

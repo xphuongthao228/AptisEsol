@@ -1,0 +1,28 @@
+.community-invite-overlay { box-sizing: border-box; width: 100%; height: 100dvh; }
+.community-invite-card { box-sizing: border-box; max-height: calc(100dvh - 32px); overscroll-behavior: contain; scrollbar-width: thin; }
+.community-invite-card > .relative { min-width: 0; }
+.community-invite-card a { min-width: 0; }
+.community-invite-card a svg { flex-shrink: 0; }
+@media (max-width: 639px) {
+  .community-invite-overlay { width: auto; max-width: 100vw; padding: 24px; }
+  .community-invite-overlay .community-invite-card {
+    flex: 0 1 auto;
+    width: min(320px, calc(100vw - 48px));
+    max-width: 100%;
+    max-height: calc(100dvh - 48px);
+    margin: 0 auto;
+    padding: 18px 16px;
+    border-radius: 20px;
+  }
+  .community-invite-card .community-invite-close { width: 34px; height: 34px; }
+  .community-invite-card .community-invite-close svg { width: 22px; height: 22px; }
+  .community-invite-card .community-invite-emblem { width: 64px; height: 64px; }
+  .community-invite-emblem > div { width: 48px; height: 48px; }
+  .community-invite-emblem svg { width: 27px; height: 27px; }
+  .community-invite-card #community-invite-title { margin-top: 12px; font-size: 20px; line-height: 1.3; }
+  .community-invite-card #community-invite-title + p { margin-top: 10px; font-size: 13px; line-height: 1.65; font-weight: 500; }
+  .community-invite-card .community-invite-links { margin-top: 18px; }
+  .community-invite-links > a + a { margin-top: 10px; }
+  .community-invite-card a { height: auto; min-height: 44px; padding: 8px 10px; gap: 7px; font-size: 13px; }
+  .community-invite-card .community-invite-links + button { margin-top: 16px; font-size: 13px; }
+}

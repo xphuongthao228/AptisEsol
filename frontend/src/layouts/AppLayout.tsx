@@ -10,7 +10,6 @@ import {
   FileCheck,
   FileSearch,
   GraduationCap,
-  HeartHandshake,
   LayoutDashboard,
   Lightbulb,
   LogIn,
@@ -67,7 +66,6 @@ const studentMoreLinks: LayoutLink[] = [
   { to: '/app/ai-practice', label: 'Tạo đề AI', icon: Bot },
   { to: '/app/writing-bank', label: 'Kho đề Writing', icon: PenLine },
   { to: '/app/speaking-bank', label: 'Kho đề Speaking', icon: Mic },
-  { to: '/app/donate', label: 'Ủng hộ web', icon: HeartHandshake },
   { to: '/app/contact', label: 'Liên hệ', icon: Mail },
   { to: '/app/settings', label: 'Cài đặt', icon: Settings }
 ];
@@ -318,7 +316,7 @@ export function AppLayout() {
 
       <header className={`fixed inset-x-0 top-0 z-40 border-b border-brand-100 bg-white/92 shadow-[0_8px_28px_rgba(165,15,21,0.09)] backdrop-blur-xl transition-transform duration-300 ease-out ${navHidden ? '-translate-y-full' : 'translate-y-0'}`}>
         <div ref={headerRowRef} className="mx-auto flex h-16 w-full items-center gap-2 px-4 sm:px-6 lg:px-6">
-          <Link ref={brandRef} to={isAdmin ? '/admin' : '/'} className="flex shrink-0 items-center gap-2 text-brand-700">
+          <Link ref={brandRef} to={isAdmin ? '/admin' : '/'} className="header-brand flex shrink-0 items-center gap-2 text-brand-700">
             <span className="grid h-10 w-10 place-items-center rounded-xl border border-brand-100 bg-white shadow-soft">
               <img src="/brand/lingomaster-logo.svg" alt="Aptis Lingo" className="h-7 w-7 rounded-lg" />
             </span>
@@ -365,7 +363,7 @@ export function AppLayout() {
             </div>
           </nav>
 
-          <div ref={headerActionsRef} className="ml-auto flex shrink-0 items-center gap-2">
+          <div ref={headerActionsRef} className="header-actions ml-auto flex shrink-0 items-center gap-2">
             {!isAdmin && (
               <button
                 type="button"
@@ -592,7 +590,14 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [open]);
 
   const unreadCount = useMemo(
@@ -623,6 +628,7 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
         className="header-icon-button relative grid h-10 w-10 place-items-center rounded-full text-navy transition hover:bg-brand-50 hover:text-brand-700"
         aria-label="Thông báo"
         aria-expanded={open}
+        aria-controls={open ? 'header-notifications' : undefined}
       >
         <Bell size={19} />
         {unreadCount > 0 && (
@@ -633,8 +639,8 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
       </button>
 
       {open && (
-        <div className="fixed right-2 top-[4.5rem] z-50 w-[min(320px,calc(100vw-1rem))] rounded-2xl border border-brand-100 bg-white text-left shadow-lift sm:absolute sm:right-0 sm:top-full sm:mt-3">
-          <div className="flex items-center justify-between border-b border-brand-100 px-3.5 py-3">
+        <div id="header-notifications" role="region" aria-label="Danh sách thông báo" className="fixed right-2 top-[4.5rem] z-50 flex max-h-[calc(100dvh-10rem)] w-[min(320px,calc(100vw-1rem))] flex-col overflow-hidden rounded-2xl border border-brand-100 bg-white text-left shadow-lift sm:absolute sm:right-0 sm:top-full sm:mt-3">
+          <div className="flex shrink-0 items-center justify-between border-b border-brand-100 px-3.5 py-3">
             <div>
               <h2 className="text-sm font-extrabold text-navy">Thông báo</h2>
               <p className="text-xs font-semibold text-slate-500">{unreadCount} thông báo chưa đọc</p>
@@ -650,7 +656,7 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
             )}
           </div>
 
-          <div className="max-h-[340px] overflow-y-auto p-2">
+          <div className="min-h-0 max-h-[340px] overflow-y-auto overscroll-contain p-2">
             {notifications.length ? notifications.map((notification) => {
               const unread = !readIds.includes(notification.id);
               return (
@@ -658,7 +664,8 @@ function NotificationBell({ user, hasPaidSubscription }: { user: User | null; ha
                   type="button"
                   key={notification.id}
                   onClick={() => openNotification(notification)}
-                  className={`w-full rounded-xl p-3 text-left transition ${unread ? 'bg-brand-50' : 'hover:bg-sky-50'}`}
+                  data-unread={unread}
+                  className={`notification-menu-item w-full rounded-xl p-3 text-left transition ${unread ? 'bg-brand-50' : 'hover:bg-sky-50'}`}
                 >
                   <div className="flex items-start gap-3">
                     <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${unread ? 'bg-red-600' : 'bg-slate-300'}`} />

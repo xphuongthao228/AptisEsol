@@ -1,0 +1,44 @@
+.renewal-mobile { display: none; }
+@media (max-width: 639px) {
+  html:root body .student-shell .renewal-page > section:first-child { padding: 18px 12px; border-radius: 20px; }
+  .renewal-heading { text-align: left; }
+  .renewal-heading > div:first-child { margin: 0 0 10px; font-size: 9px; padding: 4px 9px; box-shadow: none; }
+  .student-shell .renewal-heading h1 { font-size: 23px; line-height: 1.25; }
+  .renewal-heading > p { margin-top: 8px; font-size: 12px; line-height: 1.7; }
+  .renewal-mobile { display: block; position: relative; margin-top: 18px; }
+  .renewal-mobile-hint { margin-bottom: 9px; font-size: 11px; font-weight: 600; color: #64748b; }
+  .renewal-mobile-options { display: grid; gap: 8px; }
+  .renewal-mobile-plan { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 72px; padding: 12px 10px; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; text-align: left; color: #172033; transition: border-color .15s, background .15s; }
+  .renewal-mobile-plan[aria-pressed=true] { border: 1.5px solid #d71920; background: #fff5f5; box-shadow: 0 2px 8px #d7192008; }
+  .renewal-mobile-plan:disabled { cursor: wait; opacity: .65; }
+  .renewal-mobile-plan:focus-visible { outline: 2px solid #d71920; outline-offset: 3px; }
+  .renewal-mobile-check { display: grid; place-items: center; flex-shrink: 0; width: 20px; height: 20px; border: 1.5px solid #cbd5e1; border-radius: 50%; color: #d71920; }
+  .renewal-mobile-plan[aria-pressed=true] .renewal-mobile-check { border: 0; }
+  .renewal-mobile-plan-info { flex: 1; min-width: 0; }
+  .renewal-mobile-plan-title { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; font-size: 14px; font-weight: 750; }
+  .renewal-mobile-popular { border-radius: 20px; padding: 2px 5px; background: #ffe5e7; color: #b5121b; font-size: 8px; font-weight: 700; }
+  .renewal-mobile-plan-caption { display: block; margin-top: 4px; color: #64748b; font-size: 10px; line-height: 1.5; }
+  .renewal-mobile-cost { flex-shrink: 0; text-align: right; }
+  .renewal-mobile-cost strong { display: block; font-size: 17px; font-weight: 800; white-space: nowrap; }
+  .renewal-mobile-cost small { display: block; margin-top: 4px; font-size: 9px; color: #64748b; }
+  .renewal-mobile-plan[aria-pressed=true] .renewal-mobile-cost { color: #b5121b; }
+  .renewal-mobile-plan[aria-pressed=true] .renewal-mobile-cost small { color: #b5121b; font-weight: 700; }
+  .renewal-mobile-benefits { margin-top: 12px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 0 12px; }
+  .renewal-mobile-benefits summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; gap: 10px; cursor: pointer; list-style: none; color: #334155; font-size: 12px; font-weight: 650; }
+  .renewal-mobile-benefits summary::-webkit-details-marker { display: none; }
+  .renewal-mobile-benefits[open] summary svg { transform: rotate(180deg); }
+  .renewal-mobile-benefits > p { font-size: 11px; color: #64748b; line-height: 1.6; }
+  .renewal-mobile-benefits ul { display: grid; gap: 8px; padding: 12px 0; }
+  .renewal-mobile-benefits li { display: flex; align-items: flex-start; gap: 7px; font-size: 11px; line-height: 1.6; color: #334155; }
+  .renewal-mobile-benefits li svg { flex-shrink: 0; margin-top: 2px; color: #16966c; }
+  .renewal-page .renewal-discount-panel { padding: 12px; margin-top: 12px; border-radius: 14px; }
+  .renewal-page .renewal-discount-panel label { font-size: 12px; line-height: 1.6; }
+  .renewal-page .renewal-payment-summary { margin-top: 12px; padding: 12px; border-radius: 14px; }
+  html:root body .student-shell.student-night .renewal-mobile-plan,
+  html:root body .student-shell.student-night .renewal-mobile-benefits { background: #122b4d; border-color: #46678f; color: #f1f5ff; }
+  html:root body .student-shell.student-night .renewal-mobile-plan[aria-pressed=true] { background: #422238; border-color: #f87171; }
+  html:root body .student-shell.student-night .renewal-mobile-plan-caption,
+  html:root body .student-shell.student-night .renewal-mobile-cost small,
+  html:root body .student-shell.student-night .renewal-mobile-benefits :is(summary, li) { color: #d4dfed; }
+  html:root body .student-shell.student-night .renewal-mobile-cost { color: #fff; }
+}

@@ -178,8 +178,28 @@ function persistFeaturedMap(items: AdminMockTest[]) {
     ];
   });
   const featuredMap = Object.fromEntries(featuredEntries);
-  window.localStorage.setItem(FEATURED_KEY, JSON.stringify(featuredMap));
+  try {
+    window.localStorage.setItem(FEATURED_KEY, JSON.stringify(featuredMap));
+  } catch {
+    // Server mutations must not fail because an optional display cache is full.
+  }
   window.dispatchEvent(new Event('aptis-admin-mock-tests-updated'));
+}
+
+function cacheMockTests(items: AdminMockTest[]) {
+  // Database-backed questions are fetched from the API. Avoid duplicating large
+  // full-test JSON payloads in the browser's small synchronous storage quota.
+  const cached = items.map((item) => {
+    if (!isBackendId(item.id)) return item;
+    const { questionData: _questionData, ...metadata } = item;
+    return metadata;
+  });
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cached));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function fromApiMockTest(item: ApiMockTest): AdminMockTest {
@@ -241,6 +261,19 @@ function isBackendId(value: string) {
 
 function externalIdForItem(item: Pick<AdminMockTest, 'id' | 'externalId'>) {
   return item.externalId ?? (isBackendId(item.id) ? undefined : item.id);
+}
+
+async function deleteMockTestItems(items: AdminMockTest[]) {
+  // Only clear local-only entries after successfully checking the server list.
+  // Resolve external import IDs to the database ID used by the delete endpoint.
+  const serverItems = await unwrap<ApiMockTest[]>(api.get('/mock-tests/admin'));
+  return Promise.allSettled(items.map(async (item) => {
+    const externalId = identityExternalId(item);
+    const serverItem = serverItems.find((candidate) => String(candidate.id) === item.id
+      || Boolean(externalId && candidate.externalId === externalId));
+    if (serverItem) await api.delete(`/mock-tests/${serverItem.id}`);
+    return item.id;
+  }));
 }
 
 function toApiMockTest(form: MockForm) {
@@ -401,6 +434,7 @@ export function AdminMockTests() {
   const [query, setQuery] = useState('');
   const [selectedSkill, setSelectedSkill] = useState<MockSkill | 'ALL'>('ALL');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     unwrap<ApiMockTest[]>(api.get('/mock-tests/admin'))
@@ -452,7 +486,9 @@ export function AdminMockTests() {
 
   function persist(next: AdminMockTest[]) {
     setItems(next);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    if (!cacheMockTests(next)) {
+      toast.error('Bộ nhớ trình duyệt đã đầy. Không lưu được bản cục bộ; hãy export các đề chưa lưu lên máy chủ.', { id: 'mock-cache-full' });
+    }
     persistFeaturedMap(next);
   }
 
@@ -511,14 +547,21 @@ export function AdminMockTests() {
   }
 
   async function deleteMockTest(id: string) {
+    if (deleting) return;
     if (!confirm('Xóa đề thi thử này?')) return;
+    const item = items.find((item) => item.id === id);
+    if (!item) return;
+    setDeleting(true);
     try {
-      await api.delete(`/mock-tests/${id}`);
+      const [result] = await deleteMockTestItems([item]);
+      if (result.status === 'rejected') throw result.reason;
       persist(items.filter((item) => item.id !== id));
       if (form.id === id) resetForm();
       toast.success('Đã xóa đề thi thử');
     } catch {
       toast.error('Không xóa được đề thi thử');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -534,12 +577,14 @@ export function AdminMockTests() {
   }
 
   async function deleteSelectedMockTests() {
-    if (selectedIds.length === 0) return;
+    if (deleting || selectedIds.length === 0) return;
     const selectedSet = new Set(selectedIds);
     const selectedItems = items.filter((item) => selectedSet.has(item.id));
     if (!confirm(`Xóa ${selectedItems.length} đề thi thử đã chọn?`)) return;
 
-    const results = await Promise.allSettled(selectedItems.map((item) => api.delete(`/mock-tests/${item.id}`).then(() => item.id)));
+    setDeleting(true);
+    try {
+    const results = await deleteMockTestItems(selectedItems);
     const deletedIds = results
       .filter((result): result is PromiseFulfilledResult<string> => result.status === 'fulfilled')
       .map((result) => result.value);
@@ -557,6 +602,11 @@ export function AdminMockTests() {
       toast.error(`Đã xóa ${deletedIds.length}/${selectedItems.length} đề. Một số đề chưa xóa được`);
     } else {
       toast.error('Không xóa được các đề đã chọn');
+    }
+    } catch {
+      toast.error('Không kết nối được danh sách đề trên máy chủ. Vui lòng thử lại.');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -848,7 +898,7 @@ export function AdminMockTests() {
                     type="button"
                     className="inline-flex h-10 items-center gap-2 rounded-xl border border-red-200 bg-white px-4 text-sm font-extrabold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:border-brand-100 disabled:text-slate-500 disabled:hover:bg-white"
                     onClick={deleteSelectedMockTests}
-                    disabled={selectedIds.length === 0}
+                    disabled={deleting || selectedIds.length === 0}
                   >
                     <Trash2 size={17} />
                     Xóa đã chọn

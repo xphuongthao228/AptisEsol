@@ -51,7 +51,7 @@ public class MockTestService {
                     return new MockTestDtos.MockTestResponse(test.getId(), test.getExternalId(), test.getSkill(),
                             clean(test.getTitle()), clean(test.getDescription()), clean(test.getQuestions()),
                             accessible ? clean(test.getQuestionData()) : null, clean(test.getMinutes()),
-                            test.getStatus(), test.isFeatured(), test.getUpdatedAt(), accessible, rank);
+                            test.getStatus(), test.isFeatured(), test.getUpdatedAt(), accessible, rank, priority(test));
                 }).toList();
     }
 
@@ -210,7 +210,11 @@ public class MockTestService {
                 String cleaned = value == null ? "" : value.trim();
                 if (!cleaned.isBlank()) row.put(key.trim(), cleaned);
             });
-            if (!row.hasNonNull("skill")) row.put("skill", firstNonBlank(fallbackSkill, inferSkill(record)));
+            if (!row.hasNonNull("skill")) row.put("skill", inferSkill(record, fallbackSkill));
+            if (!row.hasNonNull("part")) {
+                String part = csv(record, "exam_part", "").replaceFirst("(?i)^part\\s*", "").trim();
+                if (!part.isBlank()) row.put("part", part);
+            }
             if (!row.hasNonNull("template")) row.put("template", firstNonBlank(
                     csv(record, "type", ""), templateForSkill(row.path("skill").asText(), csv(record, "part", ""))));
             if (!row.hasNonNull("audioUrl")) {
@@ -284,7 +288,26 @@ public class MockTestService {
         return new MockTestDtos.MockTestResponse(mockTest.getId(), mockTest.getExternalId(), mockTest.getSkill(),
                 clean(mockTest.getTitle()), clean(mockTest.getDescription()), clean(mockTest.getQuestions()),
                 clean(mockTest.getQuestionData()), clean(mockTest.getMinutes()), mockTest.getStatus(),
-                mockTest.isFeatured(), mockTest.getUpdatedAt(), true, null);
+                mockTest.isFeatured(), mockTest.getUpdatedAt(), true, null, priority(mockTest));
+    }
+
+    private String priority(MockTest test) {
+        try {
+            var data = objectMapper.readTree(test.getQuestionData() == null ? "[]" : test.getQuestionData());
+            for (String key : List.of("full_test_priority", "exam_priority", "priority")) {
+                var values = data.findValuesAsText(key);
+                for (String value : values) {
+                    String normalized = java.text.Normalizer.normalize(clean(value), java.text.Normalizer.Form.NFD)
+                            .replaceAll("\\p{M}", "").toLowerCase(Locale.ROOT).replace('đ', 'd').trim();
+                    if (normalized.equals("quan trong")) return "IMPORTANT";
+                    if (normalized.equals("dang chu y")) return "NOTABLE";
+                    if (normalized.equals("tham khao")) return "REFERENCE";
+                }
+            }
+        } catch (Exception ignored) {
+            // Older tests can have no question data or no priority metadata.
+        }
+        return test.isFeatured() ? "IMPORTANT" : "REFERENCE";
     }
 
     private String csv(CSVRecord record, String name, String fallback) {

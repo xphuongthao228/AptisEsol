@@ -50,7 +50,7 @@ const full = { id: 1, title: 'Full Test đầu vào', mockTestId: 'full-01', ski
   await send('Page.addScriptToEvaluateOnNewDocument', { source: `localStorage.setItem('aptis-esol-auth', ${JSON.stringify(JSON.stringify({ state: { user, accessToken: token, refreshToken: null }, version: 0 }))}); localStorage.setItem('aptis-theme','light');` });
   const evaluate = async expression => { const result = await send('Runtime.evaluate', { expression, returnByValue: true, awaitPromise: true }); if (result.exceptionDetails) throw new Error(result.exceptionDetails.text); return result.result.value; };
   const reports = [];
-  for (const width of [1366, 390]) {
+  for (const width of [1366, 320, 393, 430]) {
     doneReading = false;
     await send('Emulation.setDeviceMetricsOverride', { width, height: 900, deviceScaleFactor: 1, mobile: width < 600 });
     await send('Page.navigate', { url: 'http://127.0.0.1:5186/app' });
@@ -62,6 +62,23 @@ const full = { id: 1, title: 'Full Test đầu vào', mockTestId: 'full-01', ski
     assert.ok(await evaluate(`document.querySelector('.learning-radar-summary').textContent.includes('164 / 200')`));
     assert.ok(await evaluate(`document.querySelector('[aria-label="Chặng 2: Thi thử đầu vào"]').href.includes('screen=fullStart')`));
     assert.ok(await evaluate(`document.documentElement.scrollWidth <= innerWidth`), 'No page overflow');
+    if (width < 640) {
+      assert.ok(await evaluate(`(() => {
+        const frame = document.querySelector('.learning-map-scroll');
+        const map = document.querySelector('.learning-map');
+        const image = document.querySelector('.learning-map-image');
+        const bounds = frame.getBoundingClientRect();
+        const rect = image.getBoundingClientRect();
+        return image.complete && image.naturalWidth > 0
+          && frame.scrollWidth <= frame.clientWidth + 1
+          && rect.left >= bounds.left - 1 && rect.right <= bounds.right + 1
+          && Math.abs(rect.width / rect.height - image.naturalWidth / image.naturalHeight) < .02
+          && [...map.querySelectorAll('.learning-map-hotspot')].every(link => {
+            const r = link.getBoundingClientRect();
+            return r.left >= bounds.left - 1 && r.right <= bounds.right + 1;
+          });
+      })()`), 'The complete map and all 11 stage links fit the mobile frame at ' + width);
+    }
     assert.ok(await evaluate(`(() => { const link = document.querySelector('.learning-summary-grid article:last-child a'); return link.textContent.includes('Thi thử đầu vào') && link.href.includes('screen=fullStart'); })()`), 'Ability card opens the placement Full Test');
     assert.ok(await evaluate(`Array.from(document.querySelectorAll('.learning-map img')).every(img => img.complete && img.naturalWidth > 0)`), 'All roadmap images load');
     const aim = width > 600 ? 'C1' : 'B1';
@@ -98,6 +115,6 @@ const full = { id: 1, title: 'Full Test đầu vào', mockTestId: 'full-01', ski
   }
   assert.deepEqual(errors, []);
   fs.writeFileSync(path.join(output, 'checks.json'), JSON.stringify(reports, null, 2));
-  console.log('Passed: Full Test radar, total, placement link, stage movement and image loading at 1366px and 390px (isolated API fixtures).');
+  console.log('Passed: complete map and stage links at 320/393/430px; radar, goals and stage movement at mobile and 1366px (isolated fixtures).');
   await send('Browser.close');
 })().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => { ws?.close(); chrome.kill(); preview.kill(); });

@@ -40,13 +40,16 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ExitAssessmentDialog } from '../../components/ExitAssessmentDialog';
 import toast from 'react-hot-toast';
 import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
-import type { Question, SubscriptionResponse, Test } from '../../types';
+import type { MockTestResult, Submission, Question, SubscriptionResponse, Test } from '../../types';
+import { hasCompletedMockCard, mockCardPriority, mockPriorityLabels, type MockPriority } from '../../utils/mockTestFilters';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 import { repairUserText } from '../../utils/textRepair';
+import './mock-light.css';
 
 type SpeakingScreen = 'select' | 'fullStart' | 'fullResult' | 'start' | 'instructions' | 'prompt' | 'question' | 'part2Prompt' | 'part2Question' | 'part3Prompt' | 'part3Question' | 'part4Prompt' | 'part4Question' | 'complete' | 'readingStart' | 'readingInstructions' | 'readingQuestion' | 'readingCohesion' | 'readingOpinion' | 'readingLong' | 'readingResult' | 'readingReview' | 'listeningStart' | 'listeningInstructions' | 'listeningQuestion' | 'listeningMatching' | 'listeningShort' | 'listeningMonologues' | 'listeningResult' | 'listeningReview' | 'writingInstructions' | 'writingPart' | 'writingResult' | 'grammarStart' | 'grammarInstructions' | 'grammarQuestion' | 'grammarResult';
 type Part4Phase = 'prepare' | 'recording';
@@ -139,6 +142,7 @@ type SidebarLink = {
 };
 
 type MockCard = {
+  priority?: MockPriority;
   accessible?: boolean;
   accessOrder?: number;
   id: string;
@@ -173,6 +177,7 @@ type StoredAdminMockTest = {
 };
 
 type ApiMockTest = {
+  priority?: MockPriority;
   accessible?: boolean;
   accessOrder?: number;
   id: number;
@@ -473,6 +478,7 @@ function apiMockTestToCard(item: ApiMockTest): MockCard | null {
     id: externalId ? `api-${externalId}` : `api-${item.id}`,
     externalId,
     sourceUpdatedAt: item.updatedAt,
+    priority: item.priority,
     skill,
     label: meta.label,
     title: item.title.trim(),
@@ -586,6 +592,7 @@ function createFullExamCards(cards: MockCard[]) {
     const totalMinutes = group.reduce((sum, card) => sum + Number.parseInt(card.minutes, 10), 0);
     return [{
       id: `test-full-${Object.values(skillTestIds).join('-')}`,
+      priority: mockCardPriority(first),
       skill: 'FULL' as const,
       skillTestIds,
       label: mockCardMeta.FULL.label,
@@ -626,6 +633,7 @@ function createFullImportedMockCards(cards: MockCard[]) {
 
     return [{
       id: `mock-full-${group.map((card) => card.id).join('-')}`,
+      priority: mockCardPriority(first),
       accessible: group.every((card) => card.accessible === true),
       accessOrder: Math.max(...group.map((card) => card.accessOrder ?? Number.MAX_SAFE_INTEGER)),
       skill: 'FULL' as const,
@@ -1174,6 +1182,8 @@ function normalizeImportedQuestionRow(row: Record<string, unknown>) {
 
 function normalizeImportedQuestionAliases(row: Record<string, unknown>) {
   const next = { ...row };
+  if (!next.skill && next.section) next.skill = normalizeMockSkill(String(next.section));
+  if (!next.part && next.exam_part) next.part = normalizePartValue(next.exam_part);
   // Older CSV imports assigned the generic audio template to every Listening
   // row. Recover the original part from the CSV type for already saved tests.
   const listeningType = String(next.type ?? '').trim().toUpperCase();
@@ -2392,7 +2402,7 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
   const forumAnswers = part3Rows.flatMap((item) => asStringArray(item.correctAnswers).length > 0
     ? asStringArray(item.correctAnswers)
     : [String(item.answer ?? item.correctAnswer ?? '').trim()].filter(Boolean));
-  const forumIntroText = context.find((line) => !/^<strong>[A-D]:/i.test(line))
+  const forumIntroText = context.find((line) => peopleFromReadingContext([line]).length === 0)
     ?? String(part3Rows[0]?.leftTitle ?? '').trim();
   const forumIntro = forumIntroText || undefined;
   const fallbackOpinion = fallbackReadingOpinion();
@@ -2400,7 +2410,7 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
   const opinion = {
     people: parsedPeople.length > 0 ? parsedPeople : fallbackOpinion.people,
     questions: forumQuestions.length > 0 ? forumQuestions : fallbackOpinion.questions,
-    correctAnswers: forumAnswers.length > 0 ? forumAnswers : fallbackOpinion.correctAnswers,
+    correctAnswers: forumAnswers.length > 0 ? forumAnswers.map((answer) => resolveOptionLabel(answer, parsedPeople.map((person) => person.label))) : fallbackOpinion.correctAnswers,
     intro: forumIntro,
     topic: String(part3Rows[0]?.topic ?? '').trim() || undefined
   };
@@ -2619,9 +2629,18 @@ function peopleFromReadingContext(context: string[]) {
       .replace(/<[^>]*>/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
-    const match = normalized.match(/^([A-D])[\).:]?\s*(.*)$/i);
+    const heading = repairUserText(line).match(/^\s*<strong[^>]*>(.*?)<\/strong>\s*:?[\s\S]*$/i);
+    const headingLabel = heading ? stripHtml(heading[1]).replace(/[:.)]\s*$/, '').trim() : '';
+    if (headingLabel && headingLabel.length <= 60 && !/[!?]/.test(headingLabel)) {
+      const text = repairUserText(line).replace(/^\s*<strong[^>]*>.*?<\/strong>\s*:?\s*/i, '');
+      if (!stripHtml(text)) return people;
+      people.push({ label: headingLabel, text: stripHtml(text) });
+      return people;
+    }
+    const match = normalized.match(/^([A-D])[\).:]\s*(.+)$/i)
+      ?? normalized.match(/^([\p{L}][\p{L}\s.'’-]{0,60}):\s*(.+)$/u);
     if (!match) return people;
-    people.push({ label: match[1].toUpperCase(), text: match[2] });
+    people.push({ label: match[1].length === 1 ? match[1].toUpperCase() : match[1].trim(), text: match[2] });
     return people;
   }, []);
 }
@@ -2725,19 +2744,30 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
     const clubName = String(first.clubName ?? card?.description?.replace(/^Bộ đề\s*#\d+\s*-\s*/i, '').replace(/\.$/, '') ?? '').trim();
     const rowQuestions = partRows.flatMap((row) => {
       if (Array.isArray(row.questions)) return row.questions.map(String);
-      return [
+      const explicitQuestions = [
         row.question,
         row.question1,
         row.question2,
         row.question3,
         row.question4,
-        row.question5,
-        row.prompt
-      ].map((value) => String(value ?? ''));
+        row.question5
+      ].map((value) => String(value ?? '')).filter((value) => value.trim());
+      // prompt is an alias for question in flat imports, not an extra task.
+      return explicitQuestions.length ? explicitQuestions : [String(row.prompt ?? '')];
     }).map((question) => repairUserText(question).trim()).filter(Boolean);
-    const sampleAnswers = partRows
-      .map((row) => repairUserText(String(row.sampleAnswer ?? row.answer ?? '')).trim())
-      .filter(Boolean);
+    const sampleAnswers = partRows.flatMap((row) =>
+      Array.isArray(row.sampleAnswers)
+        ? row.sampleAnswers.map((answer) => repairUserText(String(answer ?? '')).trim())
+        : [repairUserText(String(row.sampleAnswer ?? row.answer ?? '')).trim()]
+    );
+    // Preserve each imported task and its answer, even when wording repeats.
+    const questionIndexes = rowQuestions.map((_, index) => index);
+    const questions = questionIndexes.map((index) => partIndex === 2
+      ? rowQuestions[index].replace(/^\s*\d+\s*[.)]\s*/, '')
+      : rowQuestions[index]);
+    const uniqueSampleAnswers = partIndex === 2
+      ? questionIndexes.map((index) => sampleAnswers[index] ?? '')
+      : sampleAnswers;
     const heading = repairUserText(String(first.heading ?? first.instructions ?? first.title ?? '')).trim();
     const content = repairUserText(String(first.content ?? first.context ?? first.mainText ?? first.passage ?? first.text ?? '')).trim();
     const prompt = repairUserText(String(first.prompt ?? '')).trim();
@@ -2750,9 +2780,9 @@ function writingPartsFromCard(card?: MockCard | null): WritingPartData[] {
       heading: heading || (clubName ? current.heading.replace(/(?:an?|the)\s+[^.]+ club/i, `the ${clubName}`) : current.heading),
       content: content || current.content,
       prompt: partIndex === 3 ? prompt || content || current.prompt : prompt || current.prompt,
-      questions: partIndex < 3 && rowQuestions.length > 0 ? rowQuestions : current.questions,
+      questions: partIndex < 3 && questions.length > 0 ? questions : current.questions,
       helper: String(first.helper ?? first.wordLimit ?? '').trim() || current.helper,
-      sampleAnswers: sampleAnswers.length > 0 ? sampleAnswers : current.sampleAnswers,
+      sampleAnswers: uniqueSampleAnswers.some(Boolean) ? uniqueSampleAnswers : current.sampleAnswers,
       emailPrompts
     };
   });
@@ -3199,6 +3229,18 @@ export function MockTests() {
   const [roadmapAssessment] = useState(() => searchParams.get('roadmap') === '1');
   const urlTestId = readTestId(searchParams.get('testId'));
   const [screen, setScreen] = useState<SpeakingScreen>(() => readScreen(searchParams.get('screen')));
+  const [exitConfirmationOpen, setExitConfirmationOpen] = useState(false);
+  const needsExitConfirmation = !['select', 'fullStart', 'fullResult', 'complete', 'readingResult', 'readingReview', 'listeningResult', 'listeningReview', 'writingResult', 'grammarResult'].includes(screen);
+
+  function requestAssessmentExit() {
+    if (needsExitConfirmation) setExitConfirmationOpen(true);
+    else setScreen('select');
+  }
+
+  useEffect(() => {
+    // A timer can finish the test while the confirmation is open.
+    setExitConfirmationOpen(false);
+  }, [screen]);
   const [answerRevealOpen, setAnswerRevealOpen] = useState(false);
   const [selectedSkill, setSelectedSkill] = useState<MockSkill>(() => readSkill(searchParams.get('skill')));
   const [selectedTest, setSelectedTest] = useState(speakingMockTests[0]);
@@ -4832,7 +4874,12 @@ export function MockTests() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f1f1f1] text-[#040817]">
+    <div className={`min-h-screen bg-[#f1f1f1] text-[#040817] ${screen === 'select' ? 'mock-tests-select' : ''}`}>
+      <ExitAssessmentDialog
+        open={exitConfirmationOpen}
+        onCancel={() => setExitConfirmationOpen(false)}
+        onConfirm={() => { setExitConfirmationOpen(false); setScreen('select'); }}
+      />
       {screen === 'select' ? (
         <MockSelectLayout>
           <MockSelect
@@ -4854,29 +4901,29 @@ export function MockTests() {
           {(screen === 'readingStart' || screen === 'readingInstructions' || screen === 'readingQuestion' || screen === 'readingCohesion' || screen === 'readingOpinion' || screen === 'readingLong') && (
             <ReadingTopbar
               title={screen === 'readingLong' ? 'Part 4 - Long Reading' : screen === 'readingOpinion' ? 'Part 3 - Opinion Matching' : screen === 'readingCohesion' ? `Part ${readingCohesionIndex + 2} - Text Cohesion` : 'Part 1 - Gap Fill'}
-              onExit={() => setScreen('select')}
+              onExit={requestAssessmentExit}
             />
           )}
           {(screen === 'listeningStart' || screen === 'listeningInstructions' || screen === 'listeningQuestion' || screen === 'listeningMatching' || screen === 'listeningShort' || screen === 'listeningMonologues') && (
-            <ListeningTopbar title={screen === 'listeningMonologues' ? 'Part 4 - Monologues' : screen === 'listeningShort' ? 'Part 3 - Short Conversations' : screen === 'listeningMatching' ? 'Part 2 - Matching Information' : screen === 'listeningStart' ? 'Part 1 of 4' : 'Part 1 - Word Recognition'} onExit={() => setScreen('select')} />
+            <ListeningTopbar title={screen === 'listeningMonologues' ? 'Part 4 - Monologues' : screen === 'listeningShort' ? 'Part 3 - Short Conversations' : screen === 'listeningMatching' ? 'Part 2 - Matching Information' : screen === 'listeningStart' ? 'Part 1 of 4' : 'Part 1 - Word Recognition'} onExit={requestAssessmentExit} />
           )}
           {(screen === 'writingInstructions' || screen === 'writingPart') && (
-            <WritingTopbar title={screen === 'writingPart' ? writingPartIndex === 0 ? 'Part 1 - Short Answers' : writingPartIndex === 2 ? 'Part 3 - Three Questions' : writingPartIndex === 3 ? 'Part 4 - Informal & Formal Email' : activeWritingParts[writingPartIndex]?.title ?? 'Writing' : 'Aptis General Writing Instructions'} onExit={() => setScreen('select')} />
+            <WritingTopbar title={screen === 'writingPart' ? writingPartIndex === 0 ? 'Part 1 - Short Answers' : writingPartIndex === 2 ? 'Part 3 - Three Questions' : writingPartIndex === 3 ? 'Part 4 - Informal & Formal Email' : activeWritingParts[writingPartIndex]?.title ?? 'Writing' : 'Aptis General Writing Instructions'} onExit={requestAssessmentExit} />
           )}
           {(screen === 'grammarStart' || screen === 'grammarInstructions' || screen === 'grammarQuestion' || screen === 'grammarResult') && (
-            <GrammarTopbar onExit={() => setScreen('select')} />
+            <GrammarTopbar onExit={requestAssessmentExit} />
           )}
           {screen === 'fullStart' && (
-            <FullTopbar onExit={() => setScreen('select')} />
+            <FullTopbar onExit={requestAssessmentExit} />
           )}
           {screen === 'fullResult' && (
-            <FullTopbar onExit={() => setScreen('select')} />
+            <FullTopbar onExit={requestAssessmentExit} />
           )}
           {screen !== 'fullStart' && screen !== 'fullResult' && screen !== 'writingInstructions' && screen !== 'writingPart' && screen !== 'writingResult' && screen !== 'listeningStart' && screen !== 'listeningInstructions' && screen !== 'listeningQuestion' && screen !== 'listeningMatching' && screen !== 'listeningShort' && screen !== 'listeningMonologues' && screen !== 'listeningResult' && screen !== 'listeningReview' && screen !== 'readingStart' && screen !== 'readingInstructions' && screen !== 'readingQuestion' && screen !== 'readingCohesion' && screen !== 'readingOpinion' && screen !== 'readingLong' && screen !== 'readingResult' && screen !== 'readingReview' && screen !== 'grammarStart' && screen !== 'grammarInstructions' && screen !== 'grammarQuestion' && screen !== 'grammarResult' && (
             <SpeakingTopbarWithAudio
               part={screen === 'part4Prompt' || screen === 'part4Question' ? 4 : screen === 'part3Prompt' || screen === 'part3Question' ? 3 : screen === 'part2Prompt' || screen === 'part2Question' ? 2 : 1}
               soundEnabled={speakingSoundEnabled}
-              onExit={() => setScreen('select')}
+              onExit={requestAssessmentExit}
               onToggleSound={toggleSpeakingSound}
             />
           )}
@@ -4908,7 +4955,7 @@ export function MockTests() {
           {screen === 'readingResult' && (
             <ReadingResult
               summary={readingSummary}
-              onExit={() => setScreen('select')}
+              onExit={requestAssessmentExit}
               onReview={() => setScreen('readingReview')}
               onRetry={() => {
                 resetReadingSection();
@@ -4929,6 +4976,7 @@ export function MockTests() {
           {screen === 'writingInstructions' && <WritingInstructions />}
           {screen === 'writingPart' && (
             <WritingPart
+              key={writingPartIndex}
               answer={writingAnswers[writingPartIndex] ?? ''}
               bookmarkActive={isBookmarked(bookmarkKey('writing', writingPartIndex + 1))}
               emailAnswers={writingEmailAnswers}
@@ -4949,7 +4997,7 @@ export function MockTests() {
             <WritingCheckingResult
               error={writingScoreError}
               loading={writingScoreLoading}
-              onExit={() => setScreen('select')}
+              onExit={requestAssessmentExit}
               onRetry={() => {
                 resetWritingSection();
                 setScreen('writingInstructions');
@@ -4975,7 +5023,7 @@ export function MockTests() {
           {screen === 'grammarResult' && (
             <GrammarResult
               summary={grammarSummary}
-              onExit={() => setScreen('select')}
+              onExit={requestAssessmentExit}
               onRetry={() => {
                 resetGrammarSection();
                 setScreen('grammarStart');
@@ -5041,7 +5089,7 @@ export function MockTests() {
           {screen === 'listeningResult' && (
             <ListeningResult
               summary={listeningSummary}
-              onExit={() => setScreen('select')}
+              onExit={requestAssessmentExit}
               onReview={() => setScreen('listeningReview')}
               onRetry={() => {
                 resetListeningSection();
@@ -5143,7 +5191,7 @@ export function MockTests() {
             <SpeakingComplete
               error={speakingScoreError}
               loading={speakingScoreLoading}
-              onExit={() => setScreen('select')}
+              onExit={requestAssessmentExit}
               onRetry={() => {
                 resetSpeakingSection();
                 setScreen('instructions');
@@ -5154,7 +5202,7 @@ export function MockTests() {
           )}
 
           {screen !== 'fullStart' && screen !== 'fullResult' && screen !== 'start' && screen !== 'writingInstructions' && screen !== 'writingPart' && screen !== 'writingResult' && screen !== 'listeningStart' && screen !== 'listeningInstructions' && screen !== 'listeningQuestion' && screen !== 'listeningMatching' && screen !== 'listeningShort' && screen !== 'listeningMonologues' && screen !== 'listeningResult' && screen !== 'listeningReview' && screen !== 'readingStart' && screen !== 'readingInstructions' && screen !== 'readingQuestion' && screen !== 'readingCohesion' && screen !== 'readingOpinion' && screen !== 'readingLong' && screen !== 'readingResult' && screen !== 'readingReview' && screen !== 'grammarStart' && screen !== 'grammarInstructions' && screen !== 'grammarQuestion' && screen !== 'grammarResult' && screen !== 'question' && screen !== 'part2Question' && screen !== 'part3Question' && screen !== 'part4Question' && (
-            <SpeakingFooter
+            <SpeakingFooter onExit={requestAssessmentExit}
               canPrevious
               canNext={(screen !== 'instructions' && screen !== 'prompt' && screen !== 'part2Prompt' && screen !== 'part3Prompt' && screen !== 'part4Prompt') || speechReady}
               showNext={screen !== 'complete' && screen !== 'part2Prompt' && screen !== 'part3Prompt' && screen !== 'part4Prompt'}
@@ -5164,14 +5212,14 @@ export function MockTests() {
             />
           )}
           {screen === 'readingInstructions' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               onPrevious={() => setScreen('readingStart')}
               onNext={() => setScreen(firstReadingQuestionScreen())}
             />
           )}
           {screen === 'writingInstructions' && (
-            <ReadingFooter
-              onPrevious={() => setScreen('select')}
+            <ReadingFooter onExit={requestAssessmentExit}
+              onPrevious={requestAssessmentExit}
               onNext={() => {
                 setWritingPartIndex(0);
                 setScreen('writingPart');
@@ -5179,7 +5227,7 @@ export function MockTests() {
             />
           )}
           {screen === 'grammarInstructions' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               onPrevious={() => setScreen('grammarStart')}
               onNext={() => {
                 setGrammarQuestionIndex(0);
@@ -5188,7 +5236,7 @@ export function MockTests() {
             />
           )}
           {screen === 'grammarQuestion' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5212,7 +5260,7 @@ export function MockTests() {
             />
           )}
           {screen === 'writingPart' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               nextDisabled={writingScoreLoading}
               showAnswer
@@ -5229,7 +5277,7 @@ export function MockTests() {
             />
           )}
           {screen === 'listeningInstructions' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               nextDisabled={!activeListeningCard}
               onPrevious={() => setScreen('listeningStart')}
               onNext={() => {
@@ -5245,7 +5293,7 @@ export function MockTests() {
             />
           )}
           {screen === 'listeningQuestion' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5260,7 +5308,7 @@ export function MockTests() {
             />
           )}
           {screen === 'listeningMatching' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5276,7 +5324,7 @@ export function MockTests() {
             />
           )}
           {screen === 'listeningShort' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5289,7 +5337,7 @@ export function MockTests() {
             />
           )}
           {screen === 'listeningMonologues' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5313,7 +5361,7 @@ export function MockTests() {
             />
           )}
           {screen === 'readingQuestion' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5325,7 +5373,7 @@ export function MockTests() {
             />
           )}
           {screen === 'readingCohesion' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5340,7 +5388,7 @@ export function MockTests() {
             />
           )}
           {screen === 'readingOpinion' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5351,7 +5399,7 @@ export function MockTests() {
             />
           )}
           {screen === 'readingLong' && (
-            <ReadingFooter
+            <ReadingFooter onExit={requestAssessmentExit}
               answerOpen={answerRevealOpen}
               showAnswer
               onToggleAnswer={() => setAnswerRevealOpen((value) => !value)}
@@ -5429,7 +5477,44 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
   const [reloadIndex, setReloadIndex] = useState(0);
   const [creatingRandom, setCreatingRandom] = useState(false);
   const [practiceTests, setPracticeTests] = useState<Test[]>([]);
+  const [priorityFilter, setPriorityFilter] = useState<MockPriority | 'ALL'>('ALL');
+  const [completionFilter, setCompletionFilter] = useState<'ALL' | 'DONE' | 'TODO'>('ALL');
+  const [history, setHistory] = useState<{ results: MockTestResult[]; submissions: Submission[] }>({ results: [], submissions: [] });
+  const [historyLoading, setHistoryLoading] = useState(authenticated);
+  const [historyError, setHistoryError] = useState(false);
+  const historyUserId = useAuthStore(state => state.user?.id);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    let cancelled = false;
+    let version = 0;
+    const reload = async () => {
+      const request = ++version;
+      setHistoryLoading(authenticated);
+      setHistoryError(false);
+      setHistory({ results: [], submissions: [] });
+      if (!authenticated) { setCompletionFilter('ALL'); return; }
+      try {
+        const [results, submissions] = await Promise.all([
+          unwrap<MockTestResult[]>(api.get('/mock-tests/results/my')),
+          unwrap<Submission[]>(api.get('/submissions/my-results'))
+        ]);
+        if (!cancelled && request === version) setHistory({ results, submissions });
+      } catch {
+        if (!cancelled && request === version) { setHistoryError(true); setCompletionFilter('ALL'); }
+      } finally {
+        if (!cancelled && request === version) setHistoryLoading(false);
+      }
+    };
+    void reload();
+    window.addEventListener('focus', reload);
+    window.addEventListener('aptis:mock-result-saved', reload);
+    return () => {
+      cancelled = true;
+      window.removeEventListener('focus', reload);
+      window.removeEventListener('aptis:mock-result-saved', reload);
+    };
+  }, [authenticated, historyUserId, reloadIndex]);
 
   useEffect(() => {
     let cancelled = false;
@@ -5479,6 +5564,9 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
 
   const visibleCards = adminCards
     .filter((card) => card.skill === selectedSkill)
+    .filter(card => priorityFilter === 'ALL' || mockCardPriority(card) === priorityFilter)
+    .filter(card => completionFilter === 'ALL' || (!historyLoading && !historyError
+      && hasCompletedMockCard(card, history.results, history.submissions) === (completionFilter === 'DONE')))
     .sort(compareMockCards);
 
   async function createRandomMockTest() {
@@ -5563,22 +5651,19 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
               <FileCheck size={18} />
               Thi thử Aptis
             </p>
-            <h1 className="mt-6 text-4xl font-extrabold leading-tight">Chọn kỹ năng thi thử</h1>
+            <h1 className="mt-6 text-4xl font-extrabold leading-tight">Thi thử Aptis</h1>
             <p className="mt-3 max-w-2xl text-lg font-medium leading-8 text-blue-50/90">
-              Thi thử mô phỏng giao diện assessment. Chọn Full hoặc từng kỹ năng để vào đúng kiểu bài.
+              Chọn Full hoặc từng kỹ năng để bắt đầu.
             </p>
             {!proActive && <p className="mt-3 max-w-2xl text-sm leading-6 text-orange-50/90">Miễn phí 2 đề đầu mỗi kỹ năng và Full Test. Chấm AI cần tài khoản còn hạn.</p>}
+          </div>
+          <div className="mock-light-illustration" aria-hidden="true">
+            <div className="mock-light-paper"><b>APTIS</b><span>☑ ━━━</span><span>☑ ━━━</span><span>□ ━━━</span><span>□ ━━━</span></div>
+            <div className="mock-light-pencil" /><div className="mock-light-medal">★</div>
           </div>
           <div className="mock-selection-summary rounded-2xl border border-brand-100 bg-sky-50 p-5 md:w-[300px]">
             <p className="text-sm font-bold text-slate-600">Kỹ năng đang chọn</p>
             <p className="mt-3 text-3xl font-extrabold">{skillFilters.find((item) => item.key === selectedSkill)?.label}</p>
-            <button type="button" onClick={createRandomMockTest} disabled={creatingRandom} className="mt-4 flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 text-sm font-extrabold text-white shadow-soft transition hover:bg-emerald-700 disabled:opacity-70">
-              {creatingRandom ? <RotateCcw className="animate-spin" size={17} /> : <Shuffle size={17} />}
-              {creatingRandom ? 'Đang tạo...' : 'Đề thi thử random'}
-            </button>
-            <p className="mt-3 text-xs font-bold leading-5 text-slate-600">
-              Chọn ngẫu nhiên một đề bạn được phép làm.
-            </p>
           </div>
         </div>
       </div>
@@ -5596,16 +5681,56 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
                 : mockSkillTabInactiveClass
             }`}
           >
+            {(() => { const Icon = mockCardMeta[filter.key].icon; return <Icon size={18} aria-hidden="true" />; })()}
             {filter.label}
           </button>
         ))}
       </div>
 
-      <div className="mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mock-selection-filters mt-4 flex flex-col items-start gap-2 rounded-2xl bg-white px-4 py-3">
+        <fieldset className="min-w-0">
+          <legend className="sr-only">Mức độ</legend>
+          <div className="mock-filter-row flex items-center gap-2">
+            <span aria-hidden="true" className="w-20 text-[13px] font-normal text-slate-600">Mức độ:</span>
+            <div className="mock-filter-options flex min-w-0 flex-wrap gap-2">
+            {(['ALL', 'IMPORTANT', 'NOTABLE', 'REFERENCE'] as const).map(value => (
+              <label key={value} data-selected={priorityFilter === value} className={`inline-flex min-h-8 cursor-pointer items-center rounded-full border px-3 py-1 text-[13px] font-medium leading-5 transition focus-within:ring-2 focus-within:ring-brand-300 focus-within:ring-offset-2 ${priorityFilter === value ? 'border-[#d92308] bg-[#d92308] text-white' : 'border-[#eadfd2] bg-white text-slate-800 hover:bg-orange-50'}`}>
+                <input type="radio" name="mock-priority" value={value} checked={priorityFilter === value} onChange={() => setPriorityFilter(value)} className="sr-only" />
+                {value === 'ALL' ? 'Tất cả' : mockPriorityLabels[value]}
+              </label>
+            ))}
+            </div>
+          </div>
+        </fieldset>
+        <fieldset className="min-w-0 disabled:opacity-50" disabled={!authenticated || historyLoading || historyError}>
+          <legend className="sr-only">Trạng thái</legend>
+          <div className="mock-filter-row flex items-center gap-2">
+            <span aria-hidden="true" className="w-20 text-[13px] font-normal text-slate-600">Trạng thái:</span>
+            <div className="mock-filter-options flex min-w-0 flex-wrap gap-2">
+            {([{ value: 'ALL', label: 'Tất cả' }, { value: 'TODO', label: 'Chưa làm' }, { value: 'DONE', label: 'Đã làm' }] as const).map(({ value, label }) => (
+              <label key={value} data-selected={completionFilter === value} className={`inline-flex min-h-8 items-center rounded-full border px-3 py-1 text-[13px] font-medium leading-5 transition focus-within:ring-2 focus-within:ring-brand-300 focus-within:ring-offset-2 ${!authenticated || historyLoading || historyError ? 'cursor-not-allowed' : 'cursor-pointer'} ${completionFilter === value ? 'border-[#d92308] bg-[#d92308] text-white' : 'border-[#eadfd2] bg-white text-slate-800 hover:bg-orange-50'}`}>
+                <input type="radio" name="mock-completion" value={value} checked={completionFilter === value} onChange={() => setCompletionFilter(value)} className="sr-only" />
+                {label}
+              </label>
+            ))}
+            </div>
+          </div>
+        </fieldset>
+        <div className="flex items-center gap-3 text-xs text-slate-500">
+          <p role="status">{visibleCards.length} đề phù hợp</p>
+          {(priorityFilter !== 'ALL' || completionFilter !== 'ALL') && <button type="button" onClick={() => { setPriorityFilter('ALL'); setCompletionFilter('ALL'); }} className="py-1 font-medium text-brand-700 hover:underline">Xóa bộ lọc</button>}
+        </div>
+        {!authenticated && <p className="w-full text-sm text-slate-500">Đăng nhập để lọc đề đã làm và chưa làm.</p>}
+        {authenticated && historyLoading && <p className="w-full text-sm text-slate-500" role="status">Đang tải lịch sử làm bài…</p>}
+        {historyError && <p className="w-full text-sm text-red-700" role="alert">Chưa tải được lịch sử làm bài. <button type="button" className="font-bold underline" onClick={() => setReloadIndex(value => value + 1)}>Thử lại</button></p>}
+      </div>
+
+      <div className="mock-selection-results mt-7 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {visibleCards.map((card, index) => (
           <MockSkillCard
             key={card.id}
             card={card}
+            completed={authenticated && !historyLoading && !historyError ? hasCompletedMockCard(card, history.results, history.submissions) : undefined}
             proLocked={!canOpenMockCard(card, proActive)}
             onOpenSpeaking={onOpenSpeaking}
             onOpenReading={onOpenReading}
@@ -5618,7 +5743,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       </div>
       {visibleCards.length === 0 && (
         <div className="mt-7 rounded-2xl border border-dashed border-brand-100 bg-white p-8 text-center text-sm font-bold text-slate-600">
-          Chưa có đề thi thử đang hiển thị cho kỹ năng này.
+          Không có đề phù hợp với bộ lọc đã chọn.
         </div>
       )}
     </section>
@@ -5627,6 +5752,7 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
 
 function MockSkillCard({
   card,
+  completed,
   proLocked,
   onOpenSpeaking,
   onOpenReading,
@@ -5636,6 +5762,7 @@ function MockSkillCard({
   onOpenFull
 }: {
   card: MockCard;
+  completed?: boolean;
   proLocked: boolean;
   onOpenSpeaking: (card: MockCard) => void;
   onOpenReading: (card: MockCard) => void;
@@ -5664,11 +5791,12 @@ function MockSkillCard({
           <Icon size={23} />
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          {card.featured && (
+          {(
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
-              <Star size={13} className="fill-amber-400 text-amber-500" /> Quan trọng
+              <Star size={13} /> {mockPriorityLabels[mockCardPriority(card)]}
             </span>
           )}
+          {completed !== undefined && <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${completed ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-600'}`}>{completed ? 'Đã làm' : 'Chưa làm'}</span>}
           {proLocked && (
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-extrabold text-amber-700">
               <Lock size={13} /> Pro
@@ -5679,7 +5807,6 @@ function MockSkillCard({
       </div>
 
       <h2 className="mt-6 text-xl font-extrabold text-navy">{card.title}</h2>
-      <p className="mt-3 min-h-12 text-sm leading-6 text-slate-600">{card.description}</p>
 
       <div className="mt-6 grid grid-cols-2 gap-3">
         <InfoBox icon={<FileQuestion size={17} />} label="Câu hỏi" value={card.questions} />
@@ -6504,8 +6631,8 @@ function WritingPart({
       <section style={{ width: 'min(828px, 100%)', margin: '0 auto' }}>
         <div className="mock-assessment-header" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'start', gap: 56 }}>
           <div>
-            <p style={{ color: '#020817', fontSize: 18, fontWeight: 900, margin: 0 }}>Writing - Part {partIndex + 1}</p>
-            <h2 style={{ color: '#020817', fontSize: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? 17 : 28, fontWeight: 900, lineHeight: isShortAnswerPart || isThreeQuestionsPart || isEmailPart ? '23px' : '34px', margin: '4px 0 0', maxWidth: isEmailPart ? 620 : isThreeQuestionsPart ? 470 : 450 }}>{heading}</h2>
+            <p style={{ color: '#020817', fontSize: 16, fontWeight: 900, margin: 0 }}>Writing - Part {partIndex + 1}</p>
+            <h2 style={{ color: '#020817', fontSize: 17, fontWeight: partIndex === 1 ? 700 : 900, lineHeight: '25px', margin: '4px 0 0', maxWidth: isEmailPart ? 620 : isThreeQuestionsPart ? 470 : 450 }}>{heading}</h2>
           </div>
           <div className="mock-assessment-tools" style={{ display: 'flex', alignItems: 'flex-start', gap: 18 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} />
@@ -6569,7 +6696,7 @@ function WritingPart({
               const questionWordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
               const limit = isThreeQuestionsPart ? 60 : 10;
               return (
-                <article key={question} style={{ borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '22px 22px 20px' }}>
+                <article key={`${partIndex}-${index}`} style={{ borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '22px 22px 20px' }}>
                   <p style={{ color: '#020817', fontSize: 17, lineHeight: '24px', fontWeight: 500, margin: 0 }}>{index + 1}. {question}</p>
                   <textarea
                     value={value}
@@ -6613,7 +6740,7 @@ function WritingPart({
             {questions.length > 0 && (
               <div style={{ marginTop: 20, display: 'grid', gap: 10 }}>
                 {questions.map((question, index) => (
-                  <p key={question} style={{ color: '#020817', fontSize: 16, lineHeight: '24px', margin: 0 }}>
+                  <p key={`${partIndex}-${index}`} style={{ color: '#020817', fontSize: 16, lineHeight: '24px', margin: 0 }}>
                     {index + 1}. {question}
                   </p>
                 ))}
@@ -7683,14 +7810,14 @@ function ReadingQuestion({ data, answers, bookmarkActive, showAnswer, timeRemain
               const before = question.questionStart ?? promptParts[0] ?? '';
               const after = question.questionEnd ?? promptParts.slice(1).join('___') ?? '';
               return (
-                <div className="mock-reading-gap-item" key={`${index}-${question.answer}`}>
+                <div className="mock-reading-gap-item" key={`${index}-${question.answer}`} style={{ display: 'grid', gridTemplateColumns: 'auto minmax(0, 1fr)', alignItems: 'baseline', columnGap: 12 }}>
                   <span className="mock-reading-gap-number">{index + 1}.</span>
                   <div className="mock-reading-gap-content">
                     <span className="mock-reading-gap-text">{before}</span>
                     <ReadingGapSelect value={answers[index] ?? ''} options={question.options} onChange={(answer) => onAnswer(index, answer)} />
                     <span className="mock-reading-gap-text">{after}</span>
                   </div>
-                  {showAnswer && <InlineAnswer>{question.answer}</InlineAnswer>}
+                  {showAnswer && <div style={{ gridColumn: 2 }}><InlineAnswer>{question.answer}</InlineAnswer></div>}
                 </div>
               );
             })}
@@ -7964,10 +8091,6 @@ function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaini
             </div>
           </div>
         </div>
-
-        <p className="mock-reading-opinion-intro" style={{ color: '#000000', fontSize: 22, lineHeight: '30px', fontWeight: 900, margin: '34px 0 30px' }}>
-          {data.intro ? stripHtml(data.intro) : 'Four people respond to the same topic. Read the texts and then answer the questions below.'}
-        </p>
 
         {people.length === 0 || questions.length === 0 ? <EmptyImportedPart /> : <article className="mock-reading-opinion-people" style={{ borderRadius: 14, backgroundColor: '#ffffff', padding: '28px 30px', boxShadow: '0 1px 2px rgba(15,23,42,0.04)' }}>
           {people.map((person) => (
@@ -9011,7 +9134,7 @@ function WritingAnswerContent({ part, partIndex }: { part: WritingPartData; part
   return <>Chưa có đáp án mẫu cho phần Writing này.</>;
 }
 
-function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = false, nextLabel = 'Next', onOpenQuestionList, onPrevious, onNext, onToggleAnswer }: { answerOpen?: boolean; showAnswer?: boolean; nextDisabled?: boolean; nextLabel?: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void; onToggleAnswer?: () => void }) {
+function ReadingFooter({ onExit, answerOpen = false, showAnswer = false, nextDisabled = false, nextLabel = 'Next', onOpenQuestionList, onPrevious, onNext, onToggleAnswer }: { onExit: () => void; answerOpen?: boolean; showAnswer?: boolean; nextDisabled?: boolean; nextLabel?: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void; onToggleAnswer?: () => void }) {
   return (
     <footer
       className="mock-reading-footer"
@@ -9055,7 +9178,7 @@ function ReadingFooter({ answerOpen = false, showAnswer = false, nextDisabled = 
         </div>
 
         <div className="mock-reading-footer-nav" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
-          <UtilityIcon icon={<LogOut size={21} />} />
+          <UtilityIcon icon={<LogOut size={21} />} label="Thoát bài thi" onClick={onExit} />
           <button
             type="button"
             onClick={onPrevious}
@@ -10237,7 +10360,7 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
   );
 }
 
-function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onOpenQuestionList, onPrevious, onNext }: { canPrevious: boolean; canNext?: boolean; showNext: boolean; nextLabel: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void }) {
+function SpeakingFooter({ onExit, canPrevious, canNext = true, showNext, nextLabel, onOpenQuestionList, onPrevious, onNext }: { onExit: () => void; canPrevious: boolean; canNext?: boolean; showNext: boolean; nextLabel: string; onOpenQuestionList?: () => void; onPrevious: () => void; onNext: () => void }) {
   return (
     <footer
       className="mock-speaking-footer"
@@ -10270,7 +10393,7 @@ function SpeakingFooter({ canPrevious, canNext = true, showNext, nextLabel, onOp
         </div>
 
         <div className="mock-speaking-footer-nav" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <UtilityIcon icon={<LogOut size={21} />} />
+          <UtilityIcon icon={<LogOut size={21} />} label="Thoát bài thi" onClick={onExit} />
           {canPrevious && (
             <button
               type="button"

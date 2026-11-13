@@ -13,6 +13,22 @@ import static org.mockito.Mockito.*;
 
 class MockTestServiceTest {
     @org.junit.jupiter.api.Test
+    void fullTestCsvRecognizesSectionAndExamPart() throws Exception {
+        MockTestRepository repository = mock(MockTestRepository.class);
+        when(repository.save(any(MockTest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        String csv = "section,exam_part,type,content,answer1,answer2,correct_index,audio_url\n"
+                + "Listening,Part 1,SINGLE_CHOICE,When?,Sunday,Friday,2,/audio.wav\n";
+        ObjectMapper mapper = new ObjectMapper();
+        var result = new MockTestService(repository, mapper).importCsv(new MockMultipartFile(
+                "file", "Full_Test_01_ALL.csv", "text/csv", csv.getBytes(StandardCharsets.UTF_8)));
+        var row = mapper.readTree(result.get(0).questionData()).get(0);
+        assertEquals("LISTENING", row.path("skill").asText());
+        assertEquals("1", row.path("part").asText());
+        assertEquals("/audio.wav", row.path("audioUrl").asText());
+        assertEquals("Friday", row.path("answer2").asText());
+    }
+
+    @org.junit.jupiter.api.Test
     void listeningQuestionImportPreservesCsvTypes() throws Exception {
         MockTestRepository repository = mock(MockTestRepository.class);
         when(repository.save(any(MockTest.class))).thenAnswer(invocation -> invocation.getArgument(0));

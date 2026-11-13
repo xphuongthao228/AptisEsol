@@ -1,6 +1,7 @@
 ﻿import { lazy } from 'react';
 import { createBrowserRouter, Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
+import { RouteError } from './RouteError';
 const Blog = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.Blog })));
 const BlogDetail = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.BlogDetail })));
 const LegacyBlogRedirect = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.LegacyBlogRedirect })));
@@ -48,7 +49,7 @@ import { SubscriptionGate } from './SubscriptionGate';
 
 export const router = createBrowserRouter([
   { path: '*', element: <main className="min-h-screen grid place-content-center gap-5 p-8 text-center"><h1 className="text-3xl font-bold">404 â€” Không tìm thấy trang</h1><p>Đường dẫn này không tồn tại hoặc đã được thay đổi.</p><Link to="/" className="btn-primary">Về trang chủ</Link></main> },
-  { path: '/', element: <AppLayout />, children: [
+  { path: '/', element: <AppLayout />, errorElement: <RouteError />, children: [
     { index: true, element: <Dashboard /> },
     { path: 'learning-materials', element: <Blog /> },
     { path: 'blog', element: <Navigate to="/learning-materials" replace /> },
@@ -61,7 +62,7 @@ export const router = createBrowserRouter([
   { path: '/register', element: <Register /> },
   { path: '/verify-email', element: <VerifyEmail /> },
   { path: '/oauth2/callback', element: <OAuth2Callback /> },
-  { path: '/app', element: <AppLayout />, children: [
+  { path: '/app', element: <AppLayout />, errorElement: <RouteError />, children: [
     { index: true, element: <Navigate to="/" replace /> },
     { path: 'ai-practice', element: <AiPracticeDashboard /> },
     { path: 'lessons', element: <Lessons /> },
@@ -144,7 +145,7 @@ export const router = createBrowserRouter([
   ] },
   {
     element: <ProtectedRoute role="ADMIN" />,
-    children: [{ path: '/admin', element: <AppLayout />, children: [
+    children: [{ path: '/admin', element: <AppLayout />, errorElement: <RouteError />, children: [
       { index: true, element: <AdminDashboard /> },
       { path: 'users', element: <AdminUsers /> },
       { path: 'content', element: <AdminContent /> },

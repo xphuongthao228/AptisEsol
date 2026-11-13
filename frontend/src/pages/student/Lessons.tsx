@@ -672,7 +672,7 @@ export function Lessons() {
         <ArrowLeft size={18} /> Quay lại luyện tập
       </Link>
 
-      <section className="lessons-halloween-hero mobile-page-heading relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#2c0b55_0%,#72204b_54%,#f97316_130%)] p-6 text-white shadow-soft sm:p-8">
+      <section className="tips-navy-hero lessons-halloween-hero mobile-page-heading relative overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#2c0b55_0%,#72204b_54%,#f97316_130%)] p-6 text-white shadow-soft sm:p-8">
         <div className="halloween-web halloween-web-left" aria-hidden="true" />
         <div className="halloween-web halloween-web-right" aria-hidden="true" />
         <span className="lessons-halloween-bat lessons-halloween-bat-one" aria-hidden="true" />

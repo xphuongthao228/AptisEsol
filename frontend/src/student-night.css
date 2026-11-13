@@ -73,6 +73,128 @@ html:root body .student-night :is(.dashboard-page, .dashboard-flag-zone, .dashbo
 
 html:root body .student-light { color-scheme: light; }
 
+/* Notification rows must not pick up the light hover utility. */
+html:root body .student-shell.student-night #header-notifications {
+  background: #122b4d !important;
+  border-color: #46678f !important;
+}
+
+html:root body .student-shell.student-night #header-notifications > div:first-child {
+  border-color: #46678f !important;
+}
+
+html:root body .student-shell.student-night #header-notifications .notification-menu-item {
+  background: transparent !important;
+}
+
+html:root body .student-shell.student-night #header-notifications .notification-menu-item[data-unread="true"] {
+  background: #1a3658 !important;
+}
+
+html:root body .student-shell.student-night #header-notifications .notification-menu-item:is(:hover, :focus-visible) {
+  background: #23466e !important;
+  outline-color: #ffcc95;
+}
+
+html:root body .student-shell.student-night #header-notifications :is(h2, h3) {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+}
+
+html:root body .student-shell.student-night #header-notifications p {
+  color: #cbd8ea !important;
+  -webkit-text-fill-color: #cbd8ea !important;
+}
+
+/* Override the legacy light account menu, including text fill and icons. */
+html:root body .student-shell.student-night .account-menu-panel {
+  background: #122b4d !important;
+  border-color: #46678f !important;
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+  box-shadow: 0 12px 32px #020b1c66 !important;
+}
+
+html:root body .student-shell.student-night .account-menu-panel > div {
+  border-color: #46678f !important;
+}
+
+html:root body .student-shell.student-night .account-menu-panel p,
+html:root body .student-shell.student-night .account-menu-panel .account-menu-link,
+html:root body .student-shell.student-night .account-menu-panel .account-menu-link :is(svg, span) {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+  text-shadow: none !important;
+}
+
+html:root body .student-shell.student-night .account-menu-panel p + p {
+  color: #b8c8de !important;
+  -webkit-text-fill-color: #b8c8de !important;
+}
+
+html:root body .student-shell.student-night .account-menu-panel .account-menu-logout,
+html:root body .student-shell.student-night .account-menu-panel .account-menu-logout :is(svg, span) {
+  color: #ff939b !important;
+  -webkit-text-fill-color: #ff939b !important;
+}
+
+html:root body .student-shell.student-night .account-menu-panel .account-menu-link:is(:hover, :focus-visible) {
+  background: #23466e !important;
+}
+
+html:root body .student-shell.student-night .account-menu-panel .account-menu-logout:is(:hover, :focus-visible) {
+  background: #472c43 !important;
+}
+
+/* Materials pages also have a light main surface and hero gradient. */
+html:root body .student-shell.student-night .material-blog-page {
+  background: transparent !important;
+  color: #f1f5ff !important;
+}
+
+html:root body .student-shell.student-night .material-blog-page .material-blog-hero {
+  background: linear-gradient(135deg, #193858, #122b4d) !important;
+  border-color: #46678f !important;
+}
+
+html:root body .student-shell.student-night :is(.material-blog-page, .material-blog-section) :is(.material-blog-card, article) {
+  background: #122b4d !important;
+  border-color: #46678f !important;
+}
+
+html:root body .student-shell.student-night .material-blog-page :is(h1, h3) {
+  color: #fff2da !important;
+  -webkit-text-fill-color: #fff2da !important;
+}
+
+html:root body .student-shell.student-night :is(.material-blog-page, .material-blog-section) :is(p.text-slate-600, p.text-slate-500) {
+  color: #cbd8ea !important;
+  -webkit-text-fill-color: #cbd8ea !important;
+}
+
+html:root body .student-shell.student-night .material-blog-page :is(.material-blog-search, select, option) {
+  background: #122b4d !important;
+  border-color: #46678f !important;
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+}
+
+html:root body .student-shell.student-night .material-blog-page .material-blog-search input {
+  background: transparent !important;
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+}
+
+html:root body .student-shell.student-night .material-blog-page .material-blog-search input::placeholder {
+  color: #b8c8de !important;
+  -webkit-text-fill-color: #b8c8de !important;
+  opacity: 1;
+}
+
+html:root body .student-shell.student-night .material-blog-page .material-blog-search:focus-within {
+  border-color: #ffcc95 !important;
+}
+
 html:root body .student-shell.student-night .material-blog-section {
   background: #0f2542 !important;
 }
@@ -394,3 +516,96 @@ html:root body .student-shell.student-night .student-decor-page .lesson-skill-se
   background: #63213c !important;
   border-color: #e78ba6;
 }
+
+/* Tips banner keeps one readable navy/gold palette across student themes. */
+html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero {
+  background: linear-gradient(135deg, #10243f, #193858) !important;
+  border: 1px solid #e7ba7033 !important;
+  color: #ffdda3 !important;
+  -webkit-text-fill-color: #ffdda3 !important;
+  box-shadow: 0 8px 24px #10243f1a !important;
+}
+html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero :is(h1, p, span, strong) {
+  color: #ffdda3 !important;
+  -webkit-text-fill-color: #ffdda3 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero .lesson-access-badge {
+  background: #ffffff0d !important;
+  border: 1px solid #e7ba7040 !important;
+  box-shadow: none !important;
+}
+html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero .lesson-access-badge svg { color: #ffdda3 !important; }
+html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero > [aria-hidden="true"],
+html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero::before,
+html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero::after { display: none !important; }
+@media (max-width: 639px) {
+  html:root body .student-shell .student-page-content .mobile-lessons-page .tips-navy-hero { padding: 20px 18px; border-radius: 20px; }
+  .tips-navy-hero .lessons-halloween-title { font-size: 23px; line-height: 1.3; }
+  .tips-navy-hero .lessons-halloween-subtitle { margin-top: 10px; font-size: 13px; line-height: 1.7; font-weight: 500; }
+  .tips-navy-hero .lesson-access-badge { padding: 14px; border-radius: 14px; }
+}
+/* Mock selection: consistent navy surfaces and warm, readable text in dark mode. */
+html:root body .student-shell.student-night .student-page-content .mock-tests-page { background: transparent !important; }
+html:root body .student-shell.student-night .mock-tests-page :is(.mock-selection-hero, .mock-selection-filters, .mock-selection-card) {
+  background: #122b4d !important;
+  border-color: #395574 !important;
+  color: #ffdda3 !important;
+  box-shadow: none !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-hero :is(h1, p),
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-card h2 {
+  color: #ffdda3 !important;
+  -webkit-text-fill-color: #ffdda3 !important;
+  text-shadow: none !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-hero .mock-selection-summary {
+  background: #0c213b !important; border-color: #395574 !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-summary > button,
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-card > button,
+html:root body .student-shell.student-night .mock-tests-page .mock-skill-tabs button[aria-pressed=true] {
+  background: #ffdda3 !important; border-color: #ffdda3 !important;
+  color: #122b4d !important; -webkit-text-fill-color: #122b4d !important; box-shadow: none !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-summary > button :is(span, svg) {
+  color: #122b4d !important; -webkit-text-fill-color: #122b4d !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-skill-tabs button:not([aria-pressed=true]),
+html:root body .student-shell.student-night .mock-tests-page .mock-filter-options label {
+  background: #0c213b !important; border-color: #55708e !important;
+  color: #ffdda3 !important; -webkit-text-fill-color: #ffdda3 !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-filter-options label[data-selected=true] {
+  background: #ffdda3 !important; border-color: #ffdda3 !important;
+  color: #122b4d !important; -webkit-text-fill-color: #122b4d !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-filters :is(p, .mock-filter-row > span),
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-card > p,
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-filters button {
+  color: #ccd8e8 !important; -webkit-text-fill-color: #ccd8e8 !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-card .mock-info-box {
+  background: #0c213b !important; border-color: #55708e !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-info-label {
+  color: #ccd8e8 !important; -webkit-text-fill-color: #ccd8e8 !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-info-value {
+  color: #ffdda3 !important; -webkit-text-fill-color: #ffdda3 !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-card > div:first-child > div:last-child > span {
+  background: #203b59 !important; color: #ffdda3 !important; -webkit-text-fill-color: #ffdda3 !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-card > div:first-child > div:first-child {
+  background: #203b59 !important; color: #ffdda3 !important;
+}
+html:root body .student-shell.student-night .mock-tests-page .mock-halloween-scene,
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-hero::before,
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-hero::after { display: none !important; }
+@media (max-width: 639px) {
+  html:root body .student-shell.student-night .mock-tests-page .mock-selection-hero .mock-selection-summary { background: transparent !important; }
+}
+html:root body .student-shell.student-night .mock-tests-select { background: transparent !important; }
+html:root body .student-shell.student-night .mock-tests-page .mock-selection-summary > button svg { stroke: #122b4d !important; }html:root body .student-shell.student-night .mock-tests-page .mock-selection-hero-content > div:first-child > p:first-child { background: #203b59 !important; }

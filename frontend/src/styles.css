@@ -10029,6 +10029,11 @@ html:root body .practice-runner-light-mode button.practice-reading-order-choice.
 }
 
 @media (min-width: 1024px) {
+  .mock-assessment-mode.mock-assessment-native {
+    zoom: 0.8;
+    min-height: calc(100vh / 0.8);
+  }
+
   .student-shell > main > .student-page-content {
     zoom: 0.92;
     max-width: 1200px;

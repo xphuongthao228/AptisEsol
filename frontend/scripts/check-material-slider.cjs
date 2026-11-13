@@ -49,9 +49,16 @@ let user = { id: 99002, email: 'materials@example.invalid', fullName: 'Admin', r
     assert.equal(await evaluate("document.querySelectorAll('.material-slider-item').length"),6);
     if(width>1000) assert.equal(await evaluate("(()=>{const t=document.querySelector('.material-slider-track');return Math.round((t.clientWidth+16)/(t.firstElementChild.getBoundingClientRect().width+16));})()"),4);
     assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'),'No page overflow');
+    assert.ok(await evaluate("document.querySelector('.material-slider-controls button:first-child').disabled"),'Previous arrow is disabled at the start');
     await evaluate("document.querySelector('.material-slider-controls button:last-child').click()");
     await waitFor("document.querySelector('.material-slider-track').scrollLeft > 20");
+    await waitFor("!document.querySelector('.material-slider-controls button:first-child').disabled");
+    await delay(500);
     fs.writeFileSync(path.join(output,'slider-'+width+'.png'),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
+    await evaluate("document.querySelector('.material-slider-controls button:first-child').click()");
+    await waitFor("document.querySelector('.material-slider-track').scrollLeft < 2");
+    await evaluate("(()=>{const t=document.querySelector('.material-slider-track');t.scrollTo({left:t.scrollWidth,behavior:'instant'});})()");
+    await waitFor("document.querySelector('.material-slider-controls button:last-child').disabled");
   }
   assert.deepEqual(errors,[]);
   console.log('Passed: four desktop cards, all six slides accessible, navigation scrolls, mobile fits viewport.');

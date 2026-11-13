@@ -29,6 +29,14 @@
 .learning-map-sign-aim { left: 4.65%; top: 49.65%; width: 3.7%; height: 4.4%; transform: rotate(-11deg); background: #b87594; color: white; font-size: 2.6cqw; }
 .learning-map-book-aim { left: 69.7%; top: 80.35%; width: 3.2%; height: 3.4%; transform: rotate(10deg) skewX(-10deg); background: #fdf6ff; color: #39066d; font-size: 2cqw; }
 .learning-map-image { display: block; width: 100%; height: auto; }
+@media (max-width: 639px) {
+  /* Keep the image and percentage-based stage links on the same full map. */
+  .learning-map { min-width: 0; width: 100%; }
+  .learning-map-scroll { overflow-x: hidden; }
+  .learning-map .learning-map-aim-title { font-size: 3cqw; border-radius: 4px; }
+  .learning-map .learning-map-current-label { font-size: 2cqw; padding: 1px 4px; bottom: -2px; }
+  .learning-map .learning-map-current-ring { border-width: 1.5px; }
+}
 .learning-map-aim-title { position: absolute; left: 7%; top: 10%; width: 26%; height: 7%; display: grid; place-items: center; border-radius: 10px; background: linear-gradient(#fff5fc, #f9d6f6); color: #960b9b; font-size: clamp(10px, 1.5vw, 24px); font-weight: 900; white-space: nowrap; pointer-events: none; }
 .learning-map-character-position { position: absolute; width: 12.8%; pointer-events: none; transform: translateX(-50%); transition: left 1s ease-in-out, top 1s ease-in-out; }
 .learning-map-floating-mascot { display: block; width: 100%; height: auto; pointer-events: none; animation: learning-mascot-bob 2.4s ease-in-out infinite; will-change: transform; }
@@ -56,6 +64,11 @@
 .learning-bottom-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: stretch; }
 .learning-support-button { position: fixed; right: 24px; bottom: 24px; z-index: 50; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 18px; border-radius: 999px; background: linear-gradient(110deg, #ef2028, #ff4949); box-shadow: 0 6px 16px #ef202835; color: #fff; font-size: 12px; font-weight: 800; transition: transform .15s, box-shadow .15s; }
 @media (max-width: 767px) { .learning-support-button { right: 16px; bottom: calc(90px + env(safe-area-inset-bottom, 0px)); } }
+@media (max-width: 639px) {
+  .learning-support-button { width: 44px; height: 44px; min-height: 44px; padding: 0; }
+  .learning-support-button .learning-support-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .learning-support-button .learning-support-dot { display: none; }
+}
 .learning-support-button:hover { transform: translateY(-2px); box-shadow: 0 8px 20px #ef202850; }
 .learning-support-button:focus-visible { outline: 3px solid #fb7185; outline-offset: 3px; }
 .learning-support-dot { width: 10px; height: 10px; border-radius: 50%; background: #ffffff38; }

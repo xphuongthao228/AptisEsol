@@ -16,6 +16,17 @@ import java.util.List;
 public class DiscountController {
  private final DiscountCodeRepository codes;
  private final DiscountService discounts;
+ private final com.example.aptis.service.PaymentService payments;
+ public record ApplyRequest(@NotBlank @Size(max=40) String code, @NotNull Integer days) {}
+ public record AppliedCode(String type, DiscountService.Quote quote, DiscountService.Redeemed gift) {}
+ @PostMapping("/apply") @PreAuthorize("isAuthenticated()")
+ public ApiResponse<AppliedCode> apply(org.springframework.security.core.Authentication auth, @Valid @RequestBody ApplyRequest request) {
+  String code = DiscountService.normalize(request.code());
+  boolean gift = codes.findByCode(code).map(item -> "PRO_DAYS".equals(item.getType())).orElse(false);
+  if (gift) return ApiResponse.ok(new AppliedCode("PRO_DAYS", null, discounts.redeem(auth.getName(), code)));
+  if (request.days() <= 0) throw new IllegalArgumentException("Chọn gói trả phí để áp dụng mã giảm giá hoặc mã giới thiệu.");
+  return ApiResponse.ok(new AppliedCode("PAYMENT", payments.quote(auth.getName(), request.days(), code), null));
+ }
  public record RedeemRequest(@NotBlank @Size(max=40) String code) {}
  @PostMapping("/redeem") @PreAuthorize("isAuthenticated()")
  public ApiResponse<DiscountService.Redeemed> redeem(org.springframework.security.core.Authentication auth,@Valid @RequestBody RedeemRequest request){return ApiResponse.ok(discounts.redeem(auth.getName(),request.code()));}

@@ -1,11 +1,13 @@
 ﻿import { ArrowRight, CheckCircle2, Copy, Loader2, QrCode, Sparkles, Star, UserCircle2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { PaymentOrder, SubscriptionResponse } from '../../types';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
+import './renewal-mobile.css';
 
 const premiumFeatures = [
   'Cập nhật đề thường xuyên',
@@ -84,18 +86,6 @@ export function Renewal() {
   const [fullName, setFullName] = useState(user?.fullName ?? '');
   const [selectedPackageId, setSelectedPackageId] = useState(packages[3].id);
   const [payment, setPayment] = useState<PaymentOrder | null>(null);
-  const [giftCode,setGiftCode]=useState('');
-  const [redeeming,setRedeeming]=useState(false);
-  async function redeemGift(){
-    setRedeeming(true);
-    try {
-      const gift=await unwrap<{days:number;expiresAt:string}>(api.post('/discounts/redeem',{code:giftCode}));
-      saveSubscriptionUntil(gift.expiresAt);
-      setServerSubscription(await unwrap<SubscriptionResponse>(api.get('/payments/subscription/me')));
-      setGiftCode('');toast.success('Đã nhận '+gift.days+' ngày Pro miễn phí!');
-    }catch(error:any){toast.error(error?.response?.data?.message ?? 'Không đổi được mã.');}
-    finally{setRedeeming(false);}
-  }
   const [discountInput, setDiscountInput] = useState('');
   const [availableDiscounts, setAvailableDiscounts] = useState<AvailableDiscount[]>([]);
   const [discountsLoading, setDiscountsLoading] = useState(true);
@@ -109,25 +99,46 @@ export function Renewal() {
   }
   useEffect(() => { void loadDiscounts(); }, []);
   function selectDiscount(code: string) {
+    if (applyLock.current) return;
     quoteVersion.current++;
     setApplying(false);
     setDiscountInput(code);
     setQuote(null);
     setPayment(null);
+    setGiftApplied(null);
   }
   const [quote, setQuote] = useState<{originalAmount:number; discountAmount:number; amount:number; discountCode:string|null} | null>(null);
   const [applying, setApplying] = useState(false);
+  const applyLock = useRef(false);
+  const [giftApplied, setGiftApplied] = useState<{code: string; days: number; expiresAt: string} | null>(null);
   const quoteVersion = useRef(0);
   async function applyDiscount() {
+    if (applyLock.current || creating || !discountInput.trim()) return;
+    applyLock.current = true;
     const version = ++quoteVersion.current;
     setApplying(true);
     setPayment(null);
     try {
-      const result = await unwrap<NonNullable<typeof quote>>(api.post('/payments/quote', {days:selectedPackage.days, discountCode:discountInput}));
-      if (version === quoteVersion.current) { setQuote(result); setPayment(null); toast.success('Đã cập nhật giá thanh toán.'); }
+      const result = await unwrap<
+        {type: 'PAYMENT'; quote: NonNullable<typeof quote>} |
+        {type: 'PRO_DAYS'; gift: {code: string; days: number; expiresAt: string}}
+      >(api.post('/discounts/apply', {days:selectedPackage.days, code:discountInput.trim()}));
+      if (result.type === 'PRO_DAYS') {
+        const gift = result.gift;
+        saveSubscriptionUntil(gift.expiresAt);
+        const currentUser = useAuthStore.getState().user;
+        if (currentUser) useAuthStore.getState().setUser({ ...currentUser, proExpiresAt: gift.expiresAt });
+        setServerSubscription({ active: true, proActive: true, expiresAt: gift.expiresAt, daysLeft: Math.max(0, Math.ceil((new Date(gift.expiresAt).getTime() - Date.now()) / 86400000)) });
+        setQuote(null);
+        setGiftApplied(gift);
+        setDiscountInput('');
+        toast.success(`Đã nhận ${gift.days} ngày Pro miễn phí!`);
+      } else if (version === quoteVersion.current) {
+        setGiftApplied(null); setQuote(result.quote); setPayment(null); toast.success('Đã cập nhật giá thanh toán.');
+      }
     } catch (error:any) {
       if (version === quoteVersion.current) { setQuote(null); toast.error(error?.response?.data?.message ?? 'Không áp dụng được mã.'); }
-    } finally { if (version === quoteVersion.current) setApplying(false); }
+    } finally { applyLock.current = false; if (version === quoteVersion.current) setApplying(false); }
   }
   const [creating, setCreating] = useState(false);
   const [checkingPayment, setCheckingPayment] = useState(false);
@@ -241,62 +252,84 @@ export function Renewal() {
     }
   }
 
+  function selectPackage(id: string) {
+    if (creating || applyLock.current) return;
+    quoteVersion.current++;
+    setApplying(false);
+    setQuote(null);
+    setSelectedPackageId(id);
+    setPayment(null);
+    setPaidHandled(false);
+  }
+
   return (
     <div className="renewal-page student-decor-page mx-auto max-w-[1260px] space-y-8">
       <section className="relative overflow-hidden rounded-[24px] border border-amber-200 bg-white px-3 py-3 shadow-soft sm:px-5 lg:px-6">
         <div className="absolute inset-x-0 top-0 h-24 bg-[linear-gradient(180deg,#eef6ff,transparent)]" />
-        <div className="relative text-center">
+        <div className="renewal-heading relative text-center">
           <div className="mx-auto mb-1.5 inline-flex items-center gap-2 rounded-full border border-brand-200 bg-white px-3.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-brand-700 shadow-soft">
             <Sparkles size={15} />
             Aptis Pro Access
           </div>
           <h1 className="text-[25px] font-extrabold leading-tight text-navy">
-            Đầu tư cho tương lai với Aptis Lingo
+            <span className="hidden sm:inline">Đầu tư cho tương lai với Aptis Lingo</span>
+            <span className="sm:hidden">Chọn gói học phù hợp</span>
           </h1>
           <p className="mx-auto mt-0.5 max-w-2xl text-xs font-medium leading-5 text-slate-700">
             Chọn gói học phù hợp với lịch ôn thi của bạn. Gói trả phí mở dự đoán đề và đề trọng điểm.
           </p>
         </div>
 
-        <div className="relative mt-3 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="renewal-mobile" role="group" aria-label="Chọn gói học">
+          <p className="renewal-mobile-hint">Chọn thời gian ôn tập của bạn</p>
+          <div className="renewal-mobile-options">
+            {packages.map(item => {
+              const selected = item.id === selectedPackageId;
+              return <button type="button" key={item.id} className="renewal-mobile-plan" aria-pressed={selected}
+                disabled={creating || applying} onClick={() => selectPackage(item.id)}>
+                <span className="renewal-mobile-check" aria-hidden="true">{selected && <CheckCircle2 size={20} />}</span>
+                <span className="renewal-mobile-plan-info">
+                  <span className="renewal-mobile-plan-title">{item.price === 0 ? 'Miễn phí' : item.label}
+                    {item.featured && <span className="renewal-mobile-popular">Phổ biến</span>}
+                  </span>
+                  <span className="renewal-mobile-plan-caption">{item.price === 0 ? '2 đề đầu mỗi kỹ năng & Full Test' : `${item.days} ngày truy cập Pro`}</span>
+                </span>
+                <span className="renewal-mobile-cost"><strong>{item.price === 0 ? '0đ' : `${formatMoney(item.price)}đ`}</strong>
+                  <small>{selected ? 'Đang chọn' : item.price === 0 ? 'Dùng thử' : 'Trọn gói'}</small>
+                </span>
+              </button>;
+            })}
+          </div>
+          <details className="renewal-mobile-benefits">
+            <summary>Quyền lợi gói {selectedPackage.label}<ChevronDown size={16} aria-hidden="true" /></summary>
+            <p>{selectedPackage.description}</p>
+            <ul>{selectedPackage.features.map(feature => <li key={feature}><CheckCircle2 size={14} aria-hidden="true" /><span>{feature}</span></li>)}</ul>
+          </details>
+        </div>
+
+        <div className="relative mt-3 hidden grid-cols-1 gap-2.5 sm:grid sm:grid-cols-2 lg:grid-cols-5">
           {packages.map((item) => (
             <PlanCard
               key={item.id}
               item={item}
               selected={selectedPackageId === item.id}
-              onSelect={() => {
-                if (creating) return;
-                quoteVersion.current++;
-                setApplying(false);
-                setQuote(null);
-                setSelectedPackageId(item.id);
-                setPayment(null);
-                setPaidHandled(false);
-              }}
+              onSelect={() => selectPackage(item.id)}
             />
           ))}
         </div>
 
-        <div className="mt-4 rounded-2xl border bg-white p-4">
-          <label htmlFor="pro-gift-code" className="mb-2 block font-bold">Đổi mã tặng ngày Pro</label>
-          <p className="mb-3 text-sm text-slate-600">Nhận Pro miễn phí, không cần thanh toán. Mỗi tài khoản dùng mỗi mã một lần.</p>
-          <div className="flex flex-wrap gap-2">
-            <input id="pro-gift-code" className="input sm:w-72" maxLength={40} placeholder="PRO1DAY" value={giftCode} disabled={redeeming} onChange={e=>setGiftCode(e.target.value)}/>
-            <button type="button" className="btn-primary" disabled={redeeming || !giftCode.trim()} onClick={redeemGift}>{redeeming?'Đang đổi mã...':'Nhận Pro miễn phí'}</button>
-          </div>
-        </div>
-        {!isFreeSelected && (
+        {
           <div className="renewal-discount-panel relative mt-4 flex flex-col gap-3 rounded-2xl border border-brand-100 bg-white p-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="min-w-0 flex-1">
-              <label htmlFor="discount-code" className="mb-2 block text-sm font-bold">Mã giảm giá / mã giới thiệu</label>
+              <label htmlFor="discount-code" className="mb-2 block text-sm font-bold">Mã giảm giá / mã giới thiệu / mã tặng ngày Pro</label>
               <div className="flex gap-2">
-                <input id="discount-code" className="input w-full sm:w-60" maxLength={40} placeholder="Nhập mã ưu đãi hoặc giới thiệu" value={discountInput}
-                  disabled={creating} onChange={e => selectDiscount(e.target.value)} />
+                <input id="discount-code" className="input w-full sm:w-60" maxLength={40} placeholder="Nhập mã ưu đãi, giới thiệu hoặc Pro" value={discountInput}
+                  disabled={creating || applying} onChange={e => selectDiscount(e.target.value)} />
                 <button type="button" className="renewal-discount-apply inline-flex items-center justify-center rounded-xl px-4 py-2 font-bold whitespace-nowrap disabled:cursor-not-allowed" disabled={applying || creating || !discountInput.trim()} onClick={applyDiscount}>{applying ? 'Đang kiểm tra...' : 'Áp dụng'}</button>
               </div>
               <div className="mt-3">
                 <label htmlFor="available-discount" className="mb-1.5 block text-sm font-semibold text-slate-600">Chọn mã ưu đãi có sẵn</label>
-                <select id="available-discount" className="input w-full" disabled={creating || discountsLoading || discountsError || availableDiscounts.length === 0}
+                <select id="available-discount" className="input w-full" disabled={creating || applying || discountsLoading || discountsError || availableDiscounts.length === 0}
                   value={availableDiscounts.some(item => item.code === discountInput) ? discountInput : ''}
                   onChange={event => selectDiscount(event.target.value)}>
                   <option value="">{discountsLoading ? 'Đang tải mã ưu đãi...' : discountsError ? 'Không tải được mã ưu đãi' : availableDiscounts.length === 0 ? 'Hiện chưa có mã ưu đãi' : 'Chọn mã giảm giá'}</option>
@@ -305,15 +338,16 @@ export function Renewal() {
                   </option>)}
                 </select>
                 {discountsError ? <button type="button" onClick={loadDiscounts} className="mt-1 text-sm text-brand-700 underline">Thử tải lại mã ưu đãi</button>
-                  : <p className="mt-1 text-xs text-slate-500">Chọn mã rồi nhấn Áp dụng. Mỗi lần thanh toán dùng một mã.</p>}
+                  : <p className="mt-1 text-xs text-slate-500">Mã tặng ngày Pro được kích hoạt ngay, không cần thanh toán. Mỗi tài khoản dùng mỗi mã một lần.</p>}
               </div>
             </div>
             <div className="text-sm sm:text-right" aria-live="polite">
+              {giftApplied && <p className="text-emerald-700">Đã nhận {giftApplied.days} ngày Pro miễn phí. Hạn đến {new Date(giftApplied.expiresAt).toLocaleDateString('vi-VN')}.</p>}
               {quote?.discountCode && <p className="text-emerald-600">Mã {quote.discountCode}: giảm {formatMoney(quote.discountAmount)}đ <span className="ml-2 text-slate-400 line-through">{formatMoney(quote.originalAmount)}đ</span></p>}
-              <p className="mt-1 text-lg font-extrabold">Cần thanh toán: {formatMoney(quote?.amount ?? selectedPackage.price)}đ</p>
+              {!isFreeSelected && !giftApplied && <p className="mt-1 text-lg font-extrabold">Cần thanh toán: {formatMoney(quote?.amount ?? selectedPackage.price)}đ</p>}
             </div>
           </div>
-        )}
+        }
         <div className="renewal-payment-summary relative mt-3 rounded-2xl border border-amber-200 bg-[#fffaf4] p-2.5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex items-center gap-3">

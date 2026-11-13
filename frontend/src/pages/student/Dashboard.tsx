@@ -1,4 +1,6 @@
 import { LearningRoadmap, SkillRadar } from './LearningRoadmap';
+import './overview-footer.css';
+import './community-invite.css';
 import { BlogSection } from './Blog';
 import { createPortal } from 'react-dom';
 import { dashboardSkillScores, placementTestUrl, type LearningGoal } from '../../utils/learningRoadmap';
@@ -191,9 +193,9 @@ export function Dashboard() {
       </div>
       </div>
       <ZaloContactButton />
-      <a href={zaloContactUrl} target="_blank" rel="noopener noreferrer" className="learning-support-button">
+      <a href={zaloContactUrl} target="_blank" rel="noopener noreferrer" className="learning-support-button" aria-label="Hỗ trợ học tập">
         <Headset size={17} aria-hidden="true" />
-        Hỗ Trợ Học Tập
+        <span className="learning-support-label">Hỗ Trợ Học Tập</span>
         <span className="learning-support-dot" aria-hidden="true" />
       </a>
     </>
@@ -271,7 +273,7 @@ function ZaloContactButton() {
     { href: zaloCommunityUrl2, label: 'Nhóm 2', description: 'Tham gia nhóm Zalo 2' }
   ];
   return (
-    <div ref={containerRef} className="fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-5 z-40 flex flex-col gap-4" aria-label="Liên hệ Zalo">
+    <div ref={containerRef} className="dashboard-zalo-contact fixed bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-5 z-40 flex flex-col gap-4" aria-label="Liên hệ Zalo">
     {isOpen && <div id="zalo-contact-options" className="flex flex-col gap-4">
     {contacts.map((contact) => (
     <a
@@ -841,7 +843,7 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
 
   return (
     <section
-      className={`dashboard-hero relative overflow-hidden ${hasBannerSlides ? 'min-h-[430px] bg-slate-100' : `bg-gradient-to-r ${slide.tone} px-4 py-6 sm:px-6 lg:px-10 lg:py-8`} transition-colors duration-700`}
+      className={`dashboard-hero relative overflow-hidden ${hasBannerSlides ? 'dashboard-hero-media min-h-[430px] bg-slate-100' : `bg-gradient-to-r ${slide.tone} px-4 py-6 sm:px-6 lg:px-10 lg:py-8`} transition-colors duration-700`}
       onMouseEnter={() => setSliderPaused(true)}
       onMouseLeave={() => setSliderPaused(false)}
     >
@@ -868,9 +870,9 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
         </div>
       )}
       {showNotifications && <DashboardNotificationPanel />}
-      <div className="relative mx-auto min-h-[430px] max-w-[1560px]">
+      <div className="dashboard-hero-frame relative mx-auto min-h-[430px] max-w-[1560px]">
         {hasBannerSlides ? (
-          <div key={activeSlide} className="absolute inset-0">
+          <div key={activeSlide} className="dashboard-banner-slide absolute inset-0">
             <img src={slide.imageUrl} alt={slide.imageAlt || ''} onError={handleBannerError} className={`dashboard-slide dashboard-slide-${slideDirection} absolute inset-0 h-full min-h-[430px] w-full object-cover`} />
             {slide.href && (slide.href.startsWith('/') ? (
               <Link to={slide.href} aria-label={`Xem chương trình: ${slide.imageAlt}`} className="absolute inset-0 z-10 rounded-[20px] focus-visible:outline focus-visible:outline-4 focus-visible:-outline-offset-4 focus-visible:outline-brand-500" />
@@ -911,7 +913,7 @@ function HeroSection({ showNotifications = true }: { showNotifications?: boolean
         </div>
         )}
 
-        <div className="absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+        <div className="dashboard-slide-controls absolute bottom-3 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
           {slides.map((item, index) => (
             <button
               type="button"
@@ -1082,7 +1084,7 @@ function dashboardNotificationLevelLabel(level: AppNotification['level']) {
 
 function StatsBanner() {
   return (
-    <section className="overflow-hidden rounded-[20px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_55%,#ffde00_100%)] px-4 py-12 text-white sm:px-6 lg:px-10">
+    <section className="dashboard-stats-banner overflow-hidden rounded-[20px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_55%,#ffde00_100%)] px-4 py-12 text-white sm:px-6 lg:px-10">
       <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-4 text-center md:grid-cols-4 md:divide-x md:divide-white/20">
         {stats.map(([value, label]) => (
           <div className="p-3" key={label}>
@@ -1393,20 +1395,35 @@ function HomeContactSection() {
 }
 
 function CommunityInviteModal({ onClose }: { onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-[70] grid place-items-center bg-slate-950/58 px-4 py-6 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="community-invite-title" onClick={onClose}>
-      <div className="community-invite-card relative w-full max-w-[480px] overflow-hidden rounded-[28px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_58%,#ffde00_100%)] px-5 py-6 text-center text-white shadow-[0_28px_90px_rgba(80,0,0,0.34)] sm:px-8 sm:py-7" onClick={(event) => event.stopPropagation()}>
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const previousFocus = document.activeElement as HTMLElement | null;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    closeRef.current?.focus({ preventScroll: true });
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKey);
+      previousFocus?.focus({ preventScroll: true });
+    };
+  }, [onClose]);
+  return createPortal(
+    <div className="community-invite-overlay fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/58 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="community-invite-title" onClick={onClose}>
+      <div className="community-invite-card relative min-w-0 w-full max-w-[480px] overflow-y-auto rounded-[28px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_58%,#ffde00_100%)] px-5 py-6 text-center text-white shadow-[0_28px_90px_rgba(80,0,0,0.34)] sm:px-8 sm:py-7" onClick={(event) => event.stopPropagation()}>
         <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:20px_20px]" />
         <div className="relative z-10">
           <button
+            ref={closeRef}
             type="button"
             onClick={onClose}
-            className="absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-full border-2 border-white/85 bg-white/5 text-white transition hover:bg-white/16 sm:h-12 sm:w-12"
+            className="community-invite-close absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-full border-2 border-white/85 bg-white/5 text-white transition hover:bg-white/16 sm:h-12 sm:w-12"
             aria-label="Đóng bảng cộng đồng"
           >
             <X size={26} strokeWidth={2.2} />
           </button>
-          <div className="mx-auto grid h-[92px] w-[92px] place-items-center rounded-full border border-white/10 bg-white/8 shadow-[inset_0_0_0_7px_rgba(255,255,255,0.05)]">
+          <div className="community-invite-emblem mx-auto grid h-[92px] w-[92px] place-items-center rounded-full border border-white/10 bg-white/8 shadow-[inset_0_0_0_7px_rgba(255,255,255,0.05)]">
             <div className="grid h-[68px] w-[68px] place-items-center rounded-full border border-white/10 bg-white/8">
               <Users size={34} strokeWidth={2.4} />
             </div>
@@ -1421,7 +1438,7 @@ function CommunityInviteModal({ onClose }: { onClose: () => void }) {
           <p className="mx-auto mt-5 max-w-[380px] text-lg font-extrabold leading-7 text-white sm:text-xl">
             Cập nhật tài liệu, hỏi bài và nhận nhắc nhở ôn tập trong cộng đồng Aptis Lingo.
           </p>
-          <div className="mx-auto mt-7 max-w-[392px] space-y-4">
+          <div className="community-invite-links mx-auto mt-7 max-w-[392px] space-y-4">
           <a href={facebookCommunityUrl} target="_blank" rel="noreferrer" onClick={onClose} className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-white px-5 text-base font-extrabold text-[#a50f15] shadow-[0_16px_36px_rgba(80,0,0,0.14)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(80,0,0,0.18)]">
             <span className="grid h-6 w-6 place-items-center rounded-full bg-[#d71920] text-sm font-black text-[#ffde00]">f</span>
             Cộng đồng Facebook
@@ -1443,7 +1460,8 @@ function CommunityInviteModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -1506,15 +1524,22 @@ function TestimonialsAndCta() {
 
 function OverviewFooter() {
   return (
-    <footer className="border-t-4 border-brand-500 bg-[#5f0b0f] px-4 py-12 text-white sm:px-6 lg:px-10">
-      <div className="mx-auto grid max-w-[1280px] gap-8 md:grid-cols-3">
-        <div>
-          <h2 className="text-2xl font-extrabold">Aptis Lingo</h2>
-          <p className="mt-4 text-sm font-medium leading-7 text-slate-300">
+    <footer className="overview-footer">
+      <div className="overview-footer-grid">
+        <div className="overview-footer-brand">
+          <Link to="/" className="overview-footer-wordmark"><span aria-hidden="true"><GraduationCap size={23} /></span>Aptis Lingo</Link>
+          <p className="overview-footer-description">
             Nơi luyện thi Aptis theo kỹ năng, mô phỏng phòng thi thật và AI chấm bài.
           </p>
+          <Link to="/app/contact" className="overview-footer-contact"><Headset size={15} aria-hidden="true" /> Liên hệ hỗ trợ <ArrowRight size={14} aria-hidden="true" /></Link>
         </div>
-        <FooterColumn title="Luyện tập" links={['Grammar & Vocab', 'Reading', 'Listening', 'Speaking', 'Writing']} />
+        <FooterColumn title="Luyện tập" links={[
+          { label: 'Grammar & Vocab', to: '/app/tests/parts?skill=GRAMMAR' },
+          { label: 'Reading', to: '/app/tests/parts?skill=READING' },
+          { label: 'Listening', to: '/app/tests/parts?skill=LISTENING' },
+          { label: 'Speaking', to: '/app/tests/parts?skill=SPEAKING' },
+          { label: 'Writing', to: '/app/tests/parts?skill=WRITING' }
+        ]} />
         <FooterColumn title="Tính năng" links={[
           { label: 'Luyện đề Aptis', to: '/app/mock-tests' },
           { label: 'Luyện theo kĩ năng', to: '/app/tests/parts' },
@@ -1522,29 +1547,24 @@ function OverviewFooter() {
           { label: 'Mẹo thi', to: '/app/lessons' }
         ]} />
       </div>
-      <div className="mx-auto mt-10 flex max-w-[1280px] flex-col gap-3 border-t border-white/10 pt-5 text-sm font-medium text-slate-500 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex gap-4">
+      <div className="overview-footer-bottom">
+        <div className="overview-footer-policies">
           <span>Về chúng tôi</span>
           <span>Điều khoản sử dụng</span>
           <span>Chính sách bảo mật</span>
         </div>
+        <p>© Aptis Lingo</p>
       </div>
     </footer>
   );
 }
 
-function FooterColumn({ title, links }: { title: string; links: Array<string | { label: string; to: string }> }) {
+function FooterColumn({ title, links }: { title: string; links: Array<{ label: string; to: string }> }) {
   return (
-    <div>
-      <h3 className="text-xs font-extrabold uppercase tracking-[0.18em] text-brand-100">{title}</h3>
-      <div className="mt-4 space-y-3">
-        {links.map((link) => typeof link === 'string' ? (
-          <p className="text-sm font-medium text-slate-300" key={link}>{link}</p>
-        ) : (
-          <Link to={link.to} className="block w-fit rounded text-sm font-medium text-slate-300 transition hover:text-white hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white" key={link.label}>{link.label}</Link>
-        ))}
-      </div>
-    </div>
+    <nav className="overview-footer-column" aria-label={title}>
+      <h3>{title}</h3>
+      <ul>{links.map(link => <li key={link.label}><Link to={link.to}>{link.label}</Link></li>)}</ul>
+    </nav>
   );
 }
 

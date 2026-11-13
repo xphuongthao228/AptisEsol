@@ -1,0 +1,70 @@
+[
+  {
+    "name": "mock-tests",
+    "width": 390,
+    "title": "Thi thử Aptis",
+    "scrollWidth": 390,
+    "nav": "grid",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  },
+  {
+    "name": "mock-tests",
+    "width": 320,
+    "title": "Thi thử Aptis",
+    "scrollWidth": 320,
+    "nav": "grid",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  },
+  {
+    "name": "mock-tests",
+    "width": 430,
+    "title": "Thi thử Aptis",
+    "scrollWidth": 430,
+    "nav": "grid",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  },
+  {
+    "name": "mock-tests",
+    "width": 1366,
+    "title": "Thi thử Aptis",
+    "scrollWidth": 1351,
+    "nav": "none",
+    "active": [
+      "Thi thử"
+    ],
+    "buttons": [
+      "Vào đề",
+      "Vào đề",
+      "Mở khóa Pro",
+      "Mở khóa Pro",
+      "Mở khóa Pro"
+    ]
+  }
+]

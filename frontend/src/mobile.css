@@ -1,10 +1,28 @@
 /* Mobile presentation inspired by the supplied Stitch screens. */
 .mobile-bottom-nav { display: none; }
 
+html:root body .student-shell .practice-selection-hero {
+  background: linear-gradient(135deg, #10243f, #193858) !important;
+  color: #ffdda3 !important;
+  border: 1px solid #e7ba7033;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px #10243f1a;
+}
+html:root body .student-shell .practice-selection-hero :is(h1, p, a) {
+  color: #ffdda3 !important;
+  -webkit-text-fill-color: #ffdda3 !important;
+  text-shadow: none !important;
+}
+html:root body .student-shell .practice-selection-hero > .halloween-scene,
+html:root body .student-shell .practice-selection-hero::before,
+html:root body .student-shell .practice-selection-hero::after { display: none !important; }
+
 @media (max-width: 639px) {
   html,
   body,
   #root {
+    width: 100%;
+    min-width: 0;
     max-width: 100%;
     overflow-x: hidden;
     min-height: 100%;
@@ -68,7 +86,8 @@
     -webkit-backdrop-filter: none !important;
     backdrop-filter: none !important;
     will-change: auto !important;
-    contain: paint;
+    /* Header popovers must remain visible and tappable below the header. */
+    contain: none;
   }
 
   html[data-student-skin="halloween"] .student-shell > header,
@@ -99,6 +118,12 @@
     scroll-behavior: auto !important;
   }
   .student-shell > header > div:first-child { height: 62px; padding: 0 14px; gap: 6px; }
+  .student-shell > header > div:first-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; width: 100%; box-sizing: border-box; }
+  .student-shell > header .header-brand { min-width: 0; max-width: 100%; overflow: hidden; }
+  .student-shell > header .header-brand .mobile-wordmark { max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: clamp(16px, 5vw, 20px); }
+  .student-shell > header .header-actions { min-width: 0; gap: 4px; }
+  .student-shell > header .header-actions > button { width: 34px; height: 36px; }
+  .student-shell > header .mobile-sign-in { padding: 8px 10px; font-size: 11px; line-height: 18px; white-space: nowrap; }
   .student-shell .mobile-wordmark { display: inline; max-width: min(38vw, 132px); font-size: 20px; color: var(--mobile-red); letter-spacing: 0; }
   .student-shell > header > div:first-child > a > span:first-child { display: none; }
   .student-shell .mobile-menu-panel { max-height: calc(100dvh - 160px); overflow-y: auto; overscroll-behavior: contain; }
@@ -159,6 +184,26 @@
   .mock-skill-tabs::-webkit-scrollbar { display: none; }
   .mobile-mock-page .mock-skill-tabs button { width: 100%; height: 40px; padding: 0 10px; border-radius: 20px; white-space: nowrap; font-size: 12px; box-shadow: none; }
   .mobile-mock-page .mock-skill-tabs button[aria-pressed=true] { background: var(--mobile-red); color: white; border-color: var(--mobile-red); }
+  .mobile-mock-page .mock-selection-hero { position: relative; padding: 16px 14px; }
+  .mobile-mock-page .mock-selection-hero .mock-selection-hero-content { display: block; }
+  .mobile-mock-page .mock-selection-hero .mock-selection-hero-content > div:first-child > p:first-child { display: none; }
+  .mobile-mock-page .mock-selection-hero h1 { margin: 0; padding-right: 100px; font-size: 20px; line-height: 1.4; }
+  .mobile-mock-page .mock-selection-hero p.text-lg { margin-top: 8px; font-size: 12px; line-height: 1.6; }
+  .mobile-mock-page .mock-selection-hero p.text-sm { margin-top: 6px; font-size: 11px; }
+  .mobile-mock-page .mock-selection-hero .mock-selection-hero-content .mock-selection-summary { position: absolute; top: 0; right: 0; width: auto; padding: 0; border: 0; background: transparent; }
+  .mobile-mock-page .mock-selection-summary > p { display: none; }
+  .mobile-mock-page .mock-selection-summary > button { height: 34px; width: auto; margin: 0; padding: 0 12px; border-radius: 10px; font-size: 12px; background: var(--mobile-red); box-shadow: none; }
+  .mobile-mock-page .mock-selection-summary > button svg { width: 14px; height: 14px; }
+  .mobile-mock-page .mock-skill-tabs { margin-top: 12px; gap: 6px; }
+  .mobile-mock-page .mock-skill-tabs button { height: 34px; font-size: 11px; }
+  .mobile-mock-page .mock-selection-filters { width: 100%; margin-top: 10px; padding: 10px; gap: 7px; border: 1px solid var(--mobile-border); border-radius: 14px; }
+  .mock-selection-filters fieldset { width: 100%; }
+  .mock-selection-filters .mock-filter-row { gap: 6px; }
+  .mock-selection-filters .mock-filter-row > span { width: 54px; flex-shrink: 0; font-size: 11px; white-space: nowrap; }
+  .mock-selection-filters .mock-filter-options { gap: 3px; }
+  .mock-selection-filters .mock-filter-options label { min-height: 28px; padding: 3px 5px; font-size: 10px; line-height: 20px; white-space: nowrap; }
+  .mock-selection-filters > div { font-size: 10px; }
+  .mobile-mock-page .mock-selection-results { margin-top: 12px; gap: 12px; }
   .mobile-mock-page .mock-selection-card { border: 1px solid var(--mobile-border); border-radius: 16px; padding: 19px; box-shadow: 0 3px 12px rgb(30 40 70 / 2%); }
   .mock-selection-card > div:first-child > div:first-child { width: 42px; height: 42px; border-radius: 10px; }
   .mock-selection-card h2 { margin-top: 16px; font-size: 18px; line-height: 1.35; }
@@ -173,6 +218,9 @@
   .mock-selection-card > button { margin-top: 18px; background: var(--mobile-red); border-radius: 10px; }
 
   /* Practice uses the existing skill selection and real part counts. */
+  html:root body .student-shell .practice-selection-hero { padding: 20px 18px; }
+  html:root body .student-shell .practice-selection-hero h1 { margin-top: 0; font-size: 23px; line-height: 1.3; }
+  html:root body .student-shell .practice-selection-hero p { margin-top: 8px; font-size: 13px; line-height: 1.7; }
   .parts-skill-selector { display: grid; grid-template-columns: 1fr; gap: 12px; }
   .parts-skill-selector > button { width: 100%; min-height: 76px; height: auto; padding: 13px; gap: 12px; border: 1px solid var(--mobile-border); background: var(--mobile-surface); color: var(--mobile-text); text-align: left; border-radius: 15px; box-shadow: 0 2px 4px rgb(25 40 70 / 4%); }
   .parts-skill-selector > button[aria-pressed=true] { border-color: #d67c83; background: #fff8f6; color: var(--mobile-text); }
@@ -196,7 +244,15 @@
   .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-label,
   .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-label small,
   .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-chevron {
-    color: #7f1d1d !important;
+    color: #193858 !important;
+  }
+  .student-shell .parts-skill-selector > button[aria-pressed=true] { background: #ffffff; border-color: #93a9be; box-shadow: 0 2px 8px #1938580a; }
+  .student-shell .parts-skill-selector > button[aria-pressed=true] .parts-skill-icon { color: #193858 !important; background: #edf3f8; }
+  html:root body .student-shell .mobile-parts-page .parts-skill-selector > button[aria-pressed=true] {
+    background: #ffffff !important;
+    border-color: #93a9be !important;
+    color: #193858 !important;
+    box-shadow: 0 2px 8px #1938580a !important;
   }
 
   /* Lesson/tip screens retain actual resources instead of example progress. */
@@ -226,7 +282,39 @@
   .mobile-tips-page > div > section a { min-height: 48px; font-size: 14px; padding: 12px; }
 
   .student-shell .dashboard-page { margin: 0 auto; background: #fff8f2; }
+  .student-shell > main,
+  .student-shell > main > div,
+  .student-shell .dashboard-page,
+  .student-shell .dashboard-flag-zone { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; }
+  .student-shell .dashboard-stats-banner { width: 100%; max-width: 100%; padding: 28px 12px; }
+  .dashboard-stats-banner > div { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px 8px; }
+  .dashboard-stats-banner > div > div { min-width: 0; padding: 8px 4px; }
+  .dashboard-stats-banner p:first-child { font-size: 32px; line-height: 1.2; }
+  .dashboard-stats-banner p + p { font-size: 10px; line-height: 1.5; letter-spacing: .1em; overflow-wrap: normal; }
+  .student-shell .dashboard-page .dashboard-feature-section h2 { max-width: 100%; font-size: 22px; line-height: 1.35; }
   .student-shell .dashboard-hero { min-height: 0; padding: 24px 14px 30px; background: #fff8f2; }
+  .student-shell .dashboard-hero-media { padding: 0; }
+  .student-shell .dashboard-zalo-contact { left: 14px; bottom: calc(90px + env(safe-area-inset-bottom)); }
+  .dashboard-zalo-contact > button { width: 44px; height: 44px; }
+  .dashboard-zalo-contact > button svg { width: 32px; height: 32px; }
+  .dashboard-hero-media .dashboard-hero-frame { min-height: 0; }
+  .dashboard-hero-media .dashboard-banner-slide { position: relative; }
+  .dashboard-hero-media .dashboard-banner-slide img {
+    position: static;
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    object-fit: contain;
+  }
+  .dashboard-hero-media .dashboard-banner-decor { display: none; }
+  .dashboard-hero-media .dashboard-slide-controls {
+    position: relative;
+    inset: auto;
+    transform: none;
+    justify-content: center;
+    padding: 8px;
+  }
   .dashboard-hero > .relative.grid { min-height: 0; gap: 24px; }
   .student-shell .dashboard-hero h1 { font-size: clamp(30px, 9vw, 36px); line-height: 1.08; max-width: 100%; letter-spacing: 0; }
   .student-shell .dashboard-hero h1 span { color: var(--mobile-red); }
@@ -244,6 +332,8 @@
 }
 
 @media (max-width: 359px) {
+  .student-shell .dashboard-zalo-contact { bottom: calc(134px + env(safe-area-inset-bottom)); }
+  .student-shell .learning-support-button { bottom: calc(134px + env(safe-area-inset-bottom)); }
   .student-shell > header > div:first-child { padding: 0 10px; }
   .student-shell > main { padding-bottom: calc(142px + env(safe-area-inset-bottom)); }
   .student-shell > main > div { padding-left: 10px; padding-right: 10px; }
@@ -261,7 +351,7 @@
   html.dark .student-shell { --mobile-surface: #ffffff; --mobile-background: #fff8f2; --mobile-text: #3b0a0a; --mobile-muted: #64748b; --mobile-border: #fee2e2; --mobile-red: #d71920; }
   html.dark .student-shell .mobile-page-heading, html.dark .student-shell > header, html.dark .mobile-mock-page { background: var(--mobile-background); }
   html.dark .student-shell .mock-selection-hero, html.dark .student-shell .parts-skill-selector > button, html.dark .student-shell .mock-selection-card > .grid > div { background: var(--mobile-surface); border-color: var(--mobile-border); }
-  html.dark .student-shell .parts-skill-selector > button[aria-pressed=true] { border-color: #d71920; }
+  html.dark .student-shell .parts-skill-selector > button[aria-pressed=true] { border-color: #93a9be; background: #ffffff; }
   html.dark .student-shell .dashboard-hero, html.dark .student-shell .dashboard-why-section, html.dark .student-shell .dashboard-testimonials-section { background: var(--mobile-background); }
   html.dark .student-shell .btn-primary, html.dark .mock-selection-card > button, html.dark .mobile-mock-page .mock-skill-tabs button[aria-pressed=true] { background: #d71920; color: white; }
 }
