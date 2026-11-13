@@ -228,7 +228,7 @@ export function Tests() {
 export function TestPartMenu() {
   const isCompleted = usePracticeCompleted();
   const requireLogin = useRequireLogin();
-  const partSkills = skillCards.filter((skill) => skill.type !== 'GRAMMAR');
+  const partSkills = skillCards;
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedSkillType, setSelectedSkillType] = useState<SkillType>(() => {
     const skillFromUrl = normalizeParam(searchParams.get('skill') ?? undefined);
@@ -315,18 +315,33 @@ export function TestPartMenu() {
               </p>
             </div>
           </div>
-          <button
+          {partGuides[selectedSkill.type] && <button
             type="button"
             onClick={() => setGuideSkill(selectedSkill.type)}
             className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-xl border border-brand-600 bg-white px-5 text-sm font-extrabold text-brand-600 transition hover:bg-brand-50"
           >
             <Lightbulb size={18} />
             Hướng dẫn cách học
-          </button>
+          </button>}
         </div>
       </section>
 
-      {isWritingSelected ? (
+      {selectedSkill.type === 'GRAMMAR' ? (
+        loading ? <InfoCard>Đang tải bài luyện Grammar...</InfoCard> : selectedPracticeTests.length ? (
+          <section className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+            {selectedPracticeTests.map(test => (
+              <Link key={test.id} to={`/app/tests/${test.id}`} state={{ returnTo: '/app/tests/parts?skill=GRAMMAR' }} onClick={requireLogin} className={partsCardLinkClass}>
+                <div className={`mb-5 grid h-14 w-14 place-items-center rounded-2xl ${selectedSkill.accent}`}><SpellCheck /></div>
+                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-slate-500">Grammar</p>
+                <h2 className="mt-1 text-2xl font-extrabold text-navy">{test.title}</h2>
+                {isCompleted((selectedPracticeGroups ?? []).find(group => group.test.id === test.id)?.questions ?? []) && <CompletedBadge />}
+                <p className="mt-2 text-sm text-slate-600">{test.questionCount ?? 0} câu hỏi</p>
+                <span className={partsPrimaryActionClass}>Bắt đầu <ArrowRight size={17} /></span>
+              </Link>
+            ))}
+          </section>
+        ) : <InfoCard>Chưa có bài luyện Grammar. Hãy import bài Grammar trong Admin.</InfoCard>
+      ) : isWritingSelected ? (
         writingLoading || loading ? (
           <InfoCard>Đang tải chủ đề Writing...</InfoCard>
         ) : writingTopics.length ? (
@@ -456,7 +471,7 @@ export function TestPartMenu() {
                 style={{ color: textColor, textShadow: 'none' }}
               >
                 <span className="parts-skill-icon" style={{ color: textColor }}>{skill.icon}</span>
-                <span className="parts-skill-label" style={{ color: textColor }}>{skill.title}<small className="sm:hidden" style={{ color: textColor }}>{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
+                <span className="parts-skill-label" style={{ color: textColor }}>{skill.title}<small className="sm:hidden" style={{ color: textColor }}>{skill.type === 'WRITING' ? 'Luyện tập theo chủ đề' : skill.type === 'GRAMMAR' ? 'Ngữ pháp và từ vựng' : `${partsForSkill(skill.type).length} phần luyện tập`}</small></span>
                 <ChevronDown className={`parts-skill-chevron sm:hidden transition-transform ${isMobileMenu && active ? 'rotate-180' : ''}`} size={20} style={{ color: textColor }} />
               </button>
               {isMobileMenu && active && <div id={`practice-parts-${skill.type}`} role="region" aria-label={`Bài luyện ${skill.title}`} className="min-w-0 rounded-2xl border border-brand-100 bg-white/70 p-3">{selectionPanel}</div>}

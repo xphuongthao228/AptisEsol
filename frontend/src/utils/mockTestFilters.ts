@@ -1,6 +1,14 @@
 import type { MockTestResult, Submission } from '../types';
 
 export type MockPriority = 'IMPORTANT' | 'NOTABLE' | 'REFERENCE';
+
+export function selectFreePlacementCard<T extends { skill: string; ready: boolean; accessible?: boolean; accessOrder?: number; title: string }>(
+  cards: T[], hasFullData: (card: T) => boolean
+): T | null {
+  return cards.filter(card => card.skill === 'FULL' && card.ready && card.accessible === true
+    && card.accessOrder != null && card.accessOrder >= 1 && card.accessOrder <= 2 && hasFullData(card))
+    .sort((a, b) => a.accessOrder! - b.accessOrder! || a.title.localeCompare(b.title, undefined, { numeric: true }))[0] ?? null;
+}
 export const mockPriorityLabels: Record<MockPriority, string> = {
   IMPORTANT: 'Quan trọng', NOTABLE: 'Đáng chú ý', REFERENCE: 'Tham khảo'
 };

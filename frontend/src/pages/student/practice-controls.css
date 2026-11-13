@@ -1,3 +1,24 @@
+.practice-grammar-mode .practice-bottom-bar {
+  border-top: 2px solid #2b075c;
+  padding: 16px 24px;
+  background: white;
+}
+.practice-grammar-mode .practice-bottom-bar .btn-primary {
+  background: #2b075c;
+  border-color: #2b075c;
+}
+.practice-grammar-mode .mock-grammar-header {
+  grid-template-columns: 1fr auto !important;
+}
+.practice-grammar-mode .practice-grammar-reveal button {
+  box-shadow: 0 2px 6px #0f172a12;
+}
+@media (max-width: 639px) {
+  .practice-grammar-mode .mock-grammar-header { gap: 12px !important; }
+  .practice-grammar-mode .mock-grammar-actions { padding-top: 0 !important; }
+  .practice-grammar-mode .mock-grammar-card { padding: 18px !important; }
+}
+
 /* Larger controls for the desktop practice screen. */
 @media (min-width: 768px) {
   .practice-runner-light-mode button:not(.question-navigator button) {

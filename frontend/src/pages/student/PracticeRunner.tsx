@@ -15,7 +15,7 @@ import { sanitizeAnswerHtml } from '../../utils/safeHtml';
 import { formatListeningReview } from '../../utils/listeningReview';
 import { getListeningPersonEvidence, getListeningScriptVietnamese } from '../../utils/listeningEvidence';
 import { savePracticeCompletion } from '../../utils/learningRoadmap';
-import { WritingCheckingResult, type AiWritingScore } from './MockTests';
+import { GrammarQuestion, GrammarTopbar, WritingCheckingResult, type AiWritingScore, type GrammarQuestionItem } from './MockTests';
 
 const PracticeQuestionContext = createContext<number | null>(null);
 
@@ -874,6 +874,24 @@ function PartPracticeRunner({ storageKey }: { storageKey: string }) {
           <button type="button" onClick={() => navigate(exitTarget)} className="mt-4 text-sm font-semibold text-slate-500">Quay lại</button>
         </section>
       </main>
+    );
+  }
+
+  if (mergedTemplateData && isGrammarTemplate(mergedTemplateData) && activeQuestion) {
+    return (
+      <div className="practice-grammar-mode mock-assessment-mode mock-assessment-native min-h-screen bg-[#f1f1f1] text-[#040817]">
+        <GrammarTopbar onExit={exitRunner} />
+        <PracticeGrammarQuestion
+          key={activeQuestion.id}
+          data={mergedTemplateData}
+          index={currentIndex}
+          total={totalQuestions}
+          value={answers[activeQuestion.id] ?? ''}
+          checked={activeChecked}
+          onChange={value => setAnswers({ ...answers, [activeQuestion.id]: value })}
+        />
+        <RunnerBottomBar currentIndex={currentIndex} totalQuestions={totalQuestions} onBack={goBack} onReset={resetCurrentQuestion} onCheck={checkCurrentQuestion} onNext={goNext} />
+      </div>
     );
   }
 
@@ -2475,6 +2493,52 @@ function getGrammarCorrectAnswers(data: TemplateData): string[] {
   return (data.rows ?? [])
     .map((row: any) => row?.correctAnswer ?? row?.correct ?? '')
     .filter(Boolean);
+}
+
+function PracticeGrammarQuestion({ data, index, total, value, checked, onChange }: {
+  data: TemplateData; index: number; total: number; value: string; checked?: boolean; onChange: (value: string) => void;
+}) {
+  const [bookmarked, setBookmarked] = useState(false);
+  const [showAnswer, setShowAnswer] = useState(false);
+  let saved: Record<string, string> = {};
+  try { saved = value ? JSON.parse(value) : {}; } catch { /* Start with an empty answer. */ }
+  const correct = getGrammarCorrectAnswers(data);
+  const rows = data.rows ?? [];
+  const question: GrammarQuestionItem = {
+    prompt: data.prompt,
+    options: data.options ?? [],
+    answer: correct[0],
+    ...(data.template === 'GRAMMAR_MATCH' ? { matchRows: rows.map((row: any, i: number) => ({ word: String(row.label ?? ''), answer: correct[i] ?? '' })) } : {}),
+    ...(data.template === 'GRAMMAR_GAP_SELECT' ? { sentenceRows: rows.map((row: any, i: number) => ({ before: String(row.start ?? ''), after: String(row.end ?? ''), answer: correct[i] ?? '' })) } : {})
+  };
+  const questionNumber = Number(data.questionNumber ?? index + 1);
+  const kind = String(data.type ?? '').toLowerCase();
+  if (data.template === 'GRAMMAR_MATCH' && (questionNumber === 27 || questionNumber === 28 || kind.includes('definition'))) {
+    delete question.matchRows;
+    question.definitionMode = 'matching';
+    question.definitionRows = rows.map((row: any, i: number) => ({
+      definition: [row.start, row.label ?? row.definition, row.end].filter(Boolean).join(' '),
+      answer: correct[i] ?? ''
+    }));
+  } else if (data.template === 'GRAMMAR_MATCH' && (questionNumber === 30 || kind.includes('collocation'))) {
+    question.collocationRows = question.matchRows;
+    delete question.matchRows;
+  }
+  const keys = question.definitionRows?.map(row => row.definition)
+    ?? rows.map((row: any) => String(data.template === 'GRAMMAR_MATCH' ? row.label ?? '' : row.start ?? ''));
+  const answer = data.template === 'GRAMMAR_CHOICE' ? saved.choice : JSON.stringify(Object.fromEntries(keys.map((key: string, i: number) => [key, saved[`grammar${i}`] ?? ''])));
+  return <>
+    <GrammarQuestion practiceMode index={index} total={total} question={question} answer={answer} showAnswer={checked !== undefined || showAnswer} timeRemaining="" bookmarkActive={bookmarked} onToggleBookmark={() => setBookmarked(current => !current)} onAnswer={next => {
+      if (data.template === 'GRAMMAR_CHOICE') onChange(JSON.stringify({ ...saved, choice: next }));
+      else {
+        const selected = JSON.parse(next) as Record<string, string>;
+        onChange(JSON.stringify({ ...saved, ...Object.fromEntries(keys.map((key: string, i: number) => [`grammar${i}`, selected[key] ?? ''])) }));
+      }
+    }} />
+    <div className="practice-grammar-reveal fixed bottom-28 left-6 z-40 sm:bottom-24">
+      <button type="button" onClick={() => setShowAnswer(current => !current)} className="rounded-full border border-slate-300 bg-white px-5 py-2 text-sm font-bold">{showAnswer ? 'Ẩn đáp án' : 'Hiện đáp án'}</button>
+    </div>
+  </>;
 }
 
 function getReadingOrderDisplaySentences(data: TemplateData): string[] {

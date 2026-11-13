@@ -46,7 +46,7 @@ import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { MockTestResult, Submission, Question, SubscriptionResponse, Test } from '../../types';
-import { hasCompletedMockCard, mockCardPriority, mockPriorityLabels, type MockPriority } from '../../utils/mockTestFilters';
+import { hasCompletedMockCard, mockCardPriority, mockPriorityLabels, selectFreePlacementCard, type MockPriority } from '../../utils/mockTestFilters';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 import { repairUserText } from '../../utils/textRepair';
 import './mock-light.css';
@@ -283,7 +283,7 @@ const emptyReadingTestData: ReadingTestData = {
   long: { title: '', headings: [], paragraphs: [], correctAnswers: [] }
 };
 
-type GrammarQuestionItem = {
+export type GrammarQuestionItem = {
   prompt?: string;
   options: string[];
   answer?: string;
@@ -3642,7 +3642,8 @@ export function MockTests() {
           const examCards = await apiExamTestsToCards(tests);
           const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
-          card = cards.find((item) => item.id === selectedMockId) ?? null;
+          card = roadmapAssessment ? selectFreePlacementCard(cards, hasFullAssessmentData)
+            : cards.find((item) => item.id === selectedMockId) ?? null;
         } else if (selectedTestId && !isFullMock) {
           card = apiExamTestToCard(await unwrap<Test>(api.get(`/tests/${selectedTestId}`)));
         } else {
@@ -3654,12 +3655,12 @@ export function MockTests() {
           const examCards = await apiExamTestsToCards(tests);
           const localCards: MockCard[] = [];
           const cards = buildImportedMockCards([...uploadedMockCards, ...examCards, ...localCards]);
-          card = cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item) && (!roadmapAssessment || hasFullAssessmentData(item)))
-            ?? null;
+          card = roadmapAssessment ? selectFreePlacementCard(cards, hasFullAssessmentData)
+            : cards.find((item) => item.skill === targetSkill && item.ready && hasImportedQuestionData(item)) ?? null;
         }
 
         if (!card || !requireProToStart(card)) {
-          if (!card && roadmapAssessment && !cancelled) toast.error('Chưa có Full Test đủ 5 kỹ năng. Vui lòng chọn đề khác hoặc liên hệ admin bổ sung dữ liệu.');
+          if (!card && roadmapAssessment && !cancelled) toast.error('Chưa có đề Full Test miễn phí đủ 5 kỹ năng. Vui lòng liên hệ admin bổ sung dữ liệu.');
           if (!cancelled) setScreen('select');
           return;
         }
@@ -6080,7 +6081,7 @@ function WritingTopbar({ title, onExit }: { title: string; onExit: () => void })
   );
 }
 
-function GrammarTopbar({ onExit }: { onExit: () => void }) {
+export function GrammarTopbar({ onExit }: { onExit: () => void }) {
   return (
     <header className="mock-test-topbar h-[68px] px-6 text-white shadow-soft" style={{ backgroundColor: '#2b075c' }}>
       <div className="flex h-full items-center justify-between">
@@ -6218,7 +6219,7 @@ function GrammarInstructions() {
   );
 }
 
-function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, timeRemaining, total, onAnswer, onToggleBookmark }: { answer?: string; bookmarkActive: boolean; index: number; question: GrammarQuestionItem; showAnswer?: boolean; timeRemaining: string; total: number; onAnswer: (answer: string) => void; onToggleBookmark: () => void }) {
+export function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, timeRemaining, total, onAnswer, onToggleBookmark, practiceMode = false }: { answer?: string; bookmarkActive: boolean; index: number; question: GrammarQuestionItem; showAnswer?: boolean; timeRemaining: string; total: number; onAnswer: (answer: string) => void; onToggleBookmark: () => void; practiceMode?: boolean }) {
   const matchingSelections = parseGrammarMatchingAnswer(answer);
   const hasSentenceAfterText = Boolean(question.sentenceRows?.some((row) => row.after?.trim()));
   const updateMatchingAnswer = (word: string, value: string) => {
@@ -6243,7 +6244,7 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
 
           <div className="mock-assessment-tools mock-grammar-actions" style={{ display: 'flex', alignItems: 'center', gap: 12, paddingTop: 12 }}>
             <BookmarkButton active={bookmarkActive} onToggle={onToggleBookmark} padding="0 18px" />
-            <button
+            {!practiceMode && <button
               type="button"
               style={{
                 width: 42,
@@ -6257,14 +6258,14 @@ function GrammarQuestion({ answer, bookmarkActive, index, question, showAnswer, 
               }}
             >
               <Pause size={18} />
-            </button>
+            </button>}
           </div>
 
-          <div className="mock-grammar-timer" style={{ minWidth: 170, textAlign: 'center', paddingTop: 2 }}>
+          {!practiceMode && <div className="mock-grammar-timer" style={{ minWidth: 170, textAlign: 'center', paddingTop: 2 }}>
             <p style={{ color: '#000000', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace', fontSize: 31, lineHeight: '38px', fontWeight: 900, letterSpacing: 0, margin: 0 }}>{timeRemaining}</p>
             <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 0' }}>Time remaining</p>
             <div style={{ height: 4, width: 162, borderRadius: 999, backgroundColor: '#2b075c', margin: '8px auto 0' }} />
-          </div>
+          </div>}
         </div>
 
         <article
@@ -6495,27 +6496,31 @@ const grammarExampleBoxStyle = {
 };
 
 const grammarWordBoxStyle = {
-  height: 42,
+  minHeight: 42,
   display: 'flex',
   alignItems: 'center',
   border: '1px solid #cfd7e3',
   borderRadius: 4,
   backgroundColor: '#ffffff',
   color: '#020817',
-  padding: '0 14px',
+  padding: '10px 14px',
+  lineHeight: '24px',
+  overflowWrap: 'anywhere' as const,
   fontSize: 17,
   fontWeight: 500
 };
 
 const grammarDefinitionBoxStyle = {
-  height: 42,
+  minHeight: 42,
   display: 'flex',
   alignItems: 'center',
   border: '1px solid #cfd7e3',
   borderRadius: 4,
   backgroundColor: '#ffffff',
   color: '#020817',
-  padding: '0 14px',
+  padding: '10px 14px',
+  lineHeight: '24px',
+  overflowWrap: 'anywhere' as const,
   fontSize: 17,
   fontWeight: 500
 };
