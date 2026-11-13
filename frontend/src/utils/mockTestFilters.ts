@@ -2,6 +2,21 @@ import type { MockTestResult, Submission } from '../types';
 
 export type MockPriority = 'IMPORTANT' | 'NOTABLE' | 'REFERENCE';
 
+export function readingPeopleWithNames<T extends { label: string; text: string }>(people: T[], options: string[], answers: string[]): T[] {
+  const names = options.filter(value => value.trim() && !/^[A-D]$/i.test(value.trim()));
+  if (names.length === people.length && people.every(person => /^[A-D]$/.test(person.label))) {
+    return people.map(person => ({ ...person, label: names[person.label.charCodeAt(0) - 65] ?? person.label }));
+  }
+  const answerNames = [...new Set(answers.filter(value => value.trim() && !/^[A-D]$/i.test(value.trim())))];
+  // Some older imports keep letter headings but store the names only in the answer key.
+  // Recover only when every letter has exactly one matching name.
+  if (people.length && people.every(person => /^[A-D]$/.test(person.label)
+    && answerNames.filter(name => name[0]?.toUpperCase() === person.label).length === 1)) {
+    return people.map(person => ({ ...person, label: answerNames.find(name => name[0]?.toUpperCase() === person.label)! }));
+  }
+  return people;
+}
+
 export function selectFreePlacementCard<T extends { skill: string; ready: boolean; accessible?: boolean; accessOrder?: number; title: string }>(
   cards: T[], hasFullData: (card: T) => boolean
 ): T | null {

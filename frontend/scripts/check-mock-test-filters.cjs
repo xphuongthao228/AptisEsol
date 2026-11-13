@@ -5,9 +5,9 @@ const vm = require('node:vm');
 const ts = require('typescript');
 const context = vm.createContext({ exports: {} });
 vm.runInContext(ts.transpileModule(fs.readFileSync(path.join(__dirname, '../src/utils/mockTestFilters.ts'), 'utf8'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS }
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
 }).outputText, context);
-const { hasCompletedMockCard, mockCardPriority, selectFreePlacementCard } = context.exports;
+const { hasCompletedMockCard, mockCardPriority, readingPeopleWithNames, selectFreePlacementCard } = context.exports;
 const card = { id: 'api-full-01', skill: 'FULL' };
 assert.equal(hasCompletedMockCard(card, [], []), false);
 assert.equal(hasCompletedMockCard(card, [{ mockTestId: card.id, skill: 'FULL' }], []), true);
@@ -32,3 +32,9 @@ assert.equal(selectFreePlacementCard(placementCards.map(c => ({ ...c, complete: 
 assert.equal(selectFreePlacementCard(placementCards.filter(c => c.id === 'paid'), c => c.complete), null);
 assert.equal(selectFreePlacementCard(placementCards.map(c => ({ ...c, accessible: false })), c => c.complete), null);
 console.log('Placement uses a complete free test even for Pro users; never falls back to a paid test.');
+const people = ['A','B','C','D'].map(label => ({label,text:label+' passage'}));
+assert.equal(JSON.stringify(readingPeopleWithNames(people, ['Anna','Ben','Chloe','David'], []).map(p=>p.label)), JSON.stringify(['Anna','Ben','Chloe','David']));
+assert.equal(JSON.stringify(readingPeopleWithNames(people, [], ['Anna','Ben','Anna','David','Chloe','David','Chloe']).map(p=>p.label)), JSON.stringify(['Anna','Ben','Chloe','David']));
+assert.equal(readingPeopleWithNames(people, [], ['Anna','Alice','Ben','David'])[0].label, 'A');
+assert.equal(readingPeopleWithNames(people, ['A','B','C','D'], ['A'])[0].label, 'A');
+console.log('Reading names: imported options, older named answer keys, and ambiguous metadata checked.');

@@ -3,6 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const assert = require('node:assert/strict');
+const ts = require('typescript');
+
 const root = path.resolve(__dirname, '..');
 const output = path.resolve(root, '../reports/mock-light');
 fs.mkdirSync(output, { recursive: true });
@@ -10,6 +12,12 @@ const preview = spawn(process.execPath, [path.join(root, 'node_modules/vite/bin/
 const chrome = spawn('C:/Program Files/Google/Chrome/Application/chrome.exe', ['--headless', '--disable-gpu', '--no-first-run', '--remote-debugging-port=9256', '--user-data-dir=' + fs.mkdtempSync(path.join(os.tmpdir(), 'aptis-mock-light-')), 'about:blank'], { stdio: 'ignore', windowsHide: true });
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 let ws;
+const readingNames = ['Anna','Ben','Chloe','David'];
+const readingData = JSON.stringify([{ skill:'READING', part:'3', template:'READING_FORUM_MATCH',
+  context:['<strong>Here is the perspective of four people on the above topic. Please read the content and answer the questions.</strong>', ...readingNames.map((name,i)=>`<strong>${String.fromCharCode(65+i)}:</strong> This is the passage for ${name}.`)],
+  questions:['Who finds today’s games harder than before?','Who enjoyed playing with friends in childhood?','Who enjoys playing with their children?','Who waited and hoped to go outside?','Who enjoys playing modern games?'],
+  correctAnswers:['Anna','Ben','Anna','David','Chloe'], options:readingNames }]);
+const fullData = JSON.stringify([...JSON.parse(readingData),{skill:'GRAMMAR',template:'GRAMMAR_CHOICE',part:'1',prompt:'A grammar question',options:['one','two'],correctAnswer:'one'}]);
 (async () => {
   let targets;
   for (let i = 0; i < 100; i++) { try { if ((await fetch('http://127.0.0.1:5196')).ok) targets = await (await fetch('http://127.0.0.1:9256/json')).json(); if (targets) break; } catch {} await delay(200); }
@@ -24,7 +32,7 @@ let ws;
     if (msg.method === 'Runtime.exceptionThrown') errors.push(msg.params.exceptionDetails.text);
     if (msg.method !== 'Fetch.requestPaused') return;
     const { requestId, request } = msg.params; const url = new URL(request.url); let data = [];
-    if (url.pathname.endsWith('/mock-tests')) data = Array.from({length:6}, (_,i) => ({ id:i+1, externalId:'preview-'+i, skill:'FULL', title:`Aptis Full Test ${String(i+1).padStart(2,'0')} - Quan trọng`, questions:'5 kỹ năng', minutes:'162', status:'PUBLISHED', priority:'IMPORTANT', accessible:true }));
+    if (url.pathname.endsWith('/mock-tests')) data = [...Array.from({length:6}, (_,i) => ({ id:i+1, externalId:'preview-'+i, skill:'FULL', title:`Aptis Full Test ${String(i+1).padStart(2,'0')} - Quan trọng`, questions:'5 kỹ năng', minutes:'162', status:'PUBLISHED', priority:'IMPORTANT', accessible:true, questionData:fullData })), {id:77,externalId:'reading-preview',skill:'READING',title:'Reading Test 1',status:'PUBLISHED',accessible:true,questionData:readingData}];
     else if (url.pathname.endsWith('/auth/me')) data = { id:99006, email:'preview@example.invalid', fullName:'B', roles:['USER'], enabled:true, studentSkin:'default', studentTheme:'light' };
     else if (url.pathname.includes('/subscription')) data = { proActive:true, active:true, daysRemaining:17 };
     else if (url.pathname.endsWith('/progress/roadmap')) data = {skills:[]};
@@ -45,6 +53,18 @@ let ws;
     await delay(400);
     fs.writeFileSync(path.join(output,`mock-light-${width}.png`),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
     console.log(width,await evaluate("getComputedStyle(document.querySelector('.mock-selection-card > button')).backgroundImage"));
+    for (const [kind, query] of [['reading','skill=READING&screen=readingOpinion&mockId=api-reading-preview'], ['full','skill=FULL&full=1&screen=readingOpinion&mockId=api-preview-0']]) {
+      await send('Page.navigate',{url:'http://127.0.0.1:5196/app/mock-tests?'+query});
+      for(let i=0;i<100;i++){if(await evaluate("document.querySelectorAll('.mock-reading-opinion-question select').length === 5 && !!document.querySelector('.mock-reading-opinion-people')"))break;await delay(100);}
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.mock-reading-opinion-question select:first-of-type option')).slice(0,5).map(o=>o.textContent)"), ['',...readingNames]);
+      assert.deepEqual(await evaluate("Array.from(document.querySelectorAll('.mock-reading-opinion-people h3')).map(h=>h.textContent)"), readingNames);
+      assert.ok(await evaluate("!document.querySelector('.mock-reading-opinion-people').textContent.includes('Here is the perspective')"));
+      assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
+      await evaluate("(()=>{const s=document.querySelector('.mock-reading-opinion-question select');s.value='Anna';s.dispatchEvent(new Event('change',{bubbles:true}));})()");
+      assert.equal(await evaluate("document.querySelector('.mock-reading-opinion-question select').value"),'Anna');
+      fs.writeFileSync(path.join(output,`${kind}-names-${width}.png`),Buffer.from((await send('Page.captureScreenshot',{format:'png'})).data,'base64'));
+      console.log(`Passed ${kind} ${width}: names in passages/options, selection, no instruction option, no overflow.`);
+    }
   }
   assert.deepEqual(errors,[]);
   await send('Browser.close');

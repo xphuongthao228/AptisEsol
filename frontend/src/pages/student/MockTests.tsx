@@ -46,7 +46,7 @@ import { Link, NavLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useAuthStore } from '../../store/authStore';
 import type { MockTestResult, Submission, Question, SubscriptionResponse, Test } from '../../types';
-import { hasCompletedMockCard, mockCardPriority, mockPriorityLabels, selectFreePlacementCard, type MockPriority } from '../../utils/mockTestFilters';
+import { hasCompletedMockCard, mockCardPriority, mockPriorityLabels, readingPeopleWithNames, selectFreePlacementCard, type MockPriority } from '../../utils/mockTestFilters';
 import { getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
 import { repairUserText } from '../../utils/textRepair';
 import './mock-light.css';
@@ -2406,7 +2406,7 @@ function getReadingTestDataFromCard(card?: MockCard | null): ReadingTestData {
     ?? String(part3Rows[0]?.leftTitle ?? '').trim();
   const forumIntro = forumIntroText || undefined;
   const fallbackOpinion = fallbackReadingOpinion();
-  const parsedPeople = peopleFromReadingContext(context);
+  const parsedPeople = readingPeopleWithNames(peopleFromReadingContext(context), asStringArray(part3Rows[0]?.options), forumAnswers);
   const opinion = {
     people: parsedPeople.length > 0 ? parsedPeople : fallbackOpinion.people,
     questions: forumQuestions.length > 0 ? forumQuestions : fallbackOpinion.questions,
@@ -3141,7 +3141,7 @@ function scoreReadingAnswers(
     return question.correctOrder.filter((answer, answerIndex) => sameAnswer(userAnswers[answerIndex], answer)).length;
   });
   const cohesionCorrect = cohesionCorrectCounts.reduce((sum, count) => sum + count, 0);
-  const opinionCorrect = data.opinion.correctAnswers.filter((answer, index) => sameAnswer(opinionAnswers[index], answer)).length;
+  const opinionCorrect = data.opinion.correctAnswers.filter((answer, index) => sameAnswer(resolveOptionLabel(opinionAnswers[index] ?? '', data.opinion.people.map(person => person.label)), answer)).length;
   const longCorrect = data.long.correctAnswers.filter((answer, index) => sameAnswer(longAnswers[index], answer)).length;
   const gapTotal = data.gaps.length;
   const cohesionTotal = data.cohesion.reduce((sum, question) => sum + question.correctOrder.length, 0);
@@ -3194,7 +3194,7 @@ function savedReadingReview(data: ReadingTestData, gapAnswers: Record<number, st
       title: `Part ${questionIndex + 2} - Text Cohesion`,
       rows: question.correctOrder.map((answer, index) => savedReviewRow(`${question.title} - Vị trí ${index + 1}`, cohesionAnswers[questionIndex]?.[index], answer))
     })),
-    { title: 'Part 3 - Opinion Matching', rows: data.opinion.questions.map((question, index) => savedReviewRow(question, opinionAnswers[index], data.opinion.correctAnswers[index])) },
+    { title: 'Part 3 - Opinion Matching', rows: data.opinion.questions.map((question, index) => savedReviewRow(question, resolveOptionLabel(opinionAnswers[index] ?? '', data.opinion.people.map(person => person.label)), data.opinion.correctAnswers[index])) },
     { title: 'Part 4 - Long Reading', rows: data.long.correctAnswers.map((answer, index) => savedReviewRow(`Paragraph ${index + 1}`, longAnswers[index], resolveOptionLabel(answer, data.long.headings))) }
   ];
 }
@@ -8113,7 +8113,7 @@ function ReadingOpinion({ data, answers, bookmarkActive, showAnswer, timeRemaini
                 <p style={{ color: '#020817', fontSize: 17, lineHeight: '24px', fontWeight: 700, margin: 0 }}>
                   {index + 1}. {question}
                 </p>
-                <select value={answers[index] ?? ''} onChange={(event) => onAnswer(index, event.target.value)} style={{ height: 52, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 18, outline: 'none' }}>
+                <select value={resolveOptionLabel(answers[index] ?? '', people.map(person => person.label))} onChange={(event) => onAnswer(index, event.target.value)} style={{ height: 52, borderRadius: 14, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 16px', color: '#475569', fontSize: 18, outline: 'none' }}>
                   <option value=""></option>
                   {people.map((person) => person.label).map((option) => (
                     <option key={option} value={option}>{option}</option>
@@ -8480,9 +8480,8 @@ function FullResult({
     { label: 'Grammar', score: grammarScore, band: null },
     { label: 'Overall', score: overallScore, band: overallCefr }
   ];
-  const writingCriteriaRows = (writing?.criteria ?? []).map((item) => ({ label: item.name, score: clampScore10(item.score) }));
-  const writingCorrections = normalizeWritingCorrections(writing?.corrections);
   const reportDate = new Intl.DateTimeFormat('vi-VN').format(new Date());
+  const writingCorrections = normalizeWritingCorrections(writing?.corrections);
 
   return (
     <main className="min-h-screen bg-[#eef2f8] px-4 py-8 sm:px-6 sm:py-12">
@@ -8507,92 +8506,49 @@ function FullResult({
               <ReportIdentity label="Mã kết quả" value={candidateReference} />
             </div>
 
-            <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
-              <div className="overflow-x-auto">
-                <h2 className="mb-4 text-lg font-black text-[#25236b]">Bảng điểm kỹ năng</h2>
-                <table className="w-full min-w-[480px] border-collapse text-left">
-                  <thead><tr className="bg-[#25236b] text-white"><th className="p-3">Kỹ năng</th><th className="p-3 text-center">Điểm</th><th className="p-3 text-center">CEFR</th></tr></thead>
-                  <tbody>
-                    {skillRows.map((row) => <tr key={row.skill} className="border-b border-slate-200"><td className="p-3"><p className="m-0 font-bold text-slate-900">{row.skill}</p><p className="mt-1 text-xs text-slate-500">{row.note}</p></td><td className="p-3 text-center text-lg font-black text-[#25236b]">{row.score === null ? '--' : `${row.score}/50`}</td><td className="p-3 text-center text-lg font-black text-[#e52b50]">{row.cefr ?? '--'}</td></tr>)}
-                    <tr className="bg-slate-50"><td className="p-3 font-bold text-slate-900">Grammar & Vocabulary</td><td className="p-3 text-center text-lg font-black text-[#25236b]">{grammarScore}/50</td><td className="p-3" /></tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div>
-                <h2 className="mb-4 text-lg font-black text-[#25236b]">Hồ sơ CEFR</h2>
-                <div className="border border-slate-200 bg-slate-50 p-4">
-                  <RadarScoreChart items={chartColumns.map((column) => ({ label: column.label, score: column.score }))} maxScore={50} />
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs font-bold text-slate-600 sm:grid-cols-3">
-                    {chartColumns.map((column) => (
-                      <span key={column.label} className="flex items-center justify-between gap-2 border border-slate-200 bg-white px-2 py-1">
-                        {column.label}
-                        <b className="text-[#25236b]">{column.score === null ? '--' : column.band ?? column.score}</b>
-                      </span>
-                    ))}
-                  </div>
+            <section className="mt-7 border border-[#25236b] bg-white p-4 sm:p-6" aria-label="Bảng kết quả CEFR">
+              <h2 className="m-0 border-b-2 border-[#25236b] pb-2 text-xl font-bold text-[#bc1235]">Overall CEFR level: {overallCefr ?? '--'}</h2>
+              <div className="mt-4 grid min-w-0 gap-6 md:grid-cols-2">
+                <div className="min-w-0">
+                  <h3 className="mb-3 text-xl font-bold text-[#25236b]">Scale score</h3>
+                  <table className="w-full border-collapse text-left text-sm text-slate-800">
+                    <thead><tr className="border-b-2 border-[#25236b]"><th className="pb-1 pr-2 font-bold">Skill name</th><th className="whitespace-nowrap pb-1 text-right font-bold">Skill score</th></tr></thead>
+                    <tbody>
+                      {skillRows.map(row => <tr key={row.skill} className="border-b border-[#a9aabd]"><td className="py-2 pr-2">{row.skill}</td><td className="whitespace-nowrap py-2 text-right">{row.score === null ? '--' : `${row.score}/50`}</td></tr>)}
+                      <tr className="border-b border-[#a9aabd]"><td className="py-2 pr-2">Final Scale Score</td><td className="whitespace-nowrap py-2 text-right">{completeScores ? `${totalScore}/200` : '--'}</td></tr>
+                      <tr className="border-b border-[#25236b]"><td className="py-2 pr-2">Grammar and Vocabulary</td><td className="whitespace-nowrap py-2 text-right">{grammarScore}/50</td></tr>
+                    </tbody>
+                  </table>
                 </div>
-                <div className="mt-5 grid grid-cols-2 gap-3"><FullResultStat label="Tổng điểm 4 kỹ năng" value={completeScores ? `${totalScore}/200` : '--'} /><FullResultStat label="Overall" value={overallCefr ?? '--'} /></div>
+                <div className="min-w-0">
+                  <h3 className="mb-3 text-xl font-bold text-[#25236b]">CEFR skill profile</h3>
+                  <CefrBarChart items={chartColumns.filter(column => column.label !== 'Grammar').map(column => ({ label: column.label, band: column.band }))} />
+                </div>
               </div>
-            </div>
+            </section>
 
             <p className="mt-7 border-t border-slate-200 pt-5 text-xs leading-5 text-slate-500">Kết quả luyện tập do Aptis Lingo phát hành để theo dõi tiến độ học. Đây không phải chứng chỉ Aptis ESOL chính thức. Điểm biên CEFR được xét thêm bằng điểm Grammar & Vocabulary.</p>
 
             {writing && (
               <section className="mt-8 border-t border-slate-200 pt-7">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <h2 className="m-0 text-xl font-black text-[#25236b]">Chi tiết Writing AI</h2>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-amber-50">{writing.summary}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 text-center">
-                    <FullResultStat label="Writing" value={`${clampScore50(writing.overallScore)}/50`} />
-                    <FullResultStat label="CEFR" value={writing.cefrLevel} />
-                  </div>
-                </div>
-
-                {writingCriteriaRows.length > 0 && (
-                  <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_320px]">
-                    <div className="border border-slate-200 bg-white p-4">
-                      <h3 className="m-0 text-base font-black text-slate-900">Bảng điểm tiêu chí</h3>
-                      <div className="mt-4 grid gap-3">
-                        {writingCriteriaRows.map((item) => (
-                          <div key={item.label}>
-                            <div className="flex items-center justify-between gap-3 text-sm font-bold">
-                              <span className="text-slate-900">{item.label}</span>
-                              <span className="text-[#e52b50]">{item.score}/10</span>
-                            </div>
-                            <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
-                              <div className="h-full bg-[#e52b50]" style={{ width: `${item.score * 10}%` }} />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="border border-slate-200 bg-slate-50 p-4">
-                      <h3 className="m-0 text-base font-black text-slate-900">Radar Writing</h3>
-                      <RadarScoreChart items={writingCriteriaRows} maxScore={10} />
-                    </div>
-                  </div>
-                )}
-
+                <h2 className="m-0 text-xl font-black text-[#25236b]">Nhận xét và chữa bài Writing</h2>
+                <p className="mt-2 break-words text-sm font-semibold leading-6 text-slate-600">{writing.summary}</p>
                 {writing.parts?.length > 0 && (
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                    {writing.parts.map((part) => (
-                      <div key={part.title} className="border border-slate-200 bg-white p-4">
-                        <p className="m-0 text-sm font-black text-slate-900">{part.title} - {part.score}/50</p>
+                    {writing.parts.map(part => (
+                      <div key={part.title} className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h3 className="m-0 text-sm font-black text-slate-900">{part.title}</h3>
                         <p className="mt-2 text-sm leading-6 text-slate-600">{part.feedback}</p>
                       </div>
                     ))}
                   </div>
                 )}
-
                 {writingCorrections.length > 0 && (
                   <div className="mt-5">
-                    <h3 className="m-0 text-base font-black text-slate-900">Câu sai được highlight và gợi ý sửa</h3>
+                    <h3 className="m-0 text-base font-black text-slate-900">Câu sai và gợi ý sửa</h3>
                     <div className="mt-3 grid gap-3">
                       {writingCorrections.map((correction, index) => (
-                        <div key={`${correction.original ?? correction.explanation}-${index}`} className="border border-orange-200 bg-orange-50 p-4">
+                        <div key={index} className="rounded-xl border border-orange-200 bg-orange-50 p-4">
                           <p className="m-0 text-sm font-black text-orange-800">Lỗi {index + 1}{correction.partTitle ? ` - ${correction.partTitle}` : ''}</p>
                           {correction.original && <p className="mt-2 text-sm leading-6 text-orange-900">{highlightWrongSentence(correction.original)}</p>}
                           {correction.correction && <p className="mt-2 text-sm leading-6 text-green-700">Gợi ý: <strong>{correction.correction}</strong></p>}
@@ -8602,22 +8558,18 @@ function FullResult({
                     </div>
                   </div>
                 )}
-
                 {writing.suggestedAnswer?.trim() && (
-                  <div className="mt-5 border border-blue-200 bg-blue-50 p-4">
+                  <div className="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
                     <h3 className="m-0 text-base font-black text-slate-900">Bài gợi ý sau khi sửa</h3>
                     <div className="mt-3 grid gap-3">
                       {formatSuggestedWritingAnswer(writing.suggestedAnswer).map((block, index) => (
-                        <p key={`${block.title}-${index}`} className="m-0 text-sm leading-6 text-blue-900 whitespace-pre-wrap">
-                          {block.title && <strong>{block.title}: </strong>}{block.text}
-                        </p>
+                        <p key={index} className="m-0 whitespace-pre-wrap break-words text-sm leading-6 text-blue-900">{block.title && <strong>{block.title}: </strong>}{block.text}</p>
                       ))}
                     </div>
                   </div>
                 )}
               </section>
             )}
-
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <button className="mock-result-exit-button" type="button" onClick={onExit} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, borderRadius: 12, border: '1px solid #dce3ee', backgroundColor: '#ffffff', padding: '0 18px', color: '#111827', fontSize: 16, fontWeight: 700 }}>
               <ArrowLeft size={18} />
@@ -8640,10 +8592,46 @@ function ReportIdentity({ label, value }: { label: string; value: string }) {
 
 function FullResultStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-slate-200 bg-slate-50 p-4 text-center">
-      <p className="m-0 text-2xl font-black text-[#25236b]">{value}</p>
+    <div className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-3 py-4 text-center">
+      <p className="m-0 whitespace-nowrap text-2xl font-black text-[#25236b]">{value}</p>
       <p className="mt-2 text-xs text-slate-500">{label}</p>
     </div>
+  );
+}
+
+function CefrBarChart({ items }: { items: { label: string; band: AptisBand | null }[] }) {
+  const levels = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1'];
+  const left = 40;
+  const top = 42;
+  const bottom = 242;
+  const step = 40;
+  const columnWidth = 72;
+  return (
+    <svg viewBox="0 0 420 302" className="block h-auto w-full" role="img" aria-label="Hồ sơ CEFR: biểu đồ cột Listening, Reading, Speaking, Writing và Overall">
+      <title>CEFR skill profile</title>
+      <desc>{items.map(item => `${item.label}: ${item.band ?? 'Chưa có kết quả'}`).join('; ')}</desc>
+      <text x="0" y="18" fill="#25236b" fontSize="15" fontWeight="700">CEFR grade</text>
+      {levels.map((level, index) => {
+        const y = bottom - index * step;
+        return <g key={level}>
+          <line x1={left} x2="408" y1={y} y2={y} stroke={index === 0 ? '#25236b' : '#cbd5e1'} strokeWidth={index === 0 ? 1.5 : 1} />
+          <text x="0" y={y + 4} fill="#475569" fontSize="13">{level}</text>
+        </g>;
+      })}
+      {items.map((item, index) => {
+        const level = item.band ? levels.indexOf(item.band) : 0;
+        const height = Math.max(0, level) * step;
+        const x = left + index * columnWidth + 18;
+        return <g key={item.label}>
+          <title>{item.label}: {item.band ?? 'Chưa có kết quả'}</title>
+          {height > 0 && <rect x={x} y={bottom - height} width="34" height={height} fill="#e50935" />}
+          <text x={x + 17} y={Math.max(top - 10, bottom - height - 9)} textAnchor="middle" fill="#25236b" fontSize="14" fontWeight="700">{item.band ?? '--'}</text>
+          <text x={x + 17} y="263" textAnchor="middle" fill="#475569" fontSize="11">
+            {item.label === 'Overall' ? <><tspan x={x + 17}>Overall</tspan><tspan x={x + 17} dy="15">CEFR grade</tspan></> : item.label}
+          </text>
+        </g>;
+      })}
+    </svg>
   );
 }
 
@@ -8902,7 +8890,7 @@ function ReadingReview({
           <ReadingAnswerSection title="Part 3 - Opinion Matching">
             {data.opinion.questions.map((question, index) => {
               const answer = data.opinion.correctAnswers[index] ?? '';
-              const user = opinionAnswers[index] || 'Chưa chọn';
+              const user = resolveOptionLabel(opinionAnswers[index] ?? '', data.opinion.people.map(person => person.label)) || 'Chưa chọn';
               return (
                 <ReadingAnswerRow
                   key={`${question}-${index}`}
