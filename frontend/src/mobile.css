@@ -156,6 +156,7 @@ html:root body .student-shell .practice-selection-hero::after { display: none !i
     contain: paint;
   }
   .student-shell .lingo-widget > button { width: 44px; height: 44px; }
+  .student-shell .lingo-widget { contain: none; }
   .student-shell .lingo-widget > button > span:not(.absolute) { transform: scale(.75); }
   .student-shell .lingo-widget > section { max-height: calc(100dvh - 190px); }
   .student-shell .mobile-page-heading { background: transparent; color: var(--mobile-text); border: 0; border-radius: 0; padding: 8px 0 4px; box-shadow: none; }

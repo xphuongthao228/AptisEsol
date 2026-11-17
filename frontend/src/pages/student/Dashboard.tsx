@@ -1,9 +1,11 @@
-import { LearningRoadmap, SkillRadar } from './LearningRoadmap';
+import { LearningRoadmap } from './LearningRoadmap';
+import { SkillProfile } from '../../components/SkillProfile';
+import { DailyPracticeGoal } from '../../components/DailyPracticeGoal';
 import './overview-footer.css';
 import './community-invite.css';
 import { BlogSection } from './Blog';
 import { createPortal } from 'react-dom';
-import { dashboardSkillScores, placementTestUrl, type LearningGoal } from '../../utils/learningRoadmap';
+import { placementTestUrl, loadLearningGoal, learningGoalUpdatedEvent, type LearningGoal } from '../../utils/learningRoadmap';
 import {
   ArrowRight,
   BarChart3,
@@ -41,12 +43,12 @@ import { useAuthStore } from '../../store/authStore';
 import type { AppNotification, MockTestResult, Progress, Submission } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
 
-const stats = [
-  ['120+', 'Bộ luyện Aptis'],
-  ['850+', 'Tài khoản học viên'],
-  ['18K+', 'Bài đã hoàn thành'],
-  ['24h', 'Cập nhật nội dung']
-];
+type PublicStatistics = {
+  practiceSets: number;
+  students: number;
+  completedTests: number;
+  contentUpdatedAt: string | null;
+};
 
 const testimonialSlides = [
   {
@@ -170,23 +172,32 @@ const flagFlakes = [
 export function Dashboard() {
   const user = useAuthStore((state) => state.user);
   const [showCommunityInvite, setShowCommunityInvite] = useState(false);
+  const inviteDismissedKey = user
+    ? `${communityInviteDismissedKey}:${user.email}`
+    : communityInviteDismissedKey;
 
   useEffect(() => {
-    if (user) return;
-    if (sessionStorage.getItem(communityInviteDismissedKey)) return;
+    setShowCommunityInvite(false);
+    if (localStorage.getItem(`${inviteDismissedKey}:hidden`) || sessionStorage.getItem(inviteDismissedKey)) return;
     const timer = window.setTimeout(() => setShowCommunityInvite(true), 850);
     return () => window.clearTimeout(timer);
-  }, [user]);
+  }, [inviteDismissedKey]);
 
   function closeCommunityInvite() {
-    sessionStorage.setItem(communityInviteDismissedKey, '1');
+    sessionStorage.setItem(inviteDismissedKey, '1');
     setShowCommunityInvite(false);
+  }
+
+  function hideCommunityInvitePermanently() {
+    localStorage.setItem(`${inviteDismissedKey}:hidden`, '1');
+    closeCommunityInvite();
   }
 
   if (user) return (
     <>
       <div className="student-home-content">
       <StudentLearningDashboard />
+      {showCommunityInvite && <CommunityInviteModal onClose={closeCommunityInvite} onHidePermanently={hideCommunityInvitePermanently} />}
       <BlogSection />
       <div className="mx-auto max-w-[1280px] overflow-hidden rounded-[20px]">
         <OverviewFooter />
@@ -206,7 +217,7 @@ export function Dashboard() {
       <div className="dashboard-flag-zone relative overflow-hidden">
         <FlagFall />
         <div className="mb-6 overflow-hidden rounded-[20px] sm:mb-8">
-          <HeroSection />
+          <HeroSection showNotifications={false} />
         </div>
 
         <LazySection minHeight={180}>
@@ -239,7 +250,12 @@ export function Dashboard() {
       </div>
 
       <ZaloContactButton />
-      {showCommunityInvite && <CommunityInviteModal onClose={closeCommunityInvite} />}
+      {showCommunityInvite && <CommunityInviteModal onClose={closeCommunityInvite} onHidePermanently={hideCommunityInvitePermanently} />}
+      <a href={zaloContactUrl} target="_blank" rel="noopener noreferrer" className="learning-support-button" aria-label="Hỗ trợ học tập">
+        <Headset size={17} aria-hidden="true" />
+        <span className="learning-support-label">Hỗ Trợ Học Tập</span>
+        <span className="learning-support-dot" aria-hidden="true" />
+      </a>
     </div>
   );
 }
@@ -348,12 +364,6 @@ function StudentLearningDashboard() {
     ...submissions.map((value) => ({ kind: 'submission' as const, value })),
     ...mockResults.map((value) => ({ kind: 'mock' as const, value }))
   ], [mockResults, submissions]);
-  const totalQuestions = submissions.reduce((total, item) => total + (item.answers?.length ?? 0), 0);
-  const correctQuestions = submissions.reduce(
-    (total, item) => total + (item.answers?.filter((answer) => answer.correct).length ?? 0),
-    0
-  );
-  const accuracy = totalQuestions ? Math.round((correctQuestions / totalQuestions) * 100) : 0;
   const averageScore = scoreEntries.length
     ? Math.round(scoreEntries.reduce((total, item) => total + scoreEntryPercent(item), 0) / scoreEntries.length)
     : 0;
@@ -394,6 +404,7 @@ function StudentLearningDashboard() {
     if (!goalDraft.examDate || goalDraft.examDate < localDateKey(new Date())) return;
     window.localStorage.setItem(goalStorageKey, JSON.stringify(goalDraft));
     setLearningGoal(goalDraft);
+    window.dispatchEvent(new Event(learningGoalUpdatedEvent));
     setGoalDialogOpen(false);
   }
 
@@ -423,7 +434,7 @@ function StudentLearningDashboard() {
           <div className="flex flex-wrap gap-2"><button onClick={installApp} className="btn-secondary h-10 px-4 text-xs">{canInstallApp ? <Download size={15} /> : <Monitor size={15} />} Cài ứng dụng</button><Link to="/app/renewal" className="btn-primary h-10 px-4 text-xs"><Trophy size={15} />{isPro ? 'Quản lý gói Pro' : 'Nâng cấp tài khoản'}</Link></div>
         </div>
         <div className="learning-summary-grid">
-          <article><span className="learning-stat-icon bg-red-50 text-red-500"><Target size={21} /></span><div className="min-w-0 flex-1"><p className="learning-eyebrow">TIẾN ĐỘ HỌC TẬP</p><strong>{scoreEntries.length} bài hoàn thành</strong><div className="learning-meter"><span style={{width: `${accuracy}%`}} /></div><small>Chính xác {accuracy}% · {totalQuestions} câu đã làm</small></div></article>
+          <DailyPracticeGoal />
           <article className="learning-goal-card"><span className="learning-stat-icon bg-amber-50 text-amber-500"><Trophy size={21} /></span><div className="min-w-0 flex-1"><p className="learning-eyebrow">MỤC TIÊU THI</p><strong>{learningGoal ? `Aptis ${learningGoal.level}` : 'Chinh phục Aptis B2'}</strong><p className="mt-2 text-xs text-slate-500">{learningGoal ? `Ngày thi: ${formatGoalDate(learningGoal.examDate)}` : 'Đặt ngày thi và band điểm của bạn'}</p><button type="button" onClick={openGoalDialog} className="learning-small-link learning-goal-trigger mt-2" aria-haspopup="dialog">Điều chỉnh mục tiêu →</button></div></article>
           <article><span className="learning-stat-icon bg-emerald-50 text-emerald-500"><TrendingUp size={21} /></span><div className="min-w-0 flex-1"><p className="learning-eyebrow">NĂNG LỰC HIỆN TẠI</p><strong>{level}</strong><p className="mt-2 text-xs text-slate-500">Điểm trung bình {averageScore}%</p><Link to={placementTestUrl} className="learning-small-link mt-2 inline-block">Thi thử đầu vào →</Link></div></article>
         </div>
@@ -435,7 +446,7 @@ function StudentLearningDashboard() {
       </section>
       <div className="learning-bottom-grid">
         <section className="learning-panel learning-radar-card">
-          {loadingSubmissions || loadingMockResults ? <DashboardLoading /> : <SkillRadar skills={dashboardSkillScores(mockResults, submissions)} goal={learningGoal} />}
+          {loadingMockResults ? <DashboardLoading /> : <SkillProfile results={mockResults} goal={learningGoal} />}
         </section>
       <section className="recent-results-card rounded-lg border border-slate-200 bg-white p-5 shadow-soft sm:p-6">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
@@ -706,17 +717,6 @@ function localDateKey(date: Date) {
 
 function formatDashboardDate(value: string) {
   return new Intl.DateTimeFormat('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(value));
-}
-
-function loadLearningGoal(storageKey: string) {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null');
-    if (!parsed?.examDate || !['B1', 'B2', 'C1'].includes(parsed.level)) return null;
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.examDate) || !Number.isFinite(new Date(`${parsed.examDate}T00:00:00`).getTime())) return null;
-    return parsed as LearningGoal;
-  } catch {
-    return null;
-  }
 }
 
 function formatGoalDate(value: string) {
@@ -1083,12 +1083,24 @@ function dashboardNotificationLevelLabel(level: AppNotification['level']) {
 }
 
 function StatsBanner() {
+  const { data, loading, error } = useApi<PublicStatistics>(
+    () => unwrap<PublicStatistics>(publicApi.get('/statistics/public'))
+  );
+  const formatCount = (value: number | undefined, fallback: string) =>
+    value != null && Number.isFinite(value) && value > 0 ? value.toLocaleString('vi-VN') : fallback;
+  const updatedDate = data?.contentUpdatedAt?.split('T')[0].split('-').reverse().join('/');
+  const stats = [
+    [formatCount(data?.practiceSets, '120+'), 'Bộ luyện Aptis'],
+    [formatCount(data?.students, '850+'), 'Tài khoản học viên'],
+    [formatCount(data?.completedTests, '18K+'), 'Bài đã hoàn thành'],
+    [updatedDate || '24h', 'Cập nhật nội dung']
+  ];
   return (
-    <section className="dashboard-stats-banner overflow-hidden rounded-[20px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_55%,#ffde00_100%)] px-4 py-12 text-white sm:px-6 lg:px-10">
+    <section aria-busy={loading} title={error ?? undefined} className="dashboard-stats-banner overflow-hidden rounded-[20px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_55%,#ffde00_100%)] px-4 py-12 text-white sm:px-6 lg:px-10">
       <div className="mx-auto grid max-w-[1280px] grid-cols-2 gap-4 text-center md:grid-cols-4 md:divide-x md:divide-white/20">
         {stats.map(([value, label]) => (
           <div className="p-3" key={label}>
-            <p className="text-4xl font-extrabold text-white sm:text-5xl">{value}</p>
+            <p className={`${label === 'Cập nhật nội dung' && updatedDate ? 'text-2xl sm:text-3xl' : 'text-4xl sm:text-5xl'} font-extrabold text-white`}>{value}</p>
             <p className="mt-2 text-xs font-extrabold uppercase tracking-[0.18em] text-brand-100">{label}</p>
           </div>
         ))}
@@ -1394,69 +1406,66 @@ function HomeContactSection() {
   );
 }
 
-function CommunityInviteModal({ onClose }: { onClose: () => void }) {
+function CommunityInviteModal({ onClose, onHidePermanently }: { onClose: () => void; onHidePermanently: () => void }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     const previousFocus = document.activeElement as HTMLElement | null;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     closeRef.current?.focus({ preventScroll: true });
-    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
-    document.addEventListener('keydown', onKey);
     return () => {
       document.body.style.overflow = previousOverflow;
-      document.removeEventListener('keydown', onKey);
       previousFocus?.focus({ preventScroll: true });
     };
   }, [onClose]);
   return createPortal(
-    <div className="community-invite-overlay fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/58 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="community-invite-title" onClick={onClose}>
-      <div className="community-invite-card relative min-w-0 w-full max-w-[480px] overflow-y-auto rounded-[28px] bg-[linear-gradient(135deg,#a50f15_0%,#d71920_58%,#ffde00_100%)] px-5 py-6 text-center text-white shadow-[0_28px_90px_rgba(80,0,0,0.34)] sm:px-8 sm:py-7" onClick={(event) => event.stopPropagation()}>
-        <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.8)_1px,transparent_1px)] [background-size:20px_20px]" />
+    <div className="community-invite-overlay fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/58 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="community-invite-title">
+      <div className="community-invite-card relative min-w-0 w-full max-w-[480px] overflow-y-auto rounded-[28px] bg-[linear-gradient(135deg,#0b1f3a_0%,#122b4d_58%,#203f63_100%)] px-5 py-6 text-center text-[#ffda91] shadow-[0_28px_90px_rgba(4,15,32,0.34)] sm:px-8 sm:py-7" onClick={(event) => event.stopPropagation()}>
+        <div className="pointer-events-none absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,218,145,0.65)_1px,transparent_1px)] [background-size:20px_20px]" />
         <div className="relative z-10">
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
-            className="community-invite-close absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-full border-2 border-white/85 bg-white/5 text-white transition hover:bg-white/16 sm:h-12 sm:w-12"
+            className="community-invite-close absolute right-0 top-0 grid h-10 w-10 place-items-center rounded-full border-2 border-[#ffda91]/85 bg-[#ffda91]/5 text-[#ffda91] transition hover:bg-[#ffda91]/16 sm:h-12 sm:w-12"
             aria-label="Đóng bảng cộng đồng"
           >
             <X size={26} strokeWidth={2.2} />
           </button>
-          <div className="community-invite-emblem mx-auto grid h-[92px] w-[92px] place-items-center rounded-full border border-white/10 bg-white/8 shadow-[inset_0_0_0_7px_rgba(255,255,255,0.05)]">
-            <div className="grid h-[68px] w-[68px] place-items-center rounded-full border border-white/10 bg-white/8">
+          <div className="community-invite-emblem mx-auto grid h-[92px] w-[92px] place-items-center rounded-full border border-[#ffda91]/10 bg-[#ffda91]/8 shadow-[inset_0_0_0_7px_rgba(255,255,255,0.05)]">
+            <div className="grid h-[68px] w-[68px] place-items-center rounded-full border border-[#ffda91]/10 bg-[#ffda91]/8">
               <Users size={34} strokeWidth={2.4} />
             </div>
           </div>
-          <div className="mt-2 inline-flex items-center justify-center gap-2 text-xs font-extrabold uppercase tracking-wide text-white">
+          <div className="mt-2 inline-flex items-center justify-center gap-2 text-xs font-extrabold uppercase tracking-wide text-[#ffda91]">
             <Sparkles size={15} />
             AptisLingo
           </div>
           <h2 id="community-invite-title" className="mx-auto mt-5 max-w-[380px] text-[25px] font-extrabold leading-tight tracking-normal sm:text-[28px]">
             Vào nhóm học Aptis cùng mọi người
           </h2>
-          <p className="mx-auto mt-5 max-w-[380px] text-lg font-extrabold leading-7 text-white sm:text-xl">
+          <p className="mx-auto mt-5 max-w-[380px] text-lg font-medium leading-7 text-[#f5eddf] sm:text-xl">
             Cập nhật tài liệu, hỏi bài và nhận nhắc nhở ôn tập trong cộng đồng Aptis Lingo.
           </p>
           <div className="community-invite-links mx-auto mt-7 max-w-[392px] space-y-4">
-          <a href={facebookCommunityUrl} target="_blank" rel="noreferrer" onClick={onClose} className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-white px-5 text-base font-extrabold text-[#a50f15] shadow-[0_16px_36px_rgba(80,0,0,0.14)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(80,0,0,0.18)]">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-[#d71920] text-sm font-black text-[#ffde00]">f</span>
+          <a href={facebookCommunityUrl} target="_blank" rel="noreferrer" className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-[#ffda91] px-5 text-base font-extrabold text-[#122b4d] shadow-[0_16px_36px_rgba(4,15,32,0.14)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_44px_rgba(4,15,32,0.18)]">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-[#24476d] text-sm font-black text-[#ffda91]">f</span>
             Cộng đồng Facebook
             <ArrowRight size={21} />
           </a>
-          <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" onClick={onClose} className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-[#d71920] px-5 text-base font-extrabold text-white shadow-[0_16px_36px_rgba(80,0,0,0.16)] transition hover:-translate-y-0.5 hover:bg-[#a50f15]">
+          <a href={zaloCommunityUrl} target="_blank" rel="noreferrer" className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-[#24476d] px-5 text-base font-extrabold text-[#ffda91] shadow-[0_16px_36px_rgba(4,15,32,0.16)] transition hover:-translate-y-0.5 hover:bg-[#305a85]">
             <MessageCircle size={21} fill="currentColor" strokeWidth={0} />
             Cộng đồng Zalo
             <ArrowRight size={21} />
           </a>
-          <a href={zaloCommunityUrl2} target="_blank" rel="noreferrer" onClick={onClose} className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-[#d71920] px-5 text-base font-extrabold text-white shadow-[0_16px_36px_rgba(80,0,0,0.16)] transition hover:-translate-y-0.5 hover:bg-[#a50f15]">
+          <a href={zaloCommunityUrl2} target="_blank" rel="noreferrer" className="flex h-[56px] items-center justify-center gap-3 rounded-full bg-[#24476d] px-5 text-base font-extrabold text-[#ffda91] shadow-[0_16px_36px_rgba(4,15,32,0.16)] transition hover:-translate-y-0.5 hover:bg-[#305a85]">
             <MessageCircle size={21} fill="currentColor" strokeWidth={0} />
             Cộng đồng Zalo 2
             <ArrowRight size={21} />
           </a>
           </div>
-          <button type="button" onClick={onClose} className="mt-6 text-base font-extrabold text-white/90 transition hover:text-white">
-            Để sau
+          <button type="button" onClick={onHidePermanently} className="mt-6 text-base font-extrabold text-[#ffda91]/90 transition hover:text-[#ffda91] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffda91]">
+            Không hiển thị lần sau
           </button>
         </div>
       </div>

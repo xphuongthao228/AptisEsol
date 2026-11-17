@@ -1,0 +1,427 @@
+{
+  "revision": 0,
+  "topics": [
+    {
+      "id": "education",
+      "title": "Education",
+      "description": "Giáo dục, học tập và đào tạo.",
+      "icon": "education"
+    },
+    {
+      "id": "work",
+      "title": "Work & Office",
+      "description": "Công việc, văn phòng và nghề nghiệp.",
+      "icon": "work"
+    },
+    {
+      "id": "environment",
+      "title": "Environment",
+      "description": "Môi trường, thiên nhiên và bảo vệ môi trường.",
+      "icon": "environment"
+    },
+    {
+      "id": "technology",
+      "title": "Technology",
+      "description": "Công nghệ, đổi mới và cuộc sống số.",
+      "icon": "technology"
+    }
+  ],
+  "words": [
+    {
+      "id": "revise",
+      "topic": "education",
+      "level": "B1",
+      "word": "revise",
+      "ipa": "/rɪˈvaɪz/",
+      "meaning": "(v) ôn tập",
+      "example": "I revise my notes before an exam.",
+      "translation": "Tôi ôn lại ghi chép trước kỳ thi.",
+      "published": true
+    },
+    {
+      "id": "salary",
+      "topic": "work",
+      "level": "B1",
+      "word": "salary",
+      "ipa": "/ˈsæləri/",
+      "meaning": "(n) tiền lương",
+      "example": "She receives her salary at the end of the month.",
+      "translation": "Cô ấy nhận lương vào cuối tháng.",
+      "published": true
+    },
+    {
+      "id": "waste",
+      "topic": "environment",
+      "level": "B1",
+      "word": "waste",
+      "ipa": "/weɪst/",
+      "meaning": "(n) rác thải",
+      "example": "We should reduce food waste.",
+      "translation": "Chúng ta nên giảm rác thải thực phẩm.",
+      "published": true
+    },
+    {
+      "id": "website",
+      "topic": "technology",
+      "level": "B1",
+      "word": "website",
+      "ipa": "/ˈwebsaɪt/",
+      "meaning": "(n) trang web",
+      "example": "This website offers free English lessons.",
+      "translation": "Trang web này cung cấp các bài học tiếng Anh miễn phí.",
+      "published": true
+    },
+    {
+      "id": "scholarship",
+      "topic": "education",
+      "level": "B2",
+      "word": "scholarship",
+      "ipa": "/ˈskɒləʃɪp/",
+      "meaning": "(n) học bổng",
+      "example": "She won a scholarship to study abroad.",
+      "translation": "Cô ấy giành được học bổng du học.",
+      "published": true
+    },
+    {
+      "id": "negotiate",
+      "topic": "work",
+      "level": "B2",
+      "word": "negotiate",
+      "ipa": "/nɪˈɡəʊʃieɪt/",
+      "meaning": "(v) đàm phán",
+      "example": "We need to negotiate a better agreement.",
+      "translation": "Chúng tôi cần đàm phán một thỏa thuận tốt hơn.",
+      "published": true
+    },
+    {
+      "id": "renewable",
+      "topic": "environment",
+      "level": "B2",
+      "word": "renewable",
+      "ipa": "/rɪˈnjuːəbl/",
+      "meaning": "(adj) có thể tái tạo",
+      "example": "Solar power is a renewable source of energy.",
+      "translation": "Điện mặt trời là một nguồn năng lượng tái tạo.",
+      "published": true
+    },
+    {
+      "id": "privacy",
+      "topic": "technology",
+      "level": "B2",
+      "word": "privacy",
+      "ipa": "/ˈprɪvəsi/",
+      "meaning": "(n) quyền riêng tư",
+      "example": "Strong passwords help protect your privacy.",
+      "translation": "Mật khẩu mạnh giúp bảo vệ quyền riêng tư của bạn.",
+      "published": true
+    },
+    {
+      "id": "attainment",
+      "topic": "education",
+      "level": "C1",
+      "word": "attainment",
+      "ipa": "/əˈteɪnmənt/",
+      "meaning": "(n) thành tích, sự đạt được",
+      "example": "Regular feedback can improve educational attainment.",
+      "translation": "Phản hồi thường xuyên có thể cải thiện thành tích học tập.",
+      "published": true
+    },
+    {
+      "id": "remuneration",
+      "topic": "work",
+      "level": "C1",
+      "word": "remuneration",
+      "ipa": "/rɪˌmjuːnəˈreɪʃn/",
+      "meaning": "(n) thù lao",
+      "example": "The position offers competitive remuneration.",
+      "translation": "Vị trí này cung cấp mức thù lao cạnh tranh.",
+      "published": true
+    },
+    {
+      "id": "degradation",
+      "topic": "environment",
+      "level": "C1",
+      "word": "degradation",
+      "ipa": "/ˌdeɡrəˈdeɪʃn/",
+      "meaning": "(n) sự suy thoái",
+      "example": "Intensive farming can cause soil degradation.",
+      "translation": "Canh tác thâm canh có thể gây suy thoái đất.",
+      "published": true
+    },
+    {
+      "id": "ubiquitous",
+      "topic": "technology",
+      "level": "C1",
+      "word": "ubiquitous",
+      "ipa": "/juːˈbɪkwɪtəs/",
+      "meaning": "(adj) có mặt khắp nơi",
+      "example": "Smartphones have become ubiquitous in daily life.",
+      "translation": "Điện thoại thông minh đã trở nên phổ biến khắp nơi trong cuộc sống hằng ngày.",
+      "published": true
+    },
+    {
+      "id": "subject",
+      "topic": "education",
+      "level": "B1",
+      "word": "subject",
+      "ipa": "/ˈsʌbdʒekt/",
+      "meaning": "(n) môn học",
+      "example": "My favourite subject is English.",
+      "translation": "Môn học yêu thích của tôi là tiếng Anh.",
+      "published": true
+    },
+    {
+      "id": "improve",
+      "topic": "education",
+      "level": "B1",
+      "word": "improve",
+      "ipa": "/ɪmˈpruːv/",
+      "meaning": "(v) cải thiện",
+      "example": "Reading every day helps me improve my vocabulary.",
+      "translation": "Đọc mỗi ngày giúp tôi cải thiện vốn từ vựng.",
+      "published": true
+    },
+    {
+      "id": "colleague",
+      "topic": "work",
+      "level": "B1",
+      "word": "colleague",
+      "ipa": "/ˈkɒliːɡ/",
+      "meaning": "(n) đồng nghiệp",
+      "example": "My colleagues are friendly and helpful.",
+      "translation": "Đồng nghiệp của tôi thân thiện và hay giúp đỡ.",
+      "published": true
+    },
+    {
+      "id": "meeting",
+      "topic": "work",
+      "level": "B1",
+      "word": "meeting",
+      "ipa": "/ˈmiːtɪŋ/",
+      "meaning": "(n) cuộc họp",
+      "example": "We have a team meeting every Monday.",
+      "translation": "Chúng tôi họp nhóm vào mỗi thứ Hai.",
+      "published": true
+    },
+    {
+      "id": "recycle",
+      "topic": "environment",
+      "level": "B1",
+      "word": "recycle",
+      "ipa": "/ˌriːˈsaɪkl/",
+      "meaning": "(v) tái chế",
+      "example": "We recycle paper and plastic at home.",
+      "translation": "Chúng tôi tái chế giấy và nhựa tại nhà.",
+      "published": true
+    },
+    {
+      "id": "pollution",
+      "topic": "environment",
+      "level": "B1",
+      "word": "pollution",
+      "ipa": "/pəˈluːʃn/",
+      "meaning": "(n) sự ô nhiễm",
+      "example": "Air pollution is a problem in big cities.",
+      "translation": "Ô nhiễm không khí là một vấn đề ở các thành phố lớn.",
+      "published": true
+    },
+    {
+      "id": "device",
+      "topic": "technology",
+      "level": "B1",
+      "word": "device",
+      "ipa": "/dɪˈvaɪs/",
+      "meaning": "(n) thiết bị",
+      "example": "This device makes my daily work easier.",
+      "translation": "Thiết bị này giúp công việc hằng ngày của tôi dễ dàng hơn.",
+      "published": true
+    },
+    {
+      "id": "download",
+      "topic": "technology",
+      "level": "B1",
+      "word": "download",
+      "ipa": "/ˌdaʊnˈləʊd/",
+      "meaning": "(v) tải xuống",
+      "example": "You can download the app for free.",
+      "translation": "Bạn có thể tải ứng dụng miễn phí.",
+      "published": true
+    },
+    {
+      "id": "qualification",
+      "topic": "education",
+      "level": "B2",
+      "word": "qualification",
+      "ipa": "/ˌkwɒlɪfɪˈkeɪʃn/",
+      "meaning": "(n) bằng cấp",
+      "example": "This job requires a teaching qualification.",
+      "translation": "Công việc này yêu cầu bằng cấp giảng dạy.",
+      "published": true
+    },
+    {
+      "id": "curriculum",
+      "topic": "education",
+      "level": "B2",
+      "word": "curriculum",
+      "ipa": "/kəˈrɪkjələm/",
+      "meaning": "(n) chương trình học",
+      "example": "The school has introduced a new curriculum.",
+      "translation": "Trường đã đưa vào một chương trình học mới.",
+      "published": true
+    },
+    {
+      "id": "implement",
+      "topic": "work",
+      "level": "B2",
+      "word": "implement",
+      "ipa": "/ˈɪmplɪment/",
+      "meaning": "(v) triển khai, thực hiện",
+      "example": "The company plans to implement a new digital system next month.",
+      "translation": "Công ty dự định triển khai một hệ thống số mới vào tháng tới.",
+      "published": true
+    },
+    {
+      "id": "deadline",
+      "topic": "work",
+      "level": "B2",
+      "word": "deadline",
+      "ipa": "/ˈdedlaɪn/",
+      "meaning": "(n) hạn chót",
+      "example": "We need to finish the report before the deadline.",
+      "translation": "Chúng tôi cần hoàn thành báo cáo trước hạn chót.",
+      "published": true
+    },
+    {
+      "id": "sustainable",
+      "topic": "environment",
+      "level": "B2",
+      "word": "sustainable",
+      "ipa": "/səˈsteɪnəbl/",
+      "meaning": "(adj) bền vững",
+      "example": "We need more sustainable forms of transport.",
+      "translation": "Chúng ta cần những hình thức giao thông bền vững hơn.",
+      "published": true
+    },
+    {
+      "id": "conservation",
+      "topic": "environment",
+      "level": "B2",
+      "word": "conservation",
+      "ipa": "/ˌkɒnsəˈveɪʃn/",
+      "meaning": "(n) sự bảo tồn",
+      "example": "Wildlife conservation protects endangered animals.",
+      "translation": "Bảo tồn động vật hoang dã bảo vệ các loài có nguy cơ tuyệt chủng.",
+      "published": true
+    },
+    {
+      "id": "innovation",
+      "topic": "technology",
+      "level": "B2",
+      "word": "innovation",
+      "ipa": "/ˌɪnəˈveɪʃn/",
+      "meaning": "(n) sự đổi mới",
+      "example": "Innovation can help businesses grow.",
+      "translation": "Đổi mới có thể giúp doanh nghiệp phát triển.",
+      "published": true
+    },
+    {
+      "id": "efficient",
+      "topic": "technology",
+      "level": "B2",
+      "word": "efficient",
+      "ipa": "/ɪˈfɪʃnt/",
+      "meaning": "(adj) hiệu quả",
+      "example": "The new software makes our work more efficient.",
+      "translation": "Phần mềm mới giúp công việc của chúng tôi hiệu quả hơn.",
+      "published": true
+    },
+    {
+      "id": "pedagogy",
+      "topic": "education",
+      "level": "C1",
+      "word": "pedagogy",
+      "ipa": "/ˈpedəɡɒdʒi/",
+      "meaning": "(n) phương pháp sư phạm",
+      "example": "Technology is changing modern pedagogy.",
+      "translation": "Công nghệ đang thay đổi phương pháp sư phạm hiện đại.",
+      "published": true
+    },
+    {
+      "id": "disseminate",
+      "topic": "education",
+      "level": "C1",
+      "word": "disseminate",
+      "ipa": "/dɪˈsemɪneɪt/",
+      "meaning": "(v) phổ biến, truyền bá",
+      "example": "Universities disseminate knowledge through research.",
+      "translation": "Các trường đại học phổ biến kiến thức thông qua nghiên cứu.",
+      "published": true
+    },
+    {
+      "id": "accountability",
+      "topic": "work",
+      "level": "C1",
+      "word": "accountability",
+      "ipa": "/əˌkaʊntəˈbɪləti/",
+      "meaning": "(n) trách nhiệm giải trình",
+      "example": "Clear roles improve accountability within a team.",
+      "translation": "Vai trò rõ ràng cải thiện trách nhiệm giải trình trong nhóm.",
+      "published": true
+    },
+    {
+      "id": "streamline",
+      "topic": "work",
+      "level": "C1",
+      "word": "streamline",
+      "ipa": "/ˈstriːmlaɪn/",
+      "meaning": "(v) tinh giản, tối ưu",
+      "example": "The manager wants to streamline the hiring process.",
+      "translation": "Người quản lý muốn tinh giản quy trình tuyển dụng.",
+      "published": true
+    },
+    {
+      "id": "biodiversity",
+      "topic": "environment",
+      "level": "C1",
+      "word": "biodiversity",
+      "ipa": "/ˌbaɪəʊdaɪˈvɜːsəti/",
+      "meaning": "(n) đa dạng sinh học",
+      "example": "Deforestation threatens biodiversity.",
+      "translation": "Phá rừng đe dọa sự đa dạng sinh học.",
+      "published": true
+    },
+    {
+      "id": "mitigate",
+      "topic": "environment",
+      "level": "C1",
+      "word": "mitigate",
+      "ipa": "/ˈmɪtɪɡeɪt/",
+      "meaning": "(v) giảm thiểu",
+      "example": "Planting trees can help mitigate climate change.",
+      "translation": "Trồng cây có thể góp phần giảm thiểu biến đổi khí hậu.",
+      "published": true
+    },
+    {
+      "id": "interoperability",
+      "topic": "technology",
+      "level": "C1",
+      "word": "interoperability",
+      "ipa": "/ˌɪntərˌɒpərəˈbɪləti/",
+      "meaning": "(n) khả năng tương tác",
+      "example": "Interoperability allows different systems to share data.",
+      "translation": "Khả năng tương tác cho phép các hệ thống khác nhau chia sẻ dữ liệu.",
+      "published": true
+    },
+    {
+      "id": "autonomous",
+      "topic": "technology",
+      "level": "C1",
+      "word": "autonomous",
+      "ipa": "/ɔːˈtɒnəməs/",
+      "meaning": "(adj) tự chủ, tự vận hành",
+      "example": "Autonomous vehicles use sensors to navigate.",
+      "translation": "Xe tự hành sử dụng cảm biến để định hướng.",
+      "published": true
+    }
+  ]
+}

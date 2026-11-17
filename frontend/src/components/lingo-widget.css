@@ -1,0 +1,150 @@
+.floating-lingo-robot {
+  position: fixed;
+  right: 20px;
+  bottom: 88px;
+  z-index: 30;
+  width: 144px;
+  height: 144px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.lingo-robot-touch {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+}
+.lingo-robot-touch > span { display: block; width: 100%; height: 100%; }
+.lingo-robot-touch:focus-visible { outline: 3px solid #e5a000; outline-offset: 3px; }
+.lingo-robot-bubble {
+  position: absolute;
+  right: 8px;
+  bottom: calc(100% + 14px);
+  width: min(240px, calc(100vw - 40px));
+  padding: 16px 30px 16px 16px;
+  border: 1px solid #f9d77b;
+  border-radius: 20px;
+  background: #fffdf5;
+  color: #632818;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.6;
+  box-shadow: 0 8px 28px rgb(116 55 8 / 15%);
+  pointer-events: auto;
+  animation: lingo-bubble-appear 180ms ease-out both;
+}
+.lingo-robot-bubble::after {
+  content: '';
+  position: absolute;
+  right: 44px;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  border-right: 1px solid #f9d77b;
+  border-bottom: 1px solid #f9d77b;
+  background: #fffdf5;
+  transform: rotate(45deg);
+}
+.lingo-robot-dismiss {
+  position: absolute;
+  right: 3px;
+  top: 3px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #925d40;
+  font-size: 22px;
+  cursor: pointer;
+}
+.lingo-robot-dismiss:hover { background: #fff0cd; }
+.lingo-robot-poke { animation: lingo-poke 400ms ease-out; }
+@keyframes lingo-poke {
+  0%, 100% { transform: scale(1); }
+  35% { transform: scale(.9) rotate(-8deg); }
+  70% { transform: scale(1.08) rotate(5deg); }
+}
+@keyframes lingo-bubble-appear {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-width: 767px) {
+  .floating-lingo-robot {
+    right: 10px;
+    bottom: calc(150px + env(safe-area-inset-bottom));
+    width: 104px;
+    height: 104px;
+  }
+}
+
+@media (max-width: 480px) {
+  .floating-lingo-robot { bottom: calc(194px + env(safe-area-inset-bottom)); }
+}
+
+.lingo-robot-launcher {
+  display: grid;
+  place-items: center;
+  width: 144px;
+  height: 144px;
+  padding: 0;
+  border: 0;
+  border-radius: 24px;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.lingo-robot-image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 12px rgb(193 75 12 / 20%));
+  animation: lingo-hover 3.6s ease-in-out infinite;
+  transition: filter 180ms ease;
+}
+
+.lingo-robot-launcher:hover .lingo-robot-image {
+  filter: drop-shadow(0 8px 16px rgb(242 159 0 / 42%));
+}
+
+.lingo-robot-launcher:focus-visible {
+  outline: 3px solid #e5a000;
+  outline-offset: 4px;
+}
+
+.lingo-robot-launcher.is-open {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  color: white;
+  background: #c71920;
+  box-shadow: 0 6px 20px rgb(150 20 25 / 25%);
+}
+
+.lingo-widget .lingo-chat-panel {
+  height: min(520px, calc(100dvh - 190px));
+}
+
+@keyframes lingo-hover {
+  0%, 100% { transform: translateY(0) rotate(-3deg); }
+  50% { transform: translateY(-12px) rotate(3deg); }
+}
+
+@media (max-width: 640px) {
+  .lingo-robot-launcher { width: 104px; height: 104px; }
+  .lingo-widget .lingo-chat-panel { height: min(480px, calc(100dvh - 230px)); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lingo-robot-image { animation: none; transition: none; }
+  .lingo-robot-poke, .lingo-robot-bubble { animation: none; }
+}

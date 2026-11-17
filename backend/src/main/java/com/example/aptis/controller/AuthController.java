@@ -79,7 +79,7 @@ public class AuthController {
 
     @GetMapping("/session")
     public ApiResponse<AuthDtos.AuthResponse> session(Authentication authentication) {
-        return ApiResponse.ok(authService.session(authentication.getName()));
+        return ApiResponse.ok(authService.session(authentication.getName(), (String) authentication.getCredentials()));
     }
 
     @PostMapping("/heartbeat")

@@ -164,6 +164,12 @@ api.interceptors.response.use(
   async (error: AxiosError<ApiResponse<unknown>>) => {
     const originalRequest = error.config as RetryableRequestConfig | undefined;
     const status = error.response?.status;
+    if (status === 401 && (error.response?.data as { code?: string } | undefined)?.code === 'SESSION_REPLACED') {
+      const hadSession = Boolean(useAuthStore.getState().accessToken);
+      useAuthStore.getState().clearAuth();
+      if (hadSession) window.dispatchEvent(new Event('aptis:session-replaced'));
+      return Promise.reject(error);
+    }
     const { refreshToken } = useAuthStore.getState();
     const url = originalRequest?.url ?? '';
     const canRetry =

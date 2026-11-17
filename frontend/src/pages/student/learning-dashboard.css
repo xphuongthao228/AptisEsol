@@ -13,6 +13,14 @@
 .learning-summary-grid article { display: flex; align-items: flex-start; gap: 12px; border: 1px solid #f0ece7; background: #fcfbf8; border-radius: 14px; padding: 18px; }
 .learning-summary-grid strong { display: block; margin-top: 5px; font-size: 16px; color: #18304a; }
 .learning-summary-grid small { font-size: 10px; color: #89929d; }
+.learning-summary-grid .learning-daily-goal { padding: 0; overflow: hidden; transition: border-color .15s, box-shadow .15s; }
+.learning-daily-goal-link { display: flex; align-items: flex-start; gap: 12px; width: 100%; height: 100%; padding: 18px; border-radius: inherit; }
+.learning-daily-goal-link:focus-visible { outline: 3px solid #e6b85c; outline-offset: -3px; }
+.learning-summary-grid .learning-daily-goal:hover { border-color: #e7c78b; box-shadow: 0 4px 14px #422b140b; }
+.learning-daily-description { margin-top: 9px; color: #737e8d; font-size: 11px; line-height: 1.6; }
+.learning-daily-action { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; }
+.learning-daily-select { width: 100%; min-height: 36px; margin-top: 10px; padding: 6px 8px; border: 1px solid #dddfe5; border-radius: 9px; background: #fff; color: #18304a; font-size: 12px; cursor: pointer; }
+.learning-daily-select:focus-visible { outline: 2px solid #e6b85c; outline-offset: 2px; }
 .learning-goal-card { position: relative; }
 .learning-goal-trigger { min-height: 32px; cursor: pointer; }
 .learning-goal-trigger::after { content: ''; position: absolute; inset: 0; border-radius: 14px; }

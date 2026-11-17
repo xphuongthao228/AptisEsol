@@ -19,6 +19,9 @@ import java.time.Instant;
         @jakarta.persistence.Index(name = "idx_refresh_tokens_user_id", columnList = "user_id")
 })
 public class RefreshToken extends BaseEntity {
+    @Column(name = "session_id", length = 36)
+    private String sessionId;
+
     @Column(nullable = false, unique = true, length = 500)
     private String token;
 

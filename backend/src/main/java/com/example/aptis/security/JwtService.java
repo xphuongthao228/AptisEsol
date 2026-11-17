@@ -21,10 +21,11 @@ public class JwtService {
     @Value("${app.jwt.access-token-minutes}")
     private long accessMinutes;
 
-    public String generate(UserDetails userDetails) {
+    public String generate(UserDetails userDetails, String sessionId) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .subject(userDetails.getUsername())
+                .claim("sid", sessionId)
                 .claims(Map.of("roles", userDetails.getAuthorities().stream().map(Object::toString).toList()))
                 .issuedAt(Date.from(now))
                 .expiration(Date.from(now.plusSeconds(accessMinutes * 60)))
@@ -39,6 +40,10 @@ public class JwtService {
 
     public boolean valid(String token, UserDetails userDetails) {
         return subject(token).equals(userDetails.getUsername());
+    }
+
+    public String sessionId(String token) {
+        return Jwts.parser().verifyWith(key()).build().parseSignedClaims(token).getPayload().get("sid", String.class);
     }
 
     private SecretKey key() {

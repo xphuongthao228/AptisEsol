@@ -86,36 +86,3 @@ export function LearningRoadmap({ mockResults, resultsLoading, goal, onEditGoal 
   </section>;
 }
 
-export function SkillRadar({ skills, goal }: { skills: Array<{ name: string; percent: number; hasData: boolean }>; goal: LearningGoal | null }) {
-  const targetLevel = goal?.level ?? 'B2';
-  const skillNames = ['Reading', 'Listening', 'Speaking', 'Writing', 'Grammar'];
-  const ordered = skillNames.map(name => {
-    const skill = skills.find(item => item.name === name);
-    return { name, score: Math.round(Math.min(100, Math.max(0, skill?.percent ?? 0)) / 2), hasData: skill?.hasData ?? false };
-  });
-  const point = (index: number, ratio: number) => {
-    const angle = -Math.PI / 2 + index * Math.PI * 2 / 5;
-    return { x: 150 + Math.cos(angle) * 72 * ratio, y: 90 + Math.sin(angle) * 72 * ratio };
-  };
-  const points = (ratio: number) => ordered.map((_, index) => { const p = point(index, ratio); return `${p.x},${p.y}`; }).join(' ');
-  const complete = ordered.slice(0, 4).every(skill => skill.hasData);
-  const total = skillNames.slice(0, 4).reduce((sum, name) => {
-    const skill = skills.find(item => item.name === name);
-    return sum + Math.round(Math.min(100, Math.max(0, skill?.percent ?? 0)) / 2);
-  }, 0);
-  return <>
-    <div className="learning-section-heading learning-radar-heading"><div><h2>Biểu đồ Phân tích Năng lực</h2><p>So sánh thực tế vs. Mục tiêu {targetLevel}</p></div><span className="learning-cefr-badge">CEFR Metric</span></div>
-    <svg viewBox="0 0 300 180" className="learning-radar-chart" role="img" aria-label={`Biểu đồ năng lực thang 50: ${ordered.map(s => `${s.name} ${s.hasData ? s.score : 'chưa có dữ liệu'}`).join(', ')}`}>
-      {[.2, .4, .6, .8, 1].map(ratio => <polygon key={ratio} points={points(ratio)} fill="none" stroke="#e4e9ef" strokeWidth="0.8" />)}
-      {ordered.map((skill, index) => { const edge = point(index, 1); const label = point(index, 1.12); return <g key={skill.name}>
-        <line x1="150" y1="90" x2={edge.x} y2={edge.y} stroke="#e4e9ef" strokeWidth="0.7" strokeDasharray="2 2" />
-        <text x={label.x} y={label.y + (index === 0 ? -1 : index === 2 || index === 3 ? 8 : 3)} textAnchor={index === 0 || index === 2 || index === 3 ? 'middle' : index === 1 ? 'start' : 'end'} className="learning-radar-label">{skill.name} ({skill.hasData ? skill.score : '—'})</text>
-      </g>; })}
-      <polygon className="learning-radar-membrane" points={ordered.map((skill, index) => { const p = point(index, skill.score / 50); return `${p.x},${p.y}`; }).join(' ')} fill="#ff2222" fillOpacity={0.16} stroke="#ff2222" strokeWidth="1.5" strokeLinejoin="round" />
-      {ordered.filter(skill => skill.hasData).map(skill => { const p = point(ordered.indexOf(skill), skill.score / 50); return <circle key={skill.name} cx={p.x} cy={p.y} r="2.5" fill="#ff2222"><title>{skill.name}: {skill.score}/50</title></circle>; })}
-    </svg>
-    <p className="learning-radar-note mb-3 text-center">Điểm thi đầu vào hiển thị tại đây sau khi hoàn thành Full Test. Biểu đồ cập nhật theo Full Test gần nhất.</p>
-    {!ordered.every(skill => skill.hasData) && <p className="mb-3 text-center text-xs text-slate-500">Làm bài thi đầu vào để có đủ điểm 5 kỹ năng. <Link to={placementTestUrl} className="learning-small-link">Làm Full Test →</Link></p>}
-    <div className="learning-radar-summary"><div><span><i />Điểm trung bình quy đổi</span><strong>{complete ? `${total} / 200` : 'Chưa đủ dữ liệu'}</strong></div></div>
-  </>;
-}

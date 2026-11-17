@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/authStore';
 import { userHasRole } from '../../utils/roles';
 import type { Lesson, SubscriptionResponse } from '../../types';
 import { formatSubscriptionDate, getSubscriptionStatus, saveSubscriptionUntil } from '../../utils/subscription';
+import './lessons-light.css';
 
 type SkillKey = 'LISTENING' | 'READING' | 'SPEAKING' | 'WRITING';
 type ResourceKind = 'VIDEO' | 'DOCUMENT';
@@ -1277,8 +1278,8 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
     topic: 'Homeschooling',
     subtitle: 'Học tại nhà',
     variants: [
-      { speaker: 'Nam', key: 'M - W - W - B', note: 'Mình (M) vẫn (W) viết (W) bài (B) cho trường học.' },
-      { speaker: 'Nữ', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
+      { speaker: 'Nữ', key: 'M - W - W - B', note: 'Mình (M) vẫn (W) viết (W) bài (B) cho trường học.' },
+      { speaker: 'Nam', key: 'W - M - M - B', note: 'Đảo vị trí M và W ở câu trên.' }
     ]
   },
   {

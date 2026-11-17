@@ -1,0 +1,103 @@
+/* The tips library uses the same light, navy and gold palette as mock tests. */
+#root .student-shell.lessons-light-shell {
+  --tips-ink: #09245e;
+  --tips-muted: #53617b;
+  --tips-line: #d9e1ee;
+  --tips-action: linear-gradient(180deg, #102f77, #06183f);
+  background: radial-gradient(ellipse at 0 0, #fff3d7, transparent 44%), radial-gradient(ellipse at 100% 40%, #eaf5f6, transparent 40%), #f7f7fb !important;
+  color: var(--tips-ink) !important;
+}
+#root .lessons-light-shell::before,
+#root .lessons-light-shell::after { display: none !important; }
+#root .lessons-light-shell :is(.mobile-lessons-page, .mobile-tips-page) { background: transparent !important; color: var(--tips-ink) !important; }
+#root .lessons-light-shell :is(.lesson-skill-card, .lessons-resource-panel, .lessons-study-tips-section, .lesson-tip-card, .lesson-material-card, .lesson-resource-card, .lesson-access-badge, .lesson-search) {
+  background: #fff !important;
+  border-color: var(--tips-line) !important;
+  color: var(--tips-ink) !important;
+  box-shadow: 0 8px 22px #14294b09 !important;
+}
+#root .lessons-light-shell :is(.mobile-lessons-page, .mobile-tips-page) :is(h1, h2, h3, .lesson-tip-title) {
+  color: var(--tips-ink) !important;
+  -webkit-text-fill-color: var(--tips-ink) !important;
+  text-shadow: none !important;
+}
+#root .lessons-light-shell :is(.lessons-resource-panel, .lessons-study-tips-section, .lesson-tip-card, .lesson-material-card) p {
+  color: var(--tips-muted) !important;
+  -webkit-text-fill-color: var(--tips-muted) !important;
+  text-shadow: none !important;
+}
+#root .lessons-light-shell .lessons-halloween-hero {
+  background: linear-gradient(110deg, #fff, #f5f5fb) !important;
+  border: 1px solid white !important;
+  color: var(--tips-ink) !important;
+  box-shadow: 0 12px 24px #23334a08 !important;
+}
+#root .lessons-light-shell .lessons-halloween-hero::before,
+#root .lessons-light-shell .lessons-halloween-hero::after,
+#root .lessons-light-shell .lessons-halloween-hero > [aria-hidden=true] { display: none !important; }
+#root .lessons-light-shell .lessons-halloween-hero :is(p, h1, span, svg),
+#root .lessons-light-shell .lessons-halloween-hero .tips-landing-copy-black {
+  color: var(--tips-ink) !important;
+  -webkit-text-fill-color: var(--tips-ink) !important;
+  text-shadow: none !important;
+}
+#root .lessons-light-shell .lessons-halloween-hero > p:first-of-type {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ffe6a0 !important;
+  letter-spacing: .08em;
+}
+#root .lessons-light-shell .lesson-access-badge { border: 1px solid #f0ce7e !important; }
+#root .lessons-light-shell .lesson-skill-card :is(span, svg) {
+  color: var(--tips-ink) !important;
+  -webkit-text-fill-color: var(--tips-ink) !important;
+}
+#root .lessons-light-shell .lesson-skill-card[aria-pressed=true],
+#root .lessons-light-shell .lessons-resource-toggle button[aria-pressed=true] {
+  background: var(--tips-action) !important;
+  border-color: #203c7b !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px #0b245d26 !important;
+}
+#root .lessons-light-shell .lesson-skill-card[aria-pressed=true] *,
+#root .lessons-light-shell .lessons-resource-toggle button[aria-pressed=true] * {
+  color: #fff !important;
+  -webkit-text-fill-color: #fff !important;
+}
+#root .lessons-light-shell .lesson-skill-card > span:first-child { background: #edeaff !important; border-radius: 12px; }
+#root .lessons-light-shell .lesson-skill-card[aria-pressed=true] > span:first-child { background: #ffffff1c !important; }
+#root .lessons-light-shell :is(.lessons-resource-toggle, .lessons-empty-state, .lesson-study-tip-card, .lesson-tip-point, .lesson-material-item) {
+  background: #f7f8fc !important;
+  border-color: var(--tips-line) !important;
+  color: var(--tips-muted) !important;
+}
+#root .lessons-light-shell .lessons-resource-toggle button { color: var(--tips-ink) !important; }
+#root .lessons-light-shell .lessons-resource-toggle button[aria-pressed=true] { color: white !important; }
+#root .lessons-light-shell .lesson-study-tip-card { background: white !important; }
+#root .lessons-light-shell .lesson-study-tip-card > div:first-child {
+  background: #eef2fb !important;
+  border-bottom: 1px solid var(--tips-line);
+}
+#root .lessons-light-shell .lesson-study-tip-card > div:last-child { background: white !important; }
+#root .lessons-light-shell .lesson-tip-point :is(span, svg) { color: var(--tips-ink) !important; -webkit-text-fill-color: var(--tips-ink) !important; }
+#root .lessons-light-shell :is(.lesson-tip-card, .lesson-study-tip-card) a,
+#root .lessons-light-shell .lessons-study-tips-section .btn-secondary,
+#root .lessons-light-shell .lesson-resource-card > a {
+  background: var(--tips-action) !important;
+  border-color: #16346e !important;
+  color: white !important;
+  -webkit-text-fill-color: white !important;
+  box-shadow: 0 4px 10px #0b245d20 !important;
+}
+#root .lessons-light-shell :is(.lesson-tip-card, .lesson-study-tip-card) a *,
+#root .lessons-light-shell .lessons-study-tips-section .btn-secondary * { color: white !important; -webkit-text-fill-color: white !important; }
+#root .lessons-light-shell .lesson-search-input { background: transparent !important; color: var(--tips-ink) !important; -webkit-text-fill-color: var(--tips-ink) !important; }
+#root .lessons-light-shell .lesson-search-input::placeholder { color: #7c879c !important; -webkit-text-fill-color: #7c879c !important; }
+#root .lessons-light-shell .lesson-material-card > div:first-child > div:first-child {
+  background: #fff3d5 !important;
+  color: var(--tips-ink) !important;
+}
+#root .lessons-light-shell .lesson-material-card > div:first-child > div:first-child svg {
+  color: var(--tips-ink) !important;
+}

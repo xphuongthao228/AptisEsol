@@ -4,6 +4,28 @@ export const placementTestUrl = '/app/mock-tests?skill=FULL&full=1&screen=fullSt
 export const radarSkillNames = ['Reading', 'Listening', 'Speaking', 'Writing', 'Grammar'] as const;
 export type RadarSkill = { name: string; percent: number; hasData: boolean };
 export type LearningGoal = { examDate: string; level: 'B1' | 'B2' | 'C1' };
+export const learningGoalUpdatedEvent = 'aptis-learning-goal-updated';
+
+export function loadLearningGoal(storageKey: string): LearningGoal | null {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(storageKey) ?? 'null');
+    if (!parsed?.examDate || !['B1', 'B2', 'C1'].includes(parsed.level)) return null;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.examDate)) return null;
+    const date = new Date(`${parsed.examDate}T00:00:00`);
+    const [year, month, day] = parsed.examDate.split('-').map(Number);
+    if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) return null;
+    return parsed as LearningGoal;
+  } catch { return null; }
+}
+
+export function examCountdownMessage(goal: LearningGoal | null, now = new Date()): string | null {
+  if (!goal) return null;
+  const days = goalDaysRemaining(goal.examDate, now);
+  if (!Number.isFinite(days) || days < 0) return null;
+  if (days === 0) return 'Hôm nay là ngày thi rồi! Bình tĩnh, tự tin, chúc bạn thi thật tốt nhé! 🍀';
+  if (days === 1) return `Ngày mai bạn thi Aptis ${goal.level} rồi! Ôn nhẹ và nghỉ ngơi đủ nhé! 🌟`;
+  return `Bạn còn ${days} ngày nữa đến kỳ thi Aptis ${goal.level}, cố lên nha! 💪`;
+}
 
 export function goalDaysRemaining(examDate: string, now = new Date()): number {
   const [year, month, day] = examDate.split('-').map(Number);

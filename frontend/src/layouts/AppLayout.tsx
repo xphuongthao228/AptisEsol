@@ -35,6 +35,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { api, publicApi, unwrap } from '../api/client';
 import { NotificationDialog } from '../components/NotificationDialog';
+import { FloatingRobot } from '../components/FloatingRobot';
 import { SEO, getSeoByPath } from '../components/SEO';
 import { communityInviteDismissedKey } from '../utils/community';
 import { useAuthStore } from '../store/authStore';
@@ -61,6 +62,7 @@ const studentLinks: LayoutLink[] = [
 ];
 
 const studentMoreLinks: LayoutLink[] = [
+  { to: '/app/vocabulary', label: 'Từ vựng', icon: BookOpen },
   { to: '/learning-materials', label: 'Tài liệu học tập', icon: BookOpen },
   { to: '/app/referral', label: 'Mã giới thiệu', icon: UserPlus },
   { to: '/app/ai-practice', label: 'Tạo đề AI', icon: Bot },
@@ -85,6 +87,7 @@ const adminLinks: LayoutLink[] = [
 ];
 
 const adminMoreLinks: LayoutLink[] = [
+  { to: '/admin/vocabulary', label: 'Từ vựng', icon: BookOpen },
   { to: '/admin/withdrawals', label: 'Rút hoa hồng', icon: DollarSign },
   { to: '/admin/ai-usage', label: 'Chấm AI', icon: Bot },
   { to: '/admin/writing-bank', label: 'Kho đề Writing', icon: PenLine },
@@ -296,6 +299,7 @@ export function AppLayout() {
     setMobileMenuOpen(false);
     setAccountMenuOpen(false);
     sessionStorage.removeItem(communityInviteDismissedKey);
+    if (user) sessionStorage.removeItem(`${communityInviteDismissedKey}:${user.email}`);
     await logout();
     navigate('/');
   };
@@ -310,7 +314,7 @@ export function AppLayout() {
   }
 
   return (
-    <div className={`${isAdmin ? '' : `student-shell ${theme === 'dark' ? 'student-night' : 'student-light'}`} min-h-screen bg-sky-50 text-navy`}>
+    <div className={`${isAdmin ? '' : `student-shell ${theme === 'dark' ? 'student-night' : 'student-light'}`} ${location.pathname === '/app/tests/parts' ? 'parts-design-shell' : ''} ${!isAdmin && location.pathname.startsWith('/app/lessons') ? 'lessons-light-shell' : ''} min-h-screen bg-sky-50 text-navy`}>
       <SEO {...seo} />
       {!isAdmin && studentSkin === 'halloween' && <HalloweenDecor />}
 
@@ -386,9 +390,9 @@ export function AppLayout() {
               </Link>
               </>
             )}
+            <NotificationBell user={user} hasPaidSubscription={Boolean(subscription?.proActive)} />
             {isAuthenticated ? (
               <>
-                <NotificationBell user={user} hasPaidSubscription={Boolean(subscription?.proActive)} />
                 <div className="relative" ref={accountMenuRef}>
                   <button
                     type="button"
@@ -493,6 +497,7 @@ export function AppLayout() {
           <Outlet />
         </div>
       </main>
+      {!isAdmin && <FloatingRobot />}
       {!isAdmin && <nav className="mobile-bottom-nav" aria-label="Điều hướng chính trên điện thoại">
         {[
           { to: '/', label: 'Trang chủ', icon: LayoutDashboard, active: location.pathname === '/' },

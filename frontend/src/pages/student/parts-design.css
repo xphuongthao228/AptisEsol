@@ -1,0 +1,89 @@
+.student-shell.parts-design-shell {
+  background: radial-gradient(ellipse at 0 0, #fff0cd 0, transparent 44%), radial-gradient(ellipse at 100% 52%, #fff0d7 0, transparent 37%), linear-gradient(130deg, #fffaf1, #f5f5fa 65%, #fff8ef);
+  color: #18243b;
+}
+html body .student-shell.parts-design-shell {
+  background: radial-gradient(ellipse at 0 0, #fff0cd 0, transparent 44%), radial-gradient(ellipse at 100% 52%, #fff0d7 0, transparent 37%), linear-gradient(130deg, #fffaf1, #f5f5fa 65%, #fff8ef) !important;
+}
+html body .student-shell.parts-design-shell::before,
+html body .student-shell.parts-design-shell::after { display: none; }
+html body .student-shell.parts-design-shell .parts-design-page .parts-skill-selector > button {
+  background: #ffffffed !important;
+  border-color: #e7e1e0 !important;
+  color: #18243b !important;
+  box-shadow: 0 5px 10px #30212809 !important;
+}
+html body .student-shell.parts-design-shell .parts-design-page .parts-skill-selector > button[aria-pressed=true] {
+  background: linear-gradient(#ed142b, #c50016) !important;
+  border-color: #ec1028 !important;
+  color: #fff !important;
+  box-shadow: 0 6px 14px #de112524 !important;
+}
+html body .student-shell.parts-design-shell .parts-design-page .parts-skill-selector > button :is(svg, span, small) { color: inherit !important; }
+html body .student-shell.parts-design-shell .parts-design-page .parts-skill-selector .parts-skill-icon { background: transparent !important; }
+.parts-design-shell > main > div { max-width: 1120px; padding-top: 34px; }
+.parts-design-page { max-width: 100%; margin: 0 auto; }
+.student-shell .parts-design-page .practice-selection-hero {
+  min-height: 205px;
+  border: 1px solid #294660;
+  border-radius: 22px;
+  padding: 22px 36px 28px;
+  background: radial-gradient(ellipse at 85% 12%, #304c69 0, transparent 55%), linear-gradient(115deg, #102b47, #173957);
+  box-shadow: 0 12px 26px #15334a16;
+  isolation: isolate;
+}
+.parts-design-page .practice-selection-hero::before {
+  inset: auto -5% -85% 25%;
+  height: 125%;
+  width: 90%;
+  border: 1px solid #ffffff0d;
+  border-radius: 50%;
+  background: #ffffff04;
+  transform: rotate(-17deg);
+  pointer-events: none;
+}
+.parts-design-page .practice-selection-hero::after { display: none; }
+.parts-design-page .practice-selection-hero > a { color: #ffdb86; font-size: 14px; }
+.parts-design-page .practice-selection-hero > p:first-of-type {
+  margin-top: 24px;
+  color: #ffe2a3;
+  font-size: 13px;
+  letter-spacing: .18em;
+  border-left: 3px solid #ffd44f;
+  padding-left: 10px;
+}
+.student-shell .parts-design-page .practice-selection-hero h1 { margin-top: 8px; color: #ffe5b0; font-size: clamp(26px, 2.8vw, 38px); line-height: 1.2; font-weight: 800; }
+.parts-design-page .practice-selection-hero > p:last-of-type { margin-top: 10px; color: #f1f4f7; font-size: 15px; max-width: 65%; }
+.parts-golden-book { position: absolute; right: 28px; bottom: 0; width: 29%; height: 100%; object-fit: contain; pointer-events: none; z-index: -1; }
+.parts-design-page > .parts-skill-selector { margin-top: 23px; margin-bottom: 22px; gap: 14px; }
+.parts-design-page .parts-skill-selector > button { height: 46px; padding: 0 24px; border: 1px solid #e7e1e0; border-radius: 13px; box-shadow: 0 5px 10px #30212809; background: #ffffffd9; }
+.parts-design-page .parts-skill-selector > button[aria-pressed=true] { border-color: #ec1028; background: linear-gradient(#ed142b, #c50016); box-shadow: 0 6px 14px #de112524; }
+.parts-design-page .parts-skill-icon svg { width: 23px; height: 23px; }
+.parts-design-page .parts-selection-summary { position: relative; overflow: hidden; padding: 24px 28px; border: 1px solid #ffe0a2; border-radius: 21px; background: linear-gradient(155deg, #fff 60%, #fff6e4); box-shadow: 0 7px 18px #b77a2810; }
+.parts-design-page .parts-selection-summary h2 { color: #481b17; font-size: 29px; line-height: 1.1; }
+.parts-design-page .parts-selection-summary p:last-child { margin-top: 5px; font-size: 14px; line-height: 1.6; }
+.parts-design-page .parts-selection-summary .h-14 { width: 64px; height: 64px; background: linear-gradient(140deg, #fff7e8, #ffecc8); color: #dc1026; }
+.parts-design-page .parts-selection-summary .h-14 svg { width: 30px; height: 30px; }
+.parts-design-page .grid > a.group {
+  display: flex;
+  flex-direction: column;
+  padding: 22px 24px;
+  border: 1px solid #ffead0;
+  border-radius: 22px;
+  background: #ffffffed;
+  box-shadow: 0 8px 18px #71351b0c;
+}
+.parts-design-page .grid > a.group::after { display: none; }
+.parts-design-page .grid > a.group:hover { border-color: #edc87e; box-shadow: 0 12px 25px #71351b16; }
+.parts-design-page .grid > a.group > .h-14 { width: 48px; height: 48px; margin-bottom: 16px; background: linear-gradient(140deg, #fff8eb, #ffeac5); color: #df1028; }
+.parts-design-page .grid > a.group h2 { color: #481b17; font-size: 25px; letter-spacing: -.025em; }
+.parts-design-page .grid > a.group > p:first-of-type { color: #657792; font-size: 12px; }
+.parts-design-page .grid > a.group > span:last-child { min-height: 43px; height: 43px; margin-top: 22px; border-radius: 12px; background: linear-gradient(#ed1029, #c40017); color: #fff; box-shadow: 0 5px 12px #d8082225; }
+@media (max-width: 767px) {
+  .parts-design-shell > main > div { padding-top: 20px; }
+  .student-shell .parts-design-page .practice-selection-hero { padding: 22px; min-height: 210px; }
+  .parts-design-page .practice-selection-hero > p:last-of-type { max-width: 72%; font-size: 13px; }
+  .parts-golden-book { right: -16px; bottom: 2px; width: 36%; height: 65%; opacity: .85; }
+  .parts-design-page .practice-selection-hero h1 { max-width: 88%; }
+  .parts-design-page .parts-selection-summary { padding: 20px; }
+}

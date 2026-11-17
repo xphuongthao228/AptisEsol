@@ -3,6 +3,7 @@ import toast from 'react-hot-toast';
 import { Bot, ExternalLink, MessageCircle, Send, Sparkles, UserRound, Users, X } from 'lucide-react';
 import { api, unwrap } from '../api/client';
 import { facebookCommunityUrl, zaloCommunityUrl, zaloCommunityUrl2 } from '../utils/community';
+import './lingo-widget.css';
 
 type ChatMessage = {
   role: 'user' | 'assistant';
@@ -18,7 +19,7 @@ type LingoHistoryItem = {
 
 const LINGO_LEVEL_KEY = 'aptis-lingo-level';
 
-export function LingoWidget() {
+export function LingoWidget({ showCommunity = true }: { showCommunity?: boolean }) {
   const [open, setOpen] = useState(false);
   const [contactOpen, setContactOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -78,7 +79,7 @@ export function LingoWidget() {
 
   return (
     <>
-    <div className="community-widget fixed bottom-24 left-5 z-[80]">
+    {showCommunity && <div className="community-widget fixed bottom-24 left-5 z-[80]">
       {contactOpen && (
         <section className="mb-3 w-[min(340px,calc(100vw-32px))] overflow-hidden rounded-2xl border border-brand-100 bg-white shadow-2xl shadow-slate-900/18">
           <header className="flex h-16 items-center justify-between bg-gradient-to-r from-brand-700 to-sky-500 px-4 text-white">
@@ -147,11 +148,11 @@ export function LingoWidget() {
           <Users size={23} />
         </span>
       </button>
-    </div>
+    </div>}
 
     <div className="lingo-widget fixed bottom-24 right-5 z-[80]">
       {open && (
-        <section className="mb-3 flex h-[min(520px,calc(100vh-120px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-2xl shadow-slate-900/18">
+        <section id="lingo-chat-panel" className="lingo-chat-panel mb-3 flex h-[min(520px,calc(100vh-120px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-violet-100 bg-white shadow-2xl shadow-slate-900/18">
           <header className="flex h-16 items-center justify-between bg-gradient-to-r from-violet-600 to-sky-400 px-4 text-white">
             <div className="flex items-center gap-3">
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/18">
@@ -226,17 +227,14 @@ export function LingoWidget() {
             setOpen((value) => !value);
             setContactOpen(false);
           }}
-          className="group relative grid h-[62px] w-[62px] place-items-center rounded-full bg-white shadow-xl shadow-slate-900/20 ring-1 ring-slate-200 transition hover:-translate-y-0.5 hover:shadow-2xl"
-          aria-label="Mở trợ lí Lingo"
+          className={`lingo-robot-launcher${open ? ' is-open' : ''}`}
+          aria-label={open ? 'Đóng trợ lí Lingo' : 'Mở trợ lí Lingo'}
+          aria-expanded={open}
+          aria-controls="lingo-chat-panel"
         >
-          <span className="absolute -top-1 left-1/2 h-3 w-3 -translate-x-1/2 rounded-full bg-violet-600" />
-          <span className="relative grid h-11 w-11 place-items-center rounded-[18px] bg-gradient-to-b from-slate-100 to-slate-300 shadow-inner">
-            <span className="absolute top-2 h-4 w-7 rounded-lg bg-slate-800">
-              <span className="absolute left-1.5 top-1 h-1.5 w-1.5 rounded-full bg-sky-300" />
-              <span className="absolute right-1.5 top-1 h-1.5 w-1.5 rounded-full bg-rose-300" />
-            </span>
-            <span className="absolute bottom-2 h-2 w-5 rounded-full bg-violet-500/80" />
-          </span>
+          {open ? <X size={24} aria-hidden="true" /> : (
+            <img className="lingo-robot-image" src="/brand/lingo-floating-robot.png" alt="" width={144} height={144} draggable={false} />
+          )}
         </button>
       </div>
     </div>

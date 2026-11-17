@@ -2,6 +2,8 @@
 import { createBrowserRouter, Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '../layouts/AppLayout';
 import { RouteError } from './RouteError';
+const Vocabulary = lazy(() => import('../pages/student/Vocabulary').then(m => ({ default: m.Vocabulary })));
+const AdminVocabulary = lazy(() => import('../pages/admin/AdminVocabulary').then(m => ({ default: m.AdminVocabulary })));
 const Blog = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.Blog })));
 const BlogDetail = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.BlogDetail })));
 const LegacyBlogRedirect = lazy(() => import('../pages/student/Blog').then(m => ({ default: m.LegacyBlogRedirect })));
@@ -71,6 +73,7 @@ export const router = createBrowserRouter([
     { path: 'lessons/:skillType/:tipSlug', element: <Lessons /> },
     { path: 'tests', element: <Navigate to="/app/tests/parts" replace /> },
     { path: 'mock-tests', element: <MockTests /> },
+    { path: 'vocabulary', element: <Vocabulary /> },
     { path: 'writing-bank', element: <SubscriptionGate requirePro><WritingBank /></SubscriptionGate> },
     { path: 'speaking-bank', element: <SubscriptionGate requirePro><SpeakingBank /></SubscriptionGate> },
     { path: 'combine-speaking', element: <CombineSpeaking /> },
@@ -153,6 +156,7 @@ export const router = createBrowserRouter([
       { path: 'blog', element: <Navigate to="/admin/learning-materials" replace /> },
       { path: 'learning-materials', element: <AdminLearningMaterials /> },
       { path: 'mock-tests', element: <AdminMockTests /> },
+      { path: 'vocabulary', element: <AdminVocabulary /> },
       { path: 'leaderboard', element: <Leaderboard /> },
       { path: 'predictions', element: <AdminPredictions /> },
       { path: 'revenue', element: <AdminRevenue /> },

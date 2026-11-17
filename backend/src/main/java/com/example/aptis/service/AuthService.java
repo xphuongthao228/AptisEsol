@@ -48,6 +48,7 @@ public class AuthService {
     private final DtoMapper mapper;
     private final EmailService emailService;
     private final ActiveVisitorService activeVisitorService;
+    private final jakarta.persistence.EntityManager entityManager;
 
     @Value("${app.jwt.refresh-token-days}")
     private long refreshDays;
@@ -87,7 +88,7 @@ public class AuthService {
         if (!user.isEmailVerified()) {
             throw new IllegalStateException("Bạn cần nhập đúng mã OTP trong Gmail trước khi đăng nhập");
         }
-        return tokens(user);
+        return startSession(user);
     }
 
     @Transactional
@@ -150,7 +151,7 @@ public class AuthService {
             user.setAvatarUrl(googleUser.getAttribute("picture"));
             user = userRepository.save(user);
         }
-        return tokens(user);
+        return startSession(user);
     }
 
     private String requiredAttribute(OAuth2User user, String name) {
@@ -174,14 +175,24 @@ public class AuthService {
         RefreshToken token = refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken)
                 .filter(rt -> rt.getExpiresAt().isAfter(Instant.now()))
                 .orElseThrow(() -> new IllegalArgumentException("Refresh token không hợp lệ"));
+        User user = lockUser(token.getUser());
+        entityManager.refresh(token);
+        if (token.isRevoked() || token.getSessionId() == null
+                || !token.getSessionId().equals(user.getActiveSessionId()) || !user.isEnabled()) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
+        }
         token.setRevoked(true);
         refreshTokenRepository.save(token);
-        return tokens(token.getUser());
+        return tokens(user);
     }
 
     @Transactional
     public void logout(String refreshToken) {
         refreshTokenRepository.findByTokenAndRevokedFalse(refreshToken).ifPresent(token -> {
+            User user = lockUser(token.getUser());
+            if (token.getSessionId() != null && token.getSessionId().equals(user.getActiveSessionId())) {
+                user.setActiveSessionId(null);
+            }
             token.setRevoked(true);
             refreshTokenRepository.save(token);
         });
@@ -227,8 +238,11 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthDtos.AuthResponse session(String email) {
-        User user = userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow();
+    public AuthDtos.AuthResponse session(String email, String sessionId) {
+        User user = lockUser(userRepository.findByEmailAndDeletedAtIsNull(email).orElseThrow());
+        if (sessionId == null || !sessionId.equals(user.getActiveSessionId())) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.UNAUTHORIZED);
+        }
         return tokens(user);
     }
 
@@ -327,9 +341,24 @@ public class AuthService {
         return emailTokenRepository.save(token);
     }
 
+    private User lockUser(User user) {
+        entityManager.flush();
+        entityManager.refresh(user, jakarta.persistence.LockModeType.PESSIMISTIC_WRITE);
+        return user;
+    }
+
+    private AuthDtos.AuthResponse startSession(User user) {
+        user = lockUser(user);
+        user.setActiveSessionId(UUID.randomUUID().toString());
+        refreshTokenRepository.findByUserAndRevokedFalseAndExpiresAtAfterOrderByCreatedAtDesc(user, Instant.now())
+                .forEach(token -> token.setRevoked(true));
+        return tokens(user);
+    }
+
     private AuthDtos.AuthResponse tokens(User user) {
-        String access = jwtService.generate(userDetailsService.loadUserByUsername(user.getEmail()));
+        String access = jwtService.generate(userDetailsService.loadUserByUsername(user.getEmail()), user.getActiveSessionId());
         RefreshToken refresh = new RefreshToken();
+        refresh.setSessionId(user.getActiveSessionId());
         refresh.setToken(UUID.randomUUID().toString());
         refresh.setUser(user);
         refresh.setExpiresAt(Instant.now().plusSeconds(refreshDays * 24 * 3600));

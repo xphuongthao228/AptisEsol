@@ -104,7 +104,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/health").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/health", "/api/statistics/public").permitAll()
                         .requestMatchers(PUBLIC_AUTH_ENDPOINTS).permitAll()
                         .requestMatchers(HttpMethod.GET, "/auth/verify-email").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/auth/verify-email").permitAll()
@@ -117,6 +117,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/payments/sepay/webhook").permitAll()
                         .requestMatchers("/api/tests", "/api/tests/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/mock-tests").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/vocabulary").permitAll()
+                        .requestMatchers("/api/admin/vocabulary").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/notifications/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/media/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/writing-bank/**").authenticated()

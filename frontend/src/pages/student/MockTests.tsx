@@ -1,3 +1,5 @@
+import { clampScore50, aptisSkillBand, overallBandFromSkills, type AptisBand } from '../../utils/aptisScoring';
+import { CefrBarChart } from '../../components/CefrBarChart';
 import {
   ArrowLeft,
   ArrowRight,
@@ -836,6 +838,9 @@ function getMockCardUpdatedAt(card: MockCard) {
 }
 
 function compareMockCards(left: MockCard, right: MockCard) {
+  const priorityOrder: Record<MockPriority, number> = { IMPORTANT: 0, NOTABLE: 1, REFERENCE: 2 };
+  const priorityCompare = priorityOrder[mockCardPriority(left)] - priorityOrder[mockCardPriority(right)];
+  if (priorityCompare !== 0) return priorityCompare;
   const accessOrder = (left.accessOrder ?? Number.MAX_SAFE_INTEGER) - (right.accessOrder ?? Number.MAX_SAFE_INTEGER);
   if (accessOrder !== 0) return accessOrder;
   const featuredCompare = Number(Boolean(right.featured)) - Number(Boolean(left.featured));
@@ -3000,45 +3005,6 @@ function sameAnswer(user?: string, answer?: string) {
 function scoreFromCorrect(correct: number, total: number, maxScore: number) {
   if (total <= 0) return 0;
   return Math.round((correct / total) * maxScore);
-}
-
-function clampScore50(score: number) {
-  return Math.min(50, Math.max(0, Math.round(Number.isFinite(score) ? score : 0)));
-}
-
-type AptisBand = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
-
-function aptisSkillBand(skill: 'LISTENING' | 'READING' | 'SPEAKING' | 'WRITING', rawScore: number, grammarScore: number): AptisBand {
-  const score = clampScore50(rawScore);
-  const grammarAllowsBorderline = clampScore50(grammarScore) > 32;
-
-  if (skill === 'LISTENING') {
-    if (score > 40 || (score === 40 && grammarAllowsBorderline)) return 'C1';
-    if (score >= 34) return 'B2';
-    if (score >= 24) return 'B1';
-  }
-  if (skill === 'READING') {
-    if (score > 44 || (score === 44 && grammarAllowsBorderline)) return 'C1';
-    if (score > 36 || (score === 36 && grammarAllowsBorderline)) return 'B2';
-    if (score >= 24) return 'B1';
-  }
-  if (skill === 'SPEAKING') {
-    if (score >= 46) return 'C1';
-    if (score > 40 || (score === 40 && grammarAllowsBorderline)) return 'B2';
-    if (score >= 26) return 'B1';
-  }
-  if (skill === 'WRITING') {
-    if (score >= 46) return 'C1';
-    if (score > 38 || (score === 38 && grammarAllowsBorderline)) return 'B2';
-    if (score >= 26) return 'B1';
-  }
-  return score >= 14 ? 'A2' : 'A1';
-}
-
-function overallBandFromSkills(bands: AptisBand[]): AptisBand {
-  const levels: AptisBand[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
-  const average = bands.reduce((sum, band) => sum + levels.indexOf(band), 0) / Math.max(1, bands.length);
-  return levels[Math.min(levels.length - 1, Math.max(0, Math.round(average)))];
 }
 
 function wordCount(value: string) {
@@ -5508,11 +5474,9 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
       }
     };
     void reload();
-    window.addEventListener('focus', reload);
     window.addEventListener('aptis:mock-result-saved', reload);
     return () => {
       cancelled = true;
-      window.removeEventListener('focus', reload);
       window.removeEventListener('aptis:mock-result-saved', reload);
     };
   }, [authenticated, historyUserId, reloadIndex]);
@@ -5551,14 +5515,17 @@ function MockSelect({ selectedSkill, onSkillChange, onOpenSpeaking, onOpenReadin
           if (!cancelled && version === requestVersion) setCardsLoading(false);
         });
     };
+    const onMockStorageChange = (event: StorageEvent) => {
+      if (event.key === 'aptis-admin-mock-tests' || event.key === 'aptis-admin-mock-tests-featured') {
+        reloadAdminCards();
+      }
+    };
     reloadAdminCards();
-    window.addEventListener('focus', reloadAdminCards);
-    window.addEventListener('storage', reloadAdminCards);
+    window.addEventListener('storage', onMockStorageChange);
     window.addEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     return () => {
       cancelled = true;
-      window.removeEventListener('focus', reloadAdminCards);
-      window.removeEventListener('storage', reloadAdminCards);
+      window.removeEventListener('storage', onMockStorageChange);
       window.removeEventListener('aptis-admin-mock-tests-updated', reloadAdminCards);
     };
   }, [authenticated, reloadIndex]);
@@ -5822,7 +5789,7 @@ function MockSkillCard({
           proLocked ? 'bg-red-600 text-white hover:bg-red-700' : card.ready ? 'bg-brand-600 text-white hover:bg-brand-700' : 'cursor-not-allowed bg-sky-100 text-slate-500'
         }`}
       >
-        {proLocked ? 'Mở khóa Pro' : card.ready ? 'Vào đề' : 'Sắp có'}
+        {proLocked ? 'Mở khóa Pro' : card.ready ? (completed ? 'Bắt đầu ngay' : 'Làm ngay') : 'Sắp có'}
         <ArrowRight size={18} />
       </button>
     </article>
@@ -8596,42 +8563,6 @@ function FullResultStat({ label, value }: { label: string; value: string }) {
       <p className="m-0 whitespace-nowrap text-2xl font-black text-[#25236b]">{value}</p>
       <p className="mt-2 text-xs text-slate-500">{label}</p>
     </div>
-  );
-}
-
-function CefrBarChart({ items }: { items: { label: string; band: AptisBand | null }[] }) {
-  const levels = ['A0', 'A1', 'A2', 'B1', 'B2', 'C1'];
-  const left = 40;
-  const top = 42;
-  const bottom = 242;
-  const step = 40;
-  const columnWidth = 72;
-  return (
-    <svg viewBox="0 0 420 302" className="block h-auto w-full" role="img" aria-label="Hồ sơ CEFR: biểu đồ cột Listening, Reading, Speaking, Writing và Overall">
-      <title>CEFR skill profile</title>
-      <desc>{items.map(item => `${item.label}: ${item.band ?? 'Chưa có kết quả'}`).join('; ')}</desc>
-      <text x="0" y="18" fill="#25236b" fontSize="15" fontWeight="700">CEFR grade</text>
-      {levels.map((level, index) => {
-        const y = bottom - index * step;
-        return <g key={level}>
-          <line x1={left} x2="408" y1={y} y2={y} stroke={index === 0 ? '#25236b' : '#cbd5e1'} strokeWidth={index === 0 ? 1.5 : 1} />
-          <text x="0" y={y + 4} fill="#475569" fontSize="13">{level}</text>
-        </g>;
-      })}
-      {items.map((item, index) => {
-        const level = item.band ? levels.indexOf(item.band) : 0;
-        const height = Math.max(0, level) * step;
-        const x = left + index * columnWidth + 18;
-        return <g key={item.label}>
-          <title>{item.label}: {item.band ?? 'Chưa có kết quả'}</title>
-          {height > 0 && <rect x={x} y={bottom - height} width="34" height={height} fill="#e50935" />}
-          <text x={x + 17} y={Math.max(top - 10, bottom - height - 9)} textAnchor="middle" fill="#25236b" fontSize="14" fontWeight="700">{item.band ?? '--'}</text>
-          <text x={x + 17} y="263" textAnchor="middle" fill="#475569" fontSize="11">
-            {item.label === 'Overall' ? <><tspan x={x + 17}>Overall</tspan><tspan x={x + 17} dy="15">CEFR grade</tspan></> : item.label}
-          </text>
-        </g>;
-      })}
-    </svg>
   );
 }
 

@@ -19,6 +19,7 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final AppUserDetailsService userDetailsService;
+    private final com.example.aptis.repository.UserRepository userRepository;
     private static final String[] PUBLIC_AUTH_PATHS = {
             "/auth/login",
             "/auth/register",
@@ -73,8 +74,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 try {
                     UserDetails details = userDetailsService.loadUserByUsername(jwtService.subject(token));
                     if (jwtService.valid(token, details)) {
+                        String sessionId = jwtService.sessionId(token);
+                        boolean active = sessionId != null && userRepository
+                                .findByEmailAndDeletedAtIsNull(details.getUsername())
+                                .filter(user -> user.isEnabled() && sessionId.equals(user.getActiveSessionId()))
+                                .isPresent();
+                        if (!active) {
+                            response.setStatus(401);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"success\":false,\"code\":\"SESSION_REPLACED\",\"message\":\"Phiên đăng nhập đã kết thúc. Vui lòng đăng nhập lại.\"}");
+                            return;
+                        }
                         UsernamePasswordAuthenticationToken auth =
-                                new UsernamePasswordAuthenticationToken(details, null, details.getAuthorities());
+                                new UsernamePasswordAuthenticationToken(details, sessionId, details.getAuthorities());
                         auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(auth);
                         break;

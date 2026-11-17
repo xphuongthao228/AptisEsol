@@ -9,6 +9,7 @@ import { useApi } from '../../hooks/useApi';
 import { useAuthStore } from '../../store/authStore';
 import type { Question, SkillType, SubscriptionResponse, Test } from '../../types';
 import { repairMojibake } from '../../utils/textRepair';
+import './parts-design.css';
 
 const POINTS_PER_QUESTION = 2;
 const PART_MENU_SKILL_KEY = 'aptis-part-menu-skill';
@@ -303,7 +304,7 @@ export function TestPartMenu() {
         <InfoCard error>{error || (isWritingSelected ? writingError : practiceQuestionsError)}</InfoCard>
       )}
 
-      <section className="rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft">
+      <section className="parts-selection-summary rounded-[22px] border border-brand-100 bg-white p-6 shadow-soft">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
           <div className="flex gap-4">
             <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl ${selectedSkill.accent}`}>{selectedSkill.icon}</div>
@@ -422,22 +423,9 @@ export function TestPartMenu() {
   </div>);
 
   return (
-    <div className="mobile-parts-page space-y-7">
+    <div className="mobile-parts-page parts-design-page space-y-7">
       <section className={`${partsPageHeroClass} practice-selection-hero`}>
-        <div className="halloween-scene" aria-hidden="true">
-          <div className="halloween-moon" />
-          <div className="halloween-cloud halloween-cloud-one" />
-          <div className="halloween-cloud halloween-cloud-two" />
-          <div className="halloween-web halloween-web-right" />
-          <div className="halloween-bat halloween-bat-one" />
-          <div className="halloween-bat halloween-bat-two" />
-          <div className="halloween-bat halloween-bat-three" />
-          <div className="halloween-pumpkin halloween-pumpkin-main" />
-          <div className="halloween-pumpkin halloween-pumpkin-left" />
-          <div className="halloween-pumpkin halloween-pumpkin-small" />
-          <div className="halloween-ground" />
-          <div className="halloween-sparkles" />
-        </div>
+        <img className="parts-golden-book" src="/brand/parts-golden-book.png" alt="" aria-hidden="true" width={320} height={210} />
         <Link to="/app/tests" className={partsPageBackClass}><ArrowLeft size={18} />Quay lại luyện tập</Link>
         <p className={partsPageEyebrowClass}>
           {isWritingSelected ? 'Luyện tập theo chủ đề' : 'Luyện tập theo part'}
@@ -454,7 +442,7 @@ export function TestPartMenu() {
         {partSkills.map((skill) => (
           (() => {
             const active = selectedSkill.type === skill.type && (!isMobileMenu || expandedSkill === skill.type);
-            const textColor = active ? '#ffffff' : '#7f1d1d';
+            const textColor = active ? '#ffffff' : '#18243b';
             return (
               <Fragment key={skill.type}>
               <button

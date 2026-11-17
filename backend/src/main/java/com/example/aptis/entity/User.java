@@ -22,6 +22,9 @@ import java.util.Set;
         @jakarta.persistence.Index(name = "idx_users_deleted_at", columnList = "deleted_at")
 })
 public class User extends BaseEntity {
+    @Column(name = "active_session_id", length = 36)
+    private String activeSessionId;
+
     @Column(nullable = false, unique = true, length = 160)
     private String email;
 

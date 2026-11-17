@@ -9765,10 +9765,15 @@ html.dark body .settings-account-identity p {
 }
 
 html body header nav .header-more-button,
-html body header nav .header-more-button svg,
-html.dark body header nav .header-more-button,
-html.dark body header nav .header-more-button svg {
+html.dark body header nav .header-more-button {
   background-color: #4c1d65 !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: #ffffff !important;
+}
+
+html body header nav .header-more-button svg,
+html.dark body header nav .header-more-button svg {
+  background: transparent !important;
   color: #ffffff !important;
   -webkit-text-fill-color: #ffffff !important;
 }

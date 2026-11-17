@@ -359,6 +359,42 @@ html:root body .student-night :is(.btn-primary, .header-more-button) {
 }
 
 html:root body .student-night > header :is(a, button) { color: #fff2df !important; }
+/* Theme and notification controls share the same dark hover treatment. */
+html:root body .student-shell.student-night > header .header-icon-button {
+  background: transparent !important;
+  color: #fff2df !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html:root body .student-shell.student-night > header .header-icon-button:is(:hover, :focus-visible, [aria-expanded="true"]) {
+  background: #28466b !important;
+  color: #ffffff !important;
+}
+
+html:root body .student-shell.student-night > header .header-icon-button > svg {
+  color: inherit !important;
+  stroke: currentColor !important;
+  opacity: 1;
+}
+
+/* Keep the login label and icon readable against its hover background. */
+html:root body .student-shell.student-night > header .header-login-link {
+  background: transparent !important;
+  color: #fff2df !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html:root body .student-shell.student-night > header .header-login-link:is(:hover, :focus-visible) {
+  background: #28466b !important;
+  color: #ffffff !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
+html:root body .student-shell.student-night > header .header-login-link :where(svg, span) {
+  color: inherit !important;
+  -webkit-text-fill-color: currentColor !important;
+}
+
 html:root body .student-night > header nav a { background: transparent !important; }
 html:root body .student-night > header nav a:is(:hover, [aria-current="page"]) {
   background: #a977e326 !important;
