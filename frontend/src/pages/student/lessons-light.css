@@ -4,12 +4,25 @@
   --tips-muted: #53617b;
   --tips-line: #d9e1ee;
   --tips-action: linear-gradient(180deg, #102f77, #06183f);
-  background: radial-gradient(ellipse at 0 0, #fff3d7, transparent 44%), radial-gradient(ellipse at 100% 40%, #eaf5f6, transparent 40%), #f7f7fb !important;
   color: var(--tips-ink) !important;
+}
+#root .student-shell.lessons-light-shell.student-light {
+  background: radial-gradient(ellipse at 0 0, #fff3d7, transparent 44%), radial-gradient(ellipse at 100% 40%, #eaf5f6, transparent 40%), #f7f7fb !important;
 }
 #root .lessons-light-shell::before,
 #root .lessons-light-shell::after { display: none !important; }
 #root .lessons-light-shell :is(.mobile-lessons-page, .mobile-tips-page) { background: transparent !important; color: var(--tips-ink) !important; }
+#root .lessons-light-shell.student-night .lessons-back-link {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+}
+#root .lessons-light-shell.student-night .lessons-back-link :is(svg, svg *) {
+  color: inherit !important;
+  stroke: currentColor !important;
+}
+#root .lessons-light-shell.student-night .lessons-back-link:is(:hover, :focus-visible) {
+  text-decoration: underline;
+}
 #root .lessons-light-shell :is(.lesson-skill-card, .lessons-resource-panel, .lessons-study-tips-section, .lesson-tip-card, .lesson-material-card, .lesson-resource-card, .lesson-access-badge, .lesson-search) {
   background: #fff !important;
   border-color: var(--tips-line) !important;
@@ -52,6 +65,10 @@
 #root .lessons-light-shell .lesson-skill-card :is(span, svg) {
   color: var(--tips-ink) !important;
   -webkit-text-fill-color: var(--tips-ink) !important;
+}
+#root .lessons-light-shell .lesson-skill-card :is(svg, svg *) {
+  color: inherit !important;
+  stroke: currentColor !important;
 }
 #root .lessons-light-shell .lesson-skill-card[aria-pressed=true],
 #root .lessons-light-shell .lessons-resource-toggle button[aria-pressed=true] {
@@ -100,4 +117,12 @@
 }
 #root .lessons-light-shell .lesson-material-card > div:first-child > div:first-child svg {
   color: var(--tips-ink) !important;
+}
+#root .lessons-light-shell .lesson-material-card .lesson-material-item {
+  color: var(--tips-ink) !important;
+  -webkit-text-fill-color: var(--tips-ink) !important;
+}
+#root .lessons-light-shell .lesson-material-card svg {
+  color: var(--tips-ink) !important;
+  stroke: currentColor !important;
 }

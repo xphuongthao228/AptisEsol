@@ -64,6 +64,25 @@ html body .student-shell.parts-design-shell .parts-design-page .parts-skill-sele
 .parts-design-page .parts-selection-summary p:last-child { margin-top: 5px; font-size: 14px; line-height: 1.6; }
 .parts-design-page .parts-selection-summary .h-14 { width: 64px; height: 64px; background: linear-gradient(140deg, #fff7e8, #ffecc8); color: #dc1026; }
 .parts-design-page .parts-selection-summary .h-14 svg { width: 30px; height: 30px; }
+
+html:root body .student-shell.student-night .parts-design-page .parts-selection-summary {
+  background: var(--night-panel) !important;
+  border-color: var(--night-border) !important;
+}
+
+html:root body .student-shell.student-night .parts-design-page .parts-selection-summary :is(h2, p) {
+  color: #f1f5ff !important;
+  -webkit-text-fill-color: #f1f5ff !important;
+}
+
+html:root body .student-shell.student-night .parts-design-page .parts-selection-summary .h-14 {
+  background: #203b59 !important;
+}
+
+html:root body .student-shell.student-night .parts-design-page .parts-selection-summary .h-14 :is(svg, svg *) {
+  color: #ffda79 !important;
+  stroke: #ffda79 !important;
+}
 .parts-design-page .grid > a.group {
   display: flex;
   flex-direction: column;

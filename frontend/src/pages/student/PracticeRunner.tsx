@@ -1,8 +1,8 @@
-﻿import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { Fragment, createContext, useContext } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, Languages, LayoutDashboard, ListChecks, Loader2, LogOut, MessageCircle, Mic, Play, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, Languages, LayoutDashboard, ListChecks, Loader2, LogOut, MessageCircle, Mic, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
@@ -3587,7 +3587,7 @@ function AptisTemplateContent({ data, questionId, currentNumber, totalQuestions,
     return (
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} featured={featured} total={displayTotal} />
-        <AudioBar text={data.playsRemaining} audioUrl={data.audioUrl} />
+        <AudioBar audioUrl={data.audioUrl} />
         <div className="practice-listening-card rounded-2xl bg-[#eeeeee] px-4 py-5 sm:rounded-lg sm:px-5 sm:py-4">
           {topic && <h2 className="mb-4 text-base font-extrabold">Topic: {topic}</h2>}
           <div className="space-y-4">
@@ -3655,7 +3655,7 @@ function AptisTemplateContent({ data, questionId, currentNumber, totalQuestions,
     return (
       <AptisPaper classic>
         <QuestionCounter current={currentNumber} featured={featured} total={displayTotal} />
-        <AudioBar text={data.playsRemaining ?? '2 of 2 plays remaining'} audioUrl={data.audioUrl} expanded={data.template === 'LISTENING_PEOPLE_MATCH'} />
+        <AudioBar audioUrl={data.audioUrl} label={data.template === 'LISTENING_PEOPLE_MATCH' ? 'Bài nghe · Part 2' : undefined} />
         <div className="practice-listening-card rounded-lg bg-[#eeeeee] px-8 py-8">
           {topic && <h2 className="mb-6 text-xl font-extrabold">Topic: {topic}</h2>}
           {data.instructions && <p className="mb-7 max-w-6xl text-[15px] leading-7">{data.instructions}</p>}
@@ -5714,100 +5714,28 @@ function InlineNumber({ value = 1 }: { value?: number }) {
   return <span className="inline-flex h-9 min-w-16 items-center justify-center rounded border border-slate-300 bg-white px-4 text-base font-bold">{value}</span>;
 }
 
-function AudioBar({ text, audioUrl, expanded = false }: { text?: string; audioUrl?: string; expanded?: boolean }) {
-  const ref = useRef<HTMLAudioElement | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [current, setCurrent] = useState(0);
-  const [duration, setDuration] = useState(0);
+function AudioBar({ audioUrl, label = 'Bài nghe' }: { audioUrl?: string; label?: string }) {
   const normalizedAudioUrl = normalizeAudioUrl(audioUrl);
-  const progress = duration ? Math.min(100, (current / duration) * 100) : 0;
-
-  useEffect(() => {
-    const audio = ref.current;
-    if (!audio) return;
-    audio.pause();
-    audio.load();
-    setPlaying(false);
-    setCurrent(0);
-    setDuration(0);
-  }, [normalizedAudioUrl]);
-
-  async function toggleAudio() {
-    const audio = ref.current;
-    if (!audio || !normalizedAudioUrl) {
-      toast.error('Chưa có link audio cho câu này.');
-      return;
-    }
-    if (audio.paused) {
-      try {
-        await audio.play();
-      } catch {
-        setPlaying(false);
-        toast.error('Không phát được audio. Kiểm tra lại link file nghe trong admin.');
-      }
-    } else {
-      audio.pause();
-    }
-  }
-
-  if (expanded) {
-    return (
-      <div className="mb-5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
-        <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
-          <Volume2 size={18} aria-hidden="true" />
-          <span>Bài nghe · Part 2</span>
-        </div>
-        {normalizedAudioUrl ? (
-          <audio
-            key={normalizedAudioUrl}
-            ref={ref}
-            src={normalizedAudioUrl}
-            controls
-            preload="metadata"
-            aria-label="Bài nghe Part 2"
-            className="block h-12 w-full min-w-0"
-            onError={() => toast.error('Không tải được audio. Kiểm tra lại link file nghe.')}
-          />
-        ) : (
-          <p className="py-3 text-sm text-slate-500">Chưa có audio cho câu này.</p>
-        )}
-      </div>
-    );
-  }
 
   return (
-      <div className="practice-audio-bar mb-5 rounded-xl bg-[#ef2620] px-4 py-4 text-white shadow-soft sm:flex sm:min-h-12 sm:items-center sm:justify-between sm:gap-4 sm:rounded sm:px-5 sm:py-2">
-      <div className="flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
-        {normalizedAudioUrl && (
-          <audio
-            ref={ref}
-            src={normalizedAudioUrl}
-            preload="metadata"
-            onPlay={() => setPlaying(true)}
-            onPause={() => setPlaying(false)}
-            onEnded={() => setPlaying(false)}
-            onError={() => {
-              setPlaying(false);
-              toast.error('Không tải được audio. Kiểm tra lại link file nghe.');
-            }}
-            onTimeUpdate={(event) => setCurrent(event.currentTarget.currentTime)}
-            onLoadedMetadata={(event) => setDuration(event.currentTarget.duration || 0)}
-            onContextMenu={(event) => event.preventDefault()}
-            className="hidden"
-          />
-        )}
-        <button type="button" onClick={toggleAudio} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white hover:bg-white/20 sm:h-7 sm:w-7 sm:bg-transparent" aria-label={playing ? 'Pause audio' : 'Play audio'}>
-          <Play size={18} fill="currentColor" className={playing ? 'opacity-70' : ''} />
-        </button>
-        <Volume2 className="hidden sm:block" size={17} fill="currentColor" />
-        <div className="relative h-2 min-w-0 flex-1 rounded-full bg-white sm:h-1.5 sm:w-32 sm:flex-none">
-          <span className="absolute left-0 top-0 h-full rounded-full bg-white" style={{ width: `${progress}%` }} />
-          <span className="absolute top-1/2 h-3.5 w-3.5 -translate-y-1/2 rounded-full bg-brand-600" style={{ left: `calc(${progress || 50}% - 7px)` }} />
-        </div>
+    <div className="mb-5 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+      <div className="mb-2 flex items-center gap-2 text-sm font-bold text-slate-700">
+        <Volume2 size={18} aria-hidden="true" />
+        <span>{label}</span>
       </div>
-      <div className="mt-3 flex items-center justify-end gap-3 sm:mt-0 sm:justify-start">
-        <span className="block text-right text-xs font-bold sm:text-left">{text ?? '2 of 2 plays remaining'}</span>
-      </div>
+      {normalizedAudioUrl ? (
+        <audio
+          key={normalizedAudioUrl}
+          src={normalizedAudioUrl}
+          controls
+          preload="metadata"
+          aria-label={label}
+          className="block h-12 w-full min-w-0"
+          onError={() => toast.error('Không tải được audio. Kiểm tra lại link file nghe.')}
+        />
+      ) : (
+        <p className="py-3 text-sm text-slate-500">Chưa có audio cho câu này.</p>
+      )}
     </div>
   );
 }

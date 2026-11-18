@@ -669,7 +669,7 @@ export function Lessons() {
 
   return (
     <div className="mobile-lessons-page student-decor-page space-y-6">
-      <Link to="/app/tests" className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
+      <Link to="/app/tests" className="lessons-back-link inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại luyện tập
       </Link>
 
@@ -862,7 +862,7 @@ function TipLandingPage({ skill }: { skill: SkillKey }) {
 
   return (
     <div className="mobile-tips-page student-decor-page mx-auto max-w-[1120px] bg-sky-50 pb-8 text-navy">
-      <Link to="/app/lessons" className="mb-6 inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
+      <Link to="/app/lessons" className="lessons-back-link mb-6 inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại thư viện mẹo
       </Link>
 
@@ -955,7 +955,7 @@ function SelfStudyGuidePage({ skill }: { skill: SkillKey }) {
 
   return (
     <div className="mobile-tips-page student-decor-page mx-auto max-w-[1120px] space-y-6 bg-sky-50 pb-8 text-navy">
-      <Link to={`/app/tests/parts?skill=${skill}`} className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
+      <Link to={`/app/tests/parts?skill=${skill}`} className="lessons-back-link inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại luyện theo part
       </Link>
 
@@ -1323,7 +1323,7 @@ const listeningQ15Topics: ListeningQ15Topic[] = [
 function ListeningQuestion15TipPage() {
   return (
     <div className="mx-auto max-w-[1180px] space-y-5 pb-8">
-      <Link to="/app/lessons/LISTENING" className="inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
+      <Link to="/app/lessons/LISTENING" className="lessons-back-link inline-flex items-center gap-2 text-sm font-extrabold text-slate-700 hover:text-brand-600">
         <ArrowLeft size={18} /> Quay lại mẹo Listening
       </Link>
 
