@@ -14,6 +14,42 @@
 .skill-profile-total th, .skill-profile-total td { font-weight: 800; background: #faf8f4; }
 .skill-profile-bars svg { display: block; width: 100%; height: auto; }
 .skill-profile-note { margin-top: 20px; margin-bottom: 8px; color: #8592a5; font-size: 11px; line-height: 1.7; }
+
+.student-shell.student-night .learning-skill-profile {
+  color: #f1f5ff;
+}
+
+.student-shell.student-night .learning-skill-profile :is(.skill-profile-columns h4, .skill-profile-table) {
+  color: #f1f5ff;
+}
+
+.student-shell.student-night .learning-skill-profile :is(.skill-profile-subtitle, .skill-profile-note) {
+  color: #bfd0e5;
+}
+
+.student-shell.student-night .skill-profile-overall {
+  color: #ff9eae;
+}
+
+.student-shell.student-night .learning-skill-profile :is(.skill-profile-overall, .skill-profile-table th, .skill-profile-table td) {
+  border-color: var(--night-border);
+}
+
+.student-shell.student-night .skill-profile-total :is(th, td) {
+  background: #203b59;
+}
+
+.student-shell.student-night .skill-profile-bars svg text {
+  fill: #e0eafa;
+}
+
+.student-shell.student-night .skill-profile-bars svg line {
+  stroke: #6e8aac;
+}
+
+.student-shell.student-night .skill-profile-bars svg rect {
+  fill: #ff7892;
+}
 @container (max-width: 480px) {
   .skill-profile-columns { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .skill-profile-table { font-size: 13px; }
