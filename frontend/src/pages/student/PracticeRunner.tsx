@@ -3,7 +3,7 @@ import { Fragment, createContext, useContext } from 'react';
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import toast from 'react-hot-toast';
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, BookOpen, CalendarPlus, CheckSquare, ChevronDown, Clock, Eraser, FileSearch, HelpCircle, Highlighter, Languages, LayoutDashboard, ListChecks, Loader2, LogOut, MessageCircle, Mic, RotateCcw, Search, Settings, Star, TrendingUp, Volume2 } from 'lucide-react';
-import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useNavigationType, useParams, useSearchParams } from 'react-router-dom';
 import { api, unwrap } from '../../api/client';
 import { useApi } from '../../hooks/useApi';
 import { useListeningReview } from '../../hooks/useListeningReview';
@@ -292,11 +292,20 @@ function readPartPracticeDraft(key: string): PartPracticeDraft | null {
   } catch { return null; }
 }
 
+type SpeakingPracticeHistory = {
+  questionId: number;
+  template: string;
+  index: number;
+};
+
 function PartPracticeRunner({ storageKey }: { storageKey: string }) {
   const { id } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const navigationType = useNavigationType();
+  const speakingHistory = (location.state as { speakingPractice?: SpeakingPracticeHistory } | null)?.speakingPractice;
+  const previousSpeakingHistory = useRef(speakingHistory);
   const isExamSetMode = false;
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [checkedAnswers, setCheckedAnswers] = useState<Record<number, boolean>>({});
@@ -405,6 +414,51 @@ function PartPracticeRunner({ storageKey }: { storageKey: string }) {
   const returnTarget = getReturnTarget(location.state);
   const exitTarget = returnTarget ?? '/app/tests/parts';
   const exitLabel = 'Thoát về luyện tập theo part';
+
+  useEffect(() => {
+    const previous = previousSpeakingHistory.current;
+    previousSpeakingHistory.current = speakingHistory;
+    if (navigationType !== 'POP') return;
+
+    const entry = speakingHistory ?? previous;
+    if (!entry) return;
+    const patch = speakingHistory
+      ? speakingPracticeStateForTemplate(entry.template, entry.index)
+      : { [`speakingPart${entry.template.slice(-1)}Mode`]: 'summary' };
+    if (!patch) return;
+
+    setAnswers(current => {
+      let saved: Record<string, string> = {};
+      try {
+        saved = JSON.parse(current[entry.questionId] || '{}');
+      } catch {
+        // A draft without speaking state can still reopen the list.
+      }
+      return { ...current, [entry.questionId]: JSON.stringify({ ...saved, ...patch }) };
+    });
+  }, [location.key, navigationType, speakingHistory]);
+
+  function changeTemplateAnswer(value: string) {
+    if (!activeQuestion) return;
+    const template = mergedTemplateData?.template;
+    if (templateOwnsHeader && template) {
+      const prefix = `speakingPart${template.slice(-1)}`;
+      const mode = activeSavedAnswer[`${prefix}Mode`];
+      const next = JSON.parse(value) as Record<string, string>;
+      const nextMode = next[`${prefix}Mode`];
+      if (mode === 'summary' && nextMode === 'practice') {
+        navigate(location.pathname + location.search + location.hash, {
+          state: {
+            ...location.state,
+            speakingPractice: { questionId: activeQuestion.id, template, index: Number(next[`${prefix}Index`]) }
+          }
+        });
+      } else if (mode === 'practice' && nextMode === 'summary' && speakingHistory?.questionId === activeQuestion.id) {
+        navigate(-1);
+      }
+    }
+    setAnswers(current => ({ ...current, [activeQuestion.id]: value }));
+  }
 
   useEffect(() => {
     function onCompleted(event: Event) {
@@ -926,7 +980,7 @@ function PartPracticeRunner({ storageKey }: { storageKey: string }) {
               initialClubIndex={Number.isFinite(requestedClubIndex) ? requestedClubIndex : undefined}
               checked={activeChecked}
               value={answers[activeQuestion.id] ?? ''}
-              onChange={(value) => setAnswers({ ...answers, [activeQuestion.id]: value })}
+              onChange={changeTemplateAnswer}
             />
           )}
           <RunnerBottomBar
@@ -1047,7 +1101,7 @@ function PartPracticeRunner({ storageKey }: { storageKey: string }) {
                 initialClubIndex={Number.isFinite(requestedClubIndex) ? requestedClubIndex : undefined}
                 checked={activeChecked}
                 value={answers[activeQuestion.id] ?? ''}
-                onChange={(value) => setAnswers({ ...answers, [activeQuestion.id]: value })}
+                onChange={changeTemplateAnswer}
               />
             )}
             {activeQuestion && test?.title?.startsWith('AI -') && activeQuestion.explanation && (
@@ -4514,6 +4568,82 @@ function AptisTemplateContent({ data, questionId, currentNumber, totalQuestions,
   return <div className="rounded-xl border border-brand-100 bg-white p-6">Template chưa được hỗ trợ.</div>;
 }
 
+const SPEAKING_PART1_TOPICS = [
+  { label: 'Gia đình và bạn bè', pattern: /\b(family|friends?|mother|father|parents?|siblings?)\b/i },
+  { label: 'Bản thân và đời sống', pattern: /\b(yourself|memories|typical day|last night|weekend|wearing|tired|stressed)\b/i },
+  { label: 'Quê hương và du lịch', pattern: /\b(hometown|places?|travell?ing|travel|journey)\b/i },
+  { label: 'Thời tiết và mùa', pattern: /\b(weather|seasons?)\b/i },
+  { label: 'Sở thích và giải trí', pattern: /\b(free time|hobbies|like doing|sports?|books?)\b/i },
+  { label: 'Nhà ở', pattern: /\b(room|house|apartment)\b|the place that you live/i },
+  { label: 'Ẩm thực', pattern: /\b(meals?|food|cooking)\b/i },
+  { label: 'Học tập và công việc', pattern: /\b(school|learning|study|job|work)\b/i },
+];
+
+const SPEAKING_TOPICS = [
+  ...SPEAKING_PART1_TOPICS,
+  { label: 'Gia đình và bạn bè', pattern: /\b(children|kids|child|relationships?)\b/i },
+  { label: 'Quê hương và du lịch', pattern: /\b(trips?|tours?|touris[mt]|visit(?:ed|ing)?|vacations?|holidays?|abroad|transport\w*|cars?|trains?|buses?|flights?)\b/i },
+  { label: 'Sở thích và giải trí', pattern: /\b(outdoor activities|games?|music|films?|movies?|tv|danc\w*|read(?:ing)?|art|concerts?|exercise)\b/i },
+  { label: 'Ẩm thực', pattern: /\b(eating out|cook|restaurants?|drinks?)\b/i },
+  { label: 'Học tập và công việc', pattern: /\b(studying|learn(?:ed|t)?|skills?|education|work(?:ed|ing)|presentations?|teams?|achiev\w*)\b/i },
+  { label: 'Thiên nhiên và môi trường', pattern: /\b(nature|natural|forests?|parks?|environment|animals?|beach(?:es)?|sea|mountains?)\b/i },
+  { label: 'Mua sắm và tiền bạc', pattern: /\b(money|shop(?:s|ping)?|buy(?:ing)?|markets?|supermarkets?|saving|spent)\b/i },
+  { label: 'Cảm xúc và trải nghiệm', pattern: /\b(feel(?:ing|ings)?|felt|laughed|news|help(?:ed|ing)?|afraid|surpris\w*|decisions?|options?)\b/i },
+];
+
+function useSpeakingTopicFilter(questions: Record<string, any>[], partOne = false) {
+  const [selectedTopic, setSelectedTopic] = useState('');
+  const rules = partOne ? SPEAKING_PART1_TOPICS : SPEAKING_TOPICS;
+  const questionList = questions.map((item, index) => {
+    const importedTopic = String(item.topic_group ?? '').trim();
+    if (importedTopic) {
+      return {
+        item, index, topics: [importedTopic],
+        groupOrder: Number(item.topic_group_order) || Infinity,
+        questionOrder: Number(item.question_order_in_topic) || Infinity
+      };
+    }
+    const prompt = partOne ? String(item.question ?? '') : [
+      item.question, item.prompt, item.topic, item.question1, item.question2, item.question3,
+      item.question_2, item.question_3, item.q2, item.q3, item.prompt2, item.prompt3,
+      item.prompt_2, item.prompt_3, item.relatedQuestion, item.opinionQuestion
+    ].filter(Boolean).join(' ');
+    const topics = [...new Set(rules.filter(({ pattern }) => pattern.test(prompt)).map(({ label }) => label))];
+    return { item, index, topics: topics.length ? topics : ['Khác'], groupOrder: Infinity, questionOrder: Infinity };
+  }).sort((a, b) => (a.groupOrder - b.groupOrder) || (a.questionOrder - b.questionOrder) || a.index - b.index);
+
+  const topicOrders = new Map<string, number>();
+  for (const { topics, groupOrder } of questionList) {
+    for (const label of topics) {
+      if (!topicOrders.has(label)) topicOrders.set(label, groupOrder);
+    }
+  }
+  const availableTopics = [...topicOrders].sort(([a, aOrder], [b, bOrder]) => (aOrder - bOrder) || a.localeCompare(b, 'vi'));
+  const topic = topicOrders.has(selectedTopic) ? selectedTopic : '';
+  const visibleQuestions = topic ? questionList.filter(({ topics }) => topics.includes(topic)) : questionList;
+
+  return { topic, availableTopics, visibleQuestions, setSelectedTopic };
+}
+
+function SpeakingTopicFilter({ topic, availableTopics, visibleQuestions, setSelectedTopic, total }: ReturnType<typeof useSpeakingTopicFilter> & { total?: number }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <label className="flex flex-wrap items-center gap-3 text-sm font-semibold text-slate-700">
+        Chủ đề
+        <select value={topic} onChange={(event) => setSelectedTopic(event.target.value)} className="max-w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-normal text-navy">
+          <option value="">Tất cả chủ đề</option>
+          {availableTopics.map(([label]) => <option key={label} value={label}>{label}</option>)}
+        </select>
+      </label>
+      {total !== undefined && (
+        <p role="status" className="text-sm font-semibold text-slate-600">
+          {topic ? `Hiển thị ${visibleQuestions.length}/${total} câu hỏi.` : `Tổng hợp ${total} câu hỏi.`}
+        </p>
+      )}
+    </div>
+  );
+}
+
 function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
   data: TemplateData;
   saved: Record<string, string>;
@@ -4522,6 +4652,8 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
 }) {
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
+  const topicFilter = useSpeakingTopicFilter(questions, true);
+  const { topic, visibleQuestions } = topicFilter;
   const mode = saved.speakingPart1Mode ?? 'intro';
   const index = Math.min(Math.max(Number(saved.speakingPart1Index ?? 0), 0), Math.max(questions.length - 1, 0));
   const current = questions[index] ?? {};
@@ -4554,28 +4686,27 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
               <h1 className="flex items-center gap-2 text-2xl font-extrabold">
                 <ListChecks className="text-brand-600" /> Speaking Part 1 - Danh sách câu hỏi
               </h1>
-              <p className="mt-1 text-sm font-semibold text-slate-600">Tổng hợp {questions.length} câu hỏi trong file import.</p>
+              <p className="mt-1 text-sm font-semibold text-slate-600" aria-live="polite">
+                {topic ? `Hiển thị ${visibleQuestions.length}/${questions.length} câu hỏi.` : `Tổng hợp ${questions.length} câu hỏi.`}
+              </p>
             </div>
             <div className="flex gap-2">
               <button type="button" onClick={() => openPractice(index)} className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-bold text-white">Trang luyện tập</button>
               <button type="button" onClick={() => patchAnswers({ speakingPart1Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Giới thiệu</button>
             </div>
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            {questions.map((item: any, itemIndex: number) => (
-              <article key={`${item.question}-${itemIndex}`} className={`rounded-xl border bg-white p-5 shadow-soft ${isFeaturedTemplateItem(item) ? 'border-amber-400 ring-4 ring-amber-100' : 'border-brand-100'}`}>
-                <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+          <SpeakingTopicFilter {...topicFilter} />
+          <div className="grid gap-3">
+            {visibleQuestions.map(({ item, index: itemIndex }) => (
+              <details key={`${item.question}-${itemIndex}`} className={`group rounded-xl border bg-white shadow-soft ${isFeaturedTemplateItem(item) ? 'border-amber-400 ring-4 ring-amber-100' : 'border-brand-100'}`}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl px-5 py-4 text-left text-lg font-normal text-navy hover:text-brand-600 [&::-webkit-details-marker]:hidden">
                   <div className="space-y-2">
                     {isFeaturedTemplateItem(item) && <FeaturedQuestionBadge />}
-                    <button type="button" onClick={() => openPractice(itemIndex)} className="block text-left text-lg font-extrabold text-navy hover:text-brand-600">
-                      Câu {itemIndex + 1}: {item.question}
-                    </button>
+                    <span className="block">Câu {itemIndex + 1}: {item.question}</span>
                   </div>
-                  <button type="button" onClick={() => openPractice(itemIndex)} className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700">
-                    Luyện câu này
-                  </button>
-                </div>
-                <div className="grid gap-3 text-sm leading-7 md:grid-cols-2">
+                  <ChevronDown aria-hidden="true" className="shrink-0 transition-transform group-open:rotate-180" size={18} />
+                </summary>
+                <div className="grid gap-3 px-5 pb-5 text-sm leading-7 md:grid-cols-2">
                   <div className="rounded-lg border border-blue-100 bg-blue-50 p-4">
                     <p className="mb-1 text-xs font-extrabold uppercase tracking-widest text-brand-600">Đáp án mẫu 1</p>
                     <p>{item.answer1 || 'Chưa có đáp án mẫu 1.'}</p>
@@ -4584,8 +4715,11 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
                     <p className="mb-1 text-xs font-extrabold uppercase tracking-widest text-emerald-700">Đáp án mẫu 2</p>
                     <p>{item.answer2 || 'Chưa có đáp án mẫu 2.'}</p>
                   </div>
+                  <button type="button" onClick={() => openPractice(itemIndex)} className="justify-self-start rounded-lg bg-brand-600 px-3 py-2 text-xs font-bold text-white hover:bg-brand-700">
+                    Luyện câu này
+                  </button>
                 </div>
-              </article>
+              </details>
             ))}
           </div>
         </div>
@@ -4614,7 +4748,7 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
               </div>
               <div className="border-r border-brand-100 p-5">
                 Bạn sẽ được hỏi <b>3 câu</b> xoay quanh các chủ đề quen thuộc về cuộc sống cá nhân.
-                Mỗi câu có <b>45 giây</b> để trả lời. Câu trả lời nên ngắn gọn, rõ ràng và đúng trọng tâm.
+                Mỗi câu có <b>30 giây</b> để trả lời. Câu trả lời nên ngắn gọn, rõ ràng và đúng trọng tâm.
               </div>
               <div className="space-y-3 p-5">
                 <p><span className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-brand-600 text-xs text-white">?</span>Luyện cách giới thiệu bản thân, gia đình, sở thích, hoạt động cuối tuần.</p>
@@ -4660,7 +4794,7 @@ function SpeakingPart1Renderer({ data, saved, setAnswer, patchAnswers }: {
             {currentFeatured && <div className="mb-2"><FeaturedQuestionBadge /></div>}
             <h2 className="text-xl font-extrabold text-navy">{current.question}</h2>
           </div>
-          <SpeakingRecordButton compact onRecordingComplete={setRecordedAudio} />
+          <SpeakingRecordButton compact durationSeconds={30} onRecordingComplete={setRecordedAudio} />
         </div>
         <SpeakingAiScorePanel
           partTitle="Speaking Part 1"
@@ -4697,6 +4831,7 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
 }) {
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
+  const topicFilter = useSpeakingTopicFilter(questions);
   const mode = saved.speakingPart2Mode ?? 'intro';
   const index = Math.min(Math.max(Number(saved.speakingPart2Index ?? 0), 0), Math.max(questions.length - 1, 0));
   const tab = Math.min(Math.max(Number(saved.speakingPart2Tab ?? 0), 0), 2);
@@ -4750,8 +4885,9 @@ function SpeakingPart2Renderer({ data, saved, setAnswer, patchAnswers }: {
               <button type="button" onClick={() => patchAnswers({ speakingPart2Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Giới thiệu</button>
             </div>
           </div>
+          <SpeakingTopicFilter {...topicFilter} total={questions.length} />
           <div className="grid gap-4 md:grid-cols-2">
-            {questions.map((item: any, itemIndex: number) => {
+            {topicFilter.visibleQuestions.map(({ item, index: itemIndex }) => {
               const summaryImageUrl = resolveLocalSpeakingImage(item.urlpic1, localSpeakingImage('part2', `${itemIndex + 1}.png`));
               return (
                 <button
@@ -4918,6 +5054,7 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
 }) {
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
+  const topicFilter = useSpeakingTopicFilter(questions);
   const mode = saved.speakingPart3Mode ?? 'intro';
   const index = Math.min(Math.max(Number(saved.speakingPart3Index ?? 0), 0), Math.max(questions.length - 1, 0));
   const tab = Math.min(Math.max(Number(saved.speakingPart3Tab ?? 0), 0), 2);
@@ -5025,8 +5162,9 @@ function SpeakingPart3Renderer({ data, saved, setAnswer, patchAnswers }: {
               <button type="button" onClick={() => patchAnswers({ speakingPart3Mode: 'intro' })} className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-bold text-slate-700">Giới thiệu</button>
             </div>
           </div>
+          <SpeakingTopicFilter {...topicFilter} total={questions.length} />
           <div className="grid gap-4 xl:grid-cols-2">
-            {questions.map((item: any, itemIndex: number) => {
+            {topicFilter.visibleQuestions.map(({ item, index: itemIndex }) => {
               const image1 = getSpeakingImageUrl(item, 1, itemIndex);
               const image2 = getSpeakingImageUrl(item, 2, itemIndex);
               const question1 = pickTextValue(item, ['question1', 'question_1', 'q1', 'prompt1', 'prompt_1', 'compareQuestion'], 'Describe the picture?');
@@ -5188,6 +5326,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
 }) {
   const [recordedAudio, setRecordedAudio] = useState<Blob | null>(null);
   const questions = Array.isArray(data.questions) ? data.questions : [];
+  const topicFilter = useSpeakingTopicFilter(questions);
   const mode = saved.speakingPart4Mode ?? 'intro';
   const openAnswer = saved.speakingPart4OpenAnswer ?? '';
   const index = Math.min(Math.max(Number(saved.speakingPart4Index ?? 0), 0), Math.max(questions.length - 1, 0));
@@ -5333,6 +5472,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
           <ListChecks className="text-brand-600" size={24} />
           Speaking Part 4 - Danh sách câu hỏi
         </h1>
+        <SpeakingTopicFilter {...topicFilter} total={questions.length} />
         <div className="overflow-hidden rounded-xl border border-slate-300 bg-white shadow-soft">
           <table className="w-full border-collapse text-sm">
             <thead className="bg-sky-50 text-left">
@@ -5343,7 +5483,7 @@ function SpeakingPart4Renderer({ data, saved, setAnswer, patchAnswers }: {
               </tr>
             </thead>
             <tbody>
-              {questions.map((question: any, index: number) => {
+              {topicFilter.visibleQuestions.map(({ item: question, index }) => {
                 const isOpen = openAnswer === String(index);
                 return (
                   <Fragment key={`${question.question}-${index}`}>

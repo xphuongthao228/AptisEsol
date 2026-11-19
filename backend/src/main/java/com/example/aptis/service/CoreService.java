@@ -1396,7 +1396,9 @@ public class CoreService {
             q.setScriptText(paragraph);
             q.setContent(buildListeningPart4Template(record, q));
         } else {
-            q.setContent(requiredCsv(record, "content"));
+            q.setContent(speakingTemplate
+                    ? applySpeakingTopicGroup(record, requiredCsv(record, "content"))
+                    : requiredCsv(record, "content"));
         }
 
         if (q.getType() != QuestionType.TEXT && q.getType() != QuestionType.SPEAKING) {
@@ -1417,6 +1419,42 @@ public class CoreService {
             }
         }
         return q;
+    }
+
+    private String applySpeakingTopicGroup(CSVRecord record, String content) {
+        ObjectNode topicFields = speakingTopicFields(record);
+        if (topicFields.isEmpty()) return content;
+
+        JsonNode data;
+        try {
+            data = objectMapper.readTree(content);
+        } catch (com.fasterxml.jackson.core.JsonProcessingException ex) {
+            throw new IllegalArgumentException("Speaking content must be valid JSON", ex);
+        }
+        if (!(data instanceof ObjectNode template) || !isSpeakingTemplateType(data.path("template").asText())) {
+            return content;
+        }
+
+        JsonNode items = data.path("questions");
+        if (items.isArray()) {
+            for (JsonNode item : items) {
+                if (item instanceof ObjectNode question) question.setAll(topicFields);
+            }
+        } else {
+            template.setAll(topicFields);
+        }
+        return data.toString();
+    }
+
+    private ObjectNode speakingTopicFields(CSVRecord record) {
+        ObjectNode fields = objectMapper.createObjectNode();
+        String group = csv(record, "topic_group", "").trim();
+        if (group.isEmpty()) return fields;
+        fields.put("topic_group", group);
+        for (String key : List.of("topic_group_order", "question_order_in_topic")) {
+            if (!csv(record, key, "").isBlank()) fields.put(key, parseInteger(record, key, 0));
+        }
+        return fields;
     }
 
     private boolean isListeningPart1Type(String rawType) {
@@ -1521,16 +1559,16 @@ public class CoreService {
             question3 = "Give your opinion.";
         }
 
-        return "{"
-                + "\"urlpic1\":" + json(urlpic1) + ","
-                + "\"urlpic2\":" + json(urlpic2) + ","
-                + "\"question1\":" + json(question1) + ","
-                + "\"question1_answer\":" + json(answer1) + ","
-                + "\"question2\":" + json(question2) + ","
-                + "\"question2_answer\":" + json(answer2) + ","
-                + "\"question3\":" + json(question3) + ","
-                + "\"question3_answer\":" + json(answer3)
-                + "}";
+        return speakingTopicFields(record)
+                .put("urlpic1", urlpic1)
+                .put("urlpic2", urlpic2)
+                .put("question1", question1)
+                .put("question1_answer", answer1)
+                .put("question2", question2)
+                .put("question2_answer", answer2)
+                .put("question3", question3)
+                .put("question3_answer", answer3)
+                .toString();
     }
 
     private String buildSpeakingPart3Template(int total, List<String> items) {

@@ -6,7 +6,8 @@ import { api, unwrap } from '../../api/client';
 import type { Test } from '../../types';
 
 type CsvRow = Record<string, string>;
-type Prepared = { part: number; topic: string; content: string };
+const topicColumns = ['topic_group', 'topic_group_order', 'question_order_in_topic'] as const;
+type Prepared = { part: number; topic: string; content: string; topicFields: string[] };
 const columns = ['part', 'topic', 'question', 'answer1', 'answer2', 'urlpic1', 'urlpic2', 'question1', 'question1_answer', 'question2', 'question2_answer', 'question3', 'question3_answer'];
 const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
 function csv(rows: unknown[][]) { return rows.map(row => row.map(cell).join(',')).join('\r\n'); }
@@ -52,7 +53,12 @@ function prepare(rows: CsvRow[]): Prepared[] {
     if (data.template !== `SPEAKING_PART${selectedPart}`) throw new Error(`Dòng ${index + 2}: template Speaking không hợp lệ.`);
     const items = Array.isArray(data.questions) ? data.questions : [data];
     if (!items.length || items.some(item => !item || typeof item !== 'object' || (selectedPart === 2 || selectedPart === 3 ? [1, 2, 3].some(n => !String(item[`question${n}`] || item[`q${n}`] || '').trim()) : !String(item.question || item.prompt || '').trim()))) throw new Error(`Dòng ${index + 2}: thiếu nội dung câu hỏi trong content.`);
-    return { part: selectedPart, topic: row.topic || `Speaking Part ${selectedPart}`, content: JSON.stringify(data) };
+    return {
+      part: selectedPart,
+      topic: row.topic || `Speaking Part ${selectedPart}`,
+      content: JSON.stringify(data),
+      topicFields: topicColumns.map(column => row[column]?.trim() || '')
+    };
   });
 }
 export function SpeakingCsvImport({ tests, disabled, onBusy, onImported }: { tests: Test[]; disabled: boolean; onBusy: (busy: boolean) => void; onImported: () => Promise<void> }) {
@@ -89,7 +95,7 @@ export function SpeakingCsvImport({ tests, disabled, onBusy, onImported }: { tes
     try {
       // Convert friendly CSV columns into the existing transactional question-import format.
       const form = new FormData();
-      form.append('file', new File([csv([['type', 'topic', 'content', 'points'], ...prepared.map(row => [`SPEAKING_PART${row.part}`, row.topic, row.content, 1])])], 'speaking-import.csv', { type: 'text/csv' }));
+      form.append('file', new File([csv([['type', 'topic', 'content', 'points', ...topicColumns], ...prepared.map(row => [`SPEAKING_PART${row.part}`, row.topic, row.content, 1, ...row.topicFields])])], 'speaking-import.csv', { type: 'text/csv' }));
       await unwrap(api.post(`/questions/import-csv?testId=${testId}`, form));
       await onImported(); setPrepared([]); setName(''); toast.success(`Đã import ${prepared.length} dòng CSV vào bài luyện Speaking.`);
     } catch (e) { setError(e instanceof Error ? e.message : 'Import thất bại.'); } finally { onBusy(false); }
