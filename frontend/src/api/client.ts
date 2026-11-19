@@ -274,23 +274,27 @@ function getJwtExpiresAt(token: string) {
   }
 }
 
+function readErrorMessage(value: unknown): string {
+  if (typeof value === 'string') {
+    const message = value.trim();
+    return message === '[object Object]' ? '' : message;
+  }
+  if (Array.isArray(value)) {
+    return value.map(readErrorMessage).filter(Boolean).join('; ');
+  }
+  if (typeof value !== 'object' || value === null) return '';
+
+  const payload = value as Record<string, unknown>;
+  return readErrorMessage(payload.message) || readErrorMessage(payload.detail) || readErrorMessage(payload.error);
+}
+
 export async function unwrap<T>(promise: Promise<{ data: ApiResponse<T> }>): Promise<T> {
   try {
     const response = await promise;
     return response.data.data;
   } catch (error) {
     if (axios.isAxiosError<ApiResponse<unknown>>(error)) {
-      const payload = error.response?.data;
-      const payloadRecord = typeof payload === 'object' && payload !== null
-        ? payload as unknown as Record<string, unknown>
-        : null;
-      const message = payloadRecord?.message
-        ? String(payloadRecord.message)
-        : payloadRecord?.error
-          ? String(payloadRecord.error)
-          : typeof payload === 'string'
-            ? payload
-            : '';
+      const message = readErrorMessage(error.response?.data);
 
       if (message) {
         error.message = message;

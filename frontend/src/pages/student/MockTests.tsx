@@ -362,10 +362,10 @@ function cachedSubscriptionResponse(): SubscriptionResponse | null {
 
 function aiScoringError(error: unknown, skill: string) {
   const status = (error as { response?: { status?: number } })?.response?.status;
-  const apiMessage = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+  const message = error instanceof Error ? error.message.trim() : '';
   return status === 403
     ? `Chấm ${skill} AI cần gia hạn tài khoản. Bạn vẫn có thể làm 2 đề miễn phí.`
-    : apiMessage?.trim() || (error instanceof Error && error.message.trim() ? error.message : `Chưa chấm được ${skill} AI. Vui lòng thử lại.`);
+    : message || `Chưa chấm được ${skill} AI. Vui lòng thử lại.`;
 }
 const fullRequiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
 
@@ -3240,6 +3240,7 @@ export function MockTests() {
   const [speakingScore, setSpeakingScore] = useState<AiSpeakingScore | null>(null);
   const [speakingScoreError, setSpeakingScoreError] = useState('');
   const [speakingScoreLoading, setSpeakingScoreLoading] = useState(false);
+  const speakingSubmissionInProgressRef = useRef(false);
   const [grammarQuestionIndex, setGrammarQuestionIndex] = useState(() => readGrammarQuestionIndex(searchParams.get('grammarQuestion')));
   const [grammarSeconds, setGrammarSeconds] = useState(25 * 60);
   const [grammarAnswers, setGrammarAnswers] = useState<Record<number, string>>({});
@@ -4259,21 +4260,24 @@ export function MockTests() {
   }
 
   async function submitSpeakingForAi(nextScreen?: SpeakingScreen) {
-    const recordings = await finalizeActiveSpeakingRecording();
-    if (subscription && !subscription.active) {
-      setSpeakingScore(null);
-      setSpeakingScoreError('Bạn đã hoàn thành phần Speaking. Chấm AI cần gia hạn tài khoản.');
-      setScreen(nextScreen ?? 'complete');
-      return;
-    }
-    const payload = buildSpeakingScorePayload(recordings);
-
-    setSpeakingScoreLoading(true);
-    setSpeakingScoreError('');
-    setSpeakingScore(null);
-    setScreen('complete');
+    if (speakingSubmissionInProgressRef.current) return;
+    speakingSubmissionInProgressRef.current = true;
 
     try {
+      const recordings = await finalizeActiveSpeakingRecording();
+      if (subscription && !subscription.active) {
+        setSpeakingScore(null);
+        setSpeakingScoreError('Bạn đã hoàn thành phần Speaking. Chấm AI cần gia hạn tài khoản.');
+        setScreen(nextScreen ?? 'complete');
+        return;
+      }
+      const payload = buildSpeakingScorePayload(recordings);
+
+      setSpeakingScoreLoading(true);
+      setSpeakingScoreError('');
+      setSpeakingScore(null);
+      setScreen('complete');
+
       const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score-audio', payload.formData, {
         timeout: 180_000
       }));
@@ -4286,8 +4290,9 @@ export function MockTests() {
       if (!nextScreen) {
         toast.error(message.includes('Cannot deserialize') ? 'AI Speaking đang tạm bận. Bạn thử chấm lại sau ít phút nhé.' : message);
       }
-      if (nextScreen) setScreen(nextScreen);
+      setScreen(nextScreen ?? 'complete');
     } finally {
+      speakingSubmissionInProgressRef.current = false;
       setSpeakingScoreLoading(false);
     }
   }

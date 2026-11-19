@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -28,6 +29,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -63,6 +67,7 @@ public class AiScoringService {
     private RestClient deepSeekClient;
     private RestClient transcriptionClient;
     private Semaphore aiRequestSemaphore;
+    private ExecutorService speakingTranscriptionExecutor;
 
     @PostConstruct
     void initHttpClient() {
@@ -75,6 +80,12 @@ public class AiScoringService {
                 .defaultHeader(HttpHeaders.AUTHORIZATION, "Bearer " + blankToEmpty(transcriptionApiKey))
                 .build();
         this.aiRequestSemaphore = new Semaphore(Math.max(1, maxConcurrentRequests));
+        this.speakingTranscriptionExecutor = Executors.newFixedThreadPool(2);
+    }
+
+    @PreDestroy
+    void stopSpeakingTranscriptionExecutor() {
+        speakingTranscriptionExecutor.shutdown();
     }
 
     public JsonNode translateListeningReview(String source) {
@@ -337,7 +348,12 @@ public class AiScoringService {
     }
 
     public AiDtos.SpeakingScoreResponse scoreSpeaking(AiDtos.SpeakingScoreRequest request, List<MultipartFile> audioFiles) {
+        long transcriptionStarted = System.nanoTime();
         AiDtos.SpeakingScoreRequest requestWithAudio = attachAudioMetadata(request, audioFiles);
+        if (audioFiles != null && !audioFiles.isEmpty()) {
+            log.info("Speaking audio processing completed: files={}, durationMs={}",
+                    audioFiles.size(), TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - transcriptionStarted));
+        }
         if (requestWithAudio.parts().stream().noneMatch(this::hasScorableSpeakingAudio)) {
             return fallbackSpeakingScore(requestWithAudio);
         }
@@ -362,9 +378,14 @@ public class AiScoringService {
                 .sum();
         log.info("Submitting Speaking to DeepSeek: parts={}, recognizedParts={}, transcriptChars={}",
                 requestWithAudio.parts().size(), recognizedParts, transcriptChars);
-        String content = chatJson(
-                "You are an Aptis ESOL Speaking examiner. Return only valid JSON.",
-                prompt);
+        long scoringStarted = System.nanoTime();
+        String content;
+        try {
+            content = chatJson("You are an Aptis ESOL Speaking examiner. Return only valid JSON.", prompt);
+        } finally {
+            log.info("Speaking DeepSeek request ended: durationMs={}",
+                    TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - scoringStarted));
+        }
 
         try {
             AiDtos.SpeakingScoreResponse result = objectMapper.treeToValue(
@@ -389,34 +410,46 @@ public class AiScoringService {
             }
         }
 
-        List<AiDtos.SpeakingPartRequest> parts = new ArrayList<>();
+        boolean useFileNames = request.parts().stream().anyMatch(part -> !blankToEmpty(part.audioFileName()).isBlank());
+        boolean transcribe = transcriptionApiKey != null && !transcriptionApiKey.isBlank();
+        List<CompletableFuture<AiDtos.SpeakingPartRequest>> parts = new ArrayList<>();
         for (int i = 0; i < request.parts().size(); i++) {
             AiDtos.SpeakingPartRequest part = request.parts().get(i);
             MultipartFile file = filesByName.get(blankToEmpty(part.audioFileName()));
-            if (file == null && i < audioFiles.size()) {
+            if (file == null && !useFileNames && i < audioFiles.size()
+                    && !"[NO_AUDIO_FILE_SUBMITTED]".equals(part.transcript())) {
                 file = audioFiles.get(i);
             }
             if (file == null || file.isEmpty()) {
-                parts.add(new AiDtos.SpeakingPartRequest(
+                parts.add(CompletableFuture.completedFuture(new AiDtos.SpeakingPartRequest(
                         part.title(),
                         part.prompt(),
                         "[NO_AUDIO_FILE_SUBMITTED]",
                         null,
                         null,
-                        0L));
+                        0L)));
                 continue;
             }
 
-            String audioTranscript = transcribeAudioSafely(file);
-            parts.add(new AiDtos.SpeakingPartRequest(
-                    part.title(),
-                    part.prompt(),
-                    normalizeAudioTranscript(firstNonBlank(audioTranscript, part.transcript())),
-                    blankToEmpty(file.getOriginalFilename()),
-                    blankToEmpty(file.getContentType()),
-                    file.getSize()));
+            MultipartFile matchedFile = file;
+            parts.add(transcribe
+                    ? CompletableFuture.supplyAsync(
+                            () -> withSpeakingAudio(part, matchedFile, transcribeAudioSafely(matchedFile)),
+                            speakingTranscriptionExecutor)
+                    : CompletableFuture.completedFuture(withSpeakingAudio(part, matchedFile, "")));
         }
-        return new AiDtos.SpeakingScoreRequest(parts);
+        return new AiDtos.SpeakingScoreRequest(parts.stream().map(CompletableFuture::join).toList());
+    }
+
+    private AiDtos.SpeakingPartRequest withSpeakingAudio(
+            AiDtos.SpeakingPartRequest part, MultipartFile file, String audioTranscript) {
+        return new AiDtos.SpeakingPartRequest(
+                part.title(),
+                part.prompt(),
+                normalizeAudioTranscript(firstNonBlank(audioTranscript, part.transcript())),
+                blankToEmpty(file.getOriginalFilename()),
+                blankToEmpty(file.getContentType()),
+                file.getSize());
     }
 
     private String transcribeAudioSafely(MultipartFile file) {
