@@ -363,9 +363,20 @@ function cachedSubscriptionResponse(): SubscriptionResponse | null {
 function aiScoringError(error: unknown, skill: string) {
   const status = (error as { response?: { status?: number } })?.response?.status;
   const message = error instanceof Error ? error.message.trim() : '';
-  return status === 403
-    ? `Chấm ${skill} AI cần gia hạn tài khoản. Bạn vẫn có thể làm 2 đề miễn phí.`
-    : message || `Chưa chấm được ${skill} AI. Vui lòng thử lại.`;
+  if (status === 403) return `Chấm ${skill} AI cần gia hạn tài khoản. Bạn vẫn có thể làm 2 đề miễn phí.`;
+  if (skill === 'Speaking' && status === 413) return 'Bản ghi âm vượt giới hạn tải lên.';
+  if (skill === 'Speaking' && (
+    status === 502 || status === 503 || status === 504 ||
+    /An error occurred with this application|Cannot deserialize/i.test(message)
+  )) return 'Máy chủ chấm Speaking AI chưa phản hồi. Vui lòng thử chấm lại.';
+  return message || `Chưa chấm được ${skill} AI. Vui lòng thử lại.`;
+}
+
+function speakingRecordingFilename(key: string, recording?: Blob) {
+  const mimeType = recording?.type.split(';')[0].toLowerCase();
+  const extension = mimeType === 'audio/mp4' || mimeType === 'video/mp4' ? 'mp4'
+    : mimeType === 'audio/ogg' ? 'ogg' : mimeType === 'audio/wav' ? 'wav' : 'webm';
+  return `${key}.${extension}`;
 }
 const fullRequiredSkills: Array<Exclude<MockSkill, 'FULL'>> = ['SPEAKING', 'LISTENING', 'GRAMMAR', 'READING', 'WRITING'];
 
@@ -3252,6 +3263,7 @@ export function MockTests() {
   const [speakingSoundEnabled, setSpeakingSoundEnabled] = useState(true);
   const [microphoneLevel, setMicrophoneLevel] = useState(0);
   const [speakingRecordings, setSpeakingRecordings] = useState<Record<string, Blob>>({});
+  const hasSpeakingRecording = Object.values(speakingRecordings).some(recording => recording.size > 0);
   const [speakingDraftOpen, setSpeakingDraftOpen] = useState(false);
   const [speakingDraftText, setSpeakingDraftText] = useState('');
   const [speakingDraftLevel, setSpeakingDraftLevel] = useState<DraftLevel>('B1');
@@ -3463,7 +3475,7 @@ export function MockTests() {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const recorder = new MediaRecorder(stream);
+      const recorder = new MediaRecorder(stream, { audioBitsPerSecond: 48_000 });
       const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
       const audioContext = AudioContextClass ? new AudioContextClass() : null;
       const analyser = audioContext?.createAnalyser();
@@ -4236,7 +4248,7 @@ export function MockTests() {
 
     const parts: SpeakingScorePartPayload[] = items.map((item) => {
       const recording = recordings[item.key];
-      const fileName = `${item.key}.webm`;
+      const fileName = speakingRecordingFilename(item.key, recording);
       return {
         title: item.title,
         prompt: item.prompt,
@@ -4252,7 +4264,7 @@ export function MockTests() {
     items.forEach((item) => {
       const blob = recordings[item.key];
       if (blob && blob.size > 0) {
-        formData.append('files', new File([blob], `${item.key}.webm`, { type: blob.type || 'audio/webm' }));
+        formData.append('files', new File([blob], speakingRecordingFilename(item.key, blob), { type: blob.type || 'audio/webm' }));
       }
     });
 
@@ -4276,7 +4288,7 @@ export function MockTests() {
       setSpeakingScoreLoading(true);
       setSpeakingScoreError('');
       setSpeakingScore(null);
-      setScreen('complete');
+      setScreen(current => current === 'fullResult' ? current : 'complete');
 
       const result = await unwrap<AiSpeakingScore>(api.post('/ai/speaking/score-audio', payload.formData, {
         timeout: 180_000
@@ -4284,12 +4296,9 @@ export function MockTests() {
       setSpeakingScore(sanitizeSpeakingScore(result, payload.parts));
       if (nextScreen) setScreen(nextScreen);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Không chấm được Speaking.';
+      const message = aiScoringError(error, 'Speaking');
       setSpeakingScore(null);
-      setSpeakingScoreError(aiScoringError(error, 'Speaking'));
-      if (!nextScreen) {
-        toast.error(message.includes('Cannot deserialize') ? 'AI Speaking đang tạm bận. Bạn thử chấm lại sau ít phút nhé.' : message);
-      }
+      setSpeakingScoreError(message);
       setScreen(nextScreen ?? 'complete');
     } finally {
       speakingSubmissionInProgressRef.current = false;
@@ -4917,6 +4926,8 @@ export function MockTests() {
               totalScore={fullTotalScore}
               writing={writingScore}
               speakingError={speakingScoreError}
+              speakingLoading={speakingScoreLoading}
+              onRescoreSpeaking={hasSpeakingRecording ? () => void submitSpeakingForAi('fullResult') : undefined}
               writingError={writingScoreError}
               onExit={() => { void returnToDashboard(); }}
               onRetry={() => openFullTest()}
@@ -5161,6 +5172,7 @@ export function MockTests() {
           )}
           {screen === 'complete' && (
             <SpeakingComplete
+              canRescore={hasSpeakingRecording}
               error={speakingScoreError}
               loading={speakingScoreLoading}
               onExit={requestAssessmentExit}
@@ -5168,7 +5180,7 @@ export function MockTests() {
                 resetSpeakingSection();
                 setScreen('instructions');
               }}
-              onScore={submitSpeakingForAi}
+              onScore={() => void submitSpeakingForAi()}
               result={speakingScore}
             />
           )}
@@ -8419,6 +8431,8 @@ function FullResult({
   totalScore,
   writing,
   speakingError,
+  speakingLoading,
+  onRescoreSpeaking,
   writingError,
   onExit,
   onRetry
@@ -8432,6 +8446,8 @@ function FullResult({
   totalScore: number;
   writing: AiWritingScore | null;
   speakingError: string;
+  speakingLoading: boolean;
+  onRescoreSpeaking?: () => void;
   writingError: string;
   onExit: () => void;
   onRetry: () => void;
@@ -8499,6 +8515,17 @@ function FullResult({
               </div>
             </section>
 
+            {(speakingLoading || speakingError) && (
+              <div className="mt-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 p-4">
+                {speakingLoading
+                  ? <p role="status" className="text-sm font-semibold text-slate-700">Đang chấm lại Speaking…</p>
+                  : <p role="alert" className="text-sm font-semibold text-red-700">{speakingError}</p>}
+                {onRescoreSpeaking && (
+                  <button type="button" onClick={onRescoreSpeaking} disabled={speakingLoading} className="btn-primary disabled:opacity-50">Chấm lại Speaking</button>
+                )}
+              </div>
+            )}
+
             <p className="mt-7 border-t border-slate-200 pt-5 text-xs leading-5 text-slate-500">Kết quả luyện tập do Aptis Lingo phát hành để theo dõi tiến độ học. Đây không phải chứng chỉ Aptis ESOL chính thức. Điểm biên CEFR được xét thêm bằng điểm Grammar & Vocabulary.</p>
 
             {writing && (
@@ -8547,7 +8574,7 @@ function FullResult({
               <ArrowLeft size={18} />
               Thoát
             </button>
-            <button type="button" onClick={onRetry} style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#2b075c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
+            <button type="button" onClick={onRetry} disabled={speakingLoading} className="disabled:opacity-50" style={{ height: 44, display: 'inline-flex', alignItems: 'center', gap: 10, border: 0, borderRadius: 12, backgroundColor: '#2b075c', padding: '0 18px', color: '#ffffff', fontSize: 16, fontWeight: 800 }}>
               <RotateCcw size={18} />
               Làm lại Full Test
             </button>
@@ -10151,7 +10178,8 @@ function MicTestPanel({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: {
+function SpeakingComplete({ canRescore, error, loading, onExit, onRetry, onScore, result }: {
+  canRescore: boolean;
   error: string;
   loading: boolean;
   onExit: () => void;
@@ -10182,7 +10210,7 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
             <p className="mt-2 text-center text-sm font-extrabold text-red-600">Đang chấm bài, vui lòng không thao tác gì cho đến khi có kết quả.</p>
           </>
         )}
-        {error && <div className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</div>}
+        {error && <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700">{error}</div>}
         {result && (
           <div className="mt-8 space-y-5">
             <div className="rounded-xl border border-brand-100 bg-sky-50 p-5">
@@ -10281,7 +10309,10 @@ function SpeakingComplete({ error, loading, onExit, onRetry, onScore, result }: 
           </div>
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
-          <button type="button" onClick={onRetry} className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-extrabold text-slate-700 hover:bg-sky-50">Practice again</button>
+          {error && canRescore && !loading && (
+            <button type="button" onClick={onScore} className="h-11 rounded-xl bg-[#2b075c] px-5 text-sm font-extrabold text-white hover:bg-violet-900">Chấm lại bản ghi</button>
+          )}
+          <button type="button" onClick={onRetry} disabled={loading} className="h-11 rounded-xl border border-slate-300 px-5 text-sm font-extrabold text-slate-700 hover:bg-sky-50 disabled:opacity-50">Practice again</button>
           <button type="button" onClick={onExit} className="h-11 rounded-xl bg-[#071426] px-5 text-sm font-extrabold text-white hover:bg-slate-800">Exit</button>
         </div>
       </section>
